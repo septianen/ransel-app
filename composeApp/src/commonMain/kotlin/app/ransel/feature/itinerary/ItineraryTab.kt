@@ -68,6 +68,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.domain.Slot
+import app.ransel.shared.domain.endsNextDay
 import app.ransel.shared.domain.reorder
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.TripDto
@@ -105,6 +106,7 @@ import ransel.composeapp.generated.resources.itinerary_empty_body
 import ransel.composeapp.generated.resources.itinerary_empty_title
 import ransel.composeapp.generated.resources.itinerary_schedule
 import ransel.composeapp.generated.resources.itinerary_unscheduled
+import ransel.composeapp.generated.resources.itinerary_until_next_day
 import ransel.composeapp.generated.resources.itinerary_unscheduled_see_all
 import ransel.composeapp.generated.resources.list_and
 import ransel.composeapp.generated.resources.reorder_body
@@ -470,6 +472,10 @@ private fun TimelineRow(
         dragging && shownStart != null && minutes != null ->
             stringResource(Res.string.itinerary_drag_start, formatTime(shownStart), formatDurationShort(minutes))
         showDuration && minutes != null -> "$label · ${formatDurationShort(minutes)}"
+        endsNextDay(shownStart, shownEnd) -> {
+            val what = item.placeName?.takeIf { it.isNotBlank() } ?: label
+            what + " · " + stringResource(Res.string.itinerary_until_next_day, formatTime(shownEnd!!))
+        }
         else -> item.placeName?.takeIf { it.isNotBlank() } ?: label
     }
 

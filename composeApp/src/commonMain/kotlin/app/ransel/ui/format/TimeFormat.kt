@@ -1,6 +1,7 @@
 package app.ransel.ui.format
 
 import androidx.compose.runtime.Composable
+import app.ransel.shared.domain.activityDurationMinutes
 import kotlinx.datetime.LocalTime
 import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
@@ -43,8 +44,5 @@ fun formatDurationShort(minutes: Int): String {
 @Composable
 fun formatDurationApprox(minutes: Int): String = stringResource(Res.string.duration_approx, formatDuration(minutes))
 
-fun durationMinutes(start: LocalTime?, end: LocalTime?): Int? {
-    if (start == null || end == null) return null
-    val d = (end.hour * 60 + end.minute) - (start.hour * 60 + start.minute)
-    return d.takeIf { it > 0 }
-}
+fun durationMinutes(start: LocalTime?, end: LocalTime?): Int? =
+    activityDurationMinutes(start, end)?.takeIf { it > 0 }

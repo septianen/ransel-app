@@ -56,7 +56,8 @@ import ransel.composeapp.generated.resources.activity_day
 import ransel.composeapp.generated.resources.activity_day_unscheduled
 import ransel.composeapp.generated.resources.activity_delete
 import ransel.composeapp.generated.resources.activity_duration
-import ransel.composeapp.generated.resources.activity_end_before_start
+import ransel.composeapp.generated.resources.activity_ends_next_day
+import ransel.composeapp.generated.resources.activity_next_day_tag
 import ransel.composeapp.generated.resources.activity_form_add_title
 import ransel.composeapp.generated.resources.activity_form_edit_title
 import ransel.composeapp.generated.resources.activity_notes
@@ -191,22 +192,17 @@ fun ActivityFormScreen(
                     TimeButton(
                         label = stringResource(Res.string.activity_time_end),
                         time = state.end,
+                        badge = if (state.endsNextDay) stringResource(Res.string.activity_next_day_tag) else null,
                         modifier = Modifier.weight(1f),
                         onClick = { pickingTime = TimeTarget.END },
                     )
                 }
                 state.durationMin?.let {
+                    val duration = stringResource(Res.string.activity_duration, formatDuration(it))
                     Text(
-                        stringResource(Res.string.activity_duration, formatDuration(it)),
+                        if (state.endsNextDay) duration + " · " + stringResource(Res.string.activity_ends_next_day) else duration,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (state.timeError) {
-                    Text(
-                        stringResource(Res.string.activity_end_before_start),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
                     )
                 }
                 if (state.start != null || state.end != null) {
@@ -296,7 +292,13 @@ private fun ChoiceChip(selected: Boolean, onClick: () -> Unit, title: String, su
 }
 
 @Composable
-private fun TimeButton(label: String, time: LocalTime?, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun TimeButton(
+    label: String,
+    time: LocalTime?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    badge: String? = null,
+) {
     Row(
         modifier
             .heightIn(min = 48.dp)
@@ -313,6 +315,17 @@ private fun TimeButton(label: String, time: LocalTime?, onClick: () -> Unit, mod
             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
             modifier = Modifier.weight(1f),
         )
+        if (badge != null) {
+            Text(
+                badge,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier
+                    .clip(IrisShape.xs)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
         Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

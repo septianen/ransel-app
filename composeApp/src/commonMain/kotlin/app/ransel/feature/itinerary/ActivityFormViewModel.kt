@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.TripRepository
+import app.ransel.shared.domain.activityDurationMinutes
+import app.ransel.shared.domain.endsNextDay
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.TripDto
@@ -41,13 +43,9 @@ data class ActivityFormState(
     val saving: Boolean = false,
 ) {
     val titleError: Boolean get() = showErrors && title.isBlank()
-    val timeError: Boolean get() = start != null && end != null && end < start
-    val durationMin: Int?
-        get() = if (start != null && end != null && end >= start) {
-            ((end.hour * 60 + end.minute) - (start.hour * 60 + start.minute)).takeIf { it > 0 }
-        } else {
-            null
-        }
+    /** End earlier than start = the activity ends the next day (23:00–01:00 = 2 h). */
+    val endsNextDay: Boolean get() = endsNextDay(start, end)
+    val durationMin: Int? get() = activityDurationMinutes(start, end)?.takeIf { it > 0 }
 }
 
 sealed interface ActivityFormEvent {
@@ -102,7 +100,7 @@ class ActivityFormViewModel(
     fun save() {
         val s = _state.value
         if (s.saving) return
-        if (s.title.isBlank() || s.timeError) {
+        if (s.title.isBlank()) {
             _state.update { it.copy(showErrors = true) }
             return
         }

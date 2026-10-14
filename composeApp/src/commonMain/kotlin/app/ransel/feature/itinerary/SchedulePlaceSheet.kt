@@ -215,7 +215,8 @@ fun SchedulePlaceSheet(
     }
 }
 
+/** End time for a start plus a duration; past midnight it wraps (the activity ends the next day). */
 private fun addMinutes(time: LocalTime, minutes: Int): LocalTime {
-    val total = (time.hour * 60 + time.minute + minutes).coerceAtMost(23 * 60 + 59)
+    val total = (time.hour * 60 + time.minute + minutes) % (24 * 60)
     return LocalTime(total / 60, total % 60)
 }

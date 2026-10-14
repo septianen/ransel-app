@@ -57,6 +57,20 @@ Scheduling opens a bottom sheet: pick a day (2×2 cards with the number of activ
 | Drag handle | `drag_indicator` 24dp `outline` #777777 at the end of the row |
 | Spacing | Time column to tile 12dp; tile to title 12dp; between activities 16dp |
 
+## Activities that cross midnight
+
+An activity belongs to the day it **starts** (`day_date`). If its end time is earlier than its start time it ends on the **next day**: "Otw ke Bali" 23:00 – 01:00 is one record with `start_time = 23:00`, `end_time = 01:00` on the day it starts, and lasts 2 h. Equal times mean zero duration; a span is always under 24 h (longer spans would need an explicit end-day field and are out of scope).
+
+| Where | Behaviour |
+| --- | --- |
+| Form | End before start is valid. The end time shows a `+1` tag and the caption "Durasi 2 jam · selesai hari berikutnya". |
+| Timeline row | Subtitle gets "· sampai 01.00 (+1)". The item appears only on the day it starts. |
+| Reorder | Durations come from `activityDurationMinutes` (wraps), so an overnight item keeps its length. A start is never moved past 23:59; an end may wrap. |
+| Schedule at end of day | An overnight item counts as ending after midnight, so the next place starts at 23:59 (clamped) and may itself end after midnight. |
+| Editing 23:00–01:00 → 21:00–23:00 | Same record; it becomes an ordinary same-day activity (the `+1` goes away) and is re-slotted by start time. |
+
+Code: `shared/domain/Itinerary.kt` (`activityDurationMinutes`, `endsNextDay`).
+
 ## Dark theme
 
 Every tile uses a bold color (`accent-*`) with a white icon, and those values are the same in both themes. No special dark values are needed.

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.shared.domain.Slot
+import app.ransel.shared.domain.activityDurationMinutes
 import app.ransel.shared.domain.changedSlots
 import app.ransel.shared.domain.reorder
 import app.ransel.shared.domain.scheduleAtEndOfDay
@@ -217,9 +218,7 @@ class ItineraryViewModel(
     }
 
     private fun durationOf(item: ItineraryItemDto): Int? =
-        item.durationMin
-            ?: item.startTime?.let { s -> item.endTime?.let { e -> (e.hour * 60 + e.minute) - (s.hour * 60 + s.minute) } }
-                ?.takeIf { it > 0 }
+        item.durationMin ?: activityDurationMinutes(item.startTime, item.endTime)?.takeIf { it > 0 }
 }
 
 fun ItineraryItemDto.toInput() = ItineraryItemInput(

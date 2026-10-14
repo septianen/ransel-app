@@ -280,7 +280,6 @@
     <string name="activity_booking">Booking link</string>
     <string name="activity_save">Save activity</string>
     <string name="activity_delete">Delete activity</string>
-    <string name="activity_end_before_start">End time must be after start time</string>
     <string name="time_picker_title">Select time</string>
     <string name="action_ok">OK</string>
     <string name="debug_seed_sample">Load sample trip (debug)</string>
@@ -366,4 +365,7 @@
     <string name="language_sheet_title">Language</string>
     <string name="language_sheet_hint">Applies right away on this device.</string>
     <string name="debug_show_onboarding">Show onboarding again (debug)</string>
+    <string name="activity_next_day_tag">+1</string>
+    <string name="activity_ends_next_day">ends the next day</string>
+    <string name="itinerary_until_next_day">until %1$s (+1)</string>
 </resources>
