@@ -284,4 +284,50 @@
     <string name="time_picker_title">Pilih jam</string>
     <string name="action_ok">OK</string>
     <string name="debug_seed_sample">Isi trip contoh (debug)</string>
+
+    <!-- Packing -->
+    <string name="packing_progress_title">Siap dibawa</string>
+    <string name="packing_progress_count">%1$d dari %2$d barang</string>
+    <string name="packing_departs">Berangkat %1$s</string>
+    <string name="packing_complete">Lengkap</string>
+    <string name="packing_empty_title">Ranselmu masih kosong</string>
+    <string name="packing_empty_body">Belum ada barang untuk %1$s. Tambahkan barang pertama, nanti dicentang satu per satu saat packing.</string>
+    <string name="packing_add">Tambah barang</string>
+    <string name="packing_sheet_edit_title">Edit barang</string>
+    <string name="packing_sheet_subtitle">%1$s · %2$d barang</string>
+    <string name="packing_name">Nama barang</string>
+    <string name="packing_quantity">Jumlah</string>
+    <string name="packing_quantity_hint">Ditampilkan sebagai ×%1$d di daftar</string>
+    <string name="packing_quantity_decrease">Kurangi</string>
+    <string name="packing_quantity_increase">Tambah</string>
+    <string name="packing_add_another">Tambah lagi</string>
+    <string name="packing_save">Simpan</string>
+    <string name="packing_add_another_hint">"Tambah lagi" menyimpan barang ini lalu mengosongkan nama, kategori tetap.</string>
+    <string name="packing_uncheck_all">Hapus semua centang</string>
+    <string name="packing_delete_item">Hapus barang</string>
+    <string name="packing_menu">Opsi lainnya</string>
+
+    <!-- Expenses -->
+    <string name="budget_spent">Terpakai %1$s (%2$s)</string>
+    <string name="budget_total">Budget %1$s</string>
+    <string name="budget_total_spent">Total terpakai</string>
+    <string name="expenses_by_category">Per kategori</string>
+    <string name="expenses_transactions">Transaksi</string>
+    <string name="expenses_before_trip">Sebelum berangkat</string>
+    <string name="expenses_record">Catat pengeluaran</string>
+    <string name="expenses_empty_title">Dompetmu masih utuh</string>
+    <string name="expenses_empty_body">Belum ada pengeluaran untuk %1$s. Catat setiap pengeluaran supaya sisa budget selalu terpantau.</string>
+    <string name="expenses_donut_description">Pengeluaran per kategori</string>
+    <string name="expense_sheet_edit_title">Edit pengeluaran</string>
+    <string name="expense_amount">Nominal</string>
+    <string name="expense_change_currency">Ganti mata uang</string>
+    <string name="expense_note">Catatan</string>
+    <string name="expense_date">Tanggal</string>
+    <string name="expense_paid_with">Bayar pakai</string>
+    <string name="expense_rate">Kurs ke %1$s</string>
+    <string name="expense_rate_hint">1 %1$s = berapa %2$s?</string>
+    <string name="expense_delete">Hapus pengeluaran</string>
+    <string name="expense_error_amount">Masukkan nominal lebih dari nol</string>
+    <string name="expense_error_rate">Isi kurs</string>
+    <string name="expense_sheet_subtitle_day">%1$s · Hari %2$d</string>
 </resources>

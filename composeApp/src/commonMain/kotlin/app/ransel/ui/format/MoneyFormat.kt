@@ -62,3 +62,37 @@ fun formatMoneyCompact(
     val sign = if (amountMinor < 0) "-" else ""
     return "$sign$symbol$number $unit"
 }
+
+/**
+ * Parses text typed in an amount field into minor units of [currency] ("85.000" IDR → 85000,
+ * "12,50" USD → 1250). Both "," and "." are accepted as the decimal separator for currencies that have
+ * decimals; for zero-decimal currencies they are thousand separators and ignored. Returns null for
+ * empty or invalid input.
+ */
+fun parseAmountMinor(text: String, currency: String): Long? {
+    val decimals = currencyDecimals(currency)
+    val cleaned = text.trim().filter { it.isDigit() || it == ',' || it == '.' }
+    if (cleaned.none { it.isDigit() }) return null
+    var scale = 1L
+    repeat(decimals) { scale *= 10 }
+    if (decimals == 0) {
+        return cleaned.filter { it.isDigit() }.toLongOrNull()
+    }
+    val separator = cleaned.indexOfLast { it == ',' || it == '.' }
+    val whole = (if (separator >= 0) cleaned.substring(0, separator) else cleaned).filter { it.isDigit() }
+    val fraction = if (separator >= 0) cleaned.substring(separator + 1).filter { it.isDigit() } else ""
+    val wholePart = (whole.ifEmpty { "0" }).toLongOrNull() ?: return null
+    val fractionPart = fraction.padEnd(decimals, '0').take(decimals).toLongOrNull() ?: 0L
+    return wholePart * scale + fractionPart
+}
+
+/** Inverse of [parseAmountMinor] for pre-filling a field: 85000 IDR → "85000", 1250 USD → "12,50". */
+fun amountToInput(amountMinor: Long, currency: String): String {
+    val decimals = currencyDecimals(currency)
+    if (decimals == 0) return amountMinor.toString()
+    var scale = 1L
+    repeat(decimals) { scale *= 10 }
+    val whole = amountMinor / scale
+    val fraction = (amountMinor % scale).toString().padStart(decimals, '0').trimEnd('0')
+    return if (fraction.isEmpty()) "$whole" else "$whole,$fraction"
+}

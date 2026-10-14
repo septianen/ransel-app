@@ -12,3 +12,12 @@ class MoneyFormatTest {
     @Test fun negativeKeepsSignBeforeSymbol() = assertEquals("-Rp1.500", formatMoney(-1_500, "IDR"))
     @Test fun unknownCurrencyUsesCode() = assertEquals("THB\u00A010,00", formatMoney(1_000, "THB"))
 }
+
+class ParseAmountTest {
+    @kotlin.test.Test fun idrIgnoresSeparators() = assertEquals(85_000L, app.ransel.ui.format.parseAmountMinor("85.000", "IDR"))
+    @kotlin.test.Test fun usdWithComma() = assertEquals(1_250L, app.ransel.ui.format.parseAmountMinor("12,50", "USD"))
+    @kotlin.test.Test fun usdWithDotAndOneDecimal() = assertEquals(1_250L, app.ransel.ui.format.parseAmountMinor("12.5", "USD"))
+    @kotlin.test.Test fun usdWholeNumber() = assertEquals(1_200L, app.ransel.ui.format.parseAmountMinor("12", "USD"))
+    @kotlin.test.Test fun emptyIsNull() = assertEquals(null, app.ransel.ui.format.parseAmountMinor("  ", "IDR"))
+    @kotlin.test.Test fun extraDecimalsAreTruncated() = assertEquals(1_234L, app.ransel.ui.format.parseAmountMinor("12,349", "USD"))
+}

@@ -48,6 +48,7 @@ fun IrisTextField(
     singleLine: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
@@ -107,6 +108,7 @@ fun IrisTextField(
                         }
                         inner()
                     }
+                    trailing?.invoke()
                 }
             },
         )

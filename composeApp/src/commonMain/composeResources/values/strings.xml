@@ -284,4 +284,50 @@
     <string name="time_picker_title">Select time</string>
     <string name="action_ok">OK</string>
     <string name="debug_seed_sample">Load sample trip (debug)</string>
+
+    <!-- Packing -->
+    <string name="packing_progress_title">Ready to carry</string>
+    <string name="packing_progress_count">%1$d of %2$d items</string>
+    <string name="packing_departs">Departure: %1$s</string>
+    <string name="packing_complete">Complete</string>
+    <string name="packing_empty_title">Your backpack is still empty</string>
+    <string name="packing_empty_body">No items for %1$s yet. Add the first item and tick them off while packing.</string>
+    <string name="packing_add">Add item</string>
+    <string name="packing_sheet_edit_title">Edit item</string>
+    <string name="packing_sheet_subtitle">%1$s · %2$d items</string>
+    <string name="packing_name">Item name</string>
+    <string name="packing_quantity">Quantity</string>
+    <string name="packing_quantity_hint">Shown as ×%1$d in the list</string>
+    <string name="packing_quantity_decrease">Decrease</string>
+    <string name="packing_quantity_increase">Increase</string>
+    <string name="packing_add_another">Add another</string>
+    <string name="packing_save">Save</string>
+    <string name="packing_add_another_hint">"Add another" saves this item and clears the name; the category stays.</string>
+    <string name="packing_uncheck_all">Uncheck all</string>
+    <string name="packing_delete_item">Delete item</string>
+    <string name="packing_menu">More options</string>
+
+    <!-- Expenses -->
+    <string name="budget_spent">Spent %1$s (%2$s)</string>
+    <string name="budget_total">Budget %1$s</string>
+    <string name="budget_total_spent">Total spent</string>
+    <string name="expenses_by_category">By category</string>
+    <string name="expenses_transactions">Transactions</string>
+    <string name="expenses_before_trip">Before departure</string>
+    <string name="expenses_record">Record expense</string>
+    <string name="expenses_empty_title">Your wallet is still intact</string>
+    <string name="expenses_empty_body">No expenses for %1$s yet. Record every expense so your remaining budget is always clear.</string>
+    <string name="expenses_donut_description">Spending by category</string>
+    <string name="expense_sheet_edit_title">Edit expense</string>
+    <string name="expense_amount">Amount</string>
+    <string name="expense_change_currency">Change currency</string>
+    <string name="expense_note">Note</string>
+    <string name="expense_date">Date</string>
+    <string name="expense_paid_with">Paid with</string>
+    <string name="expense_rate">Exchange rate to %1$s</string>
+    <string name="expense_rate_hint">1 %1$s = how many %2$s?</string>
+    <string name="expense_delete">Delete expense</string>
+    <string name="expense_error_amount">Enter an amount greater than zero</string>
+    <string name="expense_error_rate">Enter the exchange rate</string>
+    <string name="expense_sheet_subtitle_day">%1$s · Day %2$d</string>
 </resources>

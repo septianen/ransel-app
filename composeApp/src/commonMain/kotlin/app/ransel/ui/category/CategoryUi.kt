@@ -125,3 +125,16 @@ val PaymentMethod.label: StringResource
         PaymentMethod.E_WALLET -> Res.string.payment_method_e_wallet
         PaymentMethod.OTHER -> Res.string.payment_method_other
     }
+
+/** Expenses show "Aktivitas" with a ticket icon (`local_activity`) instead of the itinerary's `attractions`. */
+val Category.expenseSymbol: String
+    get() = if (this == Category.ATTRACTION) Symbols.localActivity else symbol
+
+val PaymentMethod.symbol: String
+    get() = when (this) {
+        PaymentMethod.CASH -> Symbols.payments
+        PaymentMethod.DEBIT_CARD, PaymentMethod.CREDIT_CARD -> Symbols.creditCard
+        PaymentMethod.TRANSFER -> Symbols.accountBalance
+        PaymentMethod.E_WALLET -> Symbols.wallet
+        PaymentMethod.OTHER -> Symbols.moreHoriz
+    }
