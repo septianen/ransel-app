@@ -14,6 +14,7 @@ data class ItineraryItemDto(
     /** null = "Belum dijadwalkan" (Unscheduled). */
     val dayDate: LocalDate? = null,
     val startTime: LocalTime? = null,
+    /** Earlier than [startTime] = the activity ends the next day (23:00–01:00). The day is [dayDate], the day it starts. */
     val endTime: LocalTime? = null,
     val title: String,
     val category: Category = Category.OTHER,
@@ -38,7 +39,8 @@ data class ItineraryItemDto(
  * POST /trips/{id}/itinerary (create) and PUT /trips/{id}/itinerary/{itemId} (replace).
  * Scheduling an unscheduled place = PUT with dayDate + startTime + endTime + sortOrder set
  * (values from domain.scheduleAtEndOfDay).
- * Validation: title not blank; endTime >= startTime when both set; lat/lng both set or both null.
+ * Validation: title not blank; lat/lng both set or both null. endTime may be earlier than startTime:
+ * that means the activity ends the next day (domain.activityDurationMinutes); equal times = zero duration.
  */
 @Serializable
 data class ItineraryItemInput(

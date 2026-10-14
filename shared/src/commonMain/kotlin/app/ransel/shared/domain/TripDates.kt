@@ -16,11 +16,7 @@ fun itemsOutsideRange(items: List<ItineraryItemDto>, start: LocalDate, end: Loca
 
 /** The same item as an unscheduled one: no day, no clock times, `durationMin` from the old times when missing. */
 fun ItineraryItemDto.toUnscheduledInput(): ItineraryItemInput {
-    val minutes = if (startTime != null && endTime != null) {
-        (endTime!!.minutes() - startTime!!.minutes()).takeIf { it > 0 }
-    } else {
-        null
-    }
+    val minutes = activityDurationMinutes(startTime, endTime)?.takeIf { it > 0 }
     return ItineraryItemInput(
         id = id, dayDate = null, startTime = null, endTime = null, title = title, category = category,
         placeName = placeName, placeId = placeId, lat = lat, lng = lng,

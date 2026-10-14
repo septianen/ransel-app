@@ -46,6 +46,35 @@ class DomainTest {
     }
 
     @Test
+    fun overnightActivity_durationWrapsPastMidnight() {
+        assertEquals(120, activityDurationMinutes(t("23:00"), t("01:00")))
+        assertEquals(0, activityDurationMinutes(t("23:30"), t("23:30")))
+        assertEquals(90, activityDurationMinutes(t("10:00"), t("11:30")))
+        assertEquals(null, activityDurationMinutes(t("10:00"), null))
+        assertEquals(true, endsNextDay(t("23:00"), t("01:00")))
+        assertEquals(false, endsNextDay(t("21:00"), t("23:00")))
+    }
+
+    @Test
+    fun reorder_keepsAnOvernightActivitysLength() {
+        // 21:00-22:00 | 23:00-01:00 : moving the overnight one first keeps its 2 h
+        val before = listOf(slot("a", "21:00", "22:00"), slot("b", "23:00", "01:00"))
+        assertEquals(listOf(slot("b", "21:00", "23:00"), slot("a", "23:00", "00:00")), reorder(before, 1, 0))
+    }
+
+    @Test
+    fun schedule_afterAnOvernightActivityIsClampedTo2359() {
+        val day = listOf(slot("x", "23:00", "01:00"))
+        assertEquals(ScheduledTime(t("23:59"), t("01:29")), scheduleAtEndOfDay(day, 90))
+    }
+
+    @Test
+    fun schedule_cannotStartPastMidnightButMayEndAfterIt() {
+        val day = listOf(slot("x", "21:00", "22:30"))
+        assertEquals(ScheduledTime(t("22:30"), t("00:30")), scheduleAtEndOfDay(day, 120))
+    }
+
+    @Test
     fun splitEqually_remainderGoesToPayer() {
         val s = splitEqually(100_000, listOf("a", "b", "c"), payerId = "b")
         assertEquals(mapOf("a" to 33_333L, "b" to 33_334L, "c" to 33_333L), s)

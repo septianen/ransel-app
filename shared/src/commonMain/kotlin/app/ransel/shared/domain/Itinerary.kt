@@ -9,7 +9,9 @@ import kotlinx.datetime.LocalTime
  *    never change; items without a time are only moved.
  *  - schedule a place: end of the chosen day, starting when the last activity ends
  *    (09:00 on an empty day), duration from the AI estimate.
- * Times are clamped to 23:59 so a long day never wraps past midnight.
+ * An activity belongs to the day it starts. An end time earlier than the start time means it ends the
+ * next day (23:00–01:00 = 2 h); equal times mean zero duration; a span is always under 24 h.
+ * A START time is clamped to 23:59, so packing or scheduling never moves a start past midnight.
  */
 
 data class Slot(
@@ -20,6 +22,22 @@ data class Slot(
 
 const val DEFAULT_DAY_START_MINUTES = 9 * 60
 private const val LAST_MINUTE = 23 * 60 + 59
+private const val MINUTES_PER_DAY = 24 * 60
+
+/**
+ * Length of an activity in minutes, wrapping past midnight: 23:00–01:00 = 120, 10:00–10:00 = 0.
+ * Null when either time is missing.
+ */
+fun activityDurationMinutes(start: LocalTime?, end: LocalTime?): Int? {
+    if (start == null || end == null) return null
+    val s = start.minutes()
+    val e = end.minutes()
+    return if (e >= s) e - s else e + MINUTES_PER_DAY - s
+}
+
+/** True when [end] is earlier than [start]: the activity ends on the next day. */
+fun endsNextDay(start: LocalTime?, end: LocalTime?): Boolean =
+    start != null && end != null && end < start
 
 fun reorder(items: List<Slot>, from: Int, to: Int): List<Slot> {
     require(from in items.indices && to in items.indices) { "from/to out of range" }
@@ -35,10 +53,10 @@ fun reorder(items: List<Slot>, from: Int, to: Int): List<Slot> {
     for (i in lo..hi) {
         val slot = moved[i]
         val start = slot.start ?: continue
-        val end = slot.end ?: start
-        val duration = (end.minutes() - start.minutes()).coerceAtLeast(0)
+        val duration = activityDurationMinutes(start, slot.end ?: start) ?: 0
         val newStart = cursor.coerceAtMost(LAST_MINUTE)
-        val newEnd = (cursor + duration).coerceAtMost(LAST_MINUTE)
+        // The end may wrap past midnight (an overnight activity keeps its length).
+        val newEnd = (newStart + duration) % MINUTES_PER_DAY
         moved[i] = slot.copy(start = newStart.toTime(), end = if (slot.end == null) null else newEnd.toTime())
         cursor += duration
     }
@@ -67,12 +85,16 @@ fun scheduleAtEndOfDay(
     emptyDayStart: LocalTime = DEFAULT_DAY_START_MINUTES.toTime(),
     defaultDurationMin: Int = 60,
 ): ScheduledTime {
-    val lastEnd = dayItems.mapNotNull { (it.end ?: it.start)?.minutes() }.maxOrNull()
-    val start = lastEnd ?: emptyDayStart.minutes()
-    val duration = (durationMin ?: defaultDurationMin).coerceAtLeast(0)
+    // An activity that ends the next day counts as ending after midnight, so the next start is clamped.
+    val lastEnd = dayItems.mapNotNull { item ->
+        val end = (item.end ?: item.start)?.minutes() ?: return@mapNotNull null
+        if (endsNextDay(item.start, item.end)) end + MINUTES_PER_DAY else end
+    }.maxOrNull()
+    val start = (lastEnd ?: emptyDayStart.minutes()).coerceAtMost(LAST_MINUTE)
+    val duration = (durationMin ?: defaultDurationMin).coerceIn(0, MINUTES_PER_DAY - 1)
     return ScheduledTime(
-        start = start.coerceAtMost(LAST_MINUTE).toTime(),
-        end = (start + duration).coerceAtMost(LAST_MINUTE).toTime(),
+        start = start.toTime(),
+        end = ((start + duration) % MINUTES_PER_DAY).toTime(),
     )
 }
 
