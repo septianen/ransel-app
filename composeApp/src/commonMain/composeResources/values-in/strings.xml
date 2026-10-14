@@ -1,0 +1,69 @@
+<resources>
+    <string name="app_name">RANSEL</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_home">Beranda</string>
+    <string name="tab_trips">Trip</string>
+    <string name="tab_explore">Jelajah</string>
+    <string name="tab_account">Akun</string>
+    <string name="explore_session_pending">Ada rekomendasi yang belum selesai</string>
+
+    <!-- Trip screens -->
+    <string name="trip_tab_itinerary">Itinerary</string>
+    <string name="trip_tab_packing">Packing</string>
+    <string name="trip_tab_expenses">Pengeluaran</string>
+    <string name="action_back">Kembali</string>
+    <string name="action_members">Anggota trip</string>
+
+    <!-- Common actions -->
+    <string name="action_undo">Urungkan</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_save">Simpan</string>
+    <string name="action_see_all">Lihat semua</string>
+
+    <!-- Budget -->
+    <string name="budget_remaining">Sisa budget</string>
+    <string name="budget_of">dari %1$s</string>
+    <string name="budget_over">Melebihi budget</string>
+    <string name="error_code">Kode: %1$s</string>
+
+    <!-- Itinerary categories -->
+    <string name="itinerary_category_attraction">Wisata</string>
+    <string name="itinerary_category_food">Kuliner</string>
+    <string name="itinerary_category_transport">Perjalanan</string>
+    <string name="itinerary_category_lodging">Menginap</string>
+    <string name="itinerary_category_shopping">Belanja</string>
+    <string name="itinerary_category_other">Lainnya</string>
+
+    <!-- Expense categories -->
+    <string name="expense_category_attraction">Aktivitas</string>
+    <string name="expense_category_food">Makan</string>
+    <string name="expense_category_transport">Transport</string>
+    <string name="expense_category_lodging">Penginapan</string>
+    <string name="expense_category_shopping">Belanja</string>
+    <string name="expense_category_other">Lainnya</string>
+
+    <!-- Packing categories -->
+    <string name="packing_category_clothing">Pakaian</string>
+    <string name="packing_category_documents">Dokumen</string>
+    <string name="packing_category_electronics">Elektronik</string>
+    <string name="packing_category_toiletries">Perlengkapan mandi</string>
+    <string name="packing_category_health">Kesehatan</string>
+    <string name="packing_category_other">Lainnya</string>
+
+    <!-- Payment methods -->
+    <string name="payment_method_cash">Tunai</string>
+    <string name="payment_method_debit_card">Kartu debit</string>
+    <string name="payment_method_credit_card">Kartu kredit</string>
+    <string name="payment_method_transfer">Transfer bank</string>
+    <string name="payment_method_e_wallet">E-wallet</string>
+    <string name="payment_method_other">Lainnya</string>
+
+    <!-- Placeholder tabs -->
+    <string name="placeholder_home_title">Mau ke mana berikutnya?</string>
+    <string name="placeholder_trips_title">Trip saya</string>
+    <string name="placeholder_explore_title">Jelajah</string>
+    <string name="placeholder_account_title">Akun</string>
+    <string name="placeholder_body">Layar ini hadir di langkah berikutnya.</string>
+    <string name="debug_component_gallery">Galeri komponen (debug)</string>
+</resources>

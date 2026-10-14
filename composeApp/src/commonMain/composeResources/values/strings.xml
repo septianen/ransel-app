@@ -1,0 +1,69 @@
+<resources>
+    <string name="app_name">RANSEL</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_home">Home</string>
+    <string name="tab_trips">Trips</string>
+    <string name="tab_explore">Explore</string>
+    <string name="tab_account">Account</string>
+    <string name="explore_session_pending">Unfinished recommendations</string>
+
+    <!-- Trip screens -->
+    <string name="trip_tab_itinerary">Itinerary</string>
+    <string name="trip_tab_packing">Packing</string>
+    <string name="trip_tab_expenses">Expenses</string>
+    <string name="action_back">Back</string>
+    <string name="action_members">Trip members</string>
+
+    <!-- Common actions -->
+    <string name="action_undo">Undo</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_see_all">See all</string>
+
+    <!-- Budget -->
+    <string name="budget_remaining">Remaining budget</string>
+    <string name="budget_of">of %1$s</string>
+    <string name="budget_over">Over budget</string>
+    <string name="error_code">Code: %1$s</string>
+
+    <!-- Itinerary categories (activity verbs) -->
+    <string name="itinerary_category_attraction">Explore</string>
+    <string name="itinerary_category_food">Eat</string>
+    <string name="itinerary_category_transport">Travel</string>
+    <string name="itinerary_category_lodging">Stay</string>
+    <string name="itinerary_category_shopping">Shop</string>
+    <string name="itinerary_category_other">Other</string>
+
+    <!-- Expense categories (nouns) -->
+    <string name="expense_category_attraction">Activities</string>
+    <string name="expense_category_food">Food</string>
+    <string name="expense_category_transport">Transport</string>
+    <string name="expense_category_lodging">Lodging</string>
+    <string name="expense_category_shopping">Shopping</string>
+    <string name="expense_category_other">Other</string>
+
+    <!-- Packing categories -->
+    <string name="packing_category_clothing">Clothing</string>
+    <string name="packing_category_documents">Documents</string>
+    <string name="packing_category_electronics">Electronics</string>
+    <string name="packing_category_toiletries">Toiletries</string>
+    <string name="packing_category_health">Health</string>
+    <string name="packing_category_other">Other</string>
+
+    <!-- Payment methods ("Paid with") -->
+    <string name="payment_method_cash">Cash</string>
+    <string name="payment_method_debit_card">Debit card</string>
+    <string name="payment_method_credit_card">Credit card</string>
+    <string name="payment_method_transfer">Bank transfer</string>
+    <string name="payment_method_e_wallet">E-wallet</string>
+    <string name="payment_method_other">Other</string>
+
+    <!-- Placeholder tabs (replaced screen by screen from Phase 1) -->
+    <string name="placeholder_home_title">Where to next?</string>
+    <string name="placeholder_trips_title">My trips</string>
+    <string name="placeholder_explore_title">Explore</string>
+    <string name="placeholder_account_title">Account</string>
+    <string name="placeholder_body">This screen is coming in the next step.</string>
+    <string name="debug_component_gallery">Component gallery (debug)</string>
+</resources>

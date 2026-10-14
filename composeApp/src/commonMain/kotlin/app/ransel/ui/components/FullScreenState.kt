@@ -1,0 +1,112 @@
+package app.ransel.ui.components
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import app.ransel.ui.preview.IrisPreview
+import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.error_code
+
+/**
+ * Full-screen state / empty state (design: capybara 220 dp, title 22/28 w800, body-large muted,
+ * full-width primary button, optional text button, small error code).
+ *
+ * [illustration] is decorative (`contentDescription = null`). Until the WebP exists the slot is an
+ * empty box of the right size, so layouts do not shift when the art arrives.
+ */
+@Composable
+fun FullScreenState(
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+    illustration: Painter? = null,
+    illustrationSize: androidx.compose.ui.unit.Dp = 220.dp,
+    errorCode: String? = null,
+    primaryLabel: String? = null,
+    onPrimary: (() -> Unit)? = null,
+    secondaryLabel: String? = null,
+    onSecondary: (() -> Unit)? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+    ) {
+        if (illustration != null) {
+            Image(painter = illustration, contentDescription = null, modifier = Modifier.size(illustrationSize))
+        } else {
+            Box(Modifier.size(illustrationSize))
+        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = body,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        if (errorCode != null) {
+            Text(
+                text = stringResource(Res.string.error_code, errorCode),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (primaryLabel != null && onPrimary != null) {
+            Button(
+                onClick = onPrimary,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 12.dp),
+            ) { Text(primaryLabel, style = MaterialTheme.typography.titleMedium) }
+        }
+        if (secondaryLabel != null && onSecondary != null) {
+            TextButton(
+                onClick = onSecondary,
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text(secondaryLabel, style = MaterialTheme.typography.titleMedium) }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun FullScreenStatePreview() = IrisPreview {
+    FullScreenState(
+        title = "Waduh, sinyalnya lagi tidur",
+        body = "Periksa koneksimu, lalu coba lagi.",
+        errorCode = "NETWORK_TIMEOUT",
+        primaryLabel = "Coba lagi",
+        onPrimary = {},
+        secondaryLabel = "Pakai offline",
+        onSecondary = {},
+        illustrationSize = 120.dp,
+    )
+}

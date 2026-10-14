@@ -1,0 +1,147 @@
+package app.ransel.ui.gallery
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import app.ransel.shared.model.Category
+import app.ransel.shared.model.PackingCategory
+import app.ransel.ui.components.BudgetProgress
+import app.ransel.ui.components.CategoryIcon
+import app.ransel.ui.components.ConfirmDialog
+import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.MoneyText
+import app.ransel.ui.components.PackingCategoryIcon
+import app.ransel.ui.components.SectionHeader
+import app.ransel.ui.components.TripHeader
+import app.ransel.ui.components.TripTab
+import app.ransel.ui.components.UndoSnackbar
+import app.ransel.ui.components.AdaptiveSheet
+import app.ransel.ui.components.FormScaffold
+import app.ransel.ui.preview.IrisPreview
+import app.ransel.ui.symbols.Symbols
+import androidx.compose.material3.ExperimentalMaterial3Api
+
+/**
+ * Debug-only screen that lists every shared component, light and dark together
+ * (via [IrisPreview]), for checking against the design. Keep it in step with `ui/components/`.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    var showDialog by remember { mutableStateOf(false) }
+    var showSheet by remember { mutableStateOf(false) }
+    var showForm by remember { mutableStateOf(false) }
+
+    if (showForm) {
+        FormScaffold(
+            title = "Buat trip",
+            onBack = { showForm = false },
+            saveLabel = "Simpan",
+            onSave = { showForm = false },
+        ) {
+            repeat(12) { Text("Field ${it + 1}", style = MaterialTheme.typography.bodyLarge) }
+        }
+        return
+    }
+
+    Column(
+        modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        TextButton(onClick = onBack, modifier = Modifier.padding(horizontal = 8.dp)) { Text("← Back") }
+        IrisPreview {
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Section("FullScreenState") {
+                    FullScreenState(
+                        modifier = Modifier.height(320.dp),
+                        title = "Waduh, sinyalnya lagi tidur",
+                        body = "Periksa koneksimu, lalu coba lagi.",
+                        errorCode = "NETWORK_TIMEOUT",
+                        primaryLabel = "Coba lagi",
+                        onPrimary = {},
+                        illustrationSize = 80.dp,
+                    )
+                }
+                Section("TripHeader") {
+                    TripHeader("Bali 4 hari", "20–23 Nov 2026", TripTab.ITINERARY, {}, {}, onMembers = {})
+                }
+                Section("CategoryIcon / PackingCategoryIcon") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Category.entries.forEach { CategoryIcon(it) }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        PackingCategory.entries.forEach { PackingCategoryIcon(it) }
+                    }
+                }
+                Section("MoneyText") {
+                    MoneyText(50_000, "IDR", style = MaterialTheme.typography.titleMedium)
+                    MoneyText(1_250, "USD", style = MaterialTheme.typography.titleMedium)
+                }
+                Section("BudgetProgress") {
+                    BudgetProgress(3_250_000, 5_000_000, "IDR")
+                }
+                Section("SectionHeader") {
+                    SectionHeader("Belum dijadwalkan", actionLabel = "Lihat semua", onAction = {})
+                }
+                Section("UndoSnackbar") {
+                    UndoSnackbar("Jadwal Hari 1 dirapatkan", actionLabel = "Urungkan", onAction = {})
+                }
+                Section("ConfirmDialog / AdaptiveSheet / FormScaffold") {
+                    Button(onClick = { showDialog = true }) { Text("ConfirmDialog") }
+                    Button(onClick = { showSheet = true }) { Text("AdaptiveSheet") }
+                    Button(onClick = { showForm = true }) { Text("FormScaffold") }
+                }
+            }
+        }
+    }
+
+    if (showDialog) {
+        ConfirmDialog(
+            title = "Hapus trip ini?",
+            body = "Semua aktivitas, barang, dan catatan pengeluaran ikut terhapus.",
+            confirmLabel = "Ya, hapus",
+            dismissLabel = "Batal",
+            onConfirm = { showDialog = false },
+            onDismiss = { showDialog = false },
+            destructive = true,
+            symbol = Symbols.delete,
+        )
+    }
+    if (showSheet) {
+        AdaptiveSheet(onDismiss = { showSheet = false }) {
+            Text("Tambah barang", style = MaterialTheme.typography.headlineSmall)
+            Text(
+                "Contoh isi bottom sheet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun Section(name: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(name, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        content()
+    }
+}
