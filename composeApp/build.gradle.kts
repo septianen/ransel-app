@@ -12,6 +12,11 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.room3)
+}
+
+room3 {
+    schemaDirectory("$projectDir/schemas")
 }
 
 /*
