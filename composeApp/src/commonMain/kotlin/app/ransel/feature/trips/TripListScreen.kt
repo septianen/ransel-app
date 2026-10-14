@@ -46,6 +46,7 @@ import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
+import app.ransel.ui.theme.irisCard
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
@@ -188,8 +189,8 @@ private fun OngoingCard(card: TripCardData, state: TripListUiState.Content, date
     Column(
         Modifier
             .fillMaxWidth()
+            .irisCard(IrisShape.lg, containerColor = MaterialTheme.colorScheme.primary, edge = false)
             .clip(IrisShape.lg)
-            .background(MaterialTheme.colorScheme.primary)
             .clickable(onClick = onClick)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -245,8 +246,7 @@ private fun UpcomingCard(card: TripCardData, state: TripListUiState.Content, dat
     Row(
         Modifier
             .fillMaxWidth()
-            .shadow(2.dp, IrisShape.lg, ambientColor = Color.Black.copy(alpha = .06f), spotColor = Color.Black.copy(alpha = .06f))
-            .background(MaterialTheme.colorScheme.surface, IrisShape.lg)
+            .irisCard(IrisShape.lg)
             .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,

@@ -72,7 +72,13 @@ private const val CardShadowSpotAlpha = 0.18f
  * Apply before `clip`/`clickable`/padding so the shadow is not clipped.
  */
 @Composable
-fun Modifier.irisCard(shape: Shape): Modifier {
+fun Modifier.irisCard(
+    shape: Shape,
+    /** Overrides the theme's card colour, e.g. the green "in progress" card. */
+    containerColor: Color? = null,
+    /** Hairline edge; turn off for bold coloured cards that define their own edge. */
+    edge: Boolean = true,
+): Modifier {
     val colors = MaterialTheme.colorScheme
     val dark = colors.surface.luminance() < 0.5f
     return this
@@ -82,8 +88,8 @@ fun Modifier.irisCard(shape: Shape): Modifier {
             ambientColor = Color.Black.copy(alpha = CardShadowAmbientAlpha),
             spotColor = Color.Black.copy(alpha = CardShadowSpotAlpha),
         )
-        .background(if (dark) colors.surfaceContainer else colors.surface, shape)
-        .border(1.dp, colors.outlineVariant, shape)
+        .background(containerColor ?: if (dark) colors.surfaceContainer else colors.surface, shape)
+        .then(if (edge) Modifier.border(1.dp, colors.outlineVariant, shape) else Modifier)
 }
 
 @Composable
