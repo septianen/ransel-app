@@ -25,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +47,7 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
+import app.ransel.ui.theme.irisCard
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -166,9 +166,8 @@ private fun FeaturedTripCard(state: HomeUiState.Content, dates: DateFormatter, o
     Column(
         Modifier
             .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = .06f), spotColor = Color.Black.copy(alpha = .06f))
+            .irisCard(RoundedCornerShape(24.dp))
             .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick),
     ) {
         Box(Modifier.fillMaxWidth().height(150.dp)) {
@@ -226,8 +225,7 @@ private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSe
     Column(
         Modifier
             .fillMaxWidth()
-            .shadow(2.dp, IrisShape.lg, ambientColor = Color.Black.copy(alpha = .06f), spotColor = Color.Black.copy(alpha = .06f))
-            .background(MaterialTheme.colorScheme.surface, IrisShape.lg)
+            .irisCard(IrisShape.lg)
             .padding(vertical = 16.dp, horizontal = 4.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

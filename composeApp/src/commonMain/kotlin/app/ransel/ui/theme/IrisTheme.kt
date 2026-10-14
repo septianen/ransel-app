@@ -1,5 +1,7 @@
 package app.ransel.ui.theme
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -9,6 +11,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -49,10 +56,35 @@ val LocalIrisSpacing = staticCompositionLocalOf { IrisSpacing() }
 
 /*
  * Elevation: IRIS uses soft shadows, not tonal surfaces (surfaceTint is transparent).
- * elevation-1 card = Modifier.shadow(2.dp, shape, ambientColor/spotColor = Black.copy(alpha = .06f));
- * elevation-3 FAB/dialog/sheet ≈ 8.dp; elevation-5 dragged/swiped card ≈ 16.dp.
- * Approximate the CSS values in docs/design/iris/tokens.md; exact match is not required.
+ * Cards: see [irisCard]. elevation-3 FAB/dialog/sheet ≈ 8.dp; elevation-5 dragged/swiped card ≈ 16.dp.
+ * The CSS shadows in docs/design/iris/tokens.md read much stronger in a browser than the same numbers
+ * do in Compose, so the values below are tuned on a device, not copied.
  */
+
+private val CardShadowElevation = 6.dp
+private const val CardShadowAmbientAlpha = 0.10f
+private const val CardShadowSpotAlpha = 0.18f
+
+/**
+ * Standard raised card: soft shadow, card colour and a hairline edge.
+ * Light theme: white card with a visible shadow on the white page. Dark theme: a shadow cannot show on
+ * a dark page, so the card takes the IRIS dark card colour (`surfaceContainer`) and the edge carries it.
+ * Apply before `clip`/`clickable`/padding so the shadow is not clipped.
+ */
+@Composable
+fun Modifier.irisCard(shape: Shape): Modifier {
+    val colors = MaterialTheme.colorScheme
+    val dark = colors.surface.luminance() < 0.5f
+    return this
+        .shadow(
+            elevation = CardShadowElevation,
+            shape = shape,
+            ambientColor = Color.Black.copy(alpha = CardShadowAmbientAlpha),
+            spotColor = Color.Black.copy(alpha = CardShadowSpotAlpha),
+        )
+        .background(if (dark) colors.surfaceContainer else colors.surface, shape)
+        .border(1.dp, colors.outlineVariant, shape)
+}
 
 @Composable
 fun IrisTheme(
