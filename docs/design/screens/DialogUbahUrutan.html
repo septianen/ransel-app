@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Ubah urutan</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..600,0..1,0&amp;display=block">
+<style>
+body{margin:0}
+.ic{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;display:inline-block;font-variation-settings:"FILL" 0,"wght" 500,"GRAD" 0,"opsz" 24;font-feature-settings:"liga";-webkit-font-smoothing:antialiased}
+.fill{font-variation-settings:"FILL" 1,"wght" 500,"GRAD" 0,"opsz" 24}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+a{color:#008808}a:hover{color:#016100}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #FFFFFF; color: #1B1B1B; font-family: 'Plus Jakarta Sans', system-ui, sans-serif;">
+  <div style="position: absolute; inset: 0; isolation: isolate; z-index: 0;" aria-hidden="true">
+    <dc-import name="Itinerary" hint-size="390px,844px"></dc-import>
+  </div>
+  <a href="Itinerary.dc.html" aria-label="Batal" style="position: absolute; inset: 0; z-index: 1; background: rgba(0,0,0,0.4); display: block;"></a>
+  <section role="alertdialog" aria-labelledby="ord-title" aria-describedby="ord-body" style="position: absolute; z-index: 2; left: 31px; top: 220px; width: 328px; box-sizing: border-box; padding: 24px; border-radius: 28px; background: #FFFFFF; box-shadow: 0px 4px 8px rgba(0,0,0,0.08), 0px 12px 28px rgba(0,0,0,0.12); display: flex; flex-direction: column; gap: 16px;">
+    <span style="align-self: center; width: 48px; height: 48px; border-radius: 9999px; background: #D2F9C4; color: #013A00; display: flex; align-items: center; justify-content: center;"><span class="ic" style="font-size: 26px;" aria-hidden="true">schedule</span></span>
+    <h2 id="ord-title" style="margin: 0; text-align: center; font-size: 22px; line-height: 28px; font-weight: 800;">Ubah urutan dan jam?</h2>
+    <div id="ord-body" style="display: flex; flex-direction: column; gap: 12px;">
+      <p style="margin: 0; font-size: 14px; line-height: 20px; color: #525252;">Jadwal Hari 1 akan dirapatkan mulai 09.00. Durasi tiap aktivitas tetap, jamnya mengikuti urutan baru.</p>
+      <ul style="margin: 0; padding: 12px; list-style: none; border-radius: 12px; background: #F3F3F3; display: flex; flex-direction: column; gap: 10px;">
+        <li style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 28px; height: 28px; border-radius: 8px; background: #00A5EC; color: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><span class="ic fill" style="font-size: 16px;" aria-hidden="true">temple_hindu</span></span>
+          <span style="flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 600;">Uluwatu</span>
+          <span style="font-size: 14px; line-height: 20px; color: #525252; text-decoration: line-through; font-feature-settings: 'tnum';">16.00</span>
+          <span class="ic" style="font-size: 16px; color: #525252;" aria-hidden="true">arrow_forward</span>
+          <span style="font-size: 14px; line-height: 20px; font-weight: 700; color: #008808; font-feature-settings: 'tnum';">09.00</span>
+        </li>
+        <li style="display: flex; align-items: center; gap: 10px;">
+          <span style="width: 28px; height: 28px; border-radius: 8px; background: #00A5EC; color: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><span class="ic fill" style="font-size: 16px;" aria-hidden="true">beach_access</span></span>
+          <span style="flex-grow: 1; font-size: 14px; line-height: 20px; font-weight: 600;">Pantai Melasti</span>
+          <span style="font-size: 14px; line-height: 20px; color: #525252; text-decoration: line-through; font-feature-settings: 'tnum';">09.00</span>
+          <span class="ic" style="font-size: 16px; color: #525252;" aria-hidden="true">arrow_forward</span>
+          <span style="font-size: 14px; line-height: 20px; font-weight: 700; color: #008808; font-feature-settings: 'tnum';">10.30</span>
+        </li>
+      </ul>
+      <span style="font-size: 12px; line-height: 16px; color: #525252;">Makan siang dan Tari Kecak tidak berubah.</span>
+    </div>
+    <label style="display: flex; align-items: center; gap: 12px; font-size: 14px; line-height: 20px;">
+      <span style="width: 22px; height: 22px; border-radius: 6px; border: 2px solid #777777; box-sizing: border-box; flex-shrink: 0;"></span>Jangan tanya lagi
+    </label>
+    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+      <a href="Itinerary.dc.html" style="height: 40px; padding: 0 16px; border-radius: 9999px; display: flex; align-items: center; color: #008808; font-size: 14px; line-height: 20px; font-weight: 700; text-decoration: none;">Batal</a>
+      <a href="HasilUrutan.dc.html" style="height: 40px; padding: 0 20px; border-radius: 9999px; display: flex; align-items: center; background: #008808; color: #FFFFFF; font-size: 14px; line-height: 20px; font-weight: 700; text-decoration: none;">Ubah jadwal</a>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

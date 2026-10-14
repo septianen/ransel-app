@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Cek email</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..600,0..1,0&amp;display=block">
+<style>
+body{margin:0}
+.ic{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;display:inline-block;font-variation-settings:"FILL" 0,"wght" 500,"GRAD" 0,"opsz" 24;font-feature-settings:"liga";-webkit-font-smoothing:antialiased}
+.fill{font-variation-settings:"FILL" 1,"wght" 500,"GRAD" 0,"opsz" 24}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+a{color:#008808}a:hover{color:#016100}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; color: #1B1B1B; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+  <header style="display: flex; align-items: center; gap: 4px; height: 56px; padding: 0 4px; flex-shrink: 0;">
+    <a href="LupaSandi.dc.html" aria-label="Kembali" style="width: 48px; height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; color: #1B1B1B; text-decoration: none;"><span class="ic" style="font-size: 24px;" aria-hidden="true">arrow_back</span></a>
+  </header>
+  <main style="flex-grow: 1; display: flex; flex-direction: column; gap: 20px; padding: 8px 24px 24px;">
+    <span style="width: 72px; height: 72px; border-radius: 24px; background: #D2F9C4; color: #008808; display: flex; align-items: center; justify-content: center;"><span class="ic fill" style="font-size: 40px;" aria-hidden="true">mark_email_read</span></span>
+    <div style="display: flex; flex-direction: column; gap: 4px;"><h1 style="margin: 0; font-size: 26px; line-height: 32px; font-weight: 800;">Cek email kamu</h1><p style="margin: 0; font-size: 16px; line-height: 24px; color: #525252;">Link reset sudah dikirim ke <b style="color: #1B1B1B;">septian@contoh.id</b>. Link berlaku 30 menit.</p></div>
+    <ul style="margin: 0; padding: 16px; border-radius: 16px; background: #F3F3F3; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 20px; color: #525252;">
+      <li style="display: flex; gap: 8px;"><span class="ic" style="font-size: 18px; flex-shrink: 0;" aria-hidden="true">inbox</span>Tidak ada di kotak masuk? Cek folder spam atau promosi.</li>
+      <li style="display: flex; gap: 8px;"><span class="ic" style="font-size: 18px; flex-shrink: 0;" aria-hidden="true">alternate_email</span>Pastikan email yang kamu tulis sudah benar.</li>
+    </ul>
+    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+      <a href="SandiBaru.dc.html" style="height: 48px; border-radius: 9999px; background: #008808; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; line-height: 24px; font-weight: 700; text-decoration: none;"><span class="ic" style="font-size: 20px;" aria-hidden="true">open_in_new</span>Buka aplikasi email</a>
+      <span style="height: 48px; display: flex; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; color: #525252; font-feature-settings: 'tnum';">Kirim ulang dalam 0:45</span>
+    </div>
+  </main>
+  <footer style="padding: 0 24px 28px; text-align: center; font-size: 14px; line-height: 20px; color: #525252; flex-shrink: 0;">Salah email? <a href="LupaSandi.dc.html" style="font-weight: 700; text-decoration: none;">Ganti email</a></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Ubah peran anggota</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..600,0..1,0&amp;display=block">
+<style>
+body{margin:0}
+.ic{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;display:inline-block;font-variation-settings:"FILL" 0,"wght" 500,"GRAD" 0,"opsz" 24;font-feature-settings:"liga";-webkit-font-smoothing:antialiased}
+.fill{font-variation-settings:"FILL" 1,"wght" 500,"GRAD" 0,"opsz" 24}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+a{color:#008808}a:hover{color:#016100}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; overflow: hidden; background: #FFFFFF; color: #1B1B1B; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column;">
+  <div style="position: absolute; inset: 0; isolation: isolate; z-index: 0;" aria-hidden="true">
+    <dc-import name="AnggotaTrip" hint-size="390px,844px"></dc-import>
+  </div>
+  <a href="AnggotaTrip.dc.html" aria-label="Tutup" style="position: absolute; inset: 0; z-index: 1; display: block;"></a>
+  <div role="menu" aria-label="Peran Dinda" style="position: absolute; z-index: 2; top: 248px; right: 16px; width: 240px; padding: 8px 0; border-radius: 12px; background: #FFFFFF; box-shadow: 0px 2px 4px rgba(0,0,0,0.06), 0px 6px 16px rgba(0,0,0,0.08);">
+    <a href="AnggotaTrip.dc.html" role="menuitemradio" aria-checked="true" style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; color: #1B1B1B; text-decoration: none;"><span style="flex-grow: 1; display: flex; flex-direction: column;"><span style="font-size: 16px; line-height: 22px; font-weight: 700;">Editor</span><span style="font-size: 12px; line-height: 16px; color: #525252;">Bisa mengubah isi trip</span></span><span class="ic" style="font-size: 22px; color: #008808;" aria-hidden="true">check</span></a>
+    <a href="AnggotaTrip.dc.html" role="menuitemradio" aria-checked="false" style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 16px; color: #1B1B1B; text-decoration: none;"><span style="flex-grow: 1; display: flex; flex-direction: column;"><span style="font-size: 16px; line-height: 22px;">Pembaca</span><span style="font-size: 12px; line-height: 16px; color: #525252;">Hanya melihat</span></span></a>
+    <div style="height: 1px; margin: 8px 0; background: #E2E2E2;"></div>
+    <a href="DialogKeluarkan.dc.html" role="menuitem" style="display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 16px; color: #BA1A1D; text-decoration: none; font-size: 16px; line-height: 24px;"><span class="ic" style="font-size: 22px;" aria-hidden="true">person_remove</span>Keluarkan dari trip</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

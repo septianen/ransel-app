@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Swipe: memuat</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..600,0..1,0&amp;display=block">
+<style>
+body{margin:0}
+.ic{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;display:inline-block;font-variation-settings:"FILL" 0,"wght" 500,"GRAD" 0,"opsz" 24;font-feature-settings:"liga";-webkit-font-smoothing:antialiased}
+.fill{font-variation-settings:"FILL" 1,"wght" 500,"GRAD" 0,"opsz" 24}
+button{font-family:inherit;cursor:pointer}
+a{color:#008808}a:hover{color:#016100}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; background: #F3F3F3; color: #1B1B1B; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+  <header style="display: flex; align-items: center; gap: 4px; height: 56px; padding: 0 4px; flex-shrink: 0; background: #FFFFFF;">
+    <a href="JelajahLanjut.dc.html" aria-label="Tutup" style="width: 48px; height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; color: #1B1B1B; text-decoration: none;"><span class="ic" style="font-size: 24px;" aria-hidden="true">close</span></a>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; padding-left: 4px;">
+      <span style="font-size: 18px; line-height: 24px; font-weight: 700;">Rekomendasi untuk Bali</span>
+      <span style="font-size: 12px; line-height: 16px; color: #525252;">Kuliner, Alam · Santai</span>
+    </div>
+    <a href="PreferensiAI.dc.html" aria-label="Ubah preferensi" style="width: 48px; height: 48px; border-radius: 9999px; color: #1B1B1B; display: flex; align-items: center; justify-content: center; text-decoration: none;"><span class="ic" style="font-size: 24px;" aria-hidden="true">tune</span></a>
+  </header>
+
+  <div style="display: flex; align-items: center; gap: 8px; padding: 12px 16px 0; flex-shrink: 0;">
+    <span style="flex-grow: 1; font-size: 12px; line-height: 16px; font-weight: 700; color: #525252;">Menyiapkan rekomendasi…</span>
+  </div>
+
+  <main style="flex-grow: 1; position: relative; margin: 16px 16px 0;" aria-busy="true">
+    <div style="position: absolute; left: 24px; right: 24px; top: 24px; bottom: 0; border-radius: 24px; background: #E8E8E8;"></div>
+    <div style="position: absolute; left: 12px; right: 12px; top: 12px; bottom: 12px; border-radius: 24px; background: #FFFFFF; box-shadow: 0px 1px 2px rgba(0,0,0,0.06), 0px 2px 8px rgba(0,0,0,0.06);"></div>
+    <article style="position: absolute; left: 0; right: 0; top: 0; bottom: 24px; border-radius: 24px; background: #FFFFFF; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0px 12px 24px rgba(0,0,0,0.14), 0px 24px 48px rgba(0,0,0,0.12);">
+      <div style="flex-grow: 1; min-height: 300px; background: #E8E8E8;"></div>
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 20px;">
+        <div style="width: 70%; height: 24px; border-radius: 8px; background: #E8E8E8;"></div>
+        <div style="display: flex; gap: 12px;"><div style="width: 48px; height: 16px; border-radius: 6px; background: #E8E8E8;"></div><div style="width: 64px; height: 16px; border-radius: 6px; background: #E8E8E8;"></div><div style="width: 80px; height: 16px; border-radius: 6px; background: #E8E8E8;"></div></div>
+        <p role="status" style="margin: 0; display: flex; gap: 8px; padding: 12px; border-radius: 12px; background: #FFE6FF; color: #7C2D92; font-size: 14px; line-height: 20px;"><span class="ic fill" style="font-size: 18px; flex-shrink: 0;" aria-hidden="true">auto_awesome</span>Mencari tempat alam dan kuliner di Bali yang cocok dengan gaya santaimu…</p>
+      </div>
+    </article>
+  </main>
+
+  <div style="display: flex; align-items: center; justify-content: center; gap: 24px; padding: 20px 16px 28px; flex-shrink: 0; opacity: 0.38;">
+    <span style="width: 64px; height: 64px; border-radius: 9999px; background: #FFFFFF; color: #525252; display: flex; align-items: center; justify-content: center;"><span class="ic" style="font-size: 32px;" aria-hidden="true">close</span></span>
+    <span style="width: 48px; height: 48px; border-radius: 9999px; border: 1px solid #E2E2E2; box-sizing: border-box; background: #FFFFFF; color: #525252; display: flex; align-items: center; justify-content: center;"><span class="ic" style="font-size: 22px;" aria-hidden="true">undo</span></span>
+    <span style="width: 64px; height: 64px; border-radius: 9999px; background: #D92D7B; color: #FFFFFF; display: flex; align-items: center; justify-content: center;"><span class="ic fill" style="font-size: 32px;" aria-hidden="true">favorite</span></span>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
