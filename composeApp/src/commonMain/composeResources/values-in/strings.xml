@@ -47,7 +47,7 @@
     <string name="packing_category_clothing">Pakaian</string>
     <string name="packing_category_documents">Dokumen</string>
     <string name="packing_category_electronics">Elektronik</string>
-    <string name="packing_category_toiletries">Perlengkapan mandi</string>
+    <string name="packing_category_toiletries">Alat Mandi</string>
     <string name="packing_category_health">Kesehatan</string>
     <string name="packing_category_other">Lainnya</string>
 
@@ -368,4 +368,6 @@
     <string name="activity_next_day_tag">+1</string>
     <string name="activity_ends_next_day">selesai hari berikutnya</string>
     <string name="itinerary_until_next_day">sampai %1$s (+1)</string>
+    <string name="packing_collapse">Ciutkan</string>
+    <string name="packing_expand">Buka</string>
 </resources>

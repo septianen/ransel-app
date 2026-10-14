@@ -368,4 +368,6 @@
     <string name="activity_next_day_tag">+1</string>
     <string name="activity_ends_next_day">ends the next day</string>
     <string name="itinerary_until_next_day">until %1$s (+1)</string>
+    <string name="packing_collapse">Collapse</string>
+    <string name="packing_expand">Expand</string>
 </resources>

@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.model.PackingCategory
@@ -151,7 +152,8 @@ fun AddPackingItemSheet(
                                     style = MaterialTheme.typography.labelMedium,
                                     color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
                                     else MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 2,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                         }

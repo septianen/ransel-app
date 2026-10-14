@@ -29,6 +29,8 @@ Contrast note (the limit for icons is 3:1): white on blue (2.8:1) and teal (2.98
 | Count | `label-medium` (12/16, bold), `on-surface-variant`, tabular figures, format `3/5` |
 | Complete state | Replace the count with a `primary-container` tag + `check_circle` icon + the text "Lengkap" (Complete) |
 | Spacing | Tile to name 12dp; header to first item 4dp; between groups 24dp |
+| Collapse | Tapping the header (min 48dp) collapses/expands the group; a chevron shows the state; the count or "Lengkap" tag stays visible. Expanded by default |
+| Item indent | Items are indented 44dp from the start (under the category name) so they read as children of the header |
 
 ## Item row
 

@@ -1,6 +1,16 @@
 package app.ransel.feature.packing
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.draw.rotate
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.text.style.TextOverflow
+import ransel.composeapp.generated.resources.packing_collapse
+import ransel.composeapp.generated.resources.packing_expand
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -153,47 +163,82 @@ private fun PackingList(
     ) {
         ProgressCard(trip, state, today, onUncheckAll)
         state.groups.forEach { group ->
-            Column {
+            PackingGroupSection(group, onToggle = onToggle, onEdit = onEdit)
+        }
+    }
+}
+
+/**
+ * One category: a header that collapses/expands its items, and the items indented under the category
+ * name (so they read as children of the header). Expanded state survives rotation, one flag per category.
+ */
+@Composable
+private fun PackingGroupSection(
+    group: PackingGroup,
+    onToggle: (PackingItemDto) -> Unit,
+    onEdit: (PackingItemDto) -> Unit,
+) {
+    var expanded by rememberSaveable(group.category.name) { mutableStateOf(true) }
+    val chevron by animateFloatAsState(if (expanded) 180f else 0f, label = "packing-group-chevron")
+    val toggleLabel = stringResource(if (expanded) Res.string.packing_collapse else Res.string.packing_expand)
+
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clip(IrisShape.md)
+                .clickable(onClickLabel = toggleLabel, role = Role.Button) { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            PackingCategoryIcon(group.category)
+            Text(
+                stringResource(group.category.label),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (group.isComplete) {
                 Row(
-                    Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                    Modifier
+                        .clip(IrisShape.xs)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    PackingCategoryIcon(group.category)
-                    Text(
-                        stringResource(group.category.label),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f),
+                    Symbol(
+                        Symbols.checkCircle, size = 14.dp, filled = true,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
-                    if (group.isComplete) {
-                        Row(
-                            Modifier
-                                .clip(IrisShape.xs)
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Symbol(
-                                Symbols.checkCircle, size = 14.dp, filled = true,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                            Text(
-                                stringResource(Res.string.packing_complete),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            )
-                        }
-                    } else {
-                        Text(
-                            "${group.packed}/${group.items.size}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                    Text(
+                        stringResource(Res.string.packing_complete),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
                 }
-                // No divider between items: the category header and the 24 dp gap between groups already
-                // separate them, and the rows are 52 dp tall touch targets.
+            } else {
+                Text(
+                    "${group.packed}/${group.items.size}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Symbol(
+                Symbols.expandMore,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.rotate(chevron),
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically(),
+        ) {
+            // Items start under the category name (tile 32 dp + gap 12 dp), with room on the right.
+            Column(Modifier.padding(start = 44.dp, end = 12.dp)) {
                 group.items.forEach { item ->
                     PackingRow(item, onToggle = { onToggle(item) }, onLongPress = { onEdit(item) })
                 }
