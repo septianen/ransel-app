@@ -35,6 +35,9 @@ interface ItineraryDao {
     @Query("SELECT * FROM itinerary_items WHERE id = :id")
     suspend fun get(id: String): ItineraryItemEntity?
 
+    @Query("SELECT * FROM itinerary_items WHERE tripId = :tripId AND deletedAt IS NULL")
+    suspend fun getByTrip(tripId: String): List<ItineraryItemEntity>
+
     @Upsert
     suspend fun upsert(entity: ItineraryItemEntity)
 

@@ -48,6 +48,8 @@ fun FormScaffold(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
     saveEnabled: Boolean = true,
+    navigationSymbol: String = Symbols.arrowBack,
+    navigationDescription: String = stringResource(Res.string.action_back),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -66,8 +68,8 @@ fun FormScaffold(
                 contentAlignment = Alignment.Center,
             ) {
                 Symbol(
-                    Symbols.arrowBack,
-                    contentDescription = stringResource(Res.string.action_back),
+                    navigationSymbol,
+                    contentDescription = navigationDescription,
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -78,6 +80,7 @@ fun FormScaffold(
                 modifier = Modifier.padding(start = 4.dp),
             )
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Column(
             Modifier
                 .weight(1f)

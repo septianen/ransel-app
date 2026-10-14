@@ -66,4 +66,222 @@
     <string name="placeholder_account_title">Akun</string>
     <string name="placeholder_body">Layar ini hadir di langkah berikutnya.</string>
     <string name="debug_component_gallery">Galeri komponen (debug)</string>
+
+    <!-- Greetings -->
+    <string name="greeting_morning">Selamat pagi</string>
+    <string name="greeting_afternoon">Selamat siang</string>
+    <string name="greeting_evening">Selamat sore</string>
+    <string name="greeting_night">Selamat malam</string>
+
+    <!-- Home -->
+    <string name="home_title">Mau ke mana berikutnya?</string>
+    <string name="home_title_empty">Halo, siap jalan-jalan?</string>
+    <string name="home_empty_title">Belum ada trip</string>
+    <string name="home_empty_body">Mulai rencanakan perjalanan pertamamu: itinerary, barang bawaan, dan pengeluaran dalam satu tempat.</string>
+    <string name="home_empty_action">Buat trip pertama</string>
+    <string name="home_prep_title">Persiapan trip</string>
+    <string name="home_prep_days_filled">hari terisi</string>
+    <string name="home_prep_items_ready">barang siap</string>
+    <string name="home_prep_unscheduled">belum dijadwalkan</string>
+    <string name="home_prep_arrange">Atur jadwal</string>
+    <string name="home_trip_meta_day1">%1$s · %2$d aktivitas di hari 1</string>
+    <string name="trip_cover_description">Foto sampul trip</string>
+
+    <!-- Trip timing -->
+    <string name="trip_countdown_days">%1$d hari lagi</string>
+    <string name="trip_countdown_day">1 hari lagi</string>
+    <string name="trip_countdown_months">%1$d bulan lagi</string>
+    <string name="trip_starts_today">Mulai hari ini</string>
+    <string name="trip_day_of">Hari %1$d dari %2$d</string>
+
+    <!-- My trips -->
+    <string name="trips_title">Trip saya</string>
+    <string name="trips_ongoing">Sedang berjalan</string>
+    <string name="trips_upcoming">Mendatang</string>
+    <string name="trips_finished">Selesai</string>
+    <string name="trips_see_all">Lihat semua (%1$d)</string>
+    <string name="trips_show_less">Tampilkan lebih sedikit</string>
+    <string name="trips_spent">Terpakai %1$s</string>
+    <string name="trips_remaining">Sisa %1$s</string>
+    <string name="trips_spent_label">terpakai</string>
+    <string name="trips_packing_progress">Packing %1$d/%2$d</string>
+    <string name="trips_itinerary_empty">Itinerary belum diisi</string>
+    <string name="trips_create">Buat trip</string>
+    <string name="trips_empty_title">Petanya masih kosong</string>
+    <string name="trips_empty_body">Trip yang kamu buat akan muncul di sini, dikelompokkan jadi sedang berjalan, mendatang, dan selesai.</string>
+    <string name="trips_no_upcoming_title">Belum ada trip mendatang</string>
+    <string name="trips_no_upcoming_body">Terakhir jalan ke %1$s. Ke mana selanjutnya?</string>
+
+    <!-- Trip form -->
+    <string name="trip_form_create_title">Buat trip</string>
+    <string name="trip_form_edit_title">Edit trip</string>
+    <string name="trip_name">Nama trip</string>
+    <string name="trip_destination">Destinasi</string>
+    <string name="trip_dates">Tanggal</string>
+    <string name="trip_start_date">Tanggal mulai</string>
+    <string name="trip_end_date">Tanggal selesai</string>
+    <string name="trip_duration">%1$d hari · %2$d malam</string>
+    <string name="trip_duration_one">1 hari</string>
+    <string name="trip_currency">Mata uang utama</string>
+    <string name="trip_currency_hint">Pengeluaran dalam mata uang lain dikonversi ke %1$s.</string>
+    <string name="trip_budget">Budget</string>
+    <string name="trip_optional">(opsional)</string>
+    <string name="trip_shorten_hint">Kalau tanggal dipersingkat, aktivitas di hari yang terhapus pindah ke Belum dijadwalkan, tidak ikut terhapus.</string>
+    <string name="trip_save_changes">Simpan perubahan</string>
+    <string name="trip_delete">Hapus trip</string>
+    <string name="trip_close">Tutup</string>
+    <string name="error_required">Wajib diisi</string>
+    <string name="date_range_title">Pilih tanggal trip</string>
+    <string name="date_range_confirm">Selesai</string>
+
+    <!-- Delete trip dialog -->
+    <string name="delete_trip_title">Hapus %1$s?</string>
+    <string name="delete_trip_body">Semua isi trip ini ikut terhapus dan tidak bisa dikembalikan:</string>
+    <string name="delete_trip_itinerary">Itinerary</string>
+    <string name="delete_trip_packing">Packing</string>
+    <string name="delete_trip_expenses">Pengeluaran</string>
+    <string name="delete_trip_activities">%1$d aktivitas</string>
+    <string name="delete_trip_items">%1$d barang</string>
+    <string name="delete_trip_records">%1$d catatan</string>
+    <string name="delete_trip_confirm">Ya, hapus</string>
+
+    <!-- Currency names -->
+    <string name="currency_name_idr">Rupiah Indonesia</string>
+    <string name="currency_name_usd">Dolar AS</string>
+    <string name="currency_name_eur">Euro</string>
+    <string name="currency_name_sgd">Dolar Singapura</string>
+    <string name="currency_name_myr">Ringgit Malaysia</string>
+    <string name="currency_name_jpy">Yen Jepang</string>
+    <string name="currency_name_aud">Dolar Australia</string>
+    <string name="currency_name_gbp">Poundsterling</string>
+    <string name="currency_name_thb">Baht Thailand</string>
+    <string name="currency_name_krw">Won Korea Selatan</string>
+    <string name="currency_sheet_title">Pilih mata uang</string>
+
+    <!-- Money units (compact amounts) -->
+    <string name="money_unit_thousand">rb</string>
+    <string name="money_unit_million">jt</string>
+    <string name="money_unit_billion">M</string>
+
+    <!-- Calendar names (Monday first) -->
+    <string-array name="months_short">
+        <item>Jan</item>
+        <item>Feb</item>
+        <item>Mar</item>
+        <item>Apr</item>
+        <item>Mei</item>
+        <item>Jun</item>
+        <item>Jul</item>
+        <item>Agu</item>
+        <item>Sep</item>
+        <item>Okt</item>
+        <item>Nov</item>
+        <item>Des</item>
+    </string-array>
+    <string-array name="months_full">
+        <item>Januari</item>
+        <item>Februari</item>
+        <item>Maret</item>
+        <item>April</item>
+        <item>Mei</item>
+        <item>Juni</item>
+        <item>Juli</item>
+        <item>Agustus</item>
+        <item>September</item>
+        <item>Oktober</item>
+        <item>November</item>
+        <item>Desember</item>
+    </string-array>
+    <string-array name="weekdays_short">
+        <item>Sen</item>
+        <item>Sel</item>
+        <item>Rab</item>
+        <item>Kam</item>
+        <item>Jum</item>
+        <item>Sab</item>
+        <item>Min</item>
+    </string-array>
+    <string-array name="weekdays_full">
+        <item>Senin</item>
+        <item>Selasa</item>
+        <item>Rabu</item>
+        <item>Kamis</item>
+        <item>Jumat</item>
+        <item>Sabtu</item>
+        <item>Minggu</item>
+    </string-array>
+
+    <!-- Currency sheet -->
+    <string name="currency_sheet_default_title">Mata uang default</string>
+    <string name="currency_sheet_default_hint">Dipakai untuk trip baru. Trip yang sudah ada tetap memakai mata uangnya.</string>
+    <string name="currency_search_placeholder">Cari mata uang</string>
+    <string name="currency_locked_hint">Mata uang tidak bisa diubah setelah ada pengeluaran.</string>
+    <string name="action_edit_trip">Edit trip</string>
+
+    <!-- Time and duration -->
+    <string name="time_separator">.</string>
+    <string name="duration_hours">%1$d jam</string>
+    <string name="duration_minutes">%1$d mnt</string>
+    <string name="duration_hours_minutes">%1$d jam %2$d mnt</string>
+    <string name="duration_hours_decimal">%1$s jam</string>
+    <string name="duration_approx">± %1$s</string>
+
+    <!-- Itinerary -->
+    <string name="itinerary_day_chip">Hari %1$d</string>
+    <string name="itinerary_day_heading">Hari %1$d · %2$s</string>
+    <string name="itinerary_add_activity">Tambah aktivitas</string>
+    <string name="itinerary_empty_title">Hari %1$d masih kosong</string>
+    <string name="itinerary_empty_body">Tambahkan aktivitas pertama untuk hari ini.</string>
+    <string name="itinerary_drag_hint">Lepas untuk mengubah urutan. Seret ke chip hari untuk pindah hari.</string>
+    <string name="itinerary_drag_start">Mulai %1$s · %2$s</string>
+    <string name="itinerary_unscheduled">Belum dijadwalkan</string>
+    <string name="itinerary_unscheduled_see_all">Lihat semua</string>
+    <string name="itinerary_unscheduled_places">%1$d tempat · %2$s</string>
+    <string name="itinerary_schedule">Jadwalkan</string>
+    <string name="itinerary_added_manually">Ditambahkan manual</string>
+    <string name="itinerary_remove_from_list">Hapus dari daftar</string>
+    <string name="itinerary_more">Lainnya</string>
+    <string name="itinerary_close">Tutup</string>
+    <string name="itinerary_day_summary">%1$d aktivitas · s.d. %2$s</string>
+    <string name="itinerary_day_empty_summary">Masih kosong</string>
+    <string name="itinerary_schedule_pick_day">Pilih hari</string>
+    <string name="itinerary_schedule_time">Jam</string>
+    <string name="itinerary_schedule_change">Ubah</string>
+    <string name="itinerary_schedule_after">Setelah %1$s, aktivitas terakhir</string>
+    <string name="itinerary_schedule_start_of_day">Hari masih kosong, mulai jam standar</string>
+    <string name="itinerary_schedule_note">Otomatis ditaruh di akhir hari. Hari yang masih kosong mulai pukul 09.00.</string>
+    <string name="itinerary_schedule_to_day">Jadwalkan ke Hari %1$d</string>
+    <string name="itinerary_duration_label">durasi %1$s</string>
+
+    <!-- Reorder dialog and snackbars -->
+    <string name="reorder_title">Ubah urutan dan jam?</string>
+    <string name="reorder_body">Jadwal Hari %1$d akan dirapatkan mulai %2$s. Durasi tiap aktivitas tetap, jamnya mengikuti urutan baru.</string>
+    <string name="reorder_unchanged">Tidak berubah: %1$s.</string>
+    <string name="reorder_dont_ask">Jangan tanya lagi</string>
+    <string name="reorder_confirm">Ubah jadwal</string>
+    <string name="reorder_done">Jadwal Hari %1$d dirapatkan</string>
+    <string name="reorder_moved">Dipindah ke Hari %1$d</string>
+    <string name="list_and">dan</string>
+
+    <!-- Activity form -->
+    <string name="activity_form_add_title">Tambah aktivitas</string>
+    <string name="activity_form_edit_title">Edit aktivitas</string>
+    <string name="activity_title">Judul</string>
+    <string name="activity_category">Kategori</string>
+    <string name="activity_day">Hari</string>
+    <string name="activity_day_unscheduled">Belum dijadwalkan</string>
+    <string name="activity_time">Jam</string>
+    <string name="activity_time_start">Mulai</string>
+    <string name="activity_time_end">Selesai</string>
+    <string name="activity_time_clear">Hapus jam</string>
+    <string name="activity_duration">Durasi %1$s</string>
+    <string name="activity_place">Tempat</string>
+    <string name="activity_notes">Catatan</string>
+    <string name="activity_booking">Link booking</string>
+    <string name="activity_save">Simpan aktivitas</string>
+    <string name="activity_delete">Hapus aktivitas</string>
+    <string name="activity_end_before_start">Jam selesai harus setelah jam mulai</string>
+    <string name="time_picker_title">Pilih jam</string>
+    <string name="action_ok">OK</string>
+    <string name="debug_seed_sample">Isi trip contoh (debug)</string>
 </resources>

@@ -66,4 +66,222 @@
     <string name="placeholder_account_title">Account</string>
     <string name="placeholder_body">This screen is coming in the next step.</string>
     <string name="debug_component_gallery">Component gallery (debug)</string>
+
+    <!-- Greetings -->
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_night">Good evening</string>
+
+    <!-- Home -->
+    <string name="home_title">Where to next?</string>
+    <string name="home_title_empty">Hello, ready to travel?</string>
+    <string name="home_empty_title">No trips yet</string>
+    <string name="home_empty_body">Start planning your first trip: itinerary, packing list and expenses in one place.</string>
+    <string name="home_empty_action">Create your first trip</string>
+    <string name="home_prep_title">Trip prep</string>
+    <string name="home_prep_days_filled">days filled</string>
+    <string name="home_prep_items_ready">items ready</string>
+    <string name="home_prep_unscheduled">unscheduled</string>
+    <string name="home_prep_arrange">Arrange</string>
+    <string name="home_trip_meta_day1">%1$s · %2$d activities on day 1</string>
+    <string name="trip_cover_description">Trip cover</string>
+
+    <!-- Trip timing -->
+    <string name="trip_countdown_days">%1$d days left</string>
+    <string name="trip_countdown_day">1 day left</string>
+    <string name="trip_countdown_months">%1$d months left</string>
+    <string name="trip_starts_today">Starts today</string>
+    <string name="trip_day_of">Day %1$d of %2$d</string>
+
+    <!-- My trips -->
+    <string name="trips_title">My trips</string>
+    <string name="trips_ongoing">In progress</string>
+    <string name="trips_upcoming">Upcoming</string>
+    <string name="trips_finished">Finished</string>
+    <string name="trips_see_all">See all (%1$d)</string>
+    <string name="trips_show_less">Show less</string>
+    <string name="trips_spent">Spent %1$s</string>
+    <string name="trips_remaining">Left %1$s</string>
+    <string name="trips_spent_label">spent</string>
+    <string name="trips_packing_progress">Packing %1$d/%2$d</string>
+    <string name="trips_itinerary_empty">Itinerary not filled yet</string>
+    <string name="trips_create">Create trip</string>
+    <string name="trips_empty_title">The map is still empty</string>
+    <string name="trips_empty_body">Trips you create will show up here, grouped into in progress, upcoming and finished.</string>
+    <string name="trips_no_upcoming_title">No upcoming trips</string>
+    <string name="trips_no_upcoming_body">Your last trip was %1$s. Where to next?</string>
+
+    <!-- Trip form -->
+    <string name="trip_form_create_title">Create trip</string>
+    <string name="trip_form_edit_title">Edit trip</string>
+    <string name="trip_name">Trip name</string>
+    <string name="trip_destination">Destination</string>
+    <string name="trip_dates">Dates</string>
+    <string name="trip_start_date">Start date</string>
+    <string name="trip_end_date">End date</string>
+    <string name="trip_duration">%1$d days · %2$d nights</string>
+    <string name="trip_duration_one">1 day</string>
+    <string name="trip_currency">Main currency</string>
+    <string name="trip_currency_hint">Expenses in other currencies are converted to %1$s.</string>
+    <string name="trip_budget">Budget</string>
+    <string name="trip_optional">(optional)</string>
+    <string name="trip_shorten_hint">If the dates get shorter, activities on removed days move to Unscheduled instead of being deleted.</string>
+    <string name="trip_save_changes">Save changes</string>
+    <string name="trip_delete">Delete trip</string>
+    <string name="trip_close">Close</string>
+    <string name="error_required">Required</string>
+    <string name="date_range_title">Select trip dates</string>
+    <string name="date_range_confirm">Done</string>
+
+    <!-- Delete trip dialog -->
+    <string name="delete_trip_title">Delete %1$s?</string>
+    <string name="delete_trip_body">Everything in this trip is deleted and cannot be restored:</string>
+    <string name="delete_trip_itinerary">Itinerary</string>
+    <string name="delete_trip_packing">Packing</string>
+    <string name="delete_trip_expenses">Expenses</string>
+    <string name="delete_trip_activities">%1$d activities</string>
+    <string name="delete_trip_items">%1$d items</string>
+    <string name="delete_trip_records">%1$d records</string>
+    <string name="delete_trip_confirm">Yes, delete</string>
+
+    <!-- Currency names -->
+    <string name="currency_name_idr">Indonesian Rupiah</string>
+    <string name="currency_name_usd">US Dollar</string>
+    <string name="currency_name_eur">Euro</string>
+    <string name="currency_name_sgd">Singapore Dollar</string>
+    <string name="currency_name_myr">Malaysian Ringgit</string>
+    <string name="currency_name_jpy">Japanese Yen</string>
+    <string name="currency_name_aud">Australian Dollar</string>
+    <string name="currency_name_gbp">British Pound</string>
+    <string name="currency_name_thb">Thai Baht</string>
+    <string name="currency_name_krw">South Korean Won</string>
+    <string name="currency_sheet_title">Choose currency</string>
+
+    <!-- Money units (compact amounts) -->
+    <string name="money_unit_thousand">K</string>
+    <string name="money_unit_million">M</string>
+    <string name="money_unit_billion">B</string>
+
+    <!-- Calendar names (Monday first) -->
+    <string-array name="months_short">
+        <item>Jan</item>
+        <item>Feb</item>
+        <item>Mar</item>
+        <item>Apr</item>
+        <item>May</item>
+        <item>Jun</item>
+        <item>Jul</item>
+        <item>Aug</item>
+        <item>Sep</item>
+        <item>Oct</item>
+        <item>Nov</item>
+        <item>Dec</item>
+    </string-array>
+    <string-array name="months_full">
+        <item>January</item>
+        <item>February</item>
+        <item>March</item>
+        <item>April</item>
+        <item>May</item>
+        <item>June</item>
+        <item>July</item>
+        <item>August</item>
+        <item>September</item>
+        <item>October</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
+    <string-array name="weekdays_short">
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+        <item>Sun</item>
+    </string-array>
+    <string-array name="weekdays_full">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+
+    <!-- Currency sheet -->
+    <string name="currency_sheet_default_title">Default currency</string>
+    <string name="currency_sheet_default_hint">Used for new trips. Existing trips keep their currency.</string>
+    <string name="currency_search_placeholder">Search currency</string>
+    <string name="currency_locked_hint">The currency cannot change after expenses were recorded.</string>
+    <string name="action_edit_trip">Edit trip</string>
+
+    <!-- Time and duration -->
+    <string name="time_separator">:</string>
+    <string name="duration_hours">%1$d h</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
+    <string name="duration_hours_decimal">%1$s h</string>
+    <string name="duration_approx">± %1$s</string>
+
+    <!-- Itinerary -->
+    <string name="itinerary_day_chip">Day %1$d</string>
+    <string name="itinerary_day_heading">Day %1$d · %2$s</string>
+    <string name="itinerary_add_activity">Add activity</string>
+    <string name="itinerary_empty_title">Day %1$d is still empty</string>
+    <string name="itinerary_empty_body">Add the first activity of the day.</string>
+    <string name="itinerary_drag_hint">Release to reorder. Drag onto a day chip to move to another day.</string>
+    <string name="itinerary_drag_start">Start %1$s · %2$s</string>
+    <string name="itinerary_unscheduled">Unscheduled</string>
+    <string name="itinerary_unscheduled_see_all">See all</string>
+    <string name="itinerary_unscheduled_places">%1$d places · %2$s</string>
+    <string name="itinerary_schedule">Schedule</string>
+    <string name="itinerary_added_manually">Added manually</string>
+    <string name="itinerary_remove_from_list">Remove from list</string>
+    <string name="itinerary_more">More</string>
+    <string name="itinerary_close">Close</string>
+    <string name="itinerary_day_summary">%1$d activities · until %2$s</string>
+    <string name="itinerary_day_empty_summary">Still empty</string>
+    <string name="itinerary_schedule_pick_day">Choose a day</string>
+    <string name="itinerary_schedule_time">Time</string>
+    <string name="itinerary_schedule_change">Change</string>
+    <string name="itinerary_schedule_after">After %1$s, the last activity</string>
+    <string name="itinerary_schedule_start_of_day">The day is empty, starting at the default time</string>
+    <string name="itinerary_schedule_note">Placed at the end of the day automatically. An empty day starts at 09:00.</string>
+    <string name="itinerary_schedule_to_day">Schedule to Day %1$d</string>
+    <string name="itinerary_duration_label">duration %1$s</string>
+
+    <!-- Reorder dialog and snackbars -->
+    <string name="reorder_title">Change order and times?</string>
+    <string name="reorder_body">Day %1$d is packed from %2$s. Durations stay the same, times follow the new order.</string>
+    <string name="reorder_unchanged">Not affected: %1$s.</string>
+    <string name="reorder_dont_ask">Don't ask again</string>
+    <string name="reorder_confirm">Change schedule</string>
+    <string name="reorder_done">Day %1$d schedule packed</string>
+    <string name="reorder_moved">Moved to Day %1$d</string>
+    <string name="list_and">and</string>
+
+    <!-- Activity form -->
+    <string name="activity_form_add_title">Add activity</string>
+    <string name="activity_form_edit_title">Edit activity</string>
+    <string name="activity_title">Title</string>
+    <string name="activity_category">Category</string>
+    <string name="activity_day">Day</string>
+    <string name="activity_day_unscheduled">Not scheduled</string>
+    <string name="activity_time">Time</string>
+    <string name="activity_time_start">Start</string>
+    <string name="activity_time_end">End</string>
+    <string name="activity_time_clear">Clear times</string>
+    <string name="activity_duration">Duration %1$s</string>
+    <string name="activity_place">Place</string>
+    <string name="activity_notes">Notes</string>
+    <string name="activity_booking">Booking link</string>
+    <string name="activity_save">Save activity</string>
+    <string name="activity_delete">Delete activity</string>
+    <string name="activity_end_before_start">End time must be after start time</string>
+    <string name="time_picker_title">Select time</string>
+    <string name="action_ok">OK</string>
+    <string name="debug_seed_sample">Load sample trip (debug)</string>
 </resources>

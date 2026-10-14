@@ -8,6 +8,8 @@ import app.ransel.data.repository.PackingRepository
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.repository.buildTripSummary
+import app.ransel.shared.domain.itemsOutsideRange
+import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.DayOrderItem
@@ -26,6 +28,7 @@ import app.ransel.util.now
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.LocalDate
@@ -50,14 +53,15 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
 
     override fun observeSummary(tripId: String): Flow<TripSummaryDto> =
         combine(store.trips, store.items, store.packing, store.expenses) { trips, items, packing, expenses ->
-            val trip = trips.first { it.id == tripId }
-            buildTripSummary(
-                trip,
-                items.filter { it.tripId == tripId },
-                packing.filter { it.tripId == tripId },
-                expenses.filter { it.tripId == tripId },
-            )
-        }
+            trips.firstOrNull { it.id == tripId && it.deletedAt == null }?.let { trip ->
+                buildTripSummary(
+                    trip,
+                    items.filter { it.tripId == tripId },
+                    packing.filter { it.tripId == tripId },
+                    expenses.filter { it.tripId == tripId },
+                )
+            }
+        }.filterNotNull()
 
     override suspend fun create(request: CreateTripRequest): TripDto {
         val stamp = now()
@@ -71,6 +75,22 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
     }
 
     override suspend fun update(tripId: String, request: UpdateTripRequest) {
+        val outside = itemsOutsideRange(
+            store.items.value.filter { it.tripId == tripId }, request.startDate, request.endDate,
+        ).map { it.id }.toSet()
+        if (outside.isNotEmpty()) {
+            store.items.update { list ->
+                list.map { row ->
+                    if (row.id !in outside) row else {
+                        val input = row.toUnscheduledInput()
+                        row.copy(
+                            dayDate = null, startTime = null, endTime = null,
+                            durationMin = input.durationMin, updatedAt = now(),
+                        )
+                    }
+                }
+            }
+        }
         store.trips.update { list ->
             list.map {
                 if (it.id != tripId) it else it.copy(

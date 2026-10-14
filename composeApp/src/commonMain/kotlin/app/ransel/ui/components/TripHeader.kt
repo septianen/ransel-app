@@ -28,6 +28,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back
+import ransel.composeapp.generated.resources.action_edit_trip
 import ransel.composeapp.generated.resources.action_members
 import ransel.composeapp.generated.resources.trip_tab_expenses
 import ransel.composeapp.generated.resources.trip_tab_itinerary
@@ -53,6 +54,7 @@ fun TripHeader(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     onMembers: (() -> Unit)? = null,
+    onEdit: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxWidth()) {
         Row(
@@ -75,6 +77,9 @@ fun TripHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
+            }
+            if (onEdit != null) {
+                HeaderIconButton(Symbols.edit, stringResource(Res.string.action_edit_trip), onEdit)
             }
             if (onMembers != null) {
                 HeaderIconButton(Symbols.groupAdd, stringResource(Res.string.action_members), onMembers)

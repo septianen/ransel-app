@@ -9,6 +9,8 @@ import app.ransel.data.repository.PackingRepository
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.repository.buildTripSummary
+import app.ransel.shared.domain.itemsOutsideRange
+import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.DayOrderItem
@@ -26,6 +28,7 @@ import app.ransel.ui.theme.ThemeMode
 import app.ransel.util.now
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
@@ -45,13 +48,16 @@ class RoomTripRepository(private val db: RanselDatabase) : TripRepository {
         db.packingDao().observe(tripId),
         db.expenseDao().observe(tripId),
     ) { trip, items, packing, expenses ->
-        buildTripSummary(
-            trip = requireNotNull(trip) { "trip $tripId not found" }.toDto(),
-            items = items.map { it.toDto() },
-            packing = packing.map { it.toDto() },
-            expenses = expenses.map { it.toDto() },
-        )
-    }
+        // A deleted trip emits null once; skip it so a screen that is leaving does not crash.
+        trip?.let {
+            buildTripSummary(
+                trip = it.toDto(),
+                items = items.map { row -> row.toDto() },
+                packing = packing.map { row -> row.toDto() },
+                expenses = expenses.map { row -> row.toDto() },
+            )
+        }
+    }.filterNotNull()
 
     override suspend fun create(request: CreateTripRequest): TripDto {
         val stamp = now().toMillis()
@@ -68,14 +74,31 @@ class RoomTripRepository(private val db: RanselDatabase) : TripRepository {
 
     override suspend fun update(tripId: String, request: UpdateTripRequest) {
         val current = db.tripDao().get(tripId) ?: return
-        db.tripDao().upsert(
-            current.copy(
-                title = request.title.trim(), destination = request.destination.trim(),
-                startDate = request.startDate.toString(), endDate = request.endDate.toString(),
-                baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
-                updatedAt = now().toMillis(), syncState = SyncState.PENDING,
-            ),
-        )
+        val stamp = now().toMillis()
+        db.withWriteTransaction {
+            db.tripDao().upsert(
+                current.copy(
+                    title = request.title.trim(), destination = request.destination.trim(),
+                    startDate = request.startDate.toString(), endDate = request.endDate.toString(),
+                    baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
+                    updatedAt = stamp, syncState = SyncState.PENDING,
+                ),
+            )
+            // Shortened dates never delete activities: they go back to "Belum dijadwalkan".
+            val outside = itemsOutsideRange(
+                db.itineraryDao().getByTrip(tripId).map { it.toDto() }, request.startDate, request.endDate,
+            )
+            outside.forEach { item ->
+                val input = item.toUnscheduledInput()
+                val row = db.itineraryDao().get(item.id) ?: return@forEach
+                db.itineraryDao().upsert(
+                    row.copy(
+                        dayDate = null, startTime = null, endTime = null, durationMin = input.durationMin,
+                        updatedAt = stamp, syncState = SyncState.PENDING,
+                    ),
+                )
+            }
+        }
     }
 
     override suspend fun delete(tripId: String) {
