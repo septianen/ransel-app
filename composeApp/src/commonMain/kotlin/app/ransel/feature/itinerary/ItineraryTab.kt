@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -389,10 +390,14 @@ private fun DaySection(
                         ?: return@awaitEachGesture
                     val bounds = drag.rowBounds.getValue(hit)
                     val started: Boolean
+                    var overshoot = Offset.Zero
                     if (rootPos.x >= bounds.right - handleZone) {
                         // handle: drag as soon as the touch slop is crossed
                         drag.armed = true
-                        started = awaitTouchSlopOrCancellation(down.id) { change, _ -> change.consume() } != null
+                        started = awaitTouchSlopOrCancellation(down.id) { change, over ->
+                            change.consume()
+                            overshoot = over
+                        } != null
                     } else {
                         started = awaitLongPressOrCancellation(down.id) != null
                     }
@@ -401,6 +406,8 @@ private fun DaySection(
                         return@awaitEachGesture
                     }
                     drag.start(hit, rootPos - bounds.topLeft)
+                    // the movement that crossed the slop already happened: do not lose it
+                    if (overshoot != Offset.Zero) drag.dragBy(overshoot.x, overshoot.y)
                     val completed = drag(down.id) { change ->
                         val delta = change.positionChange()
                         change.consume()
@@ -527,7 +534,7 @@ private fun TimelineRow(
             }
             // Handle: touching it drags immediately; the rest of the row needs a long press.
             // Gestures are detected by the container in DaySection (this row moves while dragging).
-            Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(48.dp).testTag("drag-handle-${item.id}"), contentAlignment = Alignment.Center) {
                 Symbol(Symbols.dragIndicator, tint = MaterialTheme.colorScheme.outline)
             }
         }
