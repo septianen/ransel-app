@@ -4,11 +4,11 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 ## Setup (once, before Phase 1)
 
-- [ ] **F0.1 Project.** If the repo is still empty: generate from kmp.jetbrains.com (Android, iOS, Web, Server; package `app.ransel`), then copy this handoff package over it (`docs/`, `CLAUDE.md` files, `shared/src`, `server/src/main/resources/db/migration`, `composeApp/src/commonMain/kotlin/app/ransel/ui/theme`).
-- [ ] **F0.2 Shared module.** Dependencies: kotlinx-serialization (plugin + json), kotlinx-datetime; targets android, iOS, wasmJs, jvm (server). Make `./gradlew :shared:allTests` pass (8 domain tests).
-- [ ] **F0.3 Source sets.** `mobileMain` intermediate set for Android + iOS; Room 3 + KSP only there.
-- [ ] **F0.4 Shell.** Koin, Navigation Compose with the four tabs (Beranda, Trip, Jelajah, Akun), `IrisTheme` with Plus Jakarta Sans fonts, Material Symbols Rounded, `values/` + `values-in/` strings.
-- [ ] **F0.5 Shared components.** Build these in `ui/components/` before the first screen, each stateless and each with an `IrisPreview` (light + dark) `@Preview`. Take sizes, colors and states from the screens listed:
+- [x] **F0.1 Project.** If the repo is still empty: generate from kmp.jetbrains.com (Android, iOS, Web, Server; package `app.ransel`), then copy this handoff package over it (`docs/`, `CLAUDE.md` files, `shared/src`, `server/src/main/resources/db/migration`, `composeApp/src/commonMain/kotlin/app/ransel/ui/theme`).
+- [x] **F0.2 Shared module.** Dependencies: kotlinx-serialization (plugin + json), kotlinx-datetime; targets android, iOS, wasmJs, jvm (server). Make `./gradlew :shared:allTests` pass (8 domain tests). *(Done: jvm, Android unit, wasm pass; iOS targets only compile on macOS.)*
+- [x] **F0.3 Source sets.** `mobileMain` intermediate set for Android + iOS; Room 3 + KSP only there.
+- [x] **F0.4 Shell.** Koin, Navigation Compose with the four tabs (Beranda, Trip, Jelajah, Akun), `IrisTheme` with Plus Jakarta Sans fonts, Material Symbols Rounded, `values/` + `values-in/` strings.
+- [x] **F0.5 Shared components.** Build these in `ui/components/` before the first screen, each stateless and each with an `IrisPreview` (light + dark) `@Preview`. Take sizes, colors and states from the screens listed:
   - `FullScreenState`: illustration + headline + body + optional primary button (`KosongBeranda`, `StateError`, `SwipeKuota`, `StateComingSoon`, ...)
   - `TripHeader`: trip title, dates, tabs Itinerary / Packing / Expenses, `group_add` slot hidden until Phase 4 (`Itinerary`, `Packing`, `Pengeluaran`)
   - `CategoryIcon`: colored tile per `Category` / `PackingCategory` (`Itinerary`, `Pengeluaran`, `Packing`)

@@ -2,6 +2,9 @@ package app.ransel.ui.shell
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,13 +58,17 @@ fun RanselBottomBar(
     modifier: Modifier = Modifier,
     exploreHasSession: Boolean = false,
 ) {
-    Column(modifier) {
+    Column(
+        modifier
+            .background(MaterialTheme.colorScheme.surface)
+            .windowInsetsPadding(WindowInsets.navigationBars),
+    ) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         NavigationBar(
             modifier = Modifier.fillMaxWidth(),
             containerColor = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
-            windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+            windowInsets = WindowInsets(0),
         ) {
             MainTab.entries.forEach { tab ->
                 val isSelected = tab == selected

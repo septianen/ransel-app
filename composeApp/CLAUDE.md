@@ -51,11 +51,13 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - Local preferences (theme mode, "Jangan tanya lagi" for the reorder dialog, Explore swipe session for the "Lanjutkan" card) are per device, not synced.
 - Tokens (Phase 3): Android Keystore / iOS Keychain; on web keep the access token in memory and the refresh token in storage with the accepted risk noted in TRD.
 
-## Run (fill in once the project exists)
+## Run
 
 ```
 ./gradlew :composeApp:assembleDebug                 # Android
 open iosApp/iosApp.xcodeproj                        # iOS simulator
 ./gradlew :composeApp:wasmJsBrowserDevelopmentRun   # Web (from Phase 2)
-./gradlew :shared:allTests
+./gradlew :shared:allTests                          # on Linux: :shared:jvmTest :shared:testDebugUnitTest :shared:wasmJsBrowserTest
 ```
+
+Needs JDK 17+ (`JAVA_HOME`) and `local.properties` with `sdk.dir`. Pinned stack: Gradle 8.14.6, AGP 8.13.2, Kotlin 2.4.21, Compose Multiplatform 1.11.1 (1.12 needs AGP 9 + compileSdk 37). iOS: Apple Silicon simulator and devices only (no `iosX64`; Compose and Room 3 do not publish it).
