@@ -54,6 +54,7 @@ import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.format.amountToInput
 import app.ransel.ui.format.parseAmountMinor
+import app.ransel.ui.format.sanitizeAmountInput
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
@@ -187,7 +188,8 @@ fun ExpenseSheet(
             IrisTextField(
                 label = stringResource(Res.string.expense_amount),
                 value = amountText,
-                onValueChange = { amountText = it.filter { c -> c.isDigit() || c == ',' || c == '.' } },
+                onValueChange = { amountText = sanitizeAmountInput(it, currencyDecimals(currency)) },
+                visualTransformation = ThousandsVisualTransformation,
                 prefix = currencySymbol(currency),
                 placeholder = "0",
                 error = if (amountError) stringResource(Res.string.expense_error_amount) else null,
@@ -334,6 +336,7 @@ fun ExpenseSheet(
             selected = currency,
             onSelect = {
                 currency = it
+                amountText = sanitizeAmountInput(amountText, currencyDecimals(it))
                 pickCurrency = false
             },
             onDismiss = { pickCurrency = false },

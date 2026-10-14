@@ -21,3 +21,14 @@ class ParseAmountTest {
     @kotlin.test.Test fun emptyIsNull() = assertEquals(null, app.ransel.ui.format.parseAmountMinor("  ", "IDR"))
     @kotlin.test.Test fun extraDecimalsAreTruncated() = assertEquals(1_234L, app.ransel.ui.format.parseAmountMinor("12,349", "USD"))
 }
+
+class SanitizeAmountTest {
+    @kotlin.test.Test fun zeroDecimalKeepsDigitsOnly() =
+        assertEquals("100000", app.ransel.ui.format.sanitizeAmountInput("100.000", 0))
+    @kotlin.test.Test fun decimalCurrencyNormalisesSeparator() =
+        assertEquals("12,5", app.ransel.ui.format.sanitizeAmountInput("12.5", 2))
+    @kotlin.test.Test fun fractionIsLimited() =
+        assertEquals("12,34", app.ransel.ui.format.sanitizeAmountInput("12,349", 2))
+    @kotlin.test.Test fun secondSeparatorIsDropped() =
+        assertEquals("1234,5", app.ransel.ui.format.sanitizeAmountInput("1,234,5", 2))
+}

@@ -96,3 +96,17 @@ fun amountToInput(amountMinor: Long, currency: String): String {
     val fraction = (amountMinor % scale).toString().padStart(decimals, '0').trimEnd('0')
     return if (fraction.isEmpty()) "$whole" else "$whole,$fraction"
 }
+
+/**
+ * Cleans text typed into an amount field: digits only, plus one decimal separator when [decimals] > 0.
+ * "." and "," both count as the separator; the result always uses "," and keeps at most [decimals]
+ * fraction digits, so [parseAmountMinor] and the visual grouping can rely on it.
+ */
+fun sanitizeAmountInput(text: String, decimals: Int): String {
+    if (decimals == 0) return text.filter { it.isDigit() }.take(15)
+    val firstSeparator = text.indexOfFirst { it == ',' || it == '.' }
+    if (firstSeparator < 0) return text.filter { it.isDigit() }.take(15)
+    val whole = text.substring(0, firstSeparator).filter { it.isDigit() }.take(15)
+    val fraction = text.substring(firstSeparator + 1).filter { it.isDigit() }.take(decimals)
+    return "$whole,$fraction"
+}
