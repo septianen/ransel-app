@@ -330,4 +330,39 @@
     <string name="expense_error_amount">Enter an amount greater than zero</string>
     <string name="expense_error_rate">Enter the exchange rate</string>
     <string name="expense_sheet_subtitle_day">%1$s · Day %2$d</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Plan your itinerary day by day</string>
+    <string name="onboarding_body_1">Set activities, times and places for every day. Ideas you are not sure about can wait in "Unscheduled".</string>
+    <string name="onboarding_title_2">Pack without forgetting</string>
+    <string name="onboarding_body_2">Make a packing list per category, then tick items off one by one before you leave.</string>
+    <string name="onboarding_title_3">Track your trip budget</string>
+    <string name="onboarding_body_3">Record expenses in any currency and see your remaining budget anytime.</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Get started</string>
+    <string name="onboarding_previous">Previous</string>
+    <string name="onboarding_page">Page %1$d of %2$d</string>
+
+    <!-- Account -->
+    <string name="account_title">Account</string>
+    <string name="account_section_preferences">Preferences</string>
+    <string name="account_default_currency">Default currency</string>
+    <string name="account_theme">Theme</string>
+    <string name="account_language">Language</string>
+    <string name="account_confirm_reorder">Confirm before reordering</string>
+    <string name="account_confirm_reorder_hint">Ask first when a drag changes activity times.</string>
+    <string name="account_section_other">More</string>
+    <string name="account_about">About the app</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_sheet_title">Theme</string>
+    <string name="theme_sheet_hint">Applies right away on this device.</string>
+    <string name="theme_sheet_system_note">"Follow system" follows your phone's dark mode, including its schedule.</string>
+    <string name="language_system">System default</string>
+    <string name="language_indonesian">Bahasa Indonesia</string>
+    <string name="language_english">English</string>
+    <string name="language_sheet_title">Language</string>
+    <string name="language_sheet_hint">Applies right away on this device.</string>
 </resources>

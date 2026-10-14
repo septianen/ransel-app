@@ -4,7 +4,7 @@ import app.ransel.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 
 /** `null` language = follow the system. */
-enum class AppLanguage(val tag: String?) { SYSTEM(null), INDONESIAN("in"), ENGLISH("en") }
+enum class AppLanguage(val tag: String?) { SYSTEM(null), INDONESIAN("id"), ENGLISH("en") }
 
 /** Per-device preferences, never synced (composeApp/CLAUDE.md "Rules"). */
 data class AppPreferences(

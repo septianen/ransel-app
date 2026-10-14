@@ -1,5 +1,6 @@
 package app.ransel.di
 
+import app.ransel.feature.account.AccountViewModel
 import app.ransel.feature.expenses.ExpensesViewModel
 import app.ransel.feature.home.HomeViewModel
 import app.ransel.feature.itinerary.ActivityFormViewModel
@@ -19,6 +20,7 @@ import org.koin.dsl.module
 val commonModule: Module = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::TripListViewModel)
+    viewModelOf(::AccountViewModel)
     viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get()) }
     viewModel { params -> ItineraryViewModel(params.get(), get(), get()) }
     viewModel { params -> PackingViewModel(params.get(), get()) }

@@ -10,6 +10,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.dp
+import app.ransel.feature.account.AccountScreen
+import app.ransel.feature.onboarding.OnboardingScreen
+import app.ransel.platform.SystemBarsAppearance
+import app.ransel.platform.applyAppLanguage
+import app.ransel.ui.theme.ThemeMode
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -61,15 +71,34 @@ import ransel.composeapp.generated.resources.placeholder_account_title
 import ransel.composeapp.generated.resources.placeholder_body
 import ransel.composeapp.generated.resources.placeholder_explore_title
 
-/** App shell: theme from preferences, four-tab bottom navigation and the NavHost. */
+/** App shell: theme and language from preferences, first-launch onboarding, then the tabs. */
 @Composable
 fun App() {
     val preferencesRepository: PreferencesRepository = koinInject()
-    val preferences by preferencesRepository.observe().collectAsState(initial = AppPreferences())
+    val preferences by preferencesRepository.observe().collectAsState(initial = AppPreferences(loaded = false))
+    val scope = rememberCoroutineScope()
 
-    IrisTheme(mode = preferences.themeMode) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-            RanselNavigation()
+    // Apply the chosen language before any string is read; `key` rebuilds the UI when it changes.
+    remember(preferences.language) { applyAppLanguage(preferences.language.tag) }
+    val systemDark = isSystemInDarkTheme()
+    val dark = when (preferences.themeMode) {
+        ThemeMode.SYSTEM -> systemDark
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+
+    key(preferences.language) {
+        IrisTheme(mode = preferences.themeMode) {
+            SystemBarsAppearance(darkTheme = dark)
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                when {
+                    !preferences.loaded -> Unit
+                    !preferences.onboardingCompleted -> OnboardingScreen(
+                        onFinish = { scope.launch { preferencesRepository.setOnboardingCompleted(true) } },
+                    )
+                    else -> RanselNavigation()
+                }
+            }
         }
     }
 }
@@ -155,12 +184,10 @@ private fun androidx.navigation.NavGraphBuilder.tabs(navController: NavHostContr
         )
     }
     composable<AccountRoute> {
-        PlaceholderScreen(
-            stringResource(Res.string.placeholder_account_title),
-            stringResource(Res.string.placeholder_body),
+        AccountScreen(
             modifier = Modifier.statusBarsPadding(),
-            extra = {
-                if (isDebugBuild) {
+            debugContent = if (!isDebugBuild) null else ({
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { navController.navigate(ComponentGalleryRoute) }) {
                         Text(stringResource(Res.string.debug_component_gallery))
                     }
@@ -173,7 +200,7 @@ private fun androidx.navigation.NavGraphBuilder.tabs(navController: NavHostContr
                         Text(stringResource(Res.string.debug_seed_sample))
                     }
                 }
-            },
+            }),
         )
     }
     composable<ComponentGalleryRoute> {
