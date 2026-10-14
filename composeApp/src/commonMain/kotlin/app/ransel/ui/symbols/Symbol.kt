@@ -2,6 +2,7 @@ package app.ransel.ui.symbols
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,8 +16,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.Font
@@ -44,13 +45,15 @@ fun Symbol(
     val fill = FontFamily(Font(Res.font.material_symbols_rounded_fill))
     // Icons ignore the user's font scale: the box is sized in dp, not sp.
     val fontSize = with(LocalDensity.current) { size.toSp() }
+    // Natural line metrics on purpose: for this font the middle of the line box (ascent 1056, descent -96,
+    // em 960) is exactly the middle of the glyph box, so centring the text centres the glyph. Forcing
+    // `lineHeight = fontSize` with trimming (the first version) shifted the baseline and the text clip
+    // cut the bottom off tall glyphs such as `schedule`.
     val style = remember(filled, fontSize, outline, fill) {
         TextStyle(
             fontFamily = if (filled) fill else outline,
             fontSize = fontSize,
-            lineHeight = fontSize,
             textAlign = TextAlign.Center,
-            lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
         )
     }
     val semanticsModifier = if (contentDescription != null) {
@@ -59,6 +62,15 @@ fun Symbol(
         Modifier.clearAndSetSemantics { }
     }
     Box(modifier.size(size).then(semanticsModifier), contentAlignment = Alignment.Center) {
-        Text(text = symbol, style = style, color = tint, maxLines = 1, softWrap = false)
+        Text(
+            text = symbol,
+            style = style,
+            color = tint,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Visible, // never clip the glyph at the layout bounds
+            // The line box (1.2 em) is taller than the icon box: let it be, centred in the box.
+            modifier = Modifier.wrapContentSize(align = Alignment.Center, unbounded = true),
+        )
     }
 }
