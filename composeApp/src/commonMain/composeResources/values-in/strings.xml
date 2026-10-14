@@ -365,4 +365,5 @@
     <string name="language_english">English</string>
     <string name="language_sheet_title">Bahasa</string>
     <string name="language_sheet_hint">Berlaku langsung di perangkat ini.</string>
+    <string name="debug_show_onboarding">Tampilkan onboarding lagi (debug)</string>
 </resources>

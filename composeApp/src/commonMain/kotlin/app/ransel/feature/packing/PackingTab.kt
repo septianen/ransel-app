@@ -50,10 +50,12 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.util.today
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.capybara_bedroll_lantern
 import ransel.composeapp.generated.resources.packing_add
 import ransel.composeapp.generated.resources.packing_complete
 import ransel.composeapp.generated.resources.packing_departs
@@ -83,6 +85,7 @@ fun PackingTab(
                 body = stringResource(Res.string.packing_empty_body, trip.title),
                 primaryLabel = stringResource(Res.string.packing_add),
                 onPrimary = { sheet = SheetTarget.Add },
+                illustration = painterResource(Res.drawable.capybara_bedroll_lantern),
                 illustrationSize = 180.dp,
             )
             else -> {

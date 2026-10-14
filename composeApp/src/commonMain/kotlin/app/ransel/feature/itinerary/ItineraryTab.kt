@@ -2,6 +2,7 @@ package app.ransel.feature.itinerary
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -87,12 +88,14 @@ import app.ransel.ui.theme.IrisTheme
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_undo
+import ransel.composeapp.generated.resources.capybara_world_map
 import ransel.composeapp.generated.resources.itinerary_add_activity
 import ransel.composeapp.generated.resources.itinerary_day_chip
 import ransel.composeapp.generated.resources.itinerary_day_heading
@@ -548,7 +551,7 @@ private fun EmptyDay(title: String, onAddActivity: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(180.dp))
+        Image(painterResource(Res.drawable.capybara_world_map), contentDescription = null, modifier = Modifier.size(180.dp))
         Text(
             title,
             style = MaterialTheme.typography.headlineMedium,

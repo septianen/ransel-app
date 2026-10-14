@@ -1,5 +1,6 @@
 package app.ransel.feature.onboarding
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,10 +35,15 @@ import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.capybara_counting_coins
+import ransel.composeapp.generated.resources.capybara_opening_backpack
+import ransel.composeapp.generated.resources.capybara_world_map
 import ransel.composeapp.generated.resources.onboarding_body_1
 import ransel.composeapp.generated.resources.onboarding_body_2
 import ransel.composeapp.generated.resources.onboarding_body_3
@@ -50,12 +56,12 @@ import ransel.composeapp.generated.resources.onboarding_title_1
 import ransel.composeapp.generated.resources.onboarding_title_2
 import ransel.composeapp.generated.resources.onboarding_title_3
 
-private data class OnboardingPage(val title: StringResource, val body: StringResource)
+private data class OnboardingPage(val title: StringResource, val body: StringResource, val illustration: DrawableResource)
 
 private val Pages = listOf(
-    OnboardingPage(Res.string.onboarding_title_1, Res.string.onboarding_body_1),
-    OnboardingPage(Res.string.onboarding_title_2, Res.string.onboarding_body_2),
-    OnboardingPage(Res.string.onboarding_title_3, Res.string.onboarding_body_3),
+    OnboardingPage(Res.string.onboarding_title_1, Res.string.onboarding_body_1, Res.drawable.capybara_world_map),
+    OnboardingPage(Res.string.onboarding_title_2, Res.string.onboarding_body_2, Res.drawable.capybara_opening_backpack),
+    OnboardingPage(Res.string.onboarding_title_3, Res.string.onboarding_body_3, Res.drawable.capybara_counting_coins),
 )
 
 /**
@@ -110,7 +116,7 @@ fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
             ) {
-                Box(Modifier.size(280.dp)) // capybara illustration slot (decorative)
+                Image(painterResource(Pages[index].illustration), contentDescription = null, modifier = Modifier.size(280.dp))
                 Text(
                     stringResource(Pages[index].title),
                     style = MaterialTheme.typography.headlineMedium,

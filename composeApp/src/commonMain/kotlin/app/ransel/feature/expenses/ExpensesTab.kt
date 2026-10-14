@@ -51,10 +51,12 @@ import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.capybara_cash_backpack
 import ransel.composeapp.generated.resources.expenses_by_category
 import ransel.composeapp.generated.resources.expenses_donut_description
 import ransel.composeapp.generated.resources.expenses_before_trip
@@ -86,7 +88,7 @@ fun ExpensesTab(
                 body = stringResource(Res.string.expenses_empty_body, trip.title),
                 primaryLabel = stringResource(Res.string.expenses_record),
                 onPrimary = { sheet = ExpenseSheetTarget.New },
-                illustrationSize = 220.dp,
+                illustration = painterResource(Res.drawable.capybara_cash_backpack)
             )
             else -> {
                 val summary = state.summary!!

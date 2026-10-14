@@ -49,10 +49,12 @@ import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import app.ransel.ui.theme.irisCard
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.capybara_phone
 import ransel.composeapp.generated.resources.greeting_afternoon
 import ransel.composeapp.generated.resources.greeting_evening
 import ransel.composeapp.generated.resources.greeting_morning
@@ -104,6 +106,7 @@ fun HomeContent(
                 body = stringResource(Res.string.home_empty_body),
                 primaryLabel = stringResource(Res.string.home_empty_action),
                 onPrimary = onCreateTrip,
+                illustration = painterResource(Res.drawable.capybara_phone),
                 illustrationSize = 200.dp,
             )
         }

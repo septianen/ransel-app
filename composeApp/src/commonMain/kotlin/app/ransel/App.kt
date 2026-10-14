@@ -77,6 +77,7 @@ import org.koin.compose.koinInject
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.debug_component_gallery
 import ransel.composeapp.generated.resources.debug_seed_sample
+import ransel.composeapp.generated.resources.debug_show_onboarding
 import ransel.composeapp.generated.resources.placeholder_account_title
 import ransel.composeapp.generated.resources.placeholder_body
 import ransel.composeapp.generated.resources.placeholder_explore_title
@@ -218,6 +219,10 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
                         Text(stringResource(Res.string.debug_component_gallery))
                     }
                     val scope = rememberCoroutineScope()
+                    val preferences: PreferencesRepository = koinInject()
+                    Button(onClick = { scope.launch { preferences.setOnboardingCompleted(false) } }) {
+                        Text(stringResource(Res.string.debug_show_onboarding))
+                    }
                     val trips: TripRepository = koinInject()
                     val itinerary: ItineraryRepository = koinInject()
                     val packing: PackingRepository = koinInject()
