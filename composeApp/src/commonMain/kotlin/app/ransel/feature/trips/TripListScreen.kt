@@ -109,7 +109,6 @@ fun TripListContent(
                 primaryLabel = stringResource(Res.string.trips_create),
                 onPrimary = onCreateTrip,
                 illustration = painterResource(Res.drawable.capybara_reading_map_compass),
-                illustrationSize = 200.dp,
             )
             is TripListUiState.Content -> Box(Modifier.weight(1f)) {
                 TripGroups(state, onOpenTrip, onCreateTrip)

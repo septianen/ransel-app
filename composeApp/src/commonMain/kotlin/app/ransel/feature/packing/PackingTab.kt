@@ -86,7 +86,6 @@ fun PackingTab(
                 primaryLabel = stringResource(Res.string.packing_add),
                 onPrimary = { sheet = SheetTarget.Add },
                 illustration = painterResource(Res.drawable.capybara_bedroll_lantern),
-                illustrationSize = 180.dp,
             )
             else -> {
                 PackingList(

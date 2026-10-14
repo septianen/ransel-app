@@ -107,7 +107,6 @@ fun HomeContent(
                 primaryLabel = stringResource(Res.string.home_empty_action),
                 onPrimary = onCreateTrip,
                 illustration = painterResource(Res.drawable.capybara_phone),
-                illustrationSize = 200.dp,
             )
         }
         is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier)

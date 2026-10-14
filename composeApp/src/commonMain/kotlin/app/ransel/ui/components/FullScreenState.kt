@@ -109,6 +109,6 @@ private fun FullScreenStatePreview() = IrisPreview {
         primaryLabel = "Coba lagi",
         onPrimary = {},
         secondaryLabel = "Pakai offline",
-        onSecondary = {}
+        onSecondary = {},
     )
 }

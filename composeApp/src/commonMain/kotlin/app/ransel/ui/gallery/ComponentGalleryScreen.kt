@@ -75,13 +75,12 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Section("FullScreenState") {
                     FullScreenState(
-                        modifier = Modifier.height(320.dp),
+                        modifier = Modifier.height(560.dp),
                         title = "Waduh, sinyalnya lagi tidur",
                         body = "Periksa koneksimu, lalu coba lagi.",
                         errorCode = "NETWORK_TIMEOUT",
                         primaryLabel = "Coba lagi",
                         onPrimary = {},
-                        illustrationSize = 80.dp,
                     )
                 }
                 Section("TripHeader") {
