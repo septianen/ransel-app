@@ -110,11 +110,11 @@ class ActivityFormViewModel(
         viewModelScope.launch {
             val siblings = itinerary.observe(tripId).first().filter { it.dayDate == s.day && it.id != itemId }
             val previous = original
-            val sortOrder = if (previous != null && previous.dayDate == s.day) {
-                previous.sortOrder
-            } else {
-                (siblings.maxOfOrNull { it.sortOrder } ?: 0.0) + 1.0
-            }
+            val startTime = if (s.day != null) s.start else null
+            // Keep the place when nothing that decides it changed (so a title edit never reshuffles a
+            // day the user arranged by hand); otherwise slot it in by start time.
+            val unchanged = previous != null && previous.dayDate == s.day && previous.startTime == startTime
+            val sortOrder = if (unchanged) previous!!.sortOrder else sortOrderForStart(siblings, startTime)
             val scheduled = s.day != null
             itinerary.save(
                 tripId,

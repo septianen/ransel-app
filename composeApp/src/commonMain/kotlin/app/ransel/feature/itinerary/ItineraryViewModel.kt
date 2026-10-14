@@ -202,11 +202,12 @@ class ItineraryViewModel(
     }
 
     fun schedule(item: ItineraryItemDto, day: LocalDate, start: LocalTime, end: LocalTime) {
-        val lastOrder = state.value.itemsByDay[day].orEmpty().maxOfOrNull { it.sortOrder } ?: 0.0
+        // "Ubah" may pick a time earlier than the day's last activity: keep the day chronological.
+        val order = sortOrderForStart(state.value.itemsByDay[day].orEmpty(), start)
         viewModelScope.launch {
             itinerary.save(
                 trip.id,
-                item.toInput().copy(dayDate = day, startTime = start, endTime = end, sortOrder = lastOrder + 1.0),
+                item.toInput().copy(dayDate = day, startTime = start, endTime = end, sortOrder = order),
             )
         }
     }
