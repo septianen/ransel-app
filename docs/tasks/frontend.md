@@ -25,16 +25,26 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 ## Phase 1 — Offline app (Android + iOS, no server, no account)
 
-- [ ] **F1.1 Local data.** Room entities for trips, itinerary items, packing items, expenses (columns mirror V1 + a local `syncState`, unused until Phase 3); repositories behind interfaces; `LOCAL_USER_ID` as owner/payer.
-- [ ] **F1.2 Home & My trips.** `Main`, `KosongBeranda`, `DaftarTrip`, `KosongTrip`, `TripSelesaiSaja`. Hide AI entry points (Coba callout, "Cari inspirasi dengan AI") until Phase 5.
-- [ ] **F1.3 Trip CRUD.** `BuatTrip`, `PilihRentangTanggal`, `EditTrip`, `DialogHapusTrip` (counts from the local DB).
-- [ ] **F1.4 Itinerary.** `Itinerary` (day chips, timeline, category tiles), `KosongItinerary`, `TambahAktivitas`, `PilihJam`; drag reorder `SeretAktivitas` → `DialogUbahUrutan` (with "Jangan tanya lagi") → `HasilUrutan` (Undo) using `shared/domain/reorder`; drag onto a day chip to move day; "Belum dijadwalkan" box, `BelumDijadwalkanSemua`, `JadwalkanTempat` using `scheduleAtEndOfDay` (manual unscheduled items for now).
-- [ ] **F1.5 Packing.** `Packing`, `KosongPacking`, `TambahBarang`, tick, progress, "Lengkap" tag; ⋮ menu with only "Hapus semua centang" for now.
-- [ ] **F1.6 Expenses.** `Pengeluaran` (remaining budget, donut by category, list by day), `StateEmpty`, `CatatPengeluaran` (amount, currency, category with expense labels, date via `PilihTanggal`, "Bayar pakai", note).
-- [ ] **F1.7 Onboarding & Account.** `Onboarding1–3` on first launch, then straight into the app; `Akun` without sync/sign-in rows; `SheetTema` (system/light/dark), `SheetMataUang` (default currency for new trips), language.
-- [ ] **F1.8 Quality.** Dark theme on every Phase 1 screen (`GelapBeranda`, `GelapPengeluaran` show the pattern); Compose UI tests: create trip, add activity, reorder, tick packing, record expense.
+- [x] **F1.1 Local data.** Room entities for trips, itinerary items, packing items, expenses (columns mirror V1 + a local `syncState`, unused until Phase 3); repositories behind interfaces; `LOCAL_USER_ID` as owner/payer.
+  - Done. Shared DTOs are the domain models; Room 3 in `mobileMain`, in-memory fakes in `commonMain` (previews, tests, web until F2.2).
+- [x] **F1.2 Home & My trips.** `Main`, `KosongBeranda`, `DaftarTrip`, `KosongTrip`, `TripSelesaiSaja`. Hide AI entry points (Coba callout, "Cari inspirasi dengan AI") until Phase 5.
+  - Done. Hidden until Phase 5: the AI callout, "Cari inspirasi dengan AI" buttons, the unscheduled column of "Persiapan trip". Hidden because their targets are not designed: the notification bell and the search button.
+- [x] **F1.3 Trip CRUD.** `BuatTrip`, `PilihRentangTanggal`, `EditTrip`, `DialogHapusTrip` (counts from the local DB).
+  - Done. Not built: cover **photo** upload (needs a platform file picker + storage); a generated cover is shown instead. Added: the pencil in the trip header opens Edit trip (the design shows no entry); the base currency is locked once a trip has expenses; shortening the dates moves activities to Belum dijadwalkan (`shared/domain/TripDates.kt`).
+- [x] **F1.4 Itinerary.** `Itinerary` (day chips, timeline, category tiles), `KosongItinerary`, `TambahAktivitas`, `PilihJam`; drag reorder `SeretAktivitas` → `DialogUbahUrutan` (with "Jangan tanya lagi") → `HasilUrutan` (Undo) using `shared/domain/reorder`; drag onto a day chip to move day; "Belum dijadwalkan" box, `BelumDijadwalkanSemua`, `JadwalkanTempat` using `scheduleAtEndOfDay` (manual unscheduled items for now).
+  - Done. Drag and drop is custom `pointerInput` (TRD), not Reorderable: dragging onto a day chip needs hit-testing against the chips. Also built: activity form with edit/delete, move-to-day with Undo. The AI filter in the unscheduled sheet and "Cari tempat lain" wait for Phase 5; place-specific tile icons are not offered.
+- [x] **F1.5 Packing.** `Packing`, `KosongPacking`, `TambahBarang`, tick, progress, "Lengkap" tag; ⋮ menu with only "Hapus semua centang" for now.
+  - Done. The ⋮ menu ("Hapus semua centang") sits in the progress card; long-press a row to edit or delete it.
+- [x] **F1.6 Expenses.** `Pengeluaran` (remaining budget, donut by category, list by day), `StateEmpty`, `CatatPengeluaran` (amount, currency, category with expense labels, date via `PilihTanggal`, "Bayar pakai", note).
+  - Done. Added a manual exchange-rate field for expenses in a currency other than the trip's (needed for `fxRateToBase`). "Lihat semua transaksi" is not designed yet, so it is omitted.
+- [x] **F1.7 Onboarding & Account.** `Onboarding1–3` on first launch, then straight into the app; `Akun` without sync/sign-in rows; `SheetTema` (system/light/dark), `SheetMataUang` (default currency for new trips), language.
+  - Done. Reminders (packing/activity) are left out: they need platform notification scheduling. Added "Konfirmasi ubah urutan" (re-enables the reorder dialog). The language sheet reuses the theme sheet pattern.
+- [x] **F1.8 Quality.** Dark theme on every Phase 1 screen (`GelapBeranda`, `GelapPengeluaran` show the pattern); Compose UI tests: create trip, add activity, reorder, tick packing, record expense.
+  - Done. Every screen uses scheme tokens, so dark works everywhere (checked on Home, Itinerary, Expenses, Account). UI tests: `composeApp/src/androidInstrumentedTest/.../Phase1FlowTests.kt` (run with `ANDROID_SERIAL=<emulator> ./gradlew :composeApp:connectedDebugAndroidTest`).
 
 **Done when:** one real trip can be planned start to finish on an Android phone and on the iOS simulator.
+
+> Status: all F1.x built and checked on an Android emulator (API 36). Still to confirm by the owner: a real trip on a physical phone, and everything on the iOS simulator (needs a Mac).
 
 ## Phase 2 — Web joins (online-only)
 

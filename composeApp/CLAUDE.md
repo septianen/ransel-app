@@ -43,6 +43,12 @@ Room 3 notes: package `androidx.room3`, KSP only, DAO functions are `suspend` or
 
 MVVM with unidirectional data flow: one `UiState` data class per screen exposed as one `StateFlow`; UI actions are plain ViewModel functions; one-off events (snackbar, navigation) go through one `Channel` per ViewModel. Screens are split into a thin `XScreen(viewModel)` that collects state and a stateless `XContent(state, ...)` that previews can render.
 
+## Notes from Phase 1
+
+- Drag and drop in the itinerary is custom (`feature/itinerary/DayDragState` + one gesture detector on the day container), not the Reorderable library: rows are translated while dragging, so gestures must be detected on a stable ancestor, and dragging onto day chips needs hit-testing. `sh.calvin.reorderable` is not a dependency.
+- Debug builds: Account → "Load sample trip" seeds the "Bali 4 hari" example; Account → component gallery.
+- UI tests run only on the emulator: set `ANDROID_SERIAL` so Gradle does not install test APKs on a physical phone.
+
 ## Rules
 
 - ViewModels get `ApiResult<T>` / domain models, never HTTP status codes. Map `ApiError.code` (`ErrorCode`) to the state screens; show the code small where the design does.

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -28,7 +29,9 @@ import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.MoneyText
 import app.ransel.ui.components.PackingCategoryIcon
+import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.SectionHeader
+import app.ransel.ui.components.TripCover
 import app.ransel.ui.components.TripHeader
 import app.ransel.ui.components.TripTab
 import app.ransel.ui.components.UndoSnackbar
@@ -91,6 +94,18 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PackingCategory.entries.forEach { PackingCategoryIcon(it) }
                     }
+                }
+                Section("TripCover") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("bali", "tokyo", "lombok", "jogja", "bandung").forEach {
+                            TripCover(seed = it, modifier = Modifier.size(56.dp))
+                        }
+                    }
+                }
+                Section("IrisTextField") {
+                    IrisTextField("Nama trip", "Bali 4 hari", {})
+                    IrisTextField("Budget", "", {}, labelSuffix = "(opsional)", prefix = "Rp", placeholder = "0")
+                    IrisTextField("Nama trip", "", {}, error = "Wajib diisi")
                 }
                 Section("MoneyText") {
                     MoneyText(50_000, "IDR", style = MaterialTheme.typography.titleMedium)
