@@ -38,7 +38,7 @@ Contrast note (the limit for icons is 3:1): white on blue (2.8:1) and teal (2.98
 | Item name | 16/24 semibold, `on-surface` | 16/24 regular, `on-surface-variant`, struck through |
 | Quantity | 14/20 bold, `on-surface`, format `×3` | 14/20 bold, `on-surface-variant` |
 | Row height | At least 52dp, the whole row is the touch target | Same |
-| Divider | 1dp `outline-variant` #E2E2E2 between rows in one group | Same |
+| Divider | None between rows (decision 2026-10-14: cleaner); groups are separated by the category header and 24dp spacing | Same |
 
 ## Packing menu and templates (Phase 4)
 

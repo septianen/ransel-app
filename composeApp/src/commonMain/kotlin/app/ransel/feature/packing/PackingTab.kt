@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -193,9 +192,10 @@ private fun PackingList(
                         )
                     }
                 }
-                group.items.forEachIndexed { index, item ->
+                // No divider between items: the category header and the 24 dp gap between groups already
+                // separate them, and the rows are 52 dp tall touch targets.
+                group.items.forEach { item ->
                     PackingRow(item, onToggle = { onToggle(item) }, onLongPress = { onEdit(item) })
-                    if (index < group.items.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }
