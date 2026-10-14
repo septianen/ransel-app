@@ -1,5 +1,13 @@
 package app.ransel
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -35,6 +43,8 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
@@ -147,6 +157,22 @@ private fun RanselNavigation() {
             navController = navController,
             startDestination = HomeRoute,
             modifier = Modifier.padding(padding),
+            enterTransition = {
+                if (betweenTabs()) EnterTransition.None
+                else slideInHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
+            },
+            exitTransition = {
+                if (betweenTabs()) ExitTransition.None
+                else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { -it / 4 }
+            },
+            popEnterTransition = {
+                if (betweenTabs()) EnterTransition.None
+                else slideInHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { -it / 4 }
+            },
+            popExitTransition = {
+                if (betweenTabs()) ExitTransition.None
+                else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
+            },
         ) {
             tabs(navController)
             trips(navController)
@@ -154,8 +180,8 @@ private fun RanselNavigation() {
     }
 }
 
-private fun androidx.navigation.NavGraphBuilder.tabs(navController: NavHostController) {
-    composable<HomeRoute> {
+private fun NavGraphBuilder.tabs(navController: NavHostController) {
+    page<HomeRoute> {
         HomeScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { id, section ->
@@ -169,21 +195,21 @@ private fun androidx.navigation.NavGraphBuilder.tabs(navController: NavHostContr
             onCreateTrip = { navController.navigate(CreateTripRoute) },
         )
     }
-    composable<TripListRoute> {
+    page<TripListRoute> {
         TripListScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { navController.navigate(TripRoute(it)) },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
         )
     }
-    composable<ExploreRoute> {
+    page<ExploreRoute> {
         PlaceholderScreen(
             stringResource(Res.string.placeholder_explore_title),
             stringResource(Res.string.placeholder_body),
             modifier = Modifier.statusBarsPadding(),
         )
     }
-    composable<AccountRoute> {
+    page<AccountRoute> {
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
             debugContent = if (!isDebugBuild) null else ({
@@ -203,13 +229,13 @@ private fun androidx.navigation.NavGraphBuilder.tabs(navController: NavHostContr
             }),
         )
     }
-    composable<ComponentGalleryRoute> {
+    page<ComponentGalleryRoute> {
         ComponentGalleryScreen(onBack = { navController.popBackStack() }) // handles its own insets
     }
 }
 
-private fun androidx.navigation.NavGraphBuilder.trips(navController: NavHostController) {
-    composable<TripRoute> { entry ->
+private fun NavGraphBuilder.trips(navController: NavHostController) {
+    page<TripRoute> { entry ->
         val route = entry.toRoute<TripRoute>()
         TripScreen(
             tripId = route.tripId,
@@ -220,7 +246,7 @@ private fun androidx.navigation.NavGraphBuilder.trips(navController: NavHostCont
             onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
         )
     }
-    composable<ActivityFormRoute> { entry ->
+    page<ActivityFormRoute> { entry ->
         val route = entry.toRoute<ActivityFormRoute>()
         ActivityFormScreen(
             tripId = route.tripId,
@@ -229,7 +255,7 @@ private fun androidx.navigation.NavGraphBuilder.trips(navController: NavHostCont
             onClose = { navController.popBackStack() },
         )
     }
-    composable<CreateTripRoute> {
+    page<CreateTripRoute> {
         TripFormScreen(
             tripId = null,
             onClose = { navController.popBackStack() },
@@ -240,7 +266,7 @@ private fun androidx.navigation.NavGraphBuilder.trips(navController: NavHostCont
             onDeleted = {},
         )
     }
-    composable<EditTripRoute> { entry ->
+    page<EditTripRoute> { entry ->
         val route = entry.toRoute<EditTripRoute>()
         TripFormScreen(
             tripId = route.tripId,
@@ -251,5 +277,27 @@ private fun androidx.navigation.NavGraphBuilder.trips(navController: NavHostCont
                 navController.popBackStack<TripRoute>(inclusive = true)
             },
         )
+    }
+}
+
+private const val SLIDE_MILLIS = 280
+
+private fun NavBackStackEntry.isTab(): Boolean =
+    destination.hasRoute<HomeRoute>() || destination.hasRoute<TripListRoute>() ||
+        destination.hasRoute<ExploreRoute>() || destination.hasRoute<AccountRoute>()
+
+/** Switching bottom tabs swaps content in place (no motion); everything else slides like a page push. */
+private fun androidx.compose.animation.AnimatedContentTransitionScope<NavBackStackEntry>.betweenTabs(): Boolean =
+    initialState.isTab() && targetState.isTab()
+
+/**
+ * A destination with an opaque page background. Pages slide over each other, so each one must paint
+ * its own background or the page underneath would show through.
+ */
+private inline fun <reified T : Any> NavGraphBuilder.page(
+    noinline content: @Composable (NavBackStackEntry) -> Unit,
+) {
+    composable<T> { entry ->
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { content(entry) }
     }
 }
