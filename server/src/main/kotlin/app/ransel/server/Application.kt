@@ -6,8 +6,11 @@ import app.ransel.server.plugins.configureCors
 import app.ransel.server.plugins.configureSerialization
 import app.ransel.server.plugins.configureStatusPages
 import app.ransel.server.routes.healthRoutes
+import app.ransel.server.routes.tripRoutes
 import app.ransel.shared.api.ApiRoutes
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopped
+import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.routing.route
@@ -19,7 +22,8 @@ fun main() {
 }
 
 fun Application.module(config: AppConfig = AppConfig.fromEnv()) {
-    DatabaseFactory.connect(config)
+    val pool = DatabaseFactory.connect(config)
+    monitor.subscribe(ApplicationStopped) { (pool as? HikariDataSource)?.close() }
     configureCallLogging()
     configureCors(config.corsOrigins)
     configureSerialization()
@@ -27,6 +31,7 @@ fun Application.module(config: AppConfig = AppConfig.fromEnv()) {
     routing {
         route(ApiRoutes.BASE) {
             healthRoutes()
+            tripRoutes()
         }
     }
 }
