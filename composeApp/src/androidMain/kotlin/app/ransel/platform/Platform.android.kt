@@ -11,6 +11,9 @@ import app.ransel.data.auth.TokenStore
 import app.ransel.data.remote.ConnectionMonitor
 import app.ransel.data.remote.NoConnectionMonitor
 import app.ransel.di.mobileDataModule
+import com.chuckerteam.chucker.api.ChuckerInterceptor
+import io.ktor.client.engine.HttpClientEngine
+import io.ktor.client.engine.okhttp.OkHttp
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
@@ -18,6 +21,12 @@ import org.koin.dsl.module
 actual val platformModule: Module = module {
     includes(mobileDataModule)
     single<ConnectionMonitor> { NoConnectionMonitor }
+    // Same OkHttp engine Ktor would pick, plus Chucker (a notification + request list in debug builds; no-op in release).
+    single<HttpClientEngine> {
+        OkHttp.create {
+            addInterceptor(ChuckerInterceptor.Builder(androidContext()).redactHeaders("Authorization").build())
+        }
+    }
     single<TokenStore> { KeystoreTokenStore(androidContext()) }
     single<RanselDatabase> {
         val context = androidContext()

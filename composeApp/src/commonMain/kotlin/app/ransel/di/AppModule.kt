@@ -36,7 +36,8 @@ import org.koin.dsl.module
 val commonModule: Module = module {
     // The API client and the session depend on each other: the manager gets the client lazily.
     single { SessionManager(get()) { get<RanselApi>() } }
-    single { RanselApi(createApiHttpClient(), apiOrigin(), get<SessionManager>()) }
+    // The engine is only registered where a platform wants to customise it (Android: Chucker); otherwise Ktor picks one.
+    single { RanselApi(createApiHttpClient(getOrNull<io.ktor.client.engine.HttpClientEngine>()), apiOrigin(), get<SessionManager>()) }
     single { AuthRepository(get(), get(), get()) }
     viewModelOf(::SignInViewModel)
     viewModelOf(::SignUpViewModel)

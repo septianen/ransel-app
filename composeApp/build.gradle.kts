@@ -125,6 +125,9 @@ dependencies {
     add("kspAndroid", libs.room3.compiler)
     add("kspIosArm64", libs.room3.compiler)
     add("kspIosSimulatorArm64", libs.room3.compiler)
+    // HTTP inspector (Android, debug builds only); the release build gets the no-op artifact with the same API.
+    debugImplementation(libs.chucker)
+    releaseImplementation(libs.chucker.no.op)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
