@@ -48,6 +48,18 @@ Every deploy tags the image with the commit SHA. On the VPS: edit `SERVER_IMAGE`
 
 One-time, like the API host: copy `deploy/nginx/ransel.mietek.tech.conf` to `sites-available`, enable it, `nginx -t`, reload, then `sudo certbot --nginx -d ransel.mietek.tech`. It serves the web app from `/opt/ransel/web` (single-page fallback, so `/j/<code>` opens the app) and forwards `/.well-known/` to the API.
 
+### Publishing the web build
+
+No workflow deploys the web app yet. By hand, from the repo root:
+
+```
+./gradlew :composeApp:wasmJsBrowserDistribution
+rsync -a --delete composeApp/build/dist/wasmJs/productionExecutable/ <vps>:/opt/ransel/web/
+```
+
+`index.html` points the app at `https://ranselapi.mietek.tech` when it is served from `ransel.mietek.tech` (the API's
+`CORS_ORIGINS` already allows that origin). About 21 MB, mostly two `.wasm` files; nginx should serve them gzip-compressed.
+
 ### App Links / Universal Links
 
 The API serves `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` (values from the
