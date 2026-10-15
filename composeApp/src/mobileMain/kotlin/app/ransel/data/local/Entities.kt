@@ -13,6 +13,9 @@ import androidx.room3.PrimaryKey
 object SyncState {
     const val PENDING = "PENDING"
     const val SYNCED = "SYNCED"
+
+    /** The server refused this row (not retryable: forbidden, invalid, trip gone). Kept locally, never re-sent. */
+    const val REJECTED = "REJECTED"
 }
 
 @Entity(tableName = "trips")

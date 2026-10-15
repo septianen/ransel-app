@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import app.ransel.data.sync.SyncStatus
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,8 @@ fun TripScreen(
     val current = trip
 
     val expanded = rememberIsExpanded()
+    val sync: SyncStatus = koinInject()
+    val offline by sync.offline.collectAsState()
 
     @Composable
     fun Main(modifier: Modifier) {
@@ -59,6 +62,7 @@ fun TripScreen(
                 onBack = onBack,
                 onEdit = onEditTrip,
             )
+            if (offline) app.ransel.ui.components.OfflineBanner()
             Box(Modifier.weight(1f).navigationBarsPadding()) {
                 if (current != null) {
                     when (tab) {

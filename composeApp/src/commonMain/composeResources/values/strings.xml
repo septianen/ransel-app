@@ -463,4 +463,5 @@
     <string name="offline_banner_title">You are offline</string>
     <string name="offline_banner_body">Changes stay on this device and are sent automatically when you are online.</string>
     <string name="back_online_snackbar">Back online · %1$d changes sent</string>
+    <string name="sync_pending_description">Waiting to be sent</string>
 </resources>

@@ -30,7 +30,10 @@ import app.ransel.ui.adaptive.rememberIsExpanded
 import app.ransel.ui.components.ConnectionErrorState
 import app.ransel.ui.components.ServerErrorState
 import app.ransel.ui.shell.RanselNavigationRail
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import app.ransel.ui.components.BackOnlineToast
+import app.ransel.ui.components.LocalPendingIds
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
@@ -158,6 +161,7 @@ fun App() {
 private fun SessionGate(openSignIn: Boolean) {
     val session: SessionManager = koinInject()
     val state by session.state.collectAsState()
+    koinInject<SyncStatus>() // creates the sync engine (mobile) so it starts with the session
     LaunchedEffect(session) { session.restore() }
     when {
         state is SessionState.Loading -> Unit
@@ -194,6 +198,9 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     val expanded = rememberIsExpanded()
     val monitor: ConnectionMonitor = koinInject()
     val failure by monitor.failure.collectAsState()
+    val sync: SyncStatus = koinInject()
+    val pendingIds by sync.pendingIds.collectAsState()
+    val justSynced by sync.justSynced.collectAsState()
 
     val selected: MainTab? = when {
         destination == null -> MainTab.HOME
@@ -220,6 +227,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
         }
     }
 
+    CompositionLocalProvider(LocalPendingIds provides pendingIds) {
     Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize()) {
             // Wide web windows: a navigation rail on the left; phones: the bottom bar below.
@@ -275,6 +283,8 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
             }
         }
 
+        BackOnlineToast(justSynced, onShown = sync::acknowledgeJustSynced, modifier = Modifier.align(Alignment.BottomCenter))
+
         // Web: a failed request replaces the screen with the connection / server state (design "State").
         failure?.let { error ->
             val back = {
@@ -293,6 +303,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                 }
             }
         }
+    }
     }
 }
 

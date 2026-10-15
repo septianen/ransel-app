@@ -11,13 +11,30 @@ import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PackingRepository
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
+import app.ransel.data.auth.SessionHooks
+import app.ransel.data.auth.SessionManager
+import app.ransel.data.sync.RoomSessionHooks
+import app.ransel.data.sync.SyncCoordinator
+import app.ransel.data.sync.SyncStatus
+import app.ransel.shared.dto.LOCAL_USER_ID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.dsl.module
 
 /** Local-first repositories for Android and iOS. The platform module provides [RanselDatabase]. */
 val mobileDataModule = module {
-    single<TripRepository> { RoomTripRepository(get<RanselDatabase>()) }
+    single<TripRepository> { RoomTripRepository(get<RanselDatabase>(), currentUserId(get())) }
     single<ItineraryRepository> { RoomItineraryRepository(get<RanselDatabase>()) }
     single<PackingRepository> { RoomPackingRepository(get<RanselDatabase>()) }
-    single<ExpenseRepository> { RoomExpenseRepository(get<RanselDatabase>()) }
+    single<ExpenseRepository> { RoomExpenseRepository(get<RanselDatabase>(), currentUserId(get())) }
     single<PreferencesRepository> { RoomPreferencesRepository(get<RanselDatabase>()) }
+
+    // Sync lives as long as the process; created when the session gate first asks for SyncStatus.
+    single { SyncCoordinator(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+    single<SyncStatus> { get<SyncCoordinator>() }
+    single<SessionHooks> { RoomSessionHooks(get()) { get<SyncCoordinator>() } }
 }
+
+/** Signed-in user's id for new rows; the guest placeholder before the first sign-in. */
+private fun currentUserId(session: SessionManager): () -> String = { session.user?.id ?: LOCAL_USER_ID }

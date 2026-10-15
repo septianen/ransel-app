@@ -463,4 +463,5 @@
     <string name="offline_banner_title">Kamu sedang offline</string>
     <string name="offline_banner_body">Perubahan tetap tersimpan di perangkat dan dikirim otomatis saat online.</string>
     <string name="back_online_snackbar">Kembali online · %1$d perubahan terkirim</string>
+    <string name="sync_pending_description">Menunggu dikirim</string>
 </resources>

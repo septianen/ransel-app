@@ -350,6 +350,7 @@ private fun PackingRow(item: PackingItemDto, onToggle: () -> Unit, onLongPress: 
             color = if (packed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
+        app.ransel.ui.components.PendingMarker(item.id)
         Text(
             "×${item.quantity}",
             style = MaterialTheme.typography.titleSmall,

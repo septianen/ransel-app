@@ -248,6 +248,7 @@ private fun ExpenseRow(expense: ExpenseDto, tz: TimeZone, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        app.ransel.ui.components.PendingMarker(expense.id)
         Column(horizontalAlignment = Alignment.End) {
             Text(formatMoney(expense.amountMinor, expense.currency), style = MaterialTheme.typography.titleSmall)
             Text(

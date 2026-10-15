@@ -112,4 +112,111 @@ interface PreferenceDao {
 
     @Upsert
     suspend fun set(entity: PreferenceEntity)
+
+    @Query("SELECT value FROM preferences WHERE `key` = :key")
+    suspend fun get(key: String): String?
+
+    @Query("DELETE FROM preferences WHERE `key` = :key")
+    suspend fun remove(key: String)
+}
+
+/**
+ * Everything the sync engine needs across the four content tables. A row is pending when its
+ * latest local change was not accepted yet; it becomes SYNCED only if `updatedAt` is unchanged
+ * since the snapshot that was pushed (an edit made during the request stays pending).
+ */
+@Dao
+interface SyncDao {
+    @Query("SELECT * FROM trips WHERE syncState = 'PENDING'")
+    suspend fun pendingTrips(): List<TripEntity>
+
+    @Query("SELECT * FROM itinerary_items WHERE syncState = 'PENDING'")
+    suspend fun pendingItems(): List<ItineraryItemEntity>
+
+    @Query("SELECT * FROM packing_items WHERE syncState = 'PENDING'")
+    suspend fun pendingPacking(): List<PackingItemEntity>
+
+    @Query("SELECT * FROM expenses WHERE syncState = 'PENDING'")
+    suspend fun pendingExpenses(): List<ExpenseEntity>
+
+    @Query(
+        "SELECT id FROM trips WHERE syncState = 'PENDING' UNION ALL " +
+            "SELECT id FROM itinerary_items WHERE syncState = 'PENDING' UNION ALL " +
+            "SELECT id FROM packing_items WHERE syncState = 'PENDING' UNION ALL " +
+            "SELECT id FROM expenses WHERE syncState = 'PENDING'",
+    )
+    fun observePendingIds(): Flow<List<String>>
+
+    @Query("UPDATE trips SET syncState = :state WHERE id = :id AND updatedAt = :updatedAt AND syncState = 'PENDING'")
+    suspend fun setTripState(id: String, updatedAt: Long, state: String)
+
+    @Query("UPDATE itinerary_items SET syncState = :state WHERE id = :id AND updatedAt = :updatedAt AND syncState = 'PENDING'")
+    suspend fun setItemState(id: String, updatedAt: Long, state: String)
+
+    @Query("UPDATE packing_items SET syncState = :state WHERE id = :id AND updatedAt = :updatedAt AND syncState = 'PENDING'")
+    suspend fun setPackingState(id: String, updatedAt: Long, state: String)
+
+    @Query("UPDATE expenses SET syncState = :state WHERE id = :id AND updatedAt = :updatedAt AND syncState = 'PENDING'")
+    suspend fun setExpenseState(id: String, updatedAt: Long, state: String)
+
+    @Query("SELECT * FROM trips WHERE id = :id")
+    suspend fun trip(id: String): TripEntity?
+
+    @Query("SELECT * FROM itinerary_items WHERE id = :id")
+    suspend fun item(id: String): ItineraryItemEntity?
+
+    @Query("SELECT * FROM packing_items WHERE id = :id")
+    suspend fun packing(id: String): PackingItemEntity?
+
+    @Query("SELECT * FROM expenses WHERE id = :id")
+    suspend fun expense(id: String): ExpenseEntity?
+
+    @Upsert
+    suspend fun putTrip(entity: TripEntity)
+
+    @Upsert
+    suspend fun putItem(entity: ItineraryItemEntity)
+
+    @Upsert
+    suspend fun putPacking(entity: PackingItemEntity)
+
+    @Upsert
+    suspend fun putExpense(entity: ExpenseEntity)
+
+    // Guest data becomes the account's data on first sign-in: re-own, then send everything.
+    @Query(
+        "SELECT (SELECT COUNT(*) FROM trips WHERE ownerId = :guestId) + " +
+            "(SELECT COUNT(*) FROM expenses WHERE paidByUserId = :guestId)",
+    )
+    suspend fun guestRowCount(guestId: String): Int
+
+    @Query("UPDATE trips SET ownerId = :userId WHERE ownerId = :guestId")
+    suspend fun reownTrips(guestId: String, userId: String)
+
+    @Query("UPDATE expenses SET paidByUserId = :userId WHERE paidByUserId = :guestId")
+    suspend fun reownExpenses(guestId: String, userId: String)
+
+    @Query("UPDATE trips SET syncState = 'PENDING'")
+    suspend fun markAllTripsPending()
+
+    @Query("UPDATE itinerary_items SET syncState = 'PENDING'")
+    suspend fun markAllItemsPending()
+
+    @Query("UPDATE packing_items SET syncState = 'PENDING'")
+    suspend fun markAllPackingPending()
+
+    @Query("UPDATE expenses SET syncState = 'PENDING'")
+    suspend fun markAllExpensesPending()
+
+    @Query("DELETE FROM trips")
+    suspend fun clearTrips()
+
+    @Query("DELETE FROM itinerary_items")
+    suspend fun clearItems()
+
+    @Query("DELETE FROM packing_items")
+    suspend fun clearPacking()
+
+    @Query("DELETE FROM expenses")
+    suspend fun clearExpenses()
 }

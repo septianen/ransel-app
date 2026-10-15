@@ -49,3 +49,36 @@ fun ExpenseEntity.toDto() = ExpenseDto(
 )
 
 fun Instant.toMillis(): Long = millis()
+
+// DTO -> entity, used when applying a sync pull. Rows that came from the server are SYNCED.
+fun TripDto.toEntity() = TripEntity(
+    id = id, ownerId = ownerId, title = title, destination = destination,
+    startDate = startDate.toString(), endDate = endDate.toString(), baseCurrency = baseCurrency,
+    budgetMinor = budgetMinor, coverUrl = coverUrl,
+    createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
+    syncState = SyncState.SYNCED,
+)
+
+fun ItineraryItemDto.toEntity() = ItineraryItemEntity(
+    id = id, tripId = tripId, dayDate = dayDate?.toString(), startTime = startTime?.toString(),
+    endTime = endTime?.toString(), title = title, category = category.name, placeName = placeName,
+    placeId = placeId, lat = lat, lng = lng, durationMin = durationMin, notes = notes, bookingUrl = bookingUrl,
+    source = source.name, sortOrder = sortOrder,
+    createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
+    syncState = SyncState.SYNCED,
+)
+
+fun PackingItemDto.toEntity() = PackingItemEntity(
+    id = id, tripId = tripId, category = category.name, name = name, quantity = quantity,
+    isPacked = isPacked, sortOrder = sortOrder,
+    createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
+    syncState = SyncState.SYNCED,
+)
+
+fun ExpenseDto.toEntity() = ExpenseEntity(
+    id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
+    category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
+    paidByUserId = paidByUserId,
+    createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
+    syncState = SyncState.SYNCED,
+)

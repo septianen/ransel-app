@@ -42,8 +42,9 @@ class AuthRepository(
         api.resetPassword(token, newPassword)
 
     suspend fun signOut() {
-        session.signOut()
+        // Hook first: it still needs the token to send what is pending before the data is wiped.
         hooks.onSignedOut()
+        session.signOut()
     }
 
     private suspend fun started(result: ApiResult<AuthSessionDto>): ApiResult<Unit> = when (result) {

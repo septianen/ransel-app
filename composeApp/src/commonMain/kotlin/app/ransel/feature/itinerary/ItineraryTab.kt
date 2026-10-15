@@ -541,6 +541,7 @@ private fun TimelineRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            app.ransel.ui.components.PendingMarker(item.id)
             // Handle: touching it drags immediately; the rest of the row needs a long press.
             // Gestures are detected by the container in DaySection (this row moves while dragging).
             Box(Modifier.size(48.dp).testTag("drag-handle-${item.id}"), contentAlignment = Alignment.Center) {

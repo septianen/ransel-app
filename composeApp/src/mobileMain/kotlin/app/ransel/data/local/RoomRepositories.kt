@@ -37,7 +37,11 @@ import kotlinx.datetime.LocalDate
  * PENDING; Phase 3 sync reads that. Multi-row writes run in one transaction.
  */
 
-class RoomTripRepository(private val db: RanselDatabase) : TripRepository {
+class RoomTripRepository(
+    private val db: RanselDatabase,
+    /** Owner of new trips: the signed-in user, or the guest placeholder. */
+    private val currentUserId: () -> String = { LOCAL_USER_ID },
+) : TripRepository {
     override fun observeTrips(): Flow<List<TripDto>> = db.tripDao().observeAll().map { l -> l.map { it.toDto() } }
 
     override fun observeTrip(tripId: String): Flow<TripDto?> = db.tripDao().observe(tripId).map { it?.toDto() }
@@ -62,7 +66,7 @@ class RoomTripRepository(private val db: RanselDatabase) : TripRepository {
     override suspend fun create(request: CreateTripRequest) {
         val stamp = now().toMillis()
         val entity = TripEntity(
-            id = request.id, ownerId = LOCAL_USER_ID, title = request.title.trim(),
+            id = request.id, ownerId = currentUserId(), title = request.title.trim(),
             destination = request.destination.trim(), startDate = request.startDate.toString(),
             endDate = request.endDate.toString(), baseCurrency = request.baseCurrency,
             budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
@@ -185,7 +189,10 @@ class RoomPackingRepository(private val db: RanselDatabase) : PackingRepository 
     }
 }
 
-class RoomExpenseRepository(private val db: RanselDatabase) : ExpenseRepository {
+class RoomExpenseRepository(
+    private val db: RanselDatabase,
+    private val currentUserId: () -> String = { LOCAL_USER_ID },
+) : ExpenseRepository {
     override fun observe(tripId: String): Flow<List<ExpenseDto>> =
         db.expenseDao().observe(tripId).map { l -> l.map { it.toDto() } }
 
@@ -198,7 +205,7 @@ class RoomExpenseRepository(private val db: RanselDatabase) : ExpenseRepository 
                 id = input.id, tripId = tripId, amountMinor = input.amountMinor, currency = input.currency,
                 fxRateToBase = input.fxRateToBase, category = input.category.name,
                 paymentMethod = input.paymentMethod.name, note = input.note?.trim()?.ifEmpty { null },
-                spentAt = input.spentAt.toMillis(), paidByUserId = input.paidByUserId ?: LOCAL_USER_ID,
+                spentAt = input.spentAt.toMillis(), paidByUserId = input.paidByUserId ?: currentUserId(),
                 createdAt = created, updatedAt = stamp, deletedAt = null,
             ),
         )

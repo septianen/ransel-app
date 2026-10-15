@@ -6,10 +6,6 @@ import app.ransel.data.local.RanselDatabase
 import app.ransel.data.local.RanselDatabaseConstructor
 import app.ransel.data.local.configureAndBuild
 import app.ransel.data.auth.KeychainTokenStore
-import app.ransel.data.sync.NoSyncStatus
-import app.ransel.data.sync.SyncStatus
-import app.ransel.data.auth.NoSessionHooks
-import app.ransel.data.auth.SessionHooks
 import app.ransel.data.auth.TokenStore
 import app.ransel.data.remote.ConnectionMonitor
 import app.ransel.data.remote.NoConnectionMonitor
@@ -38,8 +34,6 @@ private fun databasePath(): String {
 actual val platformModule: Module = module {
     includes(mobileDataModule)
     single<ConnectionMonitor> { NoConnectionMonitor }
-    single<SyncStatus> { NoSyncStatus }
-    single<SessionHooks> { NoSessionHooks }
     single<TokenStore> { KeychainTokenStore() }
     single<RanselDatabase> {
         Room.databaseBuilder<RanselDatabase>(

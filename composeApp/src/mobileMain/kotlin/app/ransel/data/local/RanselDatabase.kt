@@ -24,6 +24,7 @@ abstract class RanselDatabase : RoomDatabase() {
     abstract fun packingDao(): PackingDao
     abstract fun expenseDao(): ExpenseDao
     abstract fun preferenceDao(): PreferenceDao
+    abstract fun syncDao(): SyncDao
 }
 
 // Room generates the actuals per target (KSP).
