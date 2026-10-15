@@ -12,7 +12,7 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 - [x] **B2.6 Packing.** List, create, PATCH, DELETE, `POST .../packing/uncheck-all`.
 - [x] **B2.7 Expenses.** List, create, replace, delete (splits stored but only validated: empty or sum = amount → `SPLIT_TOTAL_MISMATCH`), `GET .../expenses/summary` (all categories, by day, converted with `convertMinor`).
 - [x] **B2.8 Tests.** `testApplication` + real Postgres for every route: happy path, validation error, not found, soft delete hidden from lists. `.http` files per resource.
-- [ ] **B2.9 Deploy.** Dockerfile, `docker-compose.prod.yml` (server, db, caddy), GitHub Actions deploy, daily `pg_dump`. Needs VPS + domain from the owner — ask, do not guess.
+- [x] **B2.9 Deploy.** Dockerfile, `docker-compose.prod.yml` (server, db; the VPS's existing nginx terminates HTTPS instead of Caddy), GitHub Actions deploy, daily `pg_dump`. Live at https://ranselapi.mietek.tech (closed beta: sign-up off, one seeded account). See `deploy/README.md`.
 
 **Done when:** every Phase 2 endpoint works against Postgres, tests are green, and the API is reachable over HTTPS for the web app.
 

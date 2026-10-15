@@ -51,6 +51,12 @@ Config comes from env vars (defaults match the compose database); see `.env.exam
 
 `server/http/*.http` has one file per resource with example requests (they double as documentation for the frontend agent); select the `local` environment in `http-client.env.json`.
 
-## Deploy (end of Phase 2, owner's VPS)
+## Deploy
 
-Docker image for the server (multi-stage Gradle build), `docker-compose.prod.yml` with `server`, `db` (Postgres 16, volume, not exposed publicly) and `caddy` (reverse proxy, automatic HTTPS for `api.ransel.app`; later also serves the web app and `/.well-known/assetlinks.json` + `apple-app-site-association` for invite links). Daily `pg_dump` via cron copied off the VPS. GitHub Actions: build → push image to GHCR → SSH `docker compose pull && up -d`. Ask the owner for host, user and domain; never guess them.
+Live at `https://ranselapi.mietek.tech` (VPS `sen@187.127.97.109`, SSH port 2212, folder `/opt/ransel`). Full runbook, secrets list and rollback: `deploy/README.md`.
+
+- The VPS already runs nginx for other sites, so nginx is the public entry (`deploy/nginx/`), not Caddy. `docker-compose.prod.yml` runs `server` (published on `127.0.0.1:8080` only) and `db` (Postgres 16, private volume).
+- `.github/workflows/deploy-server.yml`: on push to `main` touching server/shared/deploy it runs the tests, builds `:server:installDist`, pushes `ghcr.io/septianen/ransel-server:<sha>` and rolls it out over SSH. Gradle does not run inside Docker because `:shared` configures the Android plugin.
+- Closed beta: `REGISTRATION_ENABLED=false` and one account from `SEED_USER_*`. Open sign-up once an email provider exists.
+- Migrations V1–V4 are now applied in production: **never edit them again**, add V5, V6, ...
+- Daily `pg_dump` via `deploy/backup-db.sh` (cron on the VPS); copying dumps off the VPS is still manual.
