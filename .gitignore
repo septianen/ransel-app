@@ -9,3 +9,8 @@ local.properties
 iosApp/**/xcuserdata/
 iosApp/Pods/
 iosApp/build/
+
+# Android signing: never commit keys or their passwords
+*.jks
+*.keystore
+keystore.properties

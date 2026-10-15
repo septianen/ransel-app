@@ -127,7 +127,7 @@ Fase 1–5 sudah lengkap. Yang tersisa adalah layar pendukung yang muncul dari k
 
 ### Anggota dan bagi biaya
 - Avatar anggota: inisial di lingkaran warna tetap per orang (hijau, ungu, cokelat, magenta). Peran: Pemilik / Editor / Pembaca (OWNER / EDITOR / VIEWER). Hanya pemilik yang bisa mengundang, mengubah peran, dan mengeluarkan anggota.
-- Undangan: kode `NAMA-XXXX`, link `ransel.app/j/<kode>`, bisa dicabut. Undangan gagal memakai satu layar dengan judul per alasan: kedaluwarsa (INVITE_EXPIRED), dicabut (INVITE_REVOKED), kuota penuh (INVITE_FULL).
+- Undangan: kode `NAMA-XXXX`, link `ransel.mietek.tech/j/<kode>`, bisa dicabut. Undangan gagal memakai satu layar dengan judul per alasan: kedaluwarsa (INVITE_EXPIRED), dicabut (INVITE_REVOKED), kuota penuh (INVITE_FULL).
 - Keluarkan / keluar dari trip: catatan pengeluaran tetap tersimpan; dialog keluar memperingatkan saldo yang belum lunas. Pemilik harus mengalihkan kepemilikan dulu sebelum keluar.
 - Split bill: default bagi rata ke anggota yang dicentang; Atur nominal menampilkan selisih "kurang/lebih" dan Simpan nonaktif sampai pas.
 - Pengeluaran bersama: tab Ringkasan (kartu "Posisimu", avatar pembayar di ikon transaksi, "bagianmu Rp…") dan tab Saldo (positif `primary`, negatif `error`, "Supaya lunas" dengan transfer minimum).

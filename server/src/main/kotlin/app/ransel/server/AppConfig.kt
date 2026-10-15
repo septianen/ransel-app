@@ -20,7 +20,7 @@ data class AppConfig(
     /** Login/register attempts per client address per minute. */
     val authRateLimitPerMinute: Int = 10,
     /** Used to build links in emails (password reset). */
-    val appBaseUrl: String = "https://ransel.app",
+    val appBaseUrl: String = "https://ransel.mietek.tech",
     val isProduction: Boolean = false,
     val passwordResetTtl: Duration = 30.minutes,
     /** false = POST /auth/register answers 403; accounts exist only through [seedUser]. */
@@ -54,7 +54,7 @@ data class AppConfig(
                     ?: listOf("http://localhost:8080", "http://localhost:8081"),
                 jwtSecret = secret,
                 jwtIssuer = env["JWT_ISSUER"] ?: "ransel",
-                appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.app").trimEnd('/'),
+                appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.mietek.tech").trimEnd('/'),
                 isProduction = production,
                 registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",

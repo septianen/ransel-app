@@ -33,7 +33,7 @@ server/src/test/kotlin/  testApplication + Postgres (Testcontainers or docker co
 - **`updated_at`** is set by the DB trigger (server clock). Pull cursors (`GET /sync?since=`) use server time. Last-write-wins on push compares the incoming `updatedAt` with the stored one.
 - **Transactions**: day reorder (`PUT .../days/{date}/order`), sync push batches, invite accept (`trip_members` insert + `used_count + 1`), expense + splits — each in one transaction.
 - **Money**: amounts stay in the currency they were recorded in; summaries/balances convert with `convertMinor` in `shared/src/commonMain/kotlin/app/ransel/shared/domain/Money.kt` and `fx_rate_to_base`.
-- **Secrets from env only**: `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `JWT_ISSUER`, `LLM_API_KEY`, `PLACES_API_KEY`, `EMAIL_API_KEY`, `APP_BASE_URL` (https://ransel.app). Provide `.env.example`, never commit `.env`.
+- **Secrets from env only**: `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `JWT_ISSUER`, `LLM_API_KEY`, `PLACES_API_KEY`, `EMAIL_API_KEY`, `APP_BASE_URL` (https://ransel.mietek.tech). Provide `.env.example`, never commit `.env`.
 - **Logging**: structured, one line per request with method, path, status, duration and `error.code`. Never log passwords, tokens or full request bodies.
 
 ## Run / test

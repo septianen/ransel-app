@@ -1,6 +1,6 @@
-# App links (invite links `https://ransel.app/j/<code>`)
+# App links (invite links `https://ransel.mietek.tech/j/<code>`)
 
-Values the backend agent needs for **B4.6** (`/.well-known/...` on `ransel.app`). The frontend declares the
+Values the backend agent needs for **B4.6** (`/.well-known/...` on `ransel.mietek.tech`). The frontend declares the
 link in the Android manifest (`autoVerify`) and handles it in `MainActivity` / `InviteLinks`.
 
 ## Android: `/.well-known/assetlinks.json`
@@ -33,9 +33,9 @@ Served as `application/json`, no extension, no redirect.
 
 `<TEAM_ID>` is the Apple developer team id (owner: needed). The bundle id is assumed to be `app.ransel`;
 confirm when the iOS project is opened on a Mac. The app also needs the Associated Domains capability
-`applinks:ransel.app` and a call to `InviteLinkHook.INSTANCE.open(url.absoluteString)` from `.onOpenURL`.
+`applinks:ransel.mietek.tech` and a call to `InviteLinkHook.INSTANCE.open(url.absoluteString)` from `.onOpenURL`.
 
 ## Web
 
-The web app reads `/j/<code>` from the page path, so `ransel.app/j/*` must fall back to the web app's
+The web app reads `/j/<code>` from the page path, so `ransel.mietek.tech/j/*` must fall back to the web app's
 `index.html` (single-page fallback on the host).

@@ -50,7 +50,7 @@ The docs are exports of living documents (claude.ai Docs + Claude Design canvas,
 
 ## Decisions already made (do not reopen without the product owner)
 
-Room 3 (`androidx.room3`) for local DB on Android/iOS only · web online-only · Explore requires an account and always saves into a trip · Explore quota 10 searches per user per day, reset 00:00 WIB · expense categories reuse the itinerary enum with noun labels · drag reorder keeps durations and packs the range · unscheduled places are scheduled with a button + sheet (end of day, empty day 09:00) · swipe cards have no rotation · trip screens have a `group_add` members button in the header · invite links `https://ransel.app/j/<code>` · deploy on the owner's VPS with Docker Compose + Caddy.
+Room 3 (`androidx.room3`) for local DB on Android/iOS only · web online-only · Explore requires an account and always saves into a trip · Explore quota 10 searches per user per day, reset 00:00 WIB · expense categories reuse the itinerary enum with noun labels · drag reorder keeps durations and packs the range · unscheduled places are scheduled with a button + sheet (end of day, empty day 09:00) · swipe cards have no rotation · trip screens have a `group_add` members button in the header · invite links `https://ransel.mietek.tech/j/<code>` · deploy on the owner's VPS with Docker Compose behind the host's nginx (API at `ranselapi.mietek.tech`, web at `ransel.mietek.tech`).
 
 ## Still open (ask, do not decide)
 

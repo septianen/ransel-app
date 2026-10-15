@@ -141,7 +141,7 @@ The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what rem
 | Delete the trip | yes | no | no |
 | Leave the trip | after transferring ownership | yes | yes |
 
-**Invites.** A code `NAME-XXXX` and a link `ransel.app/j/<code>`, with a usage limit and an expiry date. An invite fails when it has expired, was revoked, or is full. Removing a member does not delete the expense records that involve them.
+**Invites.** A code `NAME-XXXX` and a link `ransel.mietek.tech/j/<code>`, with a usage limit and an expiry date. An invite fails when it has expired, was revoked, or is full. Removing a member does not delete the expense records that involve them.
 
 **Currency.** The default currency only applies to new trips; existing trips keep their own currency.
 

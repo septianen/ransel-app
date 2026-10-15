@@ -43,7 +43,11 @@ Copying the dumps off the VPS (rsync/rclone to another machine or bucket) is a s
 Every deploy tags the image with the commit SHA. On the VPS: edit `SERVER_IMAGE` in `.env` to an older SHA and run
 `docker compose -f docker-compose.prod.yml up -d`.
 
-## Invite links (App Links / Universal Links)
+## Web host and invite links (`ransel.mietek.tech`)
+
+One-time, like the API host: copy `deploy/nginx/ransel.mietek.tech.conf` to `sites-available`, enable it, `nginx -t`, reload, then `sudo certbot --nginx -d ransel.mietek.tech`. It serves the web app from `/opt/ransel/web` (single-page fallback, so `/j/<code>` opens the app) and forwards `/.well-known/` to the API.
+
+### App Links / Universal Links
 
 The API serves `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` (values from the
 repository *variables* `ANDROID_CERT_SHA256` and `IOS_APP_IDS`; both answer 404 until set). Phones fetch them from
