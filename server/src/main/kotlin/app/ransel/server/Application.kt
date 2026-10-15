@@ -48,6 +48,7 @@ fun Application.module(
     val tokens = TokenService(config)
     val hasher = PasswordHasher(config.bcryptCost)
     val auth = AuthService(config, hasher, tokens)
+    config.seedUser?.let(auth::seed)
     val passwordReset = PasswordResetService(config, hasher, tokens, emailSender, this)
 
     configureCallLogging()

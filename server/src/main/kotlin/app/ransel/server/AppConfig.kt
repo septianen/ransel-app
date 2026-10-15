@@ -23,7 +23,13 @@ data class AppConfig(
     val appBaseUrl: String = "https://ransel.app",
     val isProduction: Boolean = false,
     val passwordResetTtl: Duration = 30.minutes,
+    /** false = POST /auth/register answers 403; accounts exist only through [seedUser]. */
+    val registrationEnabled: Boolean = true,
+    /** Account created at startup when missing (never overwritten). Comes from env, not from git. */
+    val seedUser: SeedUser? = null,
 ) {
+    data class SeedUser(val email: String, val password: String, val displayName: String)
+
     companion object {
         const val DEV_JWT_SECRET = "dev-only-secret-never-use-in-production-0123456789"
 
@@ -43,6 +49,15 @@ data class AppConfig(
                 jwtIssuer = env["JWT_ISSUER"] ?: "ransel",
                 appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.app").trimEnd('/'),
                 isProduction = production,
+                registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
+                seedUser = env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
+                    SeedUser(
+                        email = email.trim(),
+                        password = env["SEED_USER_PASSWORD"]?.takeIf { it.isNotBlank() }
+                            ?: error("SEED_USER_PASSWORD is required when SEED_USER_EMAIL is set"),
+                        displayName = env["SEED_USER_NAME"]?.takeIf { it.isNotBlank() } ?: "Test User",
+                    )
+                },
             )
         }
     }

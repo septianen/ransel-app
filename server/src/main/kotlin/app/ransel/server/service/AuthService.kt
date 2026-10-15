@@ -35,6 +35,9 @@ class AuthService(
     private val tokens: TokenService,
 ) {
     fun register(body: RegisterRequest): AuthSessionDto {
+        if (!config.registrationEnabled) {
+            throw ApiException(HttpStatusCode.Forbidden, ErrorCode.FORBIDDEN, "Registration is closed")
+        }
         val email = body.email.trim()
         requireValid(
             buildMap {
@@ -63,6 +66,28 @@ class AuthService(
             throw e
         }
         return transaction { startSession(userId, body.deviceName) }
+    }
+
+    /** Creates the configured seed account when no account has its email. Idempotent; never touches an existing one. */
+    fun seed(user: AppConfig.SeedUser) {
+        requireValid(
+            buildMap {
+                if (!isValidEmail(user.email)) put("SEED_USER_EMAIL", "INVALID_EMAIL")
+                val rule = checkPassword(user.password)
+                if (!rule.isValid || PasswordHasher.isTooLong(user.password)) put("SEED_USER_PASSWORD", "WEAK_PASSWORD")
+            },
+        )
+        val hash = hasher.hash(user.password)
+        transaction {
+            if (findByEmail(user.email) == null) {
+                Users.insert {
+                    it[id] = UUID.randomUUID()
+                    it[displayName] = user.displayName.trim()
+                    it[email] = user.email
+                    it[passwordHash] = hash
+                }
+            }
+        }
     }
 
     fun login(body: LoginRequest): AuthSessionDto {

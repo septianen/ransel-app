@@ -121,6 +121,33 @@ class AuthRoutesTest {
     }
 }
 
+class ClosedRegistrationTest {
+    private val closed = TestDb.config().copy(
+        registrationEnabled = false,
+        seedUser = app.ransel.server.AppConfig.SeedUser("owner@example.com", "Passw0rdOk", "Owner"),
+    )
+
+    @Test
+    fun registerIsClosedButSeedUserCanSignInAndWork() = apiTest(closed) {
+        val register = post("/auth/register", """{"email":"new@example.com","password":"Passw0rdOk","displayName":"New"}""")
+        assertEquals(HttpStatusCode.Forbidden, register.status)
+        assertEquals("FORBIDDEN", register.errorCode())
+
+        val login = post("/auth/login", """{"email":"OWNER@example.com","password":"Passw0rdOk"}""")
+        assertEquals(HttpStatusCode.OK, login.status)
+        token = login.data().jsonObject.getValue("accessToken").jsonPrimitive.content
+        assertEquals("Owner", get("/me").data().jsonObject.getValue("displayName").jsonPrimitive.content)
+        assertEquals(HttpStatusCode.Created, post("/trips", tripJson()).status)
+    }
+
+    @Test
+    fun seedingTwiceKeepsTheSameAccount() {
+        apiTest(closed) { assertEquals(HttpStatusCode.OK, post("/auth/login", """{"email":"owner@example.com","password":"Passw0rdOk"}""").status) }
+        // second startup against the same database: no duplicate, no error
+        apiTest(closed) { assertEquals(HttpStatusCode.OK, post("/auth/login", """{"email":"owner@example.com","password":"Passw0rdOk"}""").status) }
+    }
+}
+
 class PasswordResetTest {
     private fun tokenOf(link: String) = link.substringAfter("token=")
 
