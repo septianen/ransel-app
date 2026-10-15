@@ -41,6 +41,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.have_account
+import ransel.composeapp.generated.resources.sign_in_action
 import ransel.composeapp.generated.resources.capybara_counting_coins
 import ransel.composeapp.generated.resources.capybara_opening_backpack
 import ransel.composeapp.generated.resources.capybara_world_map
@@ -69,7 +71,7 @@ private val Pages = listOf(
  * straight into the app; "Sudah punya akun? Masuk" arrives with sign-in (Phase 3).
  */
 @Composable
-fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier) {
+fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier, onSignIn: (() -> Unit)? = null) {
     val pager = rememberPagerState(pageCount = { Pages.size })
     val scope = rememberCoroutineScope()
     val last = pager.currentPage == Pages.lastIndex
@@ -158,6 +160,15 @@ fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier) {
                 stringResource(if (last) Res.string.onboarding_start else Res.string.onboarding_next),
                 style = MaterialTheme.typography.titleMedium,
             )
+        }
+        if (last && onSignIn != null) {
+            Box(Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = Alignment.Center) {
+                app.ransel.feature.auth.AuthFooter(
+                    prefix = stringResource(Res.string.have_account),
+                    action = stringResource(Res.string.sign_in_action),
+                    onClick = onSignIn,
+                )
+            }
         }
     }
 }

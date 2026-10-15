@@ -21,3 +21,11 @@ import kotlinx.serialization.Serializable
 
 /** Debug only. */
 @Serializable data object ComponentGalleryRoute
+
+// Auth (Phase 3). Names follow docs/design/README.md "Code name".
+@Serializable data object SignInRoute
+@Serializable data object SignUpRoute
+@Serializable data object ForgotPasswordRoute
+@Serializable data class CheckEmailRoute(val email: String)
+@Serializable data class NewPasswordRoute(val token: String)
+@Serializable data object SessionExpiredRoute

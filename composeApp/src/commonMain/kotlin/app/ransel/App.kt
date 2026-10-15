@@ -30,7 +30,28 @@ import app.ransel.ui.adaptive.rememberIsExpanded
 import app.ransel.ui.components.ConnectionErrorState
 import app.ransel.ui.components.ServerErrorState
 import app.ransel.ui.shell.RanselNavigationRail
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.key
+import app.ransel.data.auth.SessionManager
+import app.ransel.data.auth.SessionState
+import app.ransel.data.sync.SyncStatus
+import app.ransel.feature.auth.CheckEmailScreen
+import app.ransel.feature.auth.ForgotPasswordScreen
+import app.ransel.feature.auth.NewPasswordScreen
+import app.ransel.feature.auth.SessionExpiredScreen
+import app.ransel.feature.auth.SignInScreen
+import app.ransel.feature.auth.SignUpScreen
+import app.ransel.navigation.CheckEmailRoute
+import app.ransel.navigation.ForgotPasswordRoute
+import app.ransel.navigation.NewPasswordRoute
+import app.ransel.navigation.SessionExpiredRoute
+import app.ransel.navigation.SignInRoute
+import app.ransel.navigation.SignUpRoute
+import app.ransel.platform.clearResetTokenFromUrl
+import app.ransel.platform.initialResetToken
+import app.ransel.platform.requiresAccount
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.account.AccountScreen
@@ -98,6 +119,7 @@ fun App() {
     val preferencesRepository: PreferencesRepository = koinInject()
     val preferences by preferencesRepository.observe().collectAsState(initial = AppPreferences(loaded = false))
     val scope = rememberCoroutineScope()
+    var openSignInAfterOnboarding by remember { mutableStateOf(false) }
 
     // Apply the chosen language before any string is read; `key` rebuilds the UI when it changes.
     remember(preferences.language) { applyAppLanguage(preferences.language.tag) }
@@ -116,17 +138,57 @@ fun App() {
                     !preferences.loaded -> Unit
                     !preferences.onboardingCompleted -> OnboardingScreen(
                         onFinish = { scope.launch { preferencesRepository.setOnboardingCompleted(true) } },
+                        onSignIn = {
+                            openSignInAfterOnboarding = true
+                            scope.launch { preferencesRepository.setOnboardingCompleted(true) }
+                        },
                     )
-                    else -> RanselNavigation()
+                    else -> SessionGate(openSignIn = openSignInAfterOnboarding)
                 }
             }
         }
     }
 }
 
+/**
+ * Reads the stored session, then decides what to show: the web needs an account (sign-in flow until
+ * signed in); mobile always opens the app and lets the user sign in from Account / onboarding.
+ */
 @Composable
-private fun RanselNavigation() {
+private fun SessionGate(openSignIn: Boolean) {
+    val session: SessionManager = koinInject()
+    val state by session.state.collectAsState()
+    LaunchedEffect(session) { session.restore() }
+    when {
+        state is SessionState.Loading -> Unit
+        requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
+        else -> RanselNavigation(openSignIn = openSignIn)
+    }
+}
+
+/** Web before sign-in: only the auth screens (no tabs, no guest mode). */
+@Composable
+private fun WebAuthNavigation() {
     val navController = rememberNavController()
+    val resetToken = remember { initialResetToken() }
+    NavHost(
+        navController = navController,
+        startDestination = if (resetToken != null) NewPasswordRoute(resetToken) else SignInRoute,
+    ) {
+        authGraph(navController, allowGuest = false, onFinished = {})
+    }
+}
+
+@Composable
+private fun RanselNavigation(openSignIn: Boolean = false) {
+    val navController = rememberNavController()
+    val sessionManager: SessionManager = koinInject()
+    val sessionState by sessionManager.state.collectAsState()
+    LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }
+    LaunchedEffect(sessionState) {
+        // Mobile: the refresh token died. Offer "sign in again" once per expiry; other screens stay usable.
+        if (sessionState is SessionState.Expired) navController.navigate(SessionExpiredRoute) { launchSingleTop = true }
+    }
     val backStack by navController.currentBackStackEntryAsState()
     val destination = backStack?.destination
     val expanded = rememberIsExpanded()
@@ -202,6 +264,13 @@ private fun RanselNavigation() {
                 ) {
                     tabs(navController)
                     trips(navController)
+                    authGraph(navController, allowGuest = !requiresAccount, onFinished = {
+                        // Signed in (or chose offline): back to the app's home, dropping the auth screens.
+                        navController.navigate(HomeRoute) {
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
+                        }
+                    })
                 }
             }
         }
@@ -327,6 +396,64 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
                 // The trip is gone: back to the list, skipping the trip screen that no longer exists.
                 navController.popBackStack<TripRoute>(inclusive = true)
             },
+        )
+    }
+}
+
+/** Auth screens shared by the mobile app (pushed on top of the tabs) and the web sign-in flow. */
+private fun NavGraphBuilder.authGraph(navController: NavHostController, allowGuest: Boolean, onFinished: () -> Unit) {
+    page<SignInRoute> {
+        SignInScreen(
+            onSignUp = { navController.navigate(SignUpRoute) },
+            onForgotPassword = { navController.navigate(ForgotPasswordRoute) },
+            onContinueWithoutAccount = if (allowGuest) ({ onFinished() }) else null,
+            onBack = if (allowGuest && navController.previousBackStackEntry != null) ({ navController.popBackStack() }) else null,
+        )
+    }
+    page<SignUpRoute> {
+        SignUpScreen(
+            onSignIn = { navController.popBackStack() },
+            onBack = { navController.popBackStack() },
+        )
+    }
+    page<ForgotPasswordRoute> {
+        ForgotPasswordScreen(
+            onBack = { navController.popBackStack() },
+            onSent = { email -> navController.navigate(CheckEmailRoute(email)) },
+        )
+    }
+    page<CheckEmailRoute> { entry ->
+        CheckEmailScreen(
+            email = entry.toRoute<CheckEmailRoute>().email,
+            onChangeEmail = { navController.popBackStack() },
+        )
+    }
+    page<NewPasswordRoute> { entry ->
+        NewPasswordScreen(
+            token = entry.toRoute<NewPasswordRoute>().token,
+            onDone = {
+                clearResetTokenFromUrl()
+                navController.navigate(SignInRoute) { popUpTo(navController.graph.findStartDestination().id) { inclusive = true } }
+            },
+            onRequestNewLink = {
+                clearResetTokenFromUrl()
+                navController.navigate(ForgotPasswordRoute)
+            },
+        )
+    }
+    page<SessionExpiredRoute> {
+        val session: SessionManager = koinInject()
+        val state by session.state.collectAsState()
+        val user = (state as? SessionState.Expired)?.user
+        val pending: SyncStatus = koinInject()
+        val pendingCount by pending.pendingCount.collectAsState()
+        // Leave this screen as soon as the session is no longer expired (signed in again, or offline).
+        LaunchedEffect(state) { if (state !is SessionState.Expired) navController.popBackStack() }
+        SessionExpiredScreen(
+            email = user?.email.orEmpty(),
+            pendingChanges = pendingCount,
+            onSignIn = { navController.navigate(SignInRoute) },
+            onUseOffline = { session.continueOffline() },
         )
     }
 }

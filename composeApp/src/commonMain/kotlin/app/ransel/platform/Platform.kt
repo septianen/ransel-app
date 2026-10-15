@@ -13,3 +13,12 @@ expect val isDebugBuild: Boolean
  * screen hides the language row there.
  */
 expect val supportsInAppLanguage: Boolean
+
+/** The web app has no guest mode: every screen needs a signed-in user. Mobile works offline without an account. */
+expect val requiresAccount: Boolean
+
+/** The password-reset token in the page URL (`/reset-password?token=…`), web only; null elsewhere. */
+expect fun initialResetToken(): String?
+
+/** Removes the reset token from the address bar once it has been used (web only). */
+expect fun clearResetTokenFromUrl()

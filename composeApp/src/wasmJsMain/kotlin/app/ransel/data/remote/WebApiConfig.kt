@@ -16,9 +16,11 @@ private external fun configuredOrigin(): String
  *  2. `http://localhost:8080` while developing (`localhost` / `127.0.0.1`), where the Ktor server runs;
  *  3. otherwise the page's own origin (the web app is served behind the same reverse proxy as the API).
  */
-fun apiOrigin(): String {
+actual fun apiOrigin(): String {
     val configured = configuredOrigin()
     if (configured.isNotBlank()) return configured
     val host = browserHostname()
     return if (host == "localhost" || host == "127.0.0.1") "http://$host:8080" else browserOrigin()
 }
+
+actual fun deviceName(): String = "Web"

@@ -9,6 +9,16 @@ import app.ransel.feature.packing.PackingViewModel
 import app.ransel.feature.trip.TripSidePanelViewModel
 import app.ransel.feature.tripform.TripFormViewModel
 import app.ransel.feature.trips.TripListViewModel
+import app.ransel.data.auth.AuthRepository
+import app.ransel.data.auth.SessionManager
+import app.ransel.data.remote.RanselApi
+import app.ransel.data.remote.apiOrigin
+import app.ransel.data.remote.createApiHttpClient
+import app.ransel.feature.auth.CheckEmailViewModel
+import app.ransel.feature.auth.ForgotPasswordViewModel
+import app.ransel.feature.auth.NewPasswordViewModel
+import app.ransel.feature.auth.SignInViewModel
+import app.ransel.feature.auth.SignUpViewModel
 import app.ransel.platform.platformModule
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -19,6 +29,15 @@ import org.koin.dsl.module
 
 /** Platform-independent bindings: ViewModels (repositories come from the platform module). */
 val commonModule: Module = module {
+    // The API client and the session depend on each other: the manager gets the client lazily.
+    single { SessionManager(get()) { get<RanselApi>() } }
+    single { RanselApi(createApiHttpClient(), apiOrigin(), get<SessionManager>()) }
+    single { AuthRepository(get(), get(), get()) }
+    viewModelOf(::SignInViewModel)
+    viewModelOf(::SignUpViewModel)
+    viewModelOf(::ForgotPasswordViewModel)
+    viewModel { params -> CheckEmailViewModel(params.get(), get()) }
+    viewModel { params -> NewPasswordViewModel(params.get(), get()) }
     viewModelOf(::HomeViewModel)
     viewModelOf(::TripListViewModel)
     viewModelOf(::AccountViewModel)

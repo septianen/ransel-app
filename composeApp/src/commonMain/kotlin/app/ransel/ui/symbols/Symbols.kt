@@ -121,6 +121,7 @@ object Symbols {
     const val tune = "\ue429"
     const val undo = "\ue166"
     const val visibility = "\ue8f4"
+    const val visibilityOff = "\ue8f5"
     const val volumeOff = "\ue04f"
     const val wallet = "\uf8ff"
     const val warning = "\uf083"
