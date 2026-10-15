@@ -36,6 +36,14 @@ class WellKnownRoutesTest {
     }
 
     @Test
+    fun pastedKeytoolLabelIsStripped() {
+        val config = app.ransel.server.AppConfig.fromEnv(
+            mapOf("ANDROID_CERT_SHA256" to "SHA256: aa:bb:cc , 11:22"),
+        )
+        assertEquals(listOf("AA:BB:CC", "11:22"), config.androidCertSha256)
+    }
+
+    @Test
     fun notConfiguredAnswers404() = apiTest {
         assertEquals(HttpStatusCode.NotFound, client.get("/.well-known/assetlinks.json").status)
         assertEquals(HttpStatusCode.NotFound, client.get("/.well-known/apple-app-site-association").status)

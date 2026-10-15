@@ -38,6 +38,13 @@ data class AppConfig(
     companion object {
         private fun String?.csv() = this?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
 
+        /**
+         * `keytool -list` prints `SHA256: AA:BB:...`; Android wants only the colon-separated hex, upper-case.
+         * Accept the pasted form so a copy-paste slip cannot silently break link verification.
+         */
+        fun normalizeSha256(raw: String): String =
+            raw.trim().removePrefix("SHA256:").removePrefix("SHA-256:").removePrefix("sha256:").trim().uppercase()
+
         const val DEV_JWT_SECRET = "dev-only-secret-never-use-in-production-0123456789"
 
         fun fromEnv(env: Map<String, String> = System.getenv()): AppConfig {
@@ -58,7 +65,7 @@ data class AppConfig(
                 isProduction = production,
                 registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
-                androidCertSha256 = env["ANDROID_CERT_SHA256"].csv(),
+                androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),
                 iosAppIds = env["IOS_APP_IDS"].csv(),
                 seedUser = env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
                     SeedUser(
