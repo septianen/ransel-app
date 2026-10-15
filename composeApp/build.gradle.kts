@@ -148,7 +148,7 @@ android {
     }
     buildFeatures { buildConfig = true }
     buildTypes.configureEach {
-        // Where the app finds the API. 10.0.2.2 is the host machine seen from the Android emulator;
+        // Where the app finds the API. 10.0.2.2 is the host machine seen from the Android emulator (gradle.properties sets the deployed API);
         // override with `-Pransel.apiOrigin=https://api.ransel.app` (or gradle.properties) for a device/release.
         val origin = (project.findProperty("ransel.apiOrigin") as String?) ?: "http://10.0.2.2:8080"
         buildConfigField("String", "API_ORIGIN", "\"$origin\"")
