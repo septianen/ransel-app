@@ -24,6 +24,13 @@ actual val platformModule: Module = module {
     // Same OkHttp engine Ktor would pick, plus Chucker (a notification + request list in debug builds; no-op in release).
     single<HttpClientEngine> {
         OkHttp.create {
+            // OkHttp has its own 10 s read timeout, separate from Ktor's request timeout; without this a slow
+            // recommendation search is cut off long before the 100 s the API client allows for it.
+            config {
+                connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+                writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            }
             addInterceptor(ChuckerInterceptor.Builder(androidContext()).redactHeaders("Authorization").build())
         }
     }
