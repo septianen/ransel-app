@@ -63,6 +63,32 @@ import ransel.composeapp.generated.resources.language_indonesian
 import ransel.composeapp.generated.resources.language_sheet_hint
 import ransel.composeapp.generated.resources.language_sheet_title
 import ransel.composeapp.generated.resources.language_system
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
+import app.ransel.data.auth.SessionState
+import app.ransel.platform.requiresAccount
+import app.ransel.ui.components.ConfirmDialog
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import ransel.composeapp.generated.resources.account_section_account
+import ransel.composeapp.generated.resources.account_sign_out
+import ransel.composeapp.generated.resources.account_sign_out_body
+import ransel.composeapp.generated.resources.account_sign_out_pending
+import ransel.composeapp.generated.resources.account_sign_out_title
+import ransel.composeapp.generated.resources.account_signed_out_body
+import ransel.composeapp.generated.resources.account_sync_last
+import ransel.composeapp.generated.resources.account_sync_never
+import ransel.composeapp.generated.resources.account_sync_now
+import ransel.composeapp.generated.resources.account_sync_offline
+import ransel.composeapp.generated.resources.account_sync_pending
+import ransel.composeapp.generated.resources.account_sync_running
+import ransel.composeapp.generated.resources.account_sync_synced
+import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.sign_in_action
+import ransel.composeapp.generated.resources.sign_up_action
 import ransel.composeapp.generated.resources.theme_dark
 import ransel.composeapp.generated.resources.theme_light
 import ransel.composeapp.generated.resources.theme_sheet_hint
@@ -79,10 +105,18 @@ private const val APP_VERSION = "0.1.0"
 fun AccountScreen(
     modifier: Modifier = Modifier,
     debugContent: (@Composable () -> Unit)? = null,
+    onSignIn: () -> Unit = {},
+    onSignUp: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
 ) {
     val prefs by viewModel.state.collectAsState()
     var sheet by rememberSaveable { mutableStateOf<AccountSheet?>(null) }
+    val session by viewModel.sessionState.collectAsState()
+    val pendingCount by viewModel.sync.pendingCount.collectAsState()
+    val lastSyncAt by viewModel.sync.lastSyncAt.collectAsState()
+    val offline by viewModel.sync.offline.collectAsState()
+    val syncing by viewModel.sync.syncing.collectAsState()
+    var confirmSignOut by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier.fillMaxSize()) {
         Text(
@@ -95,6 +129,48 @@ fun AccountScreen(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
+            Section(stringResource(Res.string.account_section_account)) {
+                val user = (session as? SessionState.SignedIn)?.user
+                if (user != null) {
+                    ProfileRow(user.displayName, user.email)
+                    if (!requiresAccount) {
+                        val lastTime = lastSyncAt?.let { formatClock(it) }
+                        val subtitle = when {
+                            syncing -> stringResource(Res.string.account_sync_running)
+                            offline -> stringResource(Res.string.account_sync_offline)
+                            pendingCount > 0 -> stringResource(Res.string.account_sync_pending, pendingCount)
+                            lastTime != null -> stringResource(Res.string.account_sync_last, lastTime)
+                            else -> stringResource(Res.string.account_sync_never)
+                        }
+                        val title = if (pendingCount == 0 && !offline && !syncing) {
+                            stringResource(Res.string.account_sync_synced)
+                        } else {
+                            stringResource(Res.string.account_sync_now)
+                        }
+                        SettingRow(
+                            if (offline) Symbols.cloudOff else if (pendingCount > 0) Symbols.cloudUpload else Symbols.cloudDone,
+                            title,
+                            subtitle,
+                            onClick = if (syncing) null else ({ viewModel.sync.syncNow() }),
+                        )
+                    }
+                    SettingRow(Symbols.logout, stringResource(Res.string.account_sign_out), null, onClick = { confirmSignOut = true })
+                } else if (!requiresAccount) {
+                    Text(
+                        stringResource(Res.string.account_signed_out_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(onClick = onSignIn, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                            Text(stringResource(Res.string.sign_in_action))
+                        }
+                        OutlinedButton(onClick = onSignUp, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                            Text(stringResource(Res.string.sign_up_action))
+                        }
+                    }
+                }
+            }
             Section(stringResource(Res.string.account_section_preferences)) {
                 SettingRow(
                     Symbols.payments, stringResource(Res.string.account_default_currency), prefs.defaultCurrency,
@@ -123,6 +199,25 @@ fun AccountScreen(
             }
             debugContent?.invoke()
         }
+    }
+
+    if (confirmSignOut) {
+        ConfirmDialog(
+            title = stringResource(Res.string.account_sign_out_title),
+            body = buildString {
+                append(stringResource(Res.string.account_sign_out_body))
+                if (pendingCount > 0) append(' ').append(stringResource(Res.string.account_sign_out_pending, pendingCount))
+            },
+            confirmLabel = stringResource(Res.string.account_sign_out),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = {
+                confirmSignOut = false
+                viewModel.signOut()
+            },
+            onDismiss = { confirmSignOut = false },
+            destructive = true,
+            symbol = Symbols.logout,
+        )
     }
 
     when (sheet) {
@@ -215,6 +310,42 @@ private fun SwitchRow(symbol: String, title: String, hint: String, checked: Bool
             ),
         )
     }
+}
+
+@Composable
+private fun ProfileRow(name: String, email: String) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 64.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                name.trim().take(1).uppercase().ifEmpty { "?" },
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        Column(Modifier.weight(1f)) {
+            Text(name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                email,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** "14.32" in the device's time zone (the app writes times as HH.mm, like the design). */
+private fun formatClock(instant: kotlin.time.Instant): String {
+    val t = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+    return "${t.hour.toString().padStart(2, '0')}.${t.minute.toString().padStart(2, '0')}"
 }
 
 @Composable

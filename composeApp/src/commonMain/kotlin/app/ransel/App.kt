@@ -328,6 +328,8 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
     page<AccountRoute> {
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
+            onSignIn = { navController.navigate(SignInRoute) },
+            onSignUp = { navController.navigate(SignUpRoute) },
             debugContent = if (!isDebugBuild) null else ({
                 Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { navController.navigate(ComponentGalleryRoute) }) {

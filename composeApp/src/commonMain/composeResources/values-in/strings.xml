@@ -446,4 +446,21 @@
     <string name="web_sign_in_required_title">Masuk untuk membuka trip-mu</string>
     <string name="web_sign_in_required_body">Versi web memakai akunmu.</string>
     <string name="check_email_open_app">Buka aplikasi email</string>
+    <string name="account_section_account">Akun</string>
+    <string name="account_signed_out_title">Belum masuk</string>
+    <string name="account_signed_out_body">Masuk untuk mencadangkan trip dan membukanya di perangkat lain.</string>
+    <string name="account_sync_synced">Semua data tersinkron</string>
+    <string name="account_sync_pending">%1$d perubahan menunggu dikirim</string>
+    <string name="account_sync_offline">Offline · perubahan tersimpan di perangkat ini</string>
+    <string name="account_sync_last">Terakhir sinkron %1$s</string>
+    <string name="account_sync_never">Belum pernah sinkron</string>
+    <string name="account_sync_now">Sinkronkan</string>
+    <string name="account_sync_running">Menyinkronkan…</string>
+    <string name="account_sign_out">Keluar</string>
+    <string name="account_sign_out_title">Keluar dari perangkat ini?</string>
+    <string name="account_sign_out_body">Trip akun ini dihapus dari perangkat ini. Data tetap ada di akunmu.</string>
+    <string name="account_sign_out_pending">%1$d perubahan belum terkirim dan akan hilang di perangkat ini.</string>
+    <string name="offline_banner_title">Kamu sedang offline</string>
+    <string name="offline_banner_body">Perubahan tetap tersimpan di perangkat dan dikirim otomatis saat online.</string>
+    <string name="back_online_snackbar">Kembali online · %1$d perubahan terkirim</string>
 </resources>

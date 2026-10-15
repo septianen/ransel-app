@@ -446,4 +446,21 @@
     <string name="web_sign_in_required_title">Sign in to open your trips</string>
     <string name="web_sign_in_required_body">The web app works with your account.</string>
     <string name="check_email_open_app">Open email app</string>
+    <string name="account_section_account">Account</string>
+    <string name="account_signed_out_title">Not signed in</string>
+    <string name="account_signed_out_body">Sign in to back up your trips and open them on other devices.</string>
+    <string name="account_sync_synced">All data synced</string>
+    <string name="account_sync_pending">%1$d changes waiting to be sent</string>
+    <string name="account_sync_offline">Offline · changes are saved on this device</string>
+    <string name="account_sync_last">Last synced %1$s</string>
+    <string name="account_sync_never">Not synced yet</string>
+    <string name="account_sync_now">Sync now</string>
+    <string name="account_sync_running">Syncing…</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_sign_out_title">Sign out of this device?</string>
+    <string name="account_sign_out_body">Trips of this account are removed from this device. They stay in your account.</string>
+    <string name="account_sign_out_pending">%1$d changes are not sent yet and will be lost on this device.</string>
+    <string name="offline_banner_title">You are offline</string>
+    <string name="offline_banner_body">Changes stay on this device and are sent automatically when you are online.</string>
+    <string name="back_online_snackbar">Back online · %1$d changes sent</string>
 </resources>
