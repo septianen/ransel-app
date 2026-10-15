@@ -40,7 +40,7 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 ## Phase 5 — Explore AI
 
 - [x] **B5.1 Quota.** `ai_usage` upsert per user per WIB date; 10 per day; `newSearch=false` batches do not count; 429 `AI_QUOTA_EXCEEDED` with the reset time; `QuotaDto` in every response.
-- [x] **B5.2 LLM client.** Prompt asking for JSON matching the shared schema; parse into `@Serializable` classes; retry once; then 503 `AI_UNAVAILABLE`. Model and key from env.
+- [x] **B5.2 LLM client.** Prompt asking for JSON matching the shared schema; parse into `@Serializable` classes; retry once; then 503 `AI_UNAVAILABLE`. Model and key from env. *Provider is Gemini (Developer API), changed from DeepSeek on 2026-10-15; `LLM_MODEL`, `LLM_API_KEY`.*
 - [x] **B5.3 Grounding.** Places Text Search (IDs Only) per candidate; drop places not found; exclude liked/skipped placeIds for the trip; lazy details (photo, rating) for the top 2–3 only. Never expose the Places key in `photoUrl` (add a proxy endpoint through a contract change if photos need it). *`photoUrl` is always null for now: photos need that proxy (open decision); lat/lng/address come from Place Details Essentials, rating only for the top 3 cards.*
 - [x] **B5.4 Cache.** `recommendation_cache` keyed by the normalized hash, expiry a few days, cleanup job.
 - [x] **B5.5 Feedback.** `POST /recommendations/feedback` (upsert), `DELETE .../{tripId}/{placeId}` (undo).

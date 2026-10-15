@@ -29,7 +29,7 @@ flowchart LR
     API["Routes /api/v1<br/>JWT · StatusPages · RateLimit"] --> S[Services] --> PG[("PostgreSQL<br/>Flyway V1–V4")]
     S --> AI["AI client (Phase 5)"]
   end
-  AI --> LLM["LLM (DeepSeek V4.1 Flash)"]
+  AI --> LLM["LLM (Gemini Flash)"]
   AI --> PL["Google Places API"]
   SH["shared: DTOs, enums, ApiResponse/ApiError,<br/>validation, reorder / split / balances"] -.-> A
   SH -.-> W
@@ -53,7 +53,7 @@ The `shared` module is used by both app and server, so models, validation, and c
 | Backend | Ktor Server | Routing, Authentication (JWT), StatusPages, RateLimit |
 | Server database | PostgreSQL + Exposed | Flyway migrations |
 | Infrastructure | Docker Compose | Local Postgres in development, server image for deploy |
-| AI (Phase 5) | LLM (DeepSeek V4.1 Flash) + Google Places API | Called from the server only |
+| AI (Phase 5) | LLM (Gemini Flash, Gemini Developer API) + Google Places API | Called from the server only; model id from `LLM_MODEL` |
 
 Repository layout: one Gradle project with three modules, generated from the kmp.jetbrains.com template with the Server option.
 
@@ -226,7 +226,7 @@ The server receives the preferences, asks the LLM for candidate places as JSON, 
 
 The swipe session (remaining cards, position, number saved) is stored locally in the app for the Continue card; it is discarded when all cards are seen or the user searches again.
 
-**Cost** (prices as of October 2026, subject to change): DeepSeek V4.1 Flash is about $0.003 per request of 15 places. The Places API is what needs watching: Text Search IDs Only is free, Place Details Essentials $5 per 1,000 (10,000 free per month), Pro $17 per 1,000. Strategy: validate with IDs Only, fetch details lazily, keep the field mask minimal, cache `placeId`s, and set a Google Cloud budget alert from day one.
+**Cost** (prices as of October 2026, subject to change; the LLM was DeepSeek V4.1 Flash at about $0.003 per request of 15 places when this was written, now Gemini Flash: check the current Gemini price). The Places API is what needs watching: Text Search IDs Only is free, Place Details Essentials $5 per 1,000 (10,000 free per month), Pro $17 per 1,000. Strategy: validate with IDs Only, fetch details lazily, keep the field mask minimal, cache `placeId`s, and set a Google Cloud budget alert from day one.
 
 **Quota:** 10 searches per user per day, enforced with Ktor RateLimit and counted in ai\_usage; the count resets at 00:00. When it runs out the server returns 429 AI\_QUOTA\_EXCEEDED and the app shows the quota screen ("10 dari 10 pencarian"). The recommendation endpoints sit behind JWT auth like the rest of the API (401 without a token); guests never call them, because the Explore tab shows a sign-in screen until the user has an account.
 

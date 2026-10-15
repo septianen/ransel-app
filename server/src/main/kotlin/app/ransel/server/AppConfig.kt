@@ -34,8 +34,8 @@ data class AppConfig(
     val iosAppIds: List<String> = emptyList(),
     /** Explore AI. Blank keys = the feature answers 503 AI_UNAVAILABLE; the rest of the API is unaffected. */
     val llmApiKey: String = "",
-    val llmBaseUrl: String = "https://api.deepseek.com",
-    val llmModel: String = "deepseek-chat",
+    val llmBaseUrl: String = "https://generativelanguage.googleapis.com/v1beta",
+    val llmModel: String = "gemini-3.8-flash",
     val placesApiKey: String = "",
     val aiCacheTtl: Duration = 3.days,
 ) {
@@ -84,8 +84,8 @@ data class AppConfig(
                 isProduction = production,
                 registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
                 llmApiKey = env["LLM_API_KEY"].orEmpty().trim(),
-                llmBaseUrl = (env["LLM_BASE_URL"]?.takeIf { it.isNotBlank() } ?: "https://api.deepseek.com").trimEnd('/'),
-                llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "deepseek-chat",
+                llmBaseUrl = (env["LLM_BASE_URL"]?.takeIf { it.isNotBlank() } ?: "https://generativelanguage.googleapis.com/v1beta").trimEnd('/'),
+                llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.8-flash",
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),

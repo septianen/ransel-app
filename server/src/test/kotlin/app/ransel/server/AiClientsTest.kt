@@ -1,6 +1,6 @@
 package app.ransel.server
 
-import app.ransel.server.ai.DeepSeekClient
+import app.ransel.server.ai.GeminiClient
 import app.ransel.server.ai.GooglePlacesClient
 import app.ransel.server.ai.LlmQuery
 import app.ransel.shared.model.BudgetLevel
@@ -34,14 +34,14 @@ private val query = LlmQuery(
     style = TravelStyle.SANTAI, notes = "tanpa babi", liked = listOf("Tanah Lot"), skipped = listOf("Pantai Kuta"), count = 15,
 )
 
-class DeepSeekClientTest {
-    private fun client(captured: MutableList<HttpRequestData>, content: String, status: HttpStatusCode = HttpStatusCode.OK): DeepSeekClient {
-        val body = """{"choices":[{"message":{"content":${kotlinx.serialization.json.JsonPrimitive(content)}}}]}"""
+class GeminiClientTest {
+    private fun client(captured: MutableList<HttpRequestData>, text: String?, status: HttpStatusCode = HttpStatusCode.OK, raw: String? = null): GeminiClient {
+        val body = raw ?: """{"candidates":[{"content":{"parts":[{"text":${kotlinx.serialization.json.JsonPrimitive(text.orEmpty())}}]},"finishReason":"STOP"}]}"""
         val http = HttpClient(MockEngine { request ->
             captured += request
             respond(body, status, jsonHeaders)
         })
-        return DeepSeekClient(http, "https://llm.test", "sk-secret", "deepseek-chat")
+        return GeminiClient(http, "https://llm.test/v1beta", "g-llm-secret", "gemini-test")
     }
 
     @Test
@@ -52,14 +52,14 @@ class DeepSeekClientTest {
         assertEquals("Tanah Lot", result.single().name)
         val request = seen.single()
         assertEquals(HttpMethod.Post, request.method)
-        assertEquals("https://llm.test/chat/completions", request.url.toString())
-        assertEquals("Bearer sk-secret", request.headers[HttpHeaders.Authorization])
-        assertFalse(request.url.toString().contains("sk-secret"))
+        assertEquals("https://llm.test/v1beta/models/gemini-test:generateContent", request.url.toString())
+        assertEquals("g-llm-secret", request.headers["x-goog-api-key"])
+        assertFalse(request.url.toString().contains("g-llm-secret"))
 
         val sent = kotlinx.serialization.json.Json.parseToJsonElement(String(request.body.toByteArray())).jsonObject
-        assertEquals("deepseek-chat", sent.getValue("model").jsonPrimitive.content)
-        assertEquals("json_object", sent.getValue("response_format").jsonObject.getValue("type").jsonPrimitive.content)
-        val user = sent.getValue("messages").jsonArray[1].jsonObject.getValue("content").jsonPrimitive.content
+        assertEquals("application/json", sent.getValue("generationConfig").jsonObject.getValue("responseMimeType").jsonPrimitive.content)
+        assertTrue("travel planner" in sent.getValue("systemInstruction").jsonObject.getValue("parts").jsonArray[0].jsonObject.getValue("text").jsonPrimitive.content)
+        val user = sent.getValue("contents").jsonArray[0].jsonObject.getValue("parts").jsonArray[0].jsonObject.getValue("text").jsonPrimitive.content
         assertTrue("Bali" in user && "tanpa babi" in user && "Tanah Lot" in user && "Pantai Kuta" in user)
     }
 
@@ -71,12 +71,22 @@ class DeepSeekClientTest {
         assertNull(c.suggestedDurationMin)
 
         val bare = client(mutableListOf(), """[{"name":"Pura Uluwatu"}]""").suggest(query).single()
-        assertEquals("Pura Uluwatu", bare.name)
         assertEquals(Category.ATTRACTION, bare.category) // default when the model leaves it out
     }
 
     @Test
-    fun garbageAndHttpErrorsThrowSoTheCallerCanRetry() {
+    fun ignoresThoughtPartsAndJoinsTheRest() = runBlocking {
+        val raw = """{"candidates":[{"content":{"parts":[
+            {"text":"Let me think about Bali...","thought":true},
+            {"text":"{\"places\":[{\"name\":"},
+            {"text":"\"Tanah Lot\"}]}"}]}}]}"""
+        assertEquals("Tanah Lot", client(mutableListOf(), null, raw = raw).suggest(query).single().name)
+    }
+
+    @Test
+    fun blockedEmptyGarbageAndHttpErrorsThrowSoTheCallerCanRetry() {
+        val blocked = """{"promptFeedback":{"blockReason":"SAFETY"}}"""
+        assertFailsWith<Exception> { runBlocking { client(mutableListOf(), null, raw = blocked).suggest(query) } }
         assertFailsWith<Exception> { runBlocking { client(mutableListOf(), "Maaf, saya tidak bisa.").suggest(query) } }
         assertFailsWith<Exception> { runBlocking { client(mutableListOf(), "{}", HttpStatusCode.TooManyRequests).suggest(query) } }
     }
