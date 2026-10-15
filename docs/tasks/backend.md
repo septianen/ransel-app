@@ -6,7 +6,7 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 - [x] **B2.1 Skeleton.** Ktor server module, config from env (`server/CLAUDE.md`), `docker-compose.yml` with Postgres 16 for development, `GET /api/v1/health` → `{"data":{"status":"ok"}}`.
 - [x] **B2.2 Database.** Flyway runs every migration in `db/migration` at startup (V1–V4 all at once is fine; the schema for later phases simply waits). Exposed table objects for V1 tables. HikariCP.
-- [ ] **B2.3 Plumbing.** `respondData` helper, `ApiException` + StatusPages mapping to `ApiErrorResponse`, validation via `shared/src/commonMain/kotlin/app/ransel/shared/domain/Validation.kt` (422 + details), request logging, CORS for the web dev origin. A dummy principal = `LOCAL_USER_ID` until Phase 3.
+- [x] **B2.3 Plumbing.** `respondData` helper, `ApiException` + StatusPages mapping to `ApiErrorResponse`, validation via `shared/src/commonMain/kotlin/app/ransel/shared/domain/Validation.kt` (422 + details), request logging, CORS for the web dev origin. A dummy principal = `LOCAL_USER_ID` until Phase 3.
 - [ ] **B2.4 Trips.** `GET/POST /trips`, `GET/PUT/DELETE /trips/{id}` with `TripDetailDto` (summary numbers computed in SQL). Creating a trip also inserts the OWNER row in `trip_members`, so `requireRole` works the same in every phase.
 - [ ] **B2.5 Itinerary.** List (ordered by `day_date NULLS FIRST, sort_order`), create, replace (also used to schedule), delete, `PUT /trips/{id}/days/{date}/order` in one transaction.
 - [ ] **B2.6 Packing.** List, create, PATCH, DELETE, `POST .../packing/uncheck-all`.
