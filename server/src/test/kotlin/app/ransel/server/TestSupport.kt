@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import app.ransel.server.AppConfig
 import app.ransel.server.security.EmailSender
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -62,6 +63,8 @@ object TestDb {
             val exists = conn.createStatement().executeQuery("select to_regclass('public.trips')").use { rs -> rs.next() && rs.getString(1) != null }
             if (exists) {
                 conn.createStatement().use { it.execute("TRUNCATE trips CASCADE") }
+                // not tied to a trip, but it would leak results from one test into the next
+                conn.createStatement().use { it.execute("TRUNCATE recommendation_cache") }
                 // Real accounts go (their refresh tokens cascade); the seeded dummy user has no email and stays.
                 conn.createStatement().use { it.execute("DELETE FROM users WHERE email IS NOT NULL") }
             }
@@ -138,11 +141,15 @@ suspend fun HttpResponse.data(): JsonElement = jsonBody().getValue("data")
 suspend fun HttpResponse.errorCode(): String = jsonBody().getValue("error").jsonObject.getValue("code").jsonPrimitive.content
 
 /** Starts the app on a clean database and runs [block] as a freshly registered user. */
-fun apiTest(config: AppConfig = TestDb.config(), block: suspend Api.() -> Unit) {
+fun apiTest(
+    config: AppConfig = TestDb.config(),
+    ai: app.ransel.server.ai.AiServices? = null,
+    block: suspend Api.() -> Unit,
+) {
     TestDb.reset()
     TestEmails.sent.clear()
     testApplication {
-        application { module(config, TestEmails) }
+        application { module(config, TestEmails, ai) }
         val client = createClient { install(ContentNegotiation) { json(TestJson) } }
         runBlocking {
             val api = Api(client)

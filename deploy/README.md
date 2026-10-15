@@ -27,6 +27,7 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 | `JWT_SECRET` | 32+ random characters (`openssl rand -hex 32`) |
 | `DATABASE_PASSWORD` | random, letters and digits (`openssl rand -hex 24`) |
 | `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_USER_NAME` | the closed-beta account |
+| `LLM_API_KEY`, `PLACES_API_KEY` (optional until Explore goes live) | DeepSeek key and Google Places (New) key. Without them Explore answers 503 `AI_UNAVAILABLE`. Restrict the Places key to the Places API and set a **budget alert** in Google Cloud |
 | `SEED_USERS` (optional) | more accounts: `email\|password\|name;email\|password\|name`. Use letters and digits in passwords (no `\|`, `;` or `$`) |
 
 ## Backups

@@ -17,6 +17,10 @@ services:
       DATABASE_USER: ransel
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://ransel.mietek.tech}
+      # Explore AI. Blank keys = Explore answers 503 AI_UNAVAILABLE, the rest of the API is unaffected.
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
+      PLACES_API_KEY: ${PLACES_API_KEY:-}
       # App/Universal Links verification files (served at /.well-known/); empty = 404
       ANDROID_PACKAGE: ${ANDROID_PACKAGE:-app.ransel}
       ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}

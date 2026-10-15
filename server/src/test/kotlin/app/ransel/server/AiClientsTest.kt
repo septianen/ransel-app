@@ -1,0 +1,137 @@
+package app.ransel.server
+
+import app.ransel.server.ai.DeepSeekClient
+import app.ransel.server.ai.GooglePlacesClient
+import app.ransel.server.ai.LlmQuery
+import app.ransel.shared.model.BudgetLevel
+import app.ransel.shared.model.Category
+import app.ransel.shared.model.Interest
+import app.ransel.shared.model.TravelStyle
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.engine.mock.toByteArray
+import io.ktor.client.request.HttpRequestData
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
+
+private val query = LlmQuery(
+    destination = "Bali", days = 4, budget = BudgetLevel.SEDANG, interests = listOf(Interest.FOOD, Interest.NATURE),
+    style = TravelStyle.SANTAI, notes = "tanpa babi", liked = listOf("Tanah Lot"), skipped = listOf("Pantai Kuta"), count = 15,
+)
+
+class DeepSeekClientTest {
+    private fun client(captured: MutableList<HttpRequestData>, content: String, status: HttpStatusCode = HttpStatusCode.OK): DeepSeekClient {
+        val body = """{"choices":[{"message":{"content":${kotlinx.serialization.json.JsonPrimitive(content)}}}]}"""
+        val http = HttpClient(MockEngine { request ->
+            captured += request
+            respond(body, status, jsonHeaders)
+        })
+        return DeepSeekClient(http, "https://llm.test", "sk-secret", "deepseek-chat")
+    }
+
+    @Test
+    fun sendsKeyOnlyInTheHeaderAndAsksForJson() = runBlocking {
+        val seen = mutableListOf<HttpRequestData>()
+        val result = client(seen, """{"places":[{"name":"Tanah Lot","category":"ATTRACTION","reason":"Pura di laut","priceLevel":1,"suggestedDurationMin":90}]}""").suggest(query)
+
+        assertEquals("Tanah Lot", result.single().name)
+        val request = seen.single()
+        assertEquals(HttpMethod.Post, request.method)
+        assertEquals("https://llm.test/chat/completions", request.url.toString())
+        assertEquals("Bearer sk-secret", request.headers[HttpHeaders.Authorization])
+        assertFalse(request.url.toString().contains("sk-secret"))
+
+        val sent = kotlinx.serialization.json.Json.parseToJsonElement(String(request.body.toByteArray())).jsonObject
+        assertEquals("deepseek-chat", sent.getValue("model").jsonPrimitive.content)
+        assertEquals("json_object", sent.getValue("response_format").jsonObject.getValue("type").jsonPrimitive.content)
+        val user = sent.getValue("messages").jsonArray[1].jsonObject.getValue("content").jsonPrimitive.content
+        assertTrue("Bali" in user && "tanpa babi" in user && "Tanah Lot" in user && "Pantai Kuta" in user)
+    }
+
+    @Test
+    fun toleratesCodeFencesBareArraysAndMissingFields() = runBlocking {
+        val fenced = "```json\n{\"places\":[{\"name\":\"Kopi Seniman\",\"category\":\"FOOD\"}]}\n```"
+        val c = client(mutableListOf(), fenced).suggest(query).single()
+        assertEquals(Category.FOOD, c.category)
+        assertNull(c.suggestedDurationMin)
+
+        val bare = client(mutableListOf(), """[{"name":"Pura Uluwatu"}]""").suggest(query).single()
+        assertEquals("Pura Uluwatu", bare.name)
+        assertEquals(Category.ATTRACTION, bare.category) // default when the model leaves it out
+    }
+
+    @Test
+    fun garbageAndHttpErrorsThrowSoTheCallerCanRetry() {
+        assertFailsWith<Exception> { runBlocking { client(mutableListOf(), "Maaf, saya tidak bisa.").suggest(query) } }
+        assertFailsWith<Exception> { runBlocking { client(mutableListOf(), "{}", HttpStatusCode.TooManyRequests).suggest(query) } }
+    }
+}
+
+class GooglePlacesClientTest {
+    private fun client(captured: MutableList<HttpRequestData>, vararg responses: Pair<HttpStatusCode, String>): GooglePlacesClient {
+        val queue = ArrayDeque(responses.toList())
+        val http = HttpClient(MockEngine { request ->
+            captured += request
+            val (status, body) = queue.removeFirst()
+            respond(body, status, jsonHeaders)
+        })
+        return GooglePlacesClient(http, "g-secret", "https://places.test/v1")
+    }
+
+    @Test
+    fun searchUsesTheFreeIdsOnlyMaskAndKeepsTheKeyOutOfTheUrl() = runBlocking {
+        val seen = mutableListOf<HttpRequestData>()
+        val id = client(seen, HttpStatusCode.OK to """{"places":[{"id":"ChIJabc"}]}""").findPlaceId("Tanah Lot", "Bali")
+
+        assertEquals("ChIJabc", id)
+        val request = seen.single()
+        assertEquals("places.id", request.headers["X-Goog-FieldMask"])
+        assertEquals("g-secret", request.headers["X-Goog-Api-Key"])
+        assertFalse(request.url.toString().contains("g-secret"))
+        assertTrue("Tanah Lot, Bali" in String(request.body.toByteArray()))
+    }
+
+    @Test
+    fun noMatchIsNullNotAnError() = runBlocking {
+        assertNull(client(mutableListOf(), HttpStatusCode.OK to "{}").findPlaceId("Tempat Karangan", "Bali"))
+    }
+
+    @Test
+    fun ratingIsOnlyRequestedWhenAskedFor() = runBlocking {
+        val seen = mutableListOf<HttpRequestData>()
+        val body = """{"location":{"latitude":-8.62,"longitude":115.09},"formattedAddress":"Beraban, Tabanan","rating":4.6}"""
+        val c = client(seen, HttpStatusCode.OK to body, HttpStatusCode.OK to body)
+
+        val plain = c.details("ChIJabc", withRating = false)!!
+        val rated = c.details("ChIJabc", withRating = true)!!
+
+        assertEquals("location,formattedAddress", seen[0].headers["X-Goog-FieldMask"])
+        assertEquals("location,formattedAddress,rating", seen[1].headers["X-Goog-FieldMask"])
+        assertEquals(-8.62, plain.lat)
+        assertEquals("Beraban, Tabanan", rated.address)
+        assertEquals(4.6, rated.rating)
+    }
+
+    @Test
+    fun unknownPlaceIsNullAndServerErrorsThrow() {
+        runBlocking {
+            assertNull(client(mutableListOf(), HttpStatusCode.NotFound to "{}").details("nope", false))
+        }
+        assertFailsWith<Exception> { runBlocking { client(mutableListOf(), HttpStatusCode.Forbidden to "{}").details("x", false) } }
+    }
+}

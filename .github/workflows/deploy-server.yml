@@ -89,6 +89,9 @@ jobs:
           SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
           SEED_USER_NAME: ${{ secrets.SEED_USER_NAME }}
           SEED_USERS: ${{ secrets.SEED_USERS }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          PLACES_API_KEY: ${{ secrets.PLACES_API_KEY }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Public verification values. Read from a repository variable, or from a secret of the same name.
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 || secrets.ANDROID_CERT_SHA256 }}
@@ -115,6 +118,9 @@ jobs:
             echo "SEED_USER_PASSWORD=$SEED_USER_PASSWORD"
             echo "SEED_USER_NAME=${SEED_USER_NAME:-Test User}"
             echo "SEED_USERS=$SEED_USERS"
+            echo "LLM_API_KEY=$LLM_API_KEY"
+            echo "PLACES_API_KEY=$PLACES_API_KEY"
+            echo "LLM_MODEL=${LLM_MODEL:-deepseek-chat}"
           } | $SSH "umask 077 && cat > '$DEPLOY_PATH/.env'"
 
           printf '%s' "$GHCR_TOKEN" | $SSH "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"

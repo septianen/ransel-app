@@ -1,0 +1,39 @@
+### Search (EDITOR+ on the trip). Counts 1 of 10 daily searches (resets 00:00 WIB)
+POST {{host}}/recommendations
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tripId": "{{tripId}}",
+  "destination": "Bali",
+  "startDate": "2026-11-20",
+  "endDate": "2026-11-23",
+  "budget": "SEDANG",
+  "interests": ["FOOD", "NATURE"],
+  "style": "SANTAI",
+  "notes": "tanpa babi",
+  "excludePlaceIds": [],
+  "newSearch": true
+}
+
+### Background next batch while swiping: does NOT count against the quota
+POST {{host}}/recommendations
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tripId": "{{tripId}}", "destination": "Bali", "startDate": "2026-11-20", "endDate": "2026-11-23",
+  "budget": "SEDANG", "interests": ["FOOD", "NATURE"], "style": "SANTAI",
+  "excludePlaceIds": ["paste placeIds already shown"], "newSearch": false
+}
+
+### Swipe: LIKE or SKIP (upsert) -> 204. On LIKE the client also creates the itinerary item (dayDate null, source AI)
+POST {{host}}/recommendations/feedback
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "tripId": "{{tripId}}", "placeId": "ChIJ...", "placeName": "Tanah Lot", "category": "ATTRACTION", "action": "SKIP" }
+
+### Undo the last swipe -> 204 (idempotent)
+DELETE {{host}}/recommendations/feedback/{{tripId}}/ChIJ...
+Authorization: Bearer {{token}}

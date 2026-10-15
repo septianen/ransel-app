@@ -32,6 +32,12 @@ data class AppConfig(
     val androidCertSha256: List<String> = emptyList(),
     /** iOS Universal Links: `/.well-known/apple-app-site-association`, e.g. `ABCDE12345.app.ransel`. Empty = 404. */
     val iosAppIds: List<String> = emptyList(),
+    /** Explore AI. Blank keys = the feature answers 503 AI_UNAVAILABLE; the rest of the API is unaffected. */
+    val llmApiKey: String = "",
+    val llmBaseUrl: String = "https://api.deepseek.com",
+    val llmModel: String = "deepseek-chat",
+    val placesApiKey: String = "",
+    val aiCacheTtl: Duration = 3.days,
 ) {
     data class SeedUser(val email: String, val password: String, val displayName: String)
 
@@ -77,6 +83,10 @@ data class AppConfig(
                 appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.mietek.tech").trimEnd('/'),
                 isProduction = production,
                 registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
+                llmApiKey = env["LLM_API_KEY"].orEmpty().trim(),
+                llmBaseUrl = (env["LLM_BASE_URL"]?.takeIf { it.isNotBlank() } ?: "https://api.deepseek.com").trimEnd('/'),
+                llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "deepseek-chat",
+                placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),
                 iosAppIds = env["IOS_APP_IDS"].csv(),

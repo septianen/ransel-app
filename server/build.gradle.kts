@@ -23,6 +23,11 @@ dependencies {
     implementation(libs.ktor.server.forwarded.header)
     implementation(libs.bcrypt)
 
+    // LLM and Places calls (Phase 5)
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.java.time)
@@ -35,7 +40,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.ktor.client.content.negotiation)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.testcontainers.postgresql)
 }
 

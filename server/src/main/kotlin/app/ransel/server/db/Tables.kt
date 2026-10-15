@@ -12,6 +12,8 @@ import org.jetbrains.exposed.v1.javatime.time
 import org.jetbrains.exposed.v1.javatime.timestamp
 import org.jetbrains.exposed.v1.json.jsonb
 import app.ransel.shared.dto.TemplateItem
+import app.ransel.server.ai.CachedPlace
+import app.ransel.shared.model.FeedbackAction
 import kotlinx.serialization.json.Json
 
 /*
@@ -176,4 +178,33 @@ object PackingTemplates : Table("packing_templates") {
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
     override val primaryKey = PrimaryKey(id)
+}
+
+object AiUsage : Table("ai_usage") {
+    val userId = javaUUID("user_id")
+    val usageDate = date("usage_date")
+    val count = integer("count")
+    override val primaryKey = PrimaryKey(userId, usageDate)
+}
+
+object RecommendationCache : Table("recommendation_cache") {
+    val queryHash = text("query_hash")
+    val destination = text("destination")
+    val response = jsonb<List<CachedPlace>>("response", Json)
+    val model = text("model")
+    val hitCount = integer("hit_count")
+    val createdAt = timestamp("created_at")
+    val expiresAt = timestamp("expires_at")
+    override val primaryKey = PrimaryKey(queryHash)
+}
+
+object RecommendationFeedback : Table("recommendation_feedback") {
+    val tripId = javaUUID("trip_id")
+    val userId = javaUUID("user_id")
+    val placeId = text("place_id")
+    val placeName = text("place_name")
+    val category = enumerationByName<Category>("category", 16)
+    val action = enumerationByName<FeedbackAction>("action", 8)
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(tripId, userId, placeId)
 }
