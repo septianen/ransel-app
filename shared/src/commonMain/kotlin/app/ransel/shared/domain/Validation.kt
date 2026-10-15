@@ -45,7 +45,8 @@ fun generateInviteCode(tripTitle: String, random: Random = Random.Default): Stri
     return "$prefix-$suffix"
 }
 
-fun inviteUrl(code: String) = "https://ransel.app/j/$code"
+/** Public invite link. The host is the web app's domain (owner decision 2026-10-15). */
+fun inviteUrl(code: String) = "https://ransel.mietek.tech/j/$code"
 
 /** Daily Explore quota (TRD "Quota"). */
 const val AI_DAILY_QUOTA = 10

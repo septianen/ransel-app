@@ -49,7 +49,7 @@ data class InviteDto(
     val usedCount: Int,
     val expiresAt: Timestamp,
     val revokedAt: Timestamp? = null,
-    /** https://ransel.app/j/<code> */
+    /** https://ransel.mietek.tech/j/<code> (the server builds it from APP_BASE_URL). */
     val url: String,
     val createdAt: Timestamp,
 )
