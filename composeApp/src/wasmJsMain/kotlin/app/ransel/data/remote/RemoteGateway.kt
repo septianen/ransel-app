@@ -85,3 +85,12 @@ internal class RemoteGateway(
         }
     }
 }
+
+/** Web has nothing to sync; pull-to-refresh just fetches the visible data again. */
+class WebSyncStatus(private val invalidation: DataInvalidation) :
+    app.ransel.data.sync.SyncStatus by app.ransel.data.sync.NoSyncStatus {
+    override suspend fun refresh() {
+        invalidation.invalidate()
+        kotlinx.coroutines.delay(600) // the spinner needs a moment; the fetch itself is asynchronous
+    }
+}

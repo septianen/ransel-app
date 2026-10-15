@@ -90,6 +90,10 @@ class SyncCoordinator(
         kick.trySend(Unit)
     }
 
+    override suspend fun refresh() {
+        if (session.state.value is SessionState.SignedIn) syncOnce()
+    }
+
     private suspend fun loop() {
         var failures = 0
         var first = true

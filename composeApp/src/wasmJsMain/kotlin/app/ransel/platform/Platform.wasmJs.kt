@@ -3,7 +3,6 @@ package app.ransel.platform
 import app.ransel.data.local.LocalStoragePreferencesRepository
 import app.ransel.data.remote.ConnectionMonitor
 import app.ransel.data.remote.DataInvalidation
-import app.ransel.data.sync.NoSyncStatus
 import app.ransel.data.sync.SyncStatus
 import app.ransel.data.auth.NoSessionHooks
 import app.ransel.data.auth.SessionHooks
@@ -15,6 +14,7 @@ import app.ransel.data.remote.RemoteItineraryRepository
 import app.ransel.data.remote.RemotePackingRepository
 import app.ransel.data.remote.RemoteTripRepository
 import app.ransel.data.remote.WebConnectionMonitor
+import app.ransel.data.remote.WebSyncStatus
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PackingRepository
@@ -28,7 +28,7 @@ actual val platformModule: Module = module {
     single { DataInvalidation() }
     single { WebConnectionMonitor(get()) }
     single<ConnectionMonitor> { get<WebConnectionMonitor>() }
-    single<SyncStatus> { NoSyncStatus }
+    single<SyncStatus> { WebSyncStatus(get()) }
     single<SessionHooks> { NoSessionHooks }
     single<TokenStore> { WebTokenStore() }
     single { RemoteGateway(get(), get(), get()) }

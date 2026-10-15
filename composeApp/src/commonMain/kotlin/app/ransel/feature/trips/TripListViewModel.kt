@@ -7,7 +7,10 @@ import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.util.today
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import app.ransel.data.sync.SyncStatus
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
@@ -30,7 +33,23 @@ sealed interface TripListUiState {
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class TripListViewModel(trips: TripRepository) : ViewModel() {
+class TripListViewModel(trips: TripRepository, private val sync: SyncStatus) : ViewModel() {
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing: StateFlow<Boolean> = _refreshing
+
+    /** Pull-to-refresh. */
+    fun refresh() {
+        if (_refreshing.value) return
+        _refreshing.value = true
+        viewModelScope.launch {
+            try {
+                sync.refresh()
+            } finally {
+                _refreshing.value = false
+            }
+        }
+    }
+
     val state: StateFlow<TripListUiState> = trips.observeTrips()
         .flatMapLatest { list ->
             if (list.isEmpty()) {

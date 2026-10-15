@@ -20,7 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -83,7 +85,8 @@ fun TripListScreen(
     viewModel: TripListViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    TripListContent(state, onOpenTrip, onCreateTrip, modifier)
+    val refreshing by viewModel.refreshing.collectAsState()
+    TripListContent(state, onOpenTrip, onCreateTrip, modifier, refreshing = refreshing, onRefresh = viewModel::refresh)
 }
 
 @Composable
@@ -92,6 +95,8 @@ fun TripListContent(
     onOpenTrip: (String) -> Unit,
     onCreateTrip: () -> Unit,
     modifier: Modifier = Modifier,
+    refreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxSize()) {
         Text(
@@ -102,19 +107,38 @@ fun TripListContent(
         )
         when (state) {
             TripListUiState.Loading -> Box(Modifier.weight(1f))
-            TripListUiState.Empty -> FullScreenState(
-                modifier = Modifier.weight(1f),
-                title = stringResource(Res.string.trips_empty_title),
-                body = stringResource(Res.string.trips_empty_body),
-                primaryLabel = stringResource(Res.string.trips_create),
-                onPrimary = onCreateTrip,
-                illustration = painterResource(Res.drawable.capybara_reading_map_compass),
-            )
+            TripListUiState.Empty -> PullToRefresh(refreshing, onRefresh, Modifier.weight(1f)) {
+                FullScreenState(
+                    title = stringResource(Res.string.trips_empty_title),
+                    body = stringResource(Res.string.trips_empty_body),
+                    primaryLabel = stringResource(Res.string.trips_create),
+                    onPrimary = onCreateTrip,
+                    illustration = painterResource(Res.drawable.capybara_reading_map_compass),
+                )
+            }
             is TripListUiState.Content -> Box(Modifier.weight(1f)) {
-                TripGroups(state, onOpenTrip, onCreateTrip)
+                PullToRefresh(refreshing, onRefresh, Modifier.fillMaxSize()) {
+                    TripGroups(state, onOpenTrip, onCreateTrip)
+                }
                 CreateTripFab(onCreateTrip, Modifier.align(Alignment.BottomEnd).padding(16.dp))
             }
         }
+    }
+}
+
+/** Pull-to-refresh container; without [onRefresh] (previews) it is a plain box. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PullToRefresh(
+    refreshing: Boolean,
+    onRefresh: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    if (onRefresh == null) {
+        Box(modifier) { content() }
+    } else {
+        PullToRefreshBox(isRefreshing = refreshing, onRefresh = onRefresh, modifier = modifier) { content() }
     }
 }
 

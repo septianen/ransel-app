@@ -19,8 +19,11 @@ interface SyncStatus {
     val justSynced: StateFlow<Int?>
     fun acknowledgeJustSynced()
 
-    /** Starts a sync now (no-op on the web). */
+    /** Starts a sync now in the background (no-op on the web). */
     fun syncNow()
+
+    /** Pull-to-refresh: mobile syncs and returns when done; web fetches everything again. */
+    suspend fun refresh()
 }
 
 /** Web / tests: nothing is ever pending. */
@@ -33,4 +36,5 @@ object NoSyncStatus : SyncStatus {
     override val justSynced: StateFlow<Int?> = MutableStateFlow(null)
     override fun acknowledgeJustSynced() = Unit
     override fun syncNow() = Unit
+    override suspend fun refresh() = Unit
 }
