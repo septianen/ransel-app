@@ -6,6 +6,7 @@ import app.ransel.server.plugins.configureCors
 import app.ransel.server.plugins.configureSerialization
 import app.ransel.server.plugins.configureStatusPages
 import app.ransel.server.routes.healthRoutes
+import app.ransel.server.routes.itineraryRoutes
 import app.ransel.server.routes.tripRoutes
 import app.ransel.shared.api.ApiRoutes
 import io.ktor.server.application.Application
@@ -32,6 +33,7 @@ fun Application.module(config: AppConfig = AppConfig.fromEnv()) {
         route(ApiRoutes.BASE) {
             healthRoutes()
             tripRoutes()
+            itineraryRoutes()
         }
     }
 }
