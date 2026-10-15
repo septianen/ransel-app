@@ -23,10 +23,10 @@ data class AppConfig(
     val appBaseUrl: String = "https://ransel.mietek.tech",
     val isProduction: Boolean = false,
     val passwordResetTtl: Duration = 30.minutes,
-    /** false = POST /auth/register answers 403; accounts exist only through [seedUser]. */
+    /** false = POST /auth/register answers 403; accounts exist only through [seedUsers]. */
     val registrationEnabled: Boolean = true,
-    /** Account created at startup when missing (never overwritten). Comes from env, not from git. */
-    val seedUser: SeedUser? = null,
+    /** Accounts created at startup when missing (never overwritten). Come from env, not from git. */
+    val seedUsers: List<SeedUser> = emptyList(),
     /** Android App Links: `/.well-known/assetlinks.json`. Empty fingerprints = the file answers 404. */
     val androidPackage: String = "app.ransel",
     val androidCertSha256: List<String> = emptyList(),
@@ -36,6 +36,19 @@ data class AppConfig(
     data class SeedUser(val email: String, val password: String, val displayName: String)
 
     companion object {
+        /**
+         * `SEED_USERS` = `email|password|name;email|password|name` (name optional). Passwords must not contain
+         * `|` or `;`. A bad entry stops the server at startup; the message names the position, never the password.
+         */
+        fun parseSeedUsers(raw: String?): List<SeedUser> =
+            raw.orEmpty().split(';').map { it.trim() }.filter { it.isNotEmpty() }.mapIndexed { index, entry ->
+                val parts = entry.split('|').map { it.trim() }
+                require(parts.size in 2..3 && parts[0].isNotEmpty() && parts[1].isNotEmpty()) {
+                    "SEED_USERS entry ${index + 1} must look like email|password|name"
+                }
+                SeedUser(parts[0], parts[1], parts.getOrNull(2)?.takeIf { it.isNotEmpty() } ?: "Test User")
+            }
+
         private fun String?.csv() = this?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
 
         /**
@@ -67,14 +80,16 @@ data class AppConfig(
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),
                 iosAppIds = env["IOS_APP_IDS"].csv(),
-                seedUser = env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
-                    SeedUser(
-                        email = email.trim(),
-                        password = env["SEED_USER_PASSWORD"]?.takeIf { it.isNotBlank() }
-                            ?: error("SEED_USER_PASSWORD is required when SEED_USER_EMAIL is set"),
-                        displayName = env["SEED_USER_NAME"]?.takeIf { it.isNotBlank() } ?: "Test User",
-                    )
-                },
+                seedUsers = listOfNotNull(
+                    env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
+                        SeedUser(
+                            email = email.trim(),
+                            password = env["SEED_USER_PASSWORD"]?.takeIf { it.isNotBlank() }
+                                ?: error("SEED_USER_PASSWORD is required when SEED_USER_EMAIL is set"),
+                            displayName = env["SEED_USER_NAME"]?.takeIf { it.isNotBlank() } ?: "Test User",
+                        )
+                    },
+                ) + parseSeedUsers(env["SEED_USERS"]),
             )
         }
     }

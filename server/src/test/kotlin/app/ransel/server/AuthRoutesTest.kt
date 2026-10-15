@@ -124,7 +124,10 @@ class AuthRoutesTest {
 class ClosedRegistrationTest {
     private val closed = TestDb.config().copy(
         registrationEnabled = false,
-        seedUser = app.ransel.server.AppConfig.SeedUser("owner@example.com", "Passw0rdOk", "Owner"),
+        seedUsers = listOf(
+            app.ransel.server.AppConfig.SeedUser("owner@example.com", "Passw0rdOk", "Owner"),
+            app.ransel.server.AppConfig.SeedUser("second@example.com", "Passw0rdTwo", "Second"),
+        ),
     )
 
     @Test
@@ -138,6 +141,21 @@ class ClosedRegistrationTest {
         token = login.data().jsonObject.getValue("accessToken").jsonPrimitive.content
         assertEquals("Owner", get("/me").data().jsonObject.getValue("displayName").jsonPrimitive.content)
         assertEquals(HttpStatusCode.Created, post("/trips", tripJson()).status)
+    }
+
+    @Test
+    fun everySeedUserCanSignIn() = apiTest(closed) {
+        assertEquals(HttpStatusCode.OK, post("/auth/login", """{"email":"second@example.com","password":"Passw0rdTwo"}""").status)
+    }
+
+    @Test
+    fun seedUsersAreParsedFromOneVariable() {
+        val users = app.ransel.server.AppConfig.fromEnv(
+            mapOf("SEED_USERS" to " a@example.com|Passw0rdOne|Ayu ; b@example.com|Passw0rdTwo ;"),
+        ).seedUsers
+        assertEquals(listOf("a@example.com", "b@example.com"), users.map { it.email })
+        assertEquals(listOf("Ayu", "Test User"), users.map { it.displayName })
+        kotlin.test.assertFailsWith<IllegalArgumentException> { app.ransel.server.AppConfig.parseSeedUsers("only-an-email") }
     }
 
     @Test

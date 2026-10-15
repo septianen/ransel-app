@@ -26,6 +26,8 @@ services:
       SEED_USER_EMAIL: ${SEED_USER_EMAIL:-}
       SEED_USER_PASSWORD: ${SEED_USER_PASSWORD:-}
       SEED_USER_NAME: ${SEED_USER_NAME:-Test User}
+      # More accounts: email|password|name;email|password|name
+      SEED_USERS: ${SEED_USERS:-}
     depends_on:
       db:
         condition: service_healthy
