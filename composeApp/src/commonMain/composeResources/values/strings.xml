@@ -464,4 +464,38 @@
     <string name="offline_banner_body">Changes stay on this device and are sent automatically when you are online.</string>
     <string name="back_online_snackbar">Back online · %1$d changes sent</string>
     <string name="sync_pending_description">Waiting to be sent</string>
+
+    <!-- Members (Phase 4) -->
+    <string name="role_owner">Owner</string>
+    <string name="role_editor">Editor</string>
+    <string name="role_viewer">Viewer</string>
+    <string name="members_title">Trip members</string>
+    <plurals name="members_count">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="members_you">(you)</string>
+    <string name="members_change_role">Change role of %1$s</string>
+    <string name="members_role_editor_hint">Can change the trip</string>
+    <string name="members_role_viewer_hint">View only</string>
+    <string name="members_make_owner">Make owner</string>
+    <string name="members_remove">Remove from trip</string>
+    <string name="members_remove_title">Remove %1$s?</string>
+    <string name="members_remove_body">%1$s can no longer open this trip and their old invite stops working.</string>
+    <string name="members_remove_note">Expenses involving %1$s stay recorded.</string>
+    <string name="members_remove_confirm">Remove</string>
+    <string name="members_make_owner_title">Make %1$s the owner?</string>
+    <string name="members_make_owner_body">%1$s will be able to invite, change roles and delete the trip. You become an editor.</string>
+    <string name="members_make_owner_confirm">Make owner</string>
+    <string name="members_leave">Leave trip</string>
+    <string name="members_leave_title">Leave %1$s?</string>
+    <string name="members_leave_body">The trip disappears from your list. To come back, you need to be invited again. Records stay for the other members.</string>
+    <string name="members_leave_confirm">Leave</string>
+    <string name="members_only_owner_note">Only the owner can invite people or change roles.</string>
+    <string name="members_permissions_title">Permissions</string>
+    <string name="members_permissions_owner">Owner · full access, including inviting people and deleting the trip.</string>
+    <string name="members_permissions_editor">Editor · changes the itinerary, packing and expenses.</string>
+    <string name="members_permissions_viewer">Viewer · view only, still takes part in splitting costs.</string>
+    <string name="members_error_generic">Could not save the change. Try again.</string>
+    <string name="members_error_connection">No connection. Try again when you are online.</string>
 </resources>

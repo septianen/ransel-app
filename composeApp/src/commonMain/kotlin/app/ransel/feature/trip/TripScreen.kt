@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import app.ransel.data.auth.SessionManager
+import app.ransel.data.auth.SessionState
 import app.ransel.data.sync.SyncStatus
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,6 +39,7 @@ fun TripScreen(
     initialTab: TripTab,
     onBack: () -> Unit,
     onEditTrip: () -> Unit,
+    onMembers: () -> Unit,
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -50,6 +53,9 @@ fun TripScreen(
     val expanded = rememberIsExpanded()
     val sync: SyncStatus = koinInject()
     val offline by sync.offline.collectAsState()
+    // Members live on the server: only signed-in users see the button (guests have no one to share with).
+    val session: SessionManager = koinInject()
+    val signedIn = session.state.collectAsState().value is SessionState.SignedIn
 
     @Composable
     fun Main(modifier: Modifier) {
@@ -61,6 +67,7 @@ fun TripScreen(
                 onTabSelected = { tab = it },
                 onBack = onBack,
                 onEdit = onEditTrip,
+                onMembers = if (signedIn) onMembers else null,
             )
             if (offline) app.ransel.ui.components.OfflineBanner()
             Box(Modifier.weight(1f).navigationBarsPadding()) {

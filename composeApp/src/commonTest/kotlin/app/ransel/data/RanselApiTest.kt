@@ -110,4 +110,46 @@ class RanselApiTest {
         assertTrue("\"startDate\":\"2026-11-20\"" in sent, sent)
         assertTrue("\"budgetMinor\":5000000" in sent, sent)
     }
+
+    @Test
+    fun membersListAndRoleChangeUseTheMemberRoutes() = runTest {
+        val seen = mutableListOf<String>()
+        var patchBody = ""
+        val api = api { request ->
+            seen += "${request.method.value} ${request.url.encodedPath}"
+            if (request.method == HttpMethod.Patch) patchBody = request.body.toByteArray().decodeToString()
+            when (request.method) {
+                HttpMethod.Get -> respond(
+                    """{"data":[{"tripId":"t1","userId":"u1","displayName":"Septian","email":"s@x.id","role":"OWNER","joinedAt":"2026-10-13T05:30:00Z"}]}""",
+                    HttpStatusCode.OK, json,
+                )
+                else -> respond("", HttpStatusCode.NoContent)
+            }
+        }
+        assertEquals("Septian", api.members("t1").getOrNull()?.single()?.displayName)
+        assertEquals(ApiResult.Success(Unit), api.updateMemberRole("t1", "u2", app.ransel.shared.model.Role.VIEWER))
+        assertEquals(ApiResult.Success(Unit), api.removeMember("t1", "u2"))
+        assertEquals(ApiResult.Success(Unit), api.leaveTrip("t1"))
+        assertEquals(
+            listOf(
+                "GET /api/v1/trips/t1/members",
+                "PATCH /api/v1/trips/t1/members/u2",
+                "DELETE /api/v1/trips/t1/members/u2",
+                "POST /api/v1/trips/t1/leave",
+            ),
+            seen,
+        )
+        assertTrue("\"role\":\"VIEWER\"" in patchBody, patchBody)
+    }
+
+    @Test
+    fun ownerCannotLeaveIsAFailureCode() = runTest {
+        val api = api {
+            respond(
+                """{"error":{"code":"OWNER_CANNOT_LEAVE","message":"Transfer ownership first"}}""",
+                HttpStatusCode.Conflict, json,
+            )
+        }
+        assertEquals(ErrorCode.OWNER_CANNOT_LEAVE, (api.leaveTrip("t1") as ApiResult.Failure).error.code)
+    }
 }

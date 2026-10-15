@@ -29,3 +29,6 @@ import kotlinx.serialization.Serializable
 @Serializable data class CheckEmailRoute(val email: String)
 @Serializable data class NewPasswordRoute(val token: String)
 @Serializable data object SessionExpiredRoute
+
+// Members (Phase 4).
+@Serializable data class MembersRoute(val tripId: String)

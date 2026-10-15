@@ -78,7 +78,8 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 ## Phase 4 — Multi-member
 
-- [ ] **F4.1 Members.** `group_add` button on every trip screen → `AnggotaTrip` (owner) / `AnggotaEditor`; `MenuAnggota`, `DialogKeluarkan`, `DialogKeluarTrip`, transfer ownership.
+- [x] **F4.1 Members.** `group_add` button on every trip screen → `AnggotaTrip` (owner) / `AnggotaEditor`; `MenuAnggota`, `DialogKeluarkan`, `DialogKeluarTrip`, transfer ownership.
+  - Done (server calls only, no Room table). `group_add` shows for signed-in users; `MembersScreen` serves owner and editor/viewer by role; role menu, remove and leave dialogs built. Two additions not in the designs, for the owner to review: "Jadikan pemilik" (transfer ownership) as a menu item with a confirm dialog, and no "Keluar" button for the owner (blocked by `OWNER_CANNOT_LEAVE`). Left for later: invite button and "Undangan aktif" (F4.2), the balance line in the remove/leave dialogs (F4.3), dropping a left trip from the local DB (needs the sync pull to remove it).
 - [ ] **F4.2 Invites.** `UndangAnggota` (code + link + share sheet), deep links `https://ransel.app/j/<code>` (Android App Links, iOS Universal Links; send the needed `.well-known` values to the backend agent), `GabungTrip`, `UndanganTidakBerlaku` (one screen, title per error code).
 - [ ] **F4.3 Shared expenses.** `PengeluaranBersama` (Ringkasan + "Posisimu"), `CatatPengeluaranBersama`, `CatatPengeluaranNominal` / `…Pas` (difference from `splitDifference`, Save disabled until 0), `SaldoTrip` (balances, "Supaya lunas", Tandai lunas).
 - [ ] **F4.4 Packing templates.** `MenuPacking`, `PilihTemplate`, `SimpanTemplate`.

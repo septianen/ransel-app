@@ -16,7 +16,11 @@ import app.ransel.shared.dto.ResetPasswordRequest
 import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
+import app.ransel.shared.dto.TransferOwnershipRequest
+import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.UpdateMeRequest
+import app.ransel.shared.dto.UpdateMemberRoleRequest
+import app.ransel.shared.model.Role
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.http.HttpHeaders
@@ -147,6 +151,15 @@ class RanselApi(
         send(HttpMethod.Put, ApiRoutes.expense(tripId, input.id), input)
     suspend fun deleteExpense(tripId: String, expenseId: String): ApiResult<Unit> =
         delete(ApiRoutes.expense(tripId, expenseId))
+
+    // ── members (Phase 4) ───────────────────────────────────────────────────
+    suspend fun members(tripId: String): ApiResult<List<TripMemberDto>> = get(ApiRoutes.members(tripId))
+    suspend fun updateMemberRole(tripId: String, userId: String, role: Role): ApiResult<Unit> =
+        call(HttpMethod.Patch, ApiRoutes.member(tripId, userId), bodyOf = { contentType(ContentType.Application.Json); setBody(UpdateMemberRoleRequest(role)) }) { }
+    suspend fun removeMember(tripId: String, userId: String): ApiResult<Unit> = delete(ApiRoutes.member(tripId, userId))
+    suspend fun leaveTrip(tripId: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.leave(tripId)) { }
+    suspend fun transferOwnership(tripId: String, newOwnerUserId: String): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.transferOwnership(tripId), bodyOf = { contentType(ContentType.Application.Json); setBody(TransferOwnershipRequest(newOwnerUserId)) }) { }
 
     // ── plumbing ────────────────────────────────────────────────────────────
     private suspend inline fun <reified T> get(path: String): ApiResult<T> =

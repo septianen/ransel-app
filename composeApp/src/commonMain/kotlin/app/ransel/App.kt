@@ -97,6 +97,8 @@ import app.ransel.navigation.CreateTripRoute
 import app.ransel.navigation.EditTripRoute
 import app.ransel.navigation.ExploreRoute
 import app.ransel.navigation.HomeRoute
+import app.ransel.navigation.MembersRoute
+import app.ransel.feature.members.MembersScreen
 import app.ransel.navigation.TripListRoute
 import app.ransel.navigation.TripRoute
 import app.ransel.platform.isDebugBuild
@@ -387,8 +389,18 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             initialTab = TripTab.entries.firstOrNull { it.name == route.tab } ?: TripTab.ITINERARY,
             onBack = { navController.popBackStack() },
             onEditTrip = { navController.navigate(EditTripRoute(route.tripId)) },
+            onMembers = { navController.navigate(MembersRoute(route.tripId)) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
+        )
+    }
+    page<MembersRoute> { entry ->
+        val route = entry.toRoute<MembersRoute>()
+        MembersScreen(
+            tripId = route.tripId,
+            onBack = { navController.popBackStack() },
+            // The trip is no longer ours: back to the list, skipping the trip screen.
+            onLeft = { navController.popBackStack<TripRoute>(inclusive = true) },
         )
     }
     page<ActivityFormRoute> { entry ->

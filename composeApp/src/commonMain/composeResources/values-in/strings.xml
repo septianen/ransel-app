@@ -464,4 +464,37 @@
     <string name="offline_banner_body">Perubahan tetap tersimpan di perangkat dan dikirim otomatis saat online.</string>
     <string name="back_online_snackbar">Kembali online · %1$d perubahan terkirim</string>
     <string name="sync_pending_description">Menunggu dikirim</string>
+
+    <!-- Members (Phase 4) -->
+    <string name="role_owner">Pemilik</string>
+    <string name="role_editor">Editor</string>
+    <string name="role_viewer">Pembaca</string>
+    <string name="members_title">Anggota trip</string>
+    <plurals name="members_count">
+        <item quantity="other">%1$d orang</item>
+    </plurals>
+    <string name="members_you">(kamu)</string>
+    <string name="members_change_role">Ubah peran %1$s</string>
+    <string name="members_role_editor_hint">Bisa mengubah isi trip</string>
+    <string name="members_role_viewer_hint">Hanya melihat</string>
+    <string name="members_make_owner">Jadikan pemilik</string>
+    <string name="members_remove">Keluarkan dari trip</string>
+    <string name="members_remove_title">Keluarkan %1$s?</string>
+    <string name="members_remove_body">%1$s tidak bisa lagi membuka trip ini dan undangan lamanya ikut tidak berlaku.</string>
+    <string name="members_remove_note">Pengeluaran yang melibatkan %1$s tetap tercatat.</string>
+    <string name="members_remove_confirm">Keluarkan</string>
+    <string name="members_make_owner_title">Jadikan %1$s pemilik?</string>
+    <string name="members_make_owner_body">%1$s bisa mengundang, mengubah peran, dan menghapus trip. Kamu menjadi editor.</string>
+    <string name="members_make_owner_confirm">Jadikan pemilik</string>
+    <string name="members_leave">Keluar dari trip</string>
+    <string name="members_leave_title">Keluar dari %1$s?</string>
+    <string name="members_leave_body">Trip ini hilang dari daftarmu. Untuk kembali, kamu perlu diundang lagi. Catatannya tetap ada untuk anggota lain.</string>
+    <string name="members_leave_confirm">Keluar</string>
+    <string name="members_only_owner_note">Hanya pemilik yang bisa mengundang atau mengubah peran.</string>
+    <string name="members_permissions_title">Hak akses</string>
+    <string name="members_permissions_owner">Pemilik · semua akses, termasuk mengundang dan menghapus trip.</string>
+    <string name="members_permissions_editor">Editor · mengubah itinerary, packing, dan pengeluaran.</string>
+    <string name="members_permissions_viewer">Pembaca · hanya melihat, tetap bisa ikut dalam bagi biaya.</string>
+    <string name="members_error_generic">Perubahan belum tersimpan. Coba lagi.</string>
+    <string name="members_error_connection">Tidak ada koneksi. Coba lagi saat online.</string>
 </resources>
