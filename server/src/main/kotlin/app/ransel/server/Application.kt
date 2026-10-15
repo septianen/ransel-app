@@ -9,6 +9,7 @@ import app.ransel.server.plugins.configureRateLimit
 import app.ransel.server.plugins.configureSerialization
 import app.ransel.server.plugins.configureStatusPages
 import app.ransel.server.routes.authRoutes
+import app.ransel.server.routes.balanceRoutes
 import app.ransel.server.routes.expenseRoutes
 import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
@@ -72,6 +73,7 @@ fun Application.module(
                 expenseRoutes()
                 syncRoutes(SyncService())
                 memberRoutes(InviteService(config))
+                balanceRoutes()
             }
         }
     }

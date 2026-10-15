@@ -148,3 +148,16 @@ object TripInvites : Table("trip_invites") {
     val createdAt = timestamp("created_at")
     override val primaryKey = PrimaryKey(code)
 }
+
+object Settlements : Table("settlements") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val fromUserId = javaUUID("from_user_id")
+    val toUserId = javaUUID("to_user_id")
+    val amountMinor = long("amount_minor")
+    val settledAt = timestamp("settled_at")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}

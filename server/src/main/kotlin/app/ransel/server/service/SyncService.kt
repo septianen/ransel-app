@@ -4,6 +4,8 @@ import app.ransel.server.db.ExpenseSplits
 import app.ransel.server.db.Expenses
 import app.ransel.server.db.ItineraryItems
 import app.ransel.server.db.PackingItems
+import app.ransel.server.db.Settlements
+import app.ransel.server.db.toSettlementDto
 import app.ransel.server.db.TripMembers
 import app.ransel.server.db.Trips
 import app.ransel.server.db.Users
@@ -21,6 +23,7 @@ import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.PackingItemDto
+import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushResponse
@@ -59,7 +62,8 @@ import kotlin.time.toJavaInstant
  */
 class SyncService {
     fun push(userId: UUID, changes: SyncChanges): SyncPushResponse {
-        val total = changes.trips.size + changes.itineraryItems.size + changes.packingItems.size + changes.expenses.size
+        val total = changes.trips.size + changes.itineraryItems.size + changes.packingItems.size +
+            changes.expenses.size + changes.settlements.size
         if (total > MAX_ROWS) {
             throw ApiException(
                 HttpStatusCode.UnprocessableEntity, ErrorCode.VALIDATION_FAILED, "Too many rows in one batch",
@@ -90,6 +94,7 @@ class SyncService {
             changes.itineraryItems.forEach { dto -> attempt(ENTITY_ITEM, dto.id) { pushItem(userId, dto) } }
             changes.packingItems.forEach { dto -> attempt(ENTITY_PACKING, dto.id) { pushPacking(userId, dto) } }
             changes.expenses.forEach { dto -> attempt(ENTITY_EXPENSE, dto.id) { pushExpense(userId, dto) } }
+            changes.settlements.forEach { dto -> attempt(ENTITY_SETTLEMENT, dto.id) { pushSettlement(userId, dto) } }
 
             // A shortened trip must not keep activities on removed days, even if the client did not move them.
             touchedTrips.forEach { dto ->
@@ -143,6 +148,12 @@ class SyncService {
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) })
         val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.userId }) }
 
+        val settlements = if (allTripIds.isEmpty()) emptyList() else Settlements.selectAll()
+            .where {
+                val inTrips = Settlements.tripId inList allTripIds
+                if (sinceJava == null) inTrips else inTrips and (Settlements.updatedAt greater sinceJava)
+            }.map { it.toSettlementDto() }
+
         // Membership rows of my trips. A removed member leaves no tombstone (the table has no deleted_at):
         // that user simply stops receiving the trip, and their next push of its rows is rejected TRIP_NOT_FOUND.
         val members = if (allTripIds.isEmpty()) emptyList() else TripMembers
@@ -163,7 +174,7 @@ class SyncService {
             }
 
         SyncPullResponse(
-            changes = SyncChanges(trips = trips, itineraryItems = items, packingItems = packing, expenses = expenses, members = members),
+            changes = SyncChanges(trips = trips, itineraryItems = items, packingItems = packing, expenses = expenses, settlements = settlements, members = members),
             serverTime = serverTime.toTimestamp(),
         )
     }
@@ -297,9 +308,13 @@ class SyncService {
             category = dto.category, paymentMethod = dto.paymentMethod, note = dto.note, spentAt = dto.spentAt,
             paidByUserId = dto.paidByUserId, splits = dto.splits,
         )
-        ExpenseService.validate(input, payer) // throws ApiException with the right code (e.g. SPLIT_TOTAL_MISMATCH)
-
         val existing = Expenses.selectAll().where { Expenses.id eq id }.singleOrNull()
+        val keep = if (existing == null) emptySet() else buildSet {
+            add(existing[Expenses.paidByUserId])
+            ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq id }.forEach { add(it[ExpenseSplits.userId]) }
+        }
+        // throws ApiException with the right code (SPLIT_TOTAL_MISMATCH, VALIDATION_FAILED)
+        ExpenseService.validate(input, payer, tripId, keep)
         if (existing == null) {
             Expenses.insert {
                 it[Expenses.id] = id
@@ -317,6 +332,48 @@ class SyncService {
             }
         }
         ExpenseService.replaceSplits(id, dto.splits)
+    }
+
+    private fun pushSettlement(userId: UUID, dto: SettlementDto) {
+        val id = uuid(dto.id, "id")
+        val tripId = uuid(dto.tripId, "tripId")
+        // Like the REST endpoint: any member (even a VIEWER) may record a payment, but the trip must be live.
+        val trip = Trips.select(Trips.deletedAt).where { Trips.id eq tripId }.singleOrNull()
+        if (trip == null || trip[Trips.deletedAt] != null || memberRole(tripId, userId) == null) {
+            throw ApiException(HttpStatusCode.NotFound, ErrorCode.TRIP_NOT_FOUND, "Trip not found")
+        }
+        val from = uuid(dto.fromUserId, "fromUserId")
+        val to = uuid(dto.toUserId, "toUserId")
+        val problems = buildMap {
+            if (dto.amountMinor <= 0) put("amountMinor", "MUST_BE_POSITIVE")
+            if (from == to) put("toUserId", "MUST_DIFFER_FROM_PAYER")
+            putAll(BalanceService.memberProblems(tripId, from, to))
+        }
+        if (problems.isNotEmpty()) throw validation(problems)
+
+        val existing = Settlements.selectAll().where { Settlements.id eq id }.singleOrNull()
+        if (existing == null) {
+            Settlements.insert {
+                it[Settlements.id] = id
+                it[Settlements.tripId] = tripId
+                it[fromUserId] = from
+                it[toUserId] = to
+                it[amountMinor] = dto.amountMinor
+                it[settledAt] = dto.settledAt.toJavaInstant()
+                it[createdAt] = dto.createdAt.toJavaInstant()
+                it[deletedAt] = dto.deletedAt?.toJavaInstant()
+            }
+        } else {
+            if (existing[Settlements.tripId] != tripId) throw conflict("Settlement belongs to another trip")
+            requireNewer(dto.updatedAt, existing[Settlements.updatedAt])
+            Settlements.update({ Settlements.id eq id }) {
+                it[fromUserId] = from
+                it[toUserId] = to
+                it[amountMinor] = dto.amountMinor
+                it[settledAt] = dto.settledAt.toJavaInstant()
+                it[deletedAt] = dto.deletedAt?.toJavaInstant()
+            }
+        }
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
@@ -357,5 +414,6 @@ class SyncService {
         const val ENTITY_ITEM = "itineraryItem"
         const val ENTITY_PACKING = "packingItem"
         const val ENTITY_EXPENSE = "expense"
+        const val ENTITY_SETTLEMENT = "settlement"
     }
 }

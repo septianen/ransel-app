@@ -4,6 +4,7 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PackingItemDto
+import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.model.Role
 import kotlinx.datetime.toKotlinLocalDate
@@ -80,4 +81,16 @@ fun ResultRow.toExpenseDto(splits: List<ExpenseSplitDto> = emptyList()) = Expens
     createdAt = this[Expenses.createdAt].toTimestamp(),
     updatedAt = this[Expenses.updatedAt].toTimestamp(),
     deletedAt = this[Expenses.deletedAt]?.toTimestamp(),
+)
+
+fun ResultRow.toSettlementDto() = SettlementDto(
+    id = this[Settlements.id].toString(),
+    tripId = this[Settlements.tripId].toString(),
+    fromUserId = this[Settlements.fromUserId].toString(),
+    toUserId = this[Settlements.toUserId].toString(),
+    amountMinor = this[Settlements.amountMinor],
+    settledAt = this[Settlements.settledAt].toTimestamp(),
+    createdAt = this[Settlements.createdAt].toTimestamp(),
+    updatedAt = this[Settlements.updatedAt].toTimestamp(),
+    deletedAt = this[Settlements.deletedAt]?.toTimestamp(),
 )

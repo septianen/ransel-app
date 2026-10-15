@@ -3,7 +3,7 @@ package app.ransel.server.service
 import app.ransel.server.db.ExpenseSplits
 import app.ransel.server.db.Expenses
 import app.ransel.server.db.Trips
-import app.ransel.server.db.Users
+import app.ransel.server.db.TripMembers
 import app.ransel.server.db.toExpenseDto
 import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.conflict
@@ -47,7 +47,7 @@ object ExpenseService {
         requireRole(tripId, userId, Role.EDITOR)
         val payer = resolvePayer(userId, body)
         return transaction {
-            validate(body, payer)
+            validate(body, payer, tripId)
             if (Expenses.select(Expenses.id).where { Expenses.id eq expenseId }.any()) throw conflict("Expense id already exists")
             Expenses.insert {
                 it[id] = expenseId
@@ -64,8 +64,10 @@ object ExpenseService {
         requireRole(tripId, userId, Role.EDITOR)
         val payer = resolvePayer(userId, body)
         return transaction {
-            validate(body, payer)
-            load(tripId, expenseId)
+            val before = load(tripId, expenseId)
+            // Someone who has since left may still be on this expense; editing the note must not fail.
+            val keep = (before.splits.map { it.userId } + before.paidByUserId).map(UUID::fromString).toSet()
+            validate(body, payer, tripId, keep)
             Expenses.update({ Expenses.id eq expenseId }) { fill(it, body, payer) }
             replaceSplits(expenseId, body.splits)
             load(tripId, expenseId)
@@ -147,8 +149,11 @@ object ExpenseService {
     private fun validation(vararg pairs: Pair<String, String>) =
         ApiException(HttpStatusCode.UnprocessableEntity, ErrorCode.VALIDATION_FAILED, "Validation failed", mapOf(*pairs))
 
-    /** Phase 2 only checks shape and totals; membership of payer/split users is added with Phase 4 (B4.3). */
-    internal fun validate(body: ExpenseInput, payer: UUID) {
+    /**
+     * Shape and totals, then membership: the payer and everyone in `splits` must be members of the trip
+     * (any role: a VIEWER can still owe or pay). [alreadyOnExpense] are people the stored expense already has.
+     */
+    internal fun validate(body: ExpenseInput, payer: UUID, tripId: UUID, alreadyOnExpense: Set<UUID> = emptySet()) {
         val problems = buildMap {
             if (body.amountMinor <= 0) put("amountMinor", "MUST_BE_POSITIVE")
             if (!isValidCurrency(body.currency)) put("currency", "INVALID_CURRENCY")
@@ -162,11 +167,13 @@ object ExpenseService {
         }
         requireValid(problems)
 
-        val userIds = (body.splits.map { UUID.fromString(it.userId) } + payer).toSet()
-        val known = Users.select(Users.id).where { Users.id inList userIds }.map { it[Users.id] }.toSet()
-        if (!known.containsAll(userIds)) {
-            val key = if (payer !in known) "paidByUserId" else "splits"
-            throw validation(key to "UNKNOWN_USER")
+        val participants = (body.splits.map { UUID.fromString(it.userId) } + payer).toSet()
+        val allowed = TripMembers.select(TripMembers.userId)
+            .where { (TripMembers.tripId eq tripId) and (TripMembers.userId inList participants) }
+            .map { it[TripMembers.userId] }.toSet() + alreadyOnExpense
+        if (!allowed.containsAll(participants)) {
+            val key = if (payer !in allowed) "paidByUserId" else "splits"
+            throw validation(key to "NOT_A_MEMBER")
         }
 
         if (body.splits.isNotEmpty()) {

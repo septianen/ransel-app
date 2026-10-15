@@ -1,0 +1,31 @@
+### Balances in the trip base currency + fewest transfers ("Supaya lunas")
+GET {{host}}/trips/{{tripId}}/balances
+Authorization: Bearer {{token}}
+
+### Shared expense: payer and every split user must be members of the trip
+POST {{host}}/trips/{{tripId}}/expenses
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "id": "55555555-5555-4555-8555-555555555551",
+  "amountMinor": 100000,
+  "currency": "IDR",
+  "spentAt": "2026-11-20T05:00:00Z",
+  "paidByUserId": "paste member id",
+  "splits": [
+    { "userId": "paste member id", "shareMinor": 50000 },
+    { "userId": "paste other member id", "shareMinor": 50000 }
+  ]
+}
+
+### Mark as settled (any member). Amount in the trip base currency
+POST {{host}}/trips/{{tripId}}/settlements
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "id": "66666666-6666-4666-8666-666666666661", "fromUserId": "paste id", "toUserId": "paste id", "amountMinor": 50000 }
+
+### Settlements, newest first
+GET {{host}}/trips/{{tripId}}/settlements
+Authorization: Bearer {{token}}
