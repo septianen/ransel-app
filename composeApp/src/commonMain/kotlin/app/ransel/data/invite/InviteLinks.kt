@@ -27,8 +27,8 @@ class InviteLinks {
     }
 }
 
-private val inviteUrl = Regex("""^(?:https?://)?(?:www\.)?ransel\.app/j/([A-Za-z0-9_-]+)/?(?:[?#].*)?$""")
+private val inviteUrl = Regex("""^(?:https?://)?ransel\.mietek\.tech/j/([A-Za-z0-9_-]+)/?(?:[?#].*)?$""")
 
-/** `https://ransel.app/j/BALI-7K2Q` → `BALI-7K2Q`; null for any other URL. Codes are upper-cased. */
+/** `https://ransel.mietek.tech/j/BALI-7K2Q` → `BALI-7K2Q`; null for any other URL. Codes are upper-cased. */
 fun parseInviteCode(url: String): String? =
     inviteUrl.matchEntire(url.trim())?.groupValues?.get(1)?.uppercase()

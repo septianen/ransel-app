@@ -1,5 +1,6 @@
 package app.ransel.data.local
 
+import androidx.room3.AutoMigration
 import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
@@ -15,7 +16,8 @@ import kotlinx.coroutines.Dispatchers
         ExpenseEntity::class,
         PreferenceEntity::class,
     ],
-    version = 1,
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)], // expenses.splitsJson
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
 abstract class RanselDatabase : RoomDatabase() {

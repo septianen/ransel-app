@@ -49,7 +49,7 @@ val commonModule: Module = module {
     viewModel { params -> ItineraryViewModel(params.get(), get(), get()) }
     viewModel { params -> PackingViewModel(params.get(), get()) }
     viewModel { params -> TripSidePanelViewModel(params.get(), get(), get()) }
-    viewModel { params -> ExpensesViewModel(params.get(), get()) }
+    viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get()) }
     single { InviteLinks() }
     viewModel { params -> InviteSheetViewModel(params.get(), get()) }
     viewModel { params -> JoinTripViewModel(params.get(), get(), get(), get(), get(), get()) }

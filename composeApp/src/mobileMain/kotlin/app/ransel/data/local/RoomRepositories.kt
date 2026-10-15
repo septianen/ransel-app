@@ -206,6 +206,7 @@ class RoomExpenseRepository(
                 fxRateToBase = input.fxRateToBase, category = input.category.name,
                 paymentMethod = input.paymentMethod.name, note = input.note?.trim()?.ifEmpty { null },
                 spentAt = input.spentAt.toMillis(), paidByUserId = input.paidByUserId ?: currentUserId(),
+                splitsJson = input.splits.toSplitsJson(),
                 createdAt = created, updatedAt = stamp, deletedAt = null,
             ),
         )

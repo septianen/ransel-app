@@ -90,6 +90,8 @@ data class ExpenseEntity(
     val updatedAt: Long,
     val deletedAt: Long?,
     val syncState: String = SyncState.PENDING,
+    /** JSON list of `ExpenseSplitDto` (Phase 4, DB v2); null = paid and carried by `paidByUserId` alone. */
+    val splitsJson: String? = null,
 )
 
 /** Key/value store for per-device preferences (theme, default currency, ...). Never synced. */

@@ -539,4 +539,40 @@
     <string name="invalid_invite_unknown_title">Undangan tidak ditemukan</string>
     <string name="invalid_invite_unknown_body">Kode %1$s tidak dikenali. Cek lagi link-nya, lalu coba lagi.</string>
     <string name="invalid_invite_home">Ke Beranda</string>
+
+    <!-- Shared expenses (Phase 4) -->
+    <string name="shared_tab_summary">Ringkasan</string>
+    <string name="shared_tab_balances">Saldo</string>
+    <string name="shared_you">kamu</string>
+    <string name="shared_you_lower">kamu</string>
+    <string name="shared_you_even">Kamu sudah impas</string>
+    <string name="shared_balance_collect">Dapat kembali %1$s</string>
+    <string name="shared_balance_owe">Perlu bayar %1$s</string>
+    <string name="shared_participants_summary">Kamu bayar %1$s · bagianmu %2$s</string>
+    <string name="shared_balance_collect_short">dapat kembali</string>
+    <string name="shared_balance_owe_short">perlu bayar</string>
+    <string name="shared_balance_even_short">impas</string>
+    <string name="shared_balances_title">Saldo tiap orang</string>
+    <string name="shared_balances_total">Total grup %1$s</string>
+    <string name="shared_balances_empty">Semua sudah lunas.</string>
+    <string name="shared_settle_title">Supaya lunas</string>
+    <string name="shared_settle_hint">Jumlah transfer paling sedikit, dihitung otomatis dari semua pengeluaran.</string>
+    <string name="shared_pays_to">%1$s bayar ke %2$s</string>
+    <string name="shared_mark_settled">Tandai lunas</string>
+    <string name="shared_settled">Lunas</string>
+    <string name="shared_paid_by">Dibayar oleh</string>
+    <string name="shared_paid_by_line">Dibayar %1$s</string>
+    <string name="shared_personal">pribadi</string>
+    <string name="shared_your_share">bagianmu %1$s</string>
+    <string name="shared_split_title">Dibagi ke</string>
+    <string name="shared_split_equal">Bagi rata</string>
+    <string name="shared_split_custom">Atur nominal</string>
+    <string name="shared_share_not_in">tidak ikut</string>
+    <string name="shared_split_short">Masih kurang %1$s</string>
+    <string name="shared_split_over">Kelebihan %1$s</string>
+    <string name="shared_split_custom_hint">Jumlah semua bagian harus sama dengan nominal.</string>
+    <string name="shared_per_person">%1$s / orang</string>
+    <plurals name="shared_people">
+        <item quantity="other">%1$d orang</item>
+    </plurals>
 </resources>

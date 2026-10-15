@@ -1,6 +1,9 @@
 package app.ransel.data.local
 
+import app.ransel.data.remote.ApiJson
 import app.ransel.shared.dto.ExpenseDto
+import app.ransel.shared.dto.ExpenseSplitDto
+import kotlinx.serialization.builtins.ListSerializer
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.TripDto
@@ -45,6 +48,7 @@ fun ExpenseEntity.toDto() = ExpenseDto(
     id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
     category = enumOr(category, Category.OTHER), paymentMethod = enumOr(paymentMethod, PaymentMethod.CASH),
     note = note, spentAt = spentAt.toInstant(), paidByUserId = paidByUserId,
+    splits = splitsJson.toSplits(),
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
 
@@ -78,7 +82,16 @@ fun PackingItemDto.toEntity() = PackingItemEntity(
 fun ExpenseDto.toEntity() = ExpenseEntity(
     id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
     category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
-    paidByUserId = paidByUserId,
+    paidByUserId = paidByUserId, splitsJson = splits.toSplitsJson(),
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
 )
+
+private val splitsSerializer = ListSerializer(ExpenseSplitDto.serializer())
+
+/** Splits are stored as one JSON column: they are only ever read and written with their expense. */
+fun List<ExpenseSplitDto>.toSplitsJson(): String? =
+    takeIf { it.isNotEmpty() }?.let { ApiJson.encodeToString(splitsSerializer, it) }
+
+fun String?.toSplits(): List<ExpenseSplitDto> =
+    if (isNullOrEmpty()) emptyList() else runCatching { ApiJson.decodeFromString(splitsSerializer, this) }.getOrDefault(emptyList())

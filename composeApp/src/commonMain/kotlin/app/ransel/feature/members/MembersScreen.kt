@@ -57,6 +57,7 @@ import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.ConnectionErrorState
+import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.components.ServerErrorState
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
@@ -336,7 +337,7 @@ private fun MemberRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Avatar(member)
+            MemberAvatar(member.displayName, member.userId, isOwner = member.role == Role.OWNER)
             Column(Modifier.weight(1f)) {
                 Row {
                     Text(
@@ -371,25 +372,6 @@ private fun MemberRow(
             }
         }
         if (showDivider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    }
-}
-
-@Composable
-private fun Avatar(member: TripMemberDto) {
-    val accents = IrisTheme.accents
-    val palette = listOf(accents.purple, accents.brown, accents.magenta, accents.teal, accents.blue, accents.orange)
-    // Stable per person; the owner is always the brand green like in the design.
-    val color: Color = if (member.role == Role.OWNER) accents.green
-    else palette[(member.userId.hashCode() and Int.MAX_VALUE) % palette.size]
-    Box(
-        Modifier.size(40.dp).clip(CircleShape).background(color),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            member.displayName.trim().take(1).uppercase(),
-            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-            color = accents.onAccent,
-        )
     }
 }
 

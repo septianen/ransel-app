@@ -542,4 +542,41 @@
     <string name="invalid_invite_unknown_title">Invite not found</string>
     <string name="invalid_invite_unknown_body">We do not recognise code %1$s. Check the link and try again.</string>
     <string name="invalid_invite_home">Go to Home</string>
+
+    <!-- Shared expenses (Phase 4) -->
+    <string name="shared_tab_summary">Summary</string>
+    <string name="shared_tab_balances">Balances</string>
+    <string name="shared_you">you</string>
+    <string name="shared_you_lower">you</string>
+    <string name="shared_you_even">You are all square</string>
+    <string name="shared_balance_collect">You get back %1$s</string>
+    <string name="shared_balance_owe">You owe %1$s</string>
+    <string name="shared_participants_summary">You paid %1$s · your share %2$s</string>
+    <string name="shared_balance_collect_short">gets back</string>
+    <string name="shared_balance_owe_short">needs to pay</string>
+    <string name="shared_balance_even_short">all square</string>
+    <string name="shared_balances_title">Everyone\'s balance</string>
+    <string name="shared_balances_total">Group total %1$s</string>
+    <string name="shared_balances_empty">Everyone is settled up.</string>
+    <string name="shared_settle_title">To settle up</string>
+    <string name="shared_settle_hint">The fewest transfers, worked out from all expenses.</string>
+    <string name="shared_pays_to">%1$s pays %2$s</string>
+    <string name="shared_mark_settled">Mark as settled</string>
+    <string name="shared_settled">Settled</string>
+    <string name="shared_paid_by">Paid by</string>
+    <string name="shared_paid_by_line">Paid by %1$s</string>
+    <string name="shared_personal">personal</string>
+    <string name="shared_your_share">your share %1$s</string>
+    <string name="shared_split_title">Split between</string>
+    <string name="shared_split_equal">Split equally</string>
+    <string name="shared_split_custom">Set amounts</string>
+    <string name="shared_share_not_in">not included</string>
+    <string name="shared_split_short">Still short %1$s</string>
+    <string name="shared_split_over">Over by %1$s</string>
+    <string name="shared_split_custom_hint">All shares must add up to the amount.</string>
+    <string name="shared_per_person">%1$s / person</string>
+    <plurals name="shared_people">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
 </resources>

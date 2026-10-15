@@ -16,7 +16,10 @@ import app.ransel.shared.dto.ResetPasswordRequest
 import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
+import app.ransel.shared.dto.BalancesDto
 import app.ransel.shared.dto.CreateInviteRequest
+import app.ransel.shared.dto.CreateSettlementRequest
+import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.InviteDto
 import app.ransel.shared.dto.InvitePreviewDto
 import app.ransel.shared.dto.TransferOwnershipRequest
@@ -163,6 +166,12 @@ class RanselApi(
     suspend fun leaveTrip(tripId: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.leave(tripId)) { }
     suspend fun transferOwnership(tripId: String, newOwnerUserId: String): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.transferOwnership(tripId), bodyOf = { contentType(ContentType.Application.Json); setBody(TransferOwnershipRequest(newOwnerUserId)) }) { }
+
+    // ── balances & settlements (Phase 4) ────────────────────────────────────
+    suspend fun balances(tripId: String): ApiResult<BalancesDto> = get(ApiRoutes.balances(tripId))
+    suspend fun settlements(tripId: String): ApiResult<List<SettlementDto>> = get(ApiRoutes.settlements(tripId))
+    suspend fun createSettlement(tripId: String, request: CreateSettlementRequest): ApiResult<SettlementDto> =
+        send(HttpMethod.Post, ApiRoutes.settlements(tripId), request)
 
     // ── invites (Phase 4) ───────────────────────────────────────────────────
     suspend fun invites(tripId: String): ApiResult<List<InviteDto>> = get(ApiRoutes.invites(tripId))

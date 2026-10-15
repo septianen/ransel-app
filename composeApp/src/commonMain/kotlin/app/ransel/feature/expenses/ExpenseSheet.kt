@@ -42,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import app.ransel.feature.currency.CurrencySheet
 import app.ransel.feature.currency.currencySymbol
 import app.ransel.shared.domain.currencyDecimals
+import app.ransel.shared.domain.splitEqually
+import app.ransel.shared.dto.ExpenseSplitDto
+import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.TripDto
@@ -108,6 +111,9 @@ fun ExpenseSheet(
     onSave: (ExpenseInput) -> Unit,
     onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
+    /** Trip members (empty = solo: no paid-by / split section). */
+    members: List<TripMemberDto> = emptyList(),
+    myUserId: String? = null,
 ) {
     val tz = remember { TimeZone.currentSystemDefault() }
     val dates = rememberDateFormatter()
@@ -128,6 +134,9 @@ fun ExpenseSheet(
     var pickDate by remember { mutableStateOf(false) }
     var methodMenu by remember { mutableStateOf(false) }
 
+    val shared = members.size > 1
+    val split = remember(members) { if (shared) SplitState(members, myUserId, existing, currency) else null }
+
     val foreign = !currency.equals(trip.baseCurrency, ignoreCase = true)
     val amountMinor = parseAmountMinor(amountText, currency)
     val rate = rateText.trim().replace(',', '.').toDoubleOrNull()
@@ -138,6 +147,14 @@ fun ExpenseSheet(
         if (amountMinor == null || amountMinor <= 0 || (foreign && (rate == null || rate <= 0.0))) {
             showErrors = true
             return
+        }
+        if (split != null && !split.isValid(amountMinor, currency)) return
+        // Members not loaded (offline) while editing a shared expense: keep who paid and re-split the old people.
+        val keptSplits = when {
+            split != null || existing == null || existing.splits.isEmpty() -> null
+            existing.amountMinor == amountMinor -> existing.splits
+            else -> splitEqually(amountMinor, existing.splits.map { it.userId }, existing.paidByUserId)
+                .map { (id, share) -> ExpenseSplitDto(id, share) }
         }
         val time = existingLocal?.time ?: now().toLocalDateTime(tz).time
         onSave(
@@ -152,6 +169,8 @@ fun ExpenseSheet(
                 spentAt = LocalDate(date.year, date.month, date.day).let {
                     kotlinx.datetime.LocalDateTime(it, LocalTime(time.hour, time.minute)).toInstant(tz)
                 },
+                paidByUserId = split?.paidBy ?: existing?.paidByUserId,
+                splits = split?.toSplits(amountMinor, currency) ?: keptSplits.orEmpty(),
             ),
         )
     }
@@ -280,6 +299,8 @@ fun ExpenseSheet(
                 onValueChange = { note = it },
             )
 
+            if (split != null) SplitSection(split, amountMinor, currency, myUserId)
+
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(Res.string.expense_date), style = MaterialTheme.typography.labelLarge)
@@ -312,6 +333,7 @@ fun ExpenseSheet(
 
             Button(
                 onClick = ::save,
+                enabled = split == null || split.isValid(amountMinor, currency) || amountMinor == null,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text(stringResource(Res.string.action_save), style = MaterialTheme.typography.titleMedium) }
             if (onDelete != null) {
