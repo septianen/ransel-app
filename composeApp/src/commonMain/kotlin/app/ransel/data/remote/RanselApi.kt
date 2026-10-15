@@ -4,7 +4,23 @@ import app.ransel.shared.api.ApiErrorResponse
 import app.ransel.shared.api.ApiResponse
 import app.ransel.shared.api.ApiRoutes
 import app.ransel.shared.api.ErrorCode
+import app.ransel.data.auth.ApiAuth
+import app.ransel.shared.dto.AuthSessionDto
 import app.ransel.shared.dto.CreatePackingItemRequest
+import app.ransel.shared.dto.ForgotPasswordRequest
+import app.ransel.shared.dto.LoginRequest
+import app.ransel.shared.dto.MeDto
+import app.ransel.shared.dto.RefreshRequest
+import app.ransel.shared.dto.RegisterRequest
+import app.ransel.shared.dto.ResetPasswordRequest
+import app.ransel.shared.dto.SyncPullResponse
+import app.ransel.shared.dto.SyncPushRequest
+import app.ransel.shared.dto.SyncPushResponse
+import app.ransel.shared.dto.UpdateMeRequest
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.http.HttpHeaders
+import kotlin.time.Instant
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.DayOrderRequest
 import app.ransel.shared.dto.ExpenseDto
@@ -64,8 +80,34 @@ fun createApiHttpClient(engine: HttpClientEngine? = null): HttpClient {
 class RanselApi(
     private val client: HttpClient,
     private val origin: String,
+    /** Adds the bearer token and renews it once on 401. Null before Phase 3 / in tests. */
+    private val auth: ApiAuth? = null,
 ) {
     private fun url(path: String) = origin.trimEnd('/') + ApiRoutes.BASE + path
+
+    // ── auth & account (Phase 3) ────────────────────────────────────────────
+    suspend fun register(request: RegisterRequest): ApiResult<AuthSessionDto> =
+        send(HttpMethod.Post, ApiRoutes.AUTH_REGISTER, request)
+    suspend fun login(request: LoginRequest): ApiResult<AuthSessionDto> =
+        send(HttpMethod.Post, ApiRoutes.AUTH_LOGIN, request)
+    suspend fun refresh(refreshToken: String): ApiResult<AuthSessionDto> =
+        send(HttpMethod.Post, ApiRoutes.AUTH_REFRESH, RefreshRequest(refreshToken))
+    suspend fun logout(refreshToken: String): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.AUTH_LOGOUT, bodyOf = { contentType(ContentType.Application.Json); setBody(RefreshRequest(refreshToken)) }) { }
+    suspend fun forgotPassword(email: String): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.AUTH_PASSWORD_FORGOT, bodyOf = { contentType(ContentType.Application.Json); setBody(ForgotPasswordRequest(email)) }) { }
+    suspend fun resetPassword(token: String, newPassword: String): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.AUTH_PASSWORD_RESET, bodyOf = { contentType(ContentType.Application.Json); setBody(ResetPasswordRequest(token, newPassword)) }) { }
+    suspend fun me(): ApiResult<MeDto> = get(ApiRoutes.ME)
+    suspend fun updateMe(request: UpdateMeRequest): ApiResult<MeDto> = send(HttpMethod.Patch, ApiRoutes.ME, request)
+
+    // ── sync (mobile, Phase 3) ──────────────────────────────────────────────
+    suspend fun syncPull(since: Instant?): ApiResult<SyncPullResponse> =
+        call(HttpMethod.Get, ApiRoutes.SYNC, bodyOf = { if (since != null) parameter("since", since.toString()) }) {
+            it.body<ApiResponse<SyncPullResponse>>().data
+        }
+    suspend fun syncPush(request: SyncPushRequest): ApiResult<SyncPushResponse> =
+        send(HttpMethod.Post, ApiRoutes.SYNC, request)
 
     // ── trips ───────────────────────────────────────────────────────────────
     suspend fun trips(): ApiResult<List<TripDto>> = get(ApiRoutes.TRIPS)
@@ -117,27 +159,47 @@ class RanselApi(
 
     private suspend fun delete(path: String): ApiResult<Unit> = call(HttpMethod.Delete, path) { }
 
+    /**
+     * One API call. Attaches the bearer token (not on the auth endpoints); on a 401 it renews the token once and
+     * repeats the request. Anything else is mapped to an [ApiFailure]; nothing throws except cancellation.
+     */
     private suspend inline fun <T> call(
         method: HttpMethod,
         path: String,
         noinline bodyOf: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {},
         crossinline parse: suspend (HttpResponse) -> T,
-    ): ApiResult<T> = try {
-        val response = client.request(url(path)) {
-            this.method = method
-            bodyOf()
+    ): ApiResult<T> {
+        val needsToken = auth != null && !path.startsWith("/auth/")
+        var renewed = false
+        while (true) {
+            val outcome: ApiResult<T> = try {
+                val response = client.request(url(path)) {
+                    this.method = method
+                    bodyOf()
+                    if (needsToken) auth?.accessToken()?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+                }
+                when {
+                    response.status.isSuccess() -> ApiResult.Success(parse(response))
+                    response.status.value == 401 && needsToken && !renewed -> {
+                        renewed = true
+                        if (auth!!.refreshAccessToken()) continue
+                        ApiResult.Failure(response.toFailure())
+                    }
+                    else -> ApiResult.Failure(response.toFailure())
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: HttpRequestTimeoutException) {
+                ApiResult.Failure(ApiFailure(ErrorCode.NETWORK_TIMEOUT, "The request timed out"))
+            } catch (e: kotlinx.serialization.SerializationException) {
+                ApiResult.Failure(ApiFailure(ErrorCode.INTERNAL_ERROR, "Unexpected response from the server"))
+            } catch (e: io.ktor.serialization.ContentConvertException) {
+                ApiResult.Failure(ApiFailure(ErrorCode.INTERNAL_ERROR, "Unexpected response from the server"))
+            } catch (e: Throwable) {
+                ApiResult.Failure(ApiFailure(ErrorCode.NETWORK_UNAVAILABLE, e.message ?: "No connection"))
+            }
+            return outcome
         }
-        if (response.status.isSuccess()) ApiResult.Success(parse(response)) else ApiResult.Failure(response.toFailure())
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: HttpRequestTimeoutException) {
-        ApiResult.Failure(ApiFailure(ErrorCode.NETWORK_TIMEOUT, "The request timed out"))
-    } catch (e: kotlinx.serialization.SerializationException) {
-        ApiResult.Failure(ApiFailure(ErrorCode.INTERNAL_ERROR, "Unexpected response from the server"))
-    } catch (e: io.ktor.serialization.ContentConvertException) {
-        ApiResult.Failure(ApiFailure(ErrorCode.INTERNAL_ERROR, "Unexpected response from the server"))
-    } catch (e: Throwable) {
-        ApiResult.Failure(ApiFailure(ErrorCode.NETWORK_UNAVAILABLE, e.message ?: "No connection"))
     }
 
     private suspend fun HttpResponse.toFailure(): ApiFailure {
