@@ -35,7 +35,9 @@ data class AppConfig(
     /** Explore AI. Blank keys = the feature answers 503 AI_UNAVAILABLE; the rest of the API is unaffected. */
     val llmApiKey: String = "",
     val llmBaseUrl: String = "https://generativelanguage.googleapis.com/v1beta",
-    val llmModel: String = "gemini-3.8-flash",
+    val llmModel: String = "gemini-3.5-flash",
+    /** Used when the primary model answers 429/5xx. Blank = none. */
+    val llmFallbackModel: String = "gemini-flash-latest",
     val placesApiKey: String = "",
     val aiCacheTtl: Duration = 3.days,
 ) {
@@ -85,7 +87,8 @@ data class AppConfig(
                 registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
                 llmApiKey = env["LLM_API_KEY"].orEmpty().trim(),
                 llmBaseUrl = (env["LLM_BASE_URL"]?.takeIf { it.isNotBlank() } ?: "https://generativelanguage.googleapis.com/v1beta").trimEnd('/'),
-                llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.8-flash",
+                llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.5-flash",
+                llmFallbackModel = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-flash-latest",
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),

@@ -84,6 +84,34 @@ class GeminiClientTest {
     }
 
     @Test
+    fun overloadedPrimaryFallsBackToTheSecondModel() = runBlocking {
+        val seen = mutableListOf<HttpRequestData>()
+        val inner = """{"places":[{"name":"Tanah Lot"}]}"""
+        val ok = """{"candidates":[{"content":{"parts":[{"text":${kotlinx.serialization.json.JsonPrimitive(inner)}}]}}]}"""
+        val http = HttpClient(MockEngine { request ->
+            seen += request
+            if (request.url.encodedPath.contains("primary")) respond("""{"error":{"message":"high demand"}}""", HttpStatusCode.ServiceUnavailable, jsonHeaders)
+            else respond(ok, HttpStatusCode.OK, jsonHeaders)
+        })
+        val client = GeminiClient(http, "https://llm.test/v1beta", "k", "primary", fallbackModel = "backup")
+
+        assertEquals("Tanah Lot", client.suggest(query).single().name)
+        assertEquals(listOf("primary", "backup"), seen.map { it.url.encodedPath.substringAfter("models/").substringBefore(":") })
+    }
+
+    @Test
+    fun clientErrorsAreNotRetriedOnTheFallback() {
+        val seen = mutableListOf<HttpRequestData>()
+        val http = HttpClient(MockEngine { request ->
+            seen += request
+            respond("""{"error":{"message":"bad key"}}""", HttpStatusCode.Forbidden, jsonHeaders)
+        })
+        val client = GeminiClient(http, "https://llm.test/v1beta", "k", "primary", fallbackModel = "backup")
+        assertFailsWith<Exception> { runBlocking { client.suggest(query) } }
+        assertEquals(1, seen.size)
+    }
+
+    @Test
     fun blockedEmptyGarbageAndHttpErrorsThrowSoTheCallerCanRetry() {
         val blocked = """{"promptFeedback":{"blockReason":"SAFETY"}}"""
         assertFailsWith<Exception> { runBlocking { client(mutableListOf(), null, raw = blocked).suggest(query) } }

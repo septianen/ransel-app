@@ -16,6 +16,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import org.slf4j.LoggerFactory
 
 /**
  * Gemini Developer API (`generateContent`). The key travels in the `x-goog-api-key` header, never in the URL,
@@ -27,10 +28,30 @@ class GeminiClient(
     private val baseUrl: String,
     private val apiKey: String,
     override val modelName: String,
+    /** Tried when [modelName] is overloaded (429/5xx), within the same call. Null = no fallback. */
+    private val fallbackModel: String? = null,
 ) : LlmClient {
     private val json = Json { ignoreUnknownKeys = true }
+    private val log = LoggerFactory.getLogger(GeminiClient::class.java)
+
+    /** HTTP-level trouble that another model may not have; parse problems are not this. */
+    private class Overloaded(message: String) : RuntimeException(message)
 
     override suspend fun suggest(query: LlmQuery): List<LlmCandidate> {
+        val models = listOfNotNull(modelName, fallbackModel?.takeIf { it.isNotBlank() && it != modelName })
+        var last: Overloaded? = null
+        for (model in models) {
+            try {
+                return suggestWith(model, query)
+            } catch (e: Overloaded) {
+                last = e
+                log.warn("LLM model {} unavailable: {}", model, e.message)
+            }
+        }
+        throw last ?: IllegalStateException("no LLM model configured")
+    }
+
+    private suspend fun suggestWith(model: String, query: LlmQuery): List<LlmCandidate> {
         val request = buildJsonObject {
             put("systemInstruction", buildJsonObject { put("parts", parts(Prompt.system())) })
             put(
@@ -54,12 +75,16 @@ class GeminiClient(
                 },
             )
         }
-        val response = http.post("$baseUrl/models/$modelName:generateContent") {
+        val response = http.post("$baseUrl/models/$model:generateContent") {
             header("x-goog-api-key", apiKey)
             contentType(ContentType.Application.Json)
             setBody(request.toString())
         }
-        if (!response.status.isSuccess()) error("LLM HTTP ${response.status.value}")
+        if (!response.status.isSuccess()) {
+            val code = response.status.value
+            if (code == 429 || code >= 500) throw Overloaded("HTTP $code")
+            error("LLM HTTP $code")
+        }
 
         val root: JsonObject = json.parseToJsonElement(response.body<String>()).jsonObject
         val candidate = root["candidates"]?.jsonArray?.firstOrNull()?.jsonObject

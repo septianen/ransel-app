@@ -19,7 +19,8 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-https://ransel.mietek.tech}
       # Explore AI. Blank keys = Explore answers 503 AI_UNAVAILABLE, the rest of the API is unaffected.
       LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-gemini-3.8-flash}
+      LLM_MODEL: ${LLM_MODEL:-gemini-3.5-flash}
+      LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-gemini-flash-latest}
       PLACES_API_KEY: ${PLACES_API_KEY:-}
       # App/Universal Links verification files (served at /.well-known/); empty = 404
       ANDROID_PACKAGE: ${ANDROID_PACKAGE:-app.ransel}
