@@ -1,5 +1,6 @@
 package app.ransel.platform
 
+import androidx.compose.runtime.Composable
 import org.koin.core.module.Module
 
 /** Per-platform Koin bindings (database builder, token storage, Ktor engine, ...). Filled in from Phase 1. */
@@ -22,3 +23,10 @@ expect fun initialResetToken(): String?
 
 /** Removes the reset token from the address bar once it has been used (web only). */
 expect fun clearResetTokenFromUrl()
+
+/** The invite code in the page URL (`/j/<code>`), web only; null elsewhere (apps get it from the link intent). */
+expect fun initialInviteCode(): String?
+
+/** Opens the system share sheet with [text] (web: the Web Share API, else copies it). */
+@Composable
+expect fun rememberShareText(): (String) -> Unit

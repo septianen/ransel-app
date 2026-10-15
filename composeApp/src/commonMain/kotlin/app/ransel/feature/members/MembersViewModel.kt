@@ -7,8 +7,10 @@ import app.ransel.data.remote.ApiFailure
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.TripRepository
+import app.ransel.shared.dto.InviteDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
+import kotlin.time.Clock
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +36,9 @@ data class MembersUiState(
     /** A change is being sent; the controls are disabled. */
     val busy: Boolean = false,
     val dialog: MembersDialog? = null,
+    /** Owner only: invites that can still be used. */
+    val invites: List<InviteDto> = emptyList(),
+    val inviteSheetOpen: Boolean = false,
 ) {
     val me: TripMemberDto? get() = members.firstOrNull { it.userId == myUserId }
     /** Unknown until the list is loaded: the safest (read-only) role. */
@@ -73,12 +78,42 @@ class MembersViewModel(
         _state.update { it.copy(loading = true, failure = null, myUserId = session.user?.id) }
         viewModelScope.launch {
             when (val result = api.members(tripId)) {
-                is ApiResult.Success -> _state.update {
-                    it.copy(loading = false, members = result.value.sortedWith(memberOrder))
+                is ApiResult.Success -> {
+                    _state.update { it.copy(loading = false, members = result.value.sortedWith(memberOrder)) }
+                    loadInvites()
                 }
                 is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = result.error) }
             }
         }
+    }
+
+    /** Only the owner may list invites; for everyone else the call is skipped. */
+    fun loadInvites() {
+        if (!_state.value.isOwner) return
+        viewModelScope.launch {
+            when (val result = api.invites(tripId)) {
+                is ApiResult.Success -> _state.update { it.copy(invites = result.value.filter(::isUsable)) }
+                is ApiResult.Failure -> Unit // the list is a convenience; the screen stays usable without it
+            }
+        }
+    }
+
+    fun revokeInvite(invite: InviteDto) {
+        _state.update { it.copy(invites = it.invites - invite) }
+        viewModelScope.launch {
+            val result = api.revokeInvite(tripId, invite.code)
+            if (result is ApiResult.Failure) {
+                events.send(MembersEvent.Problem(result.error.code))
+                loadInvites()
+            }
+        }
+    }
+
+    fun openInviteSheet() = _state.update { it.copy(inviteSheetOpen = true) }
+
+    fun closeInviteSheet() {
+        _state.update { it.copy(inviteSheetOpen = false) }
+        loadInvites()
     }
 
     fun changeRole(member: TripMemberDto, role: Role) {
@@ -121,6 +156,11 @@ class MembersViewModel(
             _state.update { it.copy(busy = false) }
         }
     }
+
+    private fun isUsable(invite: InviteDto): Boolean =
+        invite.revokedAt == null &&
+            invite.expiresAt > Clock.System.now() &&
+            (invite.maxUses == null || invite.usedCount < invite.maxUses!!)
 
     private companion object {
         /** Owner first, then editors, then viewers; by join time within a role. */

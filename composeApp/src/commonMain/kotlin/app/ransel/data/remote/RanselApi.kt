@@ -16,6 +16,9 @@ import app.ransel.shared.dto.ResetPasswordRequest
 import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
+import app.ransel.shared.dto.CreateInviteRequest
+import app.ransel.shared.dto.InviteDto
+import app.ransel.shared.dto.InvitePreviewDto
 import app.ransel.shared.dto.TransferOwnershipRequest
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.UpdateMeRequest
@@ -160,6 +163,15 @@ class RanselApi(
     suspend fun leaveTrip(tripId: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.leave(tripId)) { }
     suspend fun transferOwnership(tripId: String, newOwnerUserId: String): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.transferOwnership(tripId), bodyOf = { contentType(ContentType.Application.Json); setBody(TransferOwnershipRequest(newOwnerUserId)) }) { }
+
+    // ── invites (Phase 4) ───────────────────────────────────────────────────
+    suspend fun invites(tripId: String): ApiResult<List<InviteDto>> = get(ApiRoutes.invites(tripId))
+    suspend fun createInvite(tripId: String, request: CreateInviteRequest): ApiResult<InviteDto> =
+        send(HttpMethod.Post, ApiRoutes.invites(tripId), request)
+    suspend fun revokeInvite(tripId: String, code: String): ApiResult<Unit> = delete(ApiRoutes.invite(tripId, code))
+    suspend fun invitePreview(code: String): ApiResult<InvitePreviewDto> = get(ApiRoutes.invitePreview(code))
+    suspend fun acceptInvite(code: String): ApiResult<TripDto> =
+        call(HttpMethod.Post, ApiRoutes.inviteAccept(code)) { it.body<ApiResponse<TripDto>>().data }
 
     // ── plumbing ────────────────────────────────────────────────────────────
     private suspend inline fun <reified T> get(path: String): ApiResult<T> =

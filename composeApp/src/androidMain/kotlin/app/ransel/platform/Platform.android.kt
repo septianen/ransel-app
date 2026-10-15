@@ -38,3 +38,17 @@ actual val requiresAccount: Boolean = false
 actual fun initialResetToken(): String? = null
 
 actual fun clearResetTokenFromUrl() = Unit
+
+actual fun initialInviteCode(): String? = null
+
+@androidx.compose.runtime.Composable
+actual fun rememberShareText(): (String) -> Unit {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return { text ->
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(android.content.Intent.EXTRA_TEXT, text)
+        }
+        context.startActivity(android.content.Intent.createChooser(send, null))
+    }
+}

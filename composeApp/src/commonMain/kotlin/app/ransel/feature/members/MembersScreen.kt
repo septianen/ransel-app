@@ -24,7 +24,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -46,6 +48,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import app.ransel.feature.invite.InviteMembersSheet
+import app.ransel.shared.dto.InviteDto
+import kotlin.time.Clock
 import app.ransel.data.remote.ApiFailure
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
@@ -67,6 +73,13 @@ import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.invite_button
+import ransel.composeapp.generated.resources.invites_active_title
+import ransel.composeapp.generated.resources.invite_revoke
+import ransel.composeapp.generated.resources.invite_meta_used
+import ransel.composeapp.generated.resources.invite_meta_used_unlimited
+import ransel.composeapp.generated.resources.invite_ends_today
+import ransel.composeapp.generated.resources.invite_ends_in_days
 import ransel.composeapp.generated.resources.members_change_role
 import ransel.composeapp.generated.resources.members_count
 import ransel.composeapp.generated.resources.members_error_connection
@@ -132,11 +145,17 @@ fun MembersScreen(
             onRetry = viewModel::load,
             onChangeRole = viewModel::changeRole,
             onAsk = viewModel::ask,
+            onInvite = viewModel::openInviteSheet,
+            onRevokeInvite = viewModel::revokeInvite,
         )
         SnackbarHost(
             hostState = snackbar,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp),
         )
+    }
+
+    if (state.inviteSheetOpen) {
+        InviteMembersSheet(tripId = tripId, tripTitle = state.tripTitle, onDismiss = viewModel::closeInviteSheet)
     }
 
     when (val dialog = state.dialog) {
@@ -186,6 +205,8 @@ fun MembersContent(
     onChangeRole: (TripMemberDto, Role) -> Unit,
     onAsk: (MembersDialog) -> Unit,
     modifier: Modifier = Modifier,
+    onInvite: () -> Unit = {},
+    onRevokeInvite: (InviteDto) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         MembersTopBar(state, onBack)
@@ -203,6 +224,20 @@ fun MembersContent(
                     .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
+                if (state.isOwner) {
+                    Button(
+                        onClick = onInvite,
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                    ) {
+                        Symbol(Symbols.personAdd, size = 22.dp, tint = MaterialTheme.colorScheme.onPrimary)
+                        Text(
+                            stringResource(Res.string.invite_button),
+                            Modifier.padding(start = 8.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
                 Column {
                     state.members.forEachIndexed { index, member ->
                         MemberRow(
@@ -217,7 +252,16 @@ fun MembersContent(
                         )
                     }
                 }
-                // Inviting and the active-invites list come with the invite sheet (F4.2).
+                if (state.isOwner && state.invites.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            stringResource(Res.string.invites_active_title),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        state.invites.forEach { InviteRow(it, onRevoke = { onRevokeInvite(it) }) }
+                    }
+                }
                 PermissionsCard()
                 if (!state.isOwner) {
                     InfoNote(Symbols.info, stringResource(Res.string.members_only_owner_note), muted = true)
@@ -468,6 +512,48 @@ private fun ActionOption(symbol: String, label: String, danger: Boolean, onClick
     ) {
         Symbol(symbol, tint = tint)
         Text(label, style = MaterialTheme.typography.bodyLarge, color = tint)
+    }
+}
+
+@Composable
+private fun InviteRow(invite: InviteDto, onRevoke: () -> Unit) {
+    val role = stringResource(if (invite.role == Role.VIEWER) Res.string.role_viewer else Res.string.role_editor)
+    val usage = invite.maxUses?.let { stringResource(Res.string.invite_meta_used, role, invite.usedCount, it) }
+        ?: stringResource(Res.string.invite_meta_used_unlimited, role, invite.usedCount)
+    val daysLeft = (invite.expiresAt - Clock.System.now()).inWholeDays.toInt()
+    val ends = if (daysLeft < 1) stringResource(Res.string.invite_ends_today)
+    else pluralStringResource(Res.plurals.invite_ends_in_days, daysLeft, daysLeft)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(IrisShape.lg)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, IrisShape.lg)
+            .padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            Modifier.size(40.dp).clip(IrisShape.md).background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) { Symbol(Symbols.link) }
+        Column(Modifier.weight(1f)) {
+            Text(
+                invite.code,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
+            )
+            Text(
+                "$usage · $ends",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = onRevoke) {
+            Text(
+                stringResource(Res.string.invite_revoke),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
     }
 }
 

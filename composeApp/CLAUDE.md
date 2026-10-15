@@ -64,6 +64,12 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - Local API origin for Android is `BuildConfig.API_ORIGIN` (emulator: `http://10.0.2.2:8080`).
 - iOS `KeychainTokenStore` and the iOS origin are unverified on Linux.
 
+## Members and invites (Phase 4)
+
+- Members and invites are server-only (no Room tables): `MembersViewModel` and `InviteSheetViewModel` call `RanselApi` directly, on mobile too. The members button only shows for signed-in users.
+- Invite links: `data/invite/InviteLinks` holds the code the user arrived with until the join screen is closed or accepted; `MainActivity` (Android) and `initialInviteCode()` (web) feed it. After accepting, mobile calls `syncNow()` and waits for the trip to appear locally.
+- Point a debug build at the deployed API with `-Pransel.apiOrigin=https://ranselapi.mietek.tech`.
+
 ## Rules
 
 - ViewModels get `ApiResult<T>` / domain models, never HTTP status codes. Map `ApiError.code` (`ErrorCode`) to the state screens; show the code small where the design does.

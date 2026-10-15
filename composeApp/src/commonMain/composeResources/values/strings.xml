@@ -498,4 +498,48 @@
     <string name="members_permissions_viewer">Viewer · view only, still takes part in splitting costs.</string>
     <string name="members_error_generic">Could not save the change. Try again.</string>
     <string name="members_error_connection">No connection. Try again when you are online.</string>
+
+    <!-- Invites (Phase 4) -->
+    <string name="action_close">Close</string>
+    <string name="invite_title">Invite to %1$s</string>
+    <string name="invite_subtitle">Anyone with the link can join</string>
+    <string name="invite_join_as">Join as</string>
+    <string name="members_role_editor_desc">Can change the itinerary, packing and expenses</string>
+    <string name="members_role_viewer_desc">View only</string>
+    <string name="invite_code_label">Invite code</string>
+    <string name="invite_copy">Copy</string>
+    <string name="invite_share">Share link</string>
+    <string name="invite_share_text">Join my trip \"%1$s\" on Ransel: %2$s</string>
+    <string name="invite_valid">Valid for %1$d days · up to %2$d people</string>
+    <string name="invite_failed">Could not create an invite.</string>
+    <string name="invite_button">Invite members</string>
+    <string name="invites_active_title">Active invites</string>
+    <string name="invite_revoke">Revoke</string>
+    <string name="invite_meta_used">%1$s · %2$d of %3$d used</string>
+    <string name="invite_meta_used_unlimited">%1$s · %2$d used</string>
+    <string name="invite_ends_today">ends today</string>
+    <plurals name="invite_ends_in_days">
+        <item quantity="one">ends in %1$d day</item>
+        <item quantity="other">ends in %1$d days</item>
+    </plurals>
+    <string name="join_trip_title">You are invited!</string>
+    <string name="join_trip_invited_as">%1$s invited you to this trip as</string>
+    <plurals name="join_trip_members">
+        <item quantity="one">%1$d member</item>
+        <item quantity="other">%1$d members</item>
+    </plurals>
+    <string name="join_trip_action">Join trip</string>
+    <string name="join_trip_later">Not now</string>
+    <string name="join_trip_sign_in_title">Sign in to join</string>
+    <string name="join_trip_sign_in_body">Invite %1$s needs an account so the trip can be shared with you.</string>
+    <string name="join_trip_sign_in">Sign in</string>
+    <string name="invalid_invite_expired_title">This invite has expired</string>
+    <string name="invalid_invite_expired_body">Link %1$s is no longer valid. Ask the trip owner for a new one.</string>
+    <string name="invalid_invite_revoked_title">This invite was cancelled</string>
+    <string name="invalid_invite_revoked_body">The owner cancelled link %1$s. Ask them for a new one.</string>
+    <string name="invalid_invite_full_title">This invite is full</string>
+    <string name="invalid_invite_full_body">Link %1$s has reached its limit. Ask the trip owner for a new one.</string>
+    <string name="invalid_invite_unknown_title">Invite not found</string>
+    <string name="invalid_invite_unknown_body">We do not recognise code %1$s. Check the link and try again.</string>
+    <string name="invalid_invite_home">Go to Home</string>
 </resources>

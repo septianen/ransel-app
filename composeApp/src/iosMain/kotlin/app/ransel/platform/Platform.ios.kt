@@ -53,3 +53,13 @@ actual val requiresAccount: Boolean = false
 actual fun initialResetToken(): String? = null
 
 actual fun clearResetTokenFromUrl() = Unit
+
+actual fun initialInviteCode(): String? = null
+
+@androidx.compose.runtime.Composable
+actual fun rememberShareText(): (String) -> Unit = { text ->
+    // Not verified on a device (no macOS host): presents the system share sheet from the top view controller.
+    val controller = platform.UIKit.UIActivityViewController(listOf(text), null)
+    platform.UIKit.UIApplication.sharedApplication.keyWindow?.rootViewController
+        ?.presentViewController(controller, animated = true, completion = null)
+}

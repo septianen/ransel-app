@@ -59,3 +59,14 @@ actual fun initialResetToken(): String? =
     queryToken().takeIf { it.isNotBlank() && browserPath().trimEnd('/').endsWith("reset-password") }
 
 actual fun clearResetTokenFromUrl() = resetUrl()
+
+@JsFun("() => { const m = window.location.pathname.match(/^\\/j\\/([^/]+)\\/?$/); return m ? decodeURIComponent(m[1]) : ''; }")
+private external fun invitePathCode(): String
+
+@JsFun("(t) => { if (navigator.share) { navigator.share({ text: t }).catch(() => {}); } else if (navigator.clipboard) { navigator.clipboard.writeText(t); } }")
+private external fun shareOrCopy(text: String)
+
+actual fun initialInviteCode(): String? = invitePathCode().takeIf { it.isNotBlank() }
+
+@androidx.compose.runtime.Composable
+actual fun rememberShareText(): (String) -> Unit = { shareOrCopy(it) }

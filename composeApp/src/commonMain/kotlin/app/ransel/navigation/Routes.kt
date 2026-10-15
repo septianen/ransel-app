@@ -32,3 +32,6 @@ import kotlinx.serialization.Serializable
 
 // Members (Phase 4).
 @Serializable data class MembersRoute(val tripId: String)
+
+/** Invite link or code opened: preview and join, or the invalid-invite state. */
+@Serializable data class JoinTripRoute(val code: String)

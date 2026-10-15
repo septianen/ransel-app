@@ -53,6 +53,7 @@ import app.ransel.navigation.SessionExpiredRoute
 import app.ransel.navigation.SignInRoute
 import app.ransel.navigation.SignUpRoute
 import app.ransel.platform.clearResetTokenFromUrl
+import app.ransel.platform.initialInviteCode
 import app.ransel.platform.initialResetToken
 import app.ransel.platform.requiresAccount
 import androidx.compose.runtime.remember
@@ -97,7 +98,10 @@ import app.ransel.navigation.CreateTripRoute
 import app.ransel.navigation.EditTripRoute
 import app.ransel.navigation.ExploreRoute
 import app.ransel.navigation.HomeRoute
+import app.ransel.navigation.JoinTripRoute
 import app.ransel.navigation.MembersRoute
+import app.ransel.feature.invite.JoinTripScreen
+import app.ransel.data.invite.InviteLinks
 import app.ransel.feature.members.MembersScreen
 import app.ransel.navigation.TripListRoute
 import app.ransel.navigation.TripRoute
@@ -165,6 +169,8 @@ private fun SessionGate(openSignIn: Boolean) {
     val state by session.state.collectAsState()
     koinInject<SyncStatus>() // creates the sync engine (mobile) so it starts with the session
     LaunchedEffect(session) { session.restore() }
+    val inviteLinks: InviteLinks = koinInject()
+    LaunchedEffect(inviteLinks) { initialInviteCode()?.let(inviteLinks::offerCode) } // web: opened /j/<code>
     when {
         state is SessionState.Loading -> Unit
         requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
@@ -191,6 +197,20 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     val sessionManager: SessionManager = koinInject()
     val sessionState by sessionManager.state.collectAsState()
     LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }
+    // An invite link was opened (or `/j/<code>` on the web): show the join screen over whatever is open.
+    val inviteLinks: InviteLinks = koinInject()
+    val pendingInvite by inviteLinks.pending.collectAsState()
+    val currentEntry by navController.currentBackStackEntryAsState()
+    LaunchedEffect(pendingInvite, sessionState, currentEntry?.id) {
+        val code = pendingInvite ?: return@LaunchedEffect
+        val here = navController.currentDestination
+        val onJoin = here != null && here.hasRoute<JoinTripRoute>()
+        val onAuth = here != null && listOf(
+            SignInRoute::class, SignUpRoute::class, ForgotPasswordRoute::class, CheckEmailRoute::class,
+            NewPasswordRoute::class, SessionExpiredRoute::class,
+        ).any { here.hasRoute(it) }
+        if (!onJoin && !onAuth) navController.navigate(JoinTripRoute(code)) { launchSingleTop = true }
+    }
     LaunchedEffect(sessionState) {
         // Signed in from an auth screen (sign in / sign up): leave the auth flow, back to Home.
         val here = navController.currentDestination
@@ -392,6 +412,17 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onMembers = { navController.navigate(MembersRoute(route.tripId)) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
+        )
+    }
+    page<JoinTripRoute> { entry ->
+        val route = entry.toRoute<JoinTripRoute>()
+        JoinTripScreen(
+            code = route.code,
+            onClose = { navController.popBackStack() },
+            onSignIn = { navController.navigate(SignInRoute) },
+            onJoined = { id ->
+                navController.navigate(TripRoute(id)) { popUpTo<JoinTripRoute> { inclusive = true } }
+            },
         )
     }
     page<MembersRoute> { entry ->

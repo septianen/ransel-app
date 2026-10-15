@@ -497,4 +497,46 @@
     <string name="members_permissions_viewer">Pembaca · hanya melihat, tetap bisa ikut dalam bagi biaya.</string>
     <string name="members_error_generic">Perubahan belum tersimpan. Coba lagi.</string>
     <string name="members_error_connection">Tidak ada koneksi. Coba lagi saat online.</string>
+
+    <!-- Invites (Phase 4) -->
+    <string name="action_close">Tutup</string>
+    <string name="invite_title">Undang ke %1$s</string>
+    <string name="invite_subtitle">Siapa pun yang punya link bisa bergabung</string>
+    <string name="invite_join_as">Bergabung sebagai</string>
+    <string name="members_role_editor_desc">Bisa mengubah itinerary, packing, dan pengeluaran</string>
+    <string name="members_role_viewer_desc">Hanya bisa melihat</string>
+    <string name="invite_code_label">Kode undangan</string>
+    <string name="invite_copy">Salin</string>
+    <string name="invite_share">Bagikan link</string>
+    <string name="invite_share_text">Ikut trip \"%1$s\" di Ransel: %2$s</string>
+    <string name="invite_valid">Berlaku %1$d hari · maksimal %2$d orang</string>
+    <string name="invite_failed">Undangan belum bisa dibuat.</string>
+    <string name="invite_button">Undang anggota</string>
+    <string name="invites_active_title">Undangan aktif</string>
+    <string name="invite_revoke">Cabut</string>
+    <string name="invite_meta_used">%1$s · %2$d dari %3$d dipakai</string>
+    <string name="invite_meta_used_unlimited">%1$s · %2$d dipakai</string>
+    <string name="invite_ends_today">berakhir hari ini</string>
+    <plurals name="invite_ends_in_days">
+        <item quantity="other">berakhir %1$d hari lagi</item>
+    </plurals>
+    <string name="join_trip_title">Kamu diajak jalan-jalan!</string>
+    <string name="join_trip_invited_as">%1$s mengundangmu ke trip ini sebagai</string>
+    <plurals name="join_trip_members">
+        <item quantity="other">%1$d anggota</item>
+    </plurals>
+    <string name="join_trip_action">Gabung trip</string>
+    <string name="join_trip_later">Nanti saja</string>
+    <string name="join_trip_sign_in_title">Masuk dulu untuk bergabung</string>
+    <string name="join_trip_sign_in_body">Undangan %1$s perlu akun supaya trip bisa dibagikan ke kamu.</string>
+    <string name="join_trip_sign_in">Masuk</string>
+    <string name="invalid_invite_expired_title">Undangannya sudah kedaluwarsa</string>
+    <string name="invalid_invite_expired_body">Link %1$s sudah tidak berlaku. Minta link baru ke pemilik trip.</string>
+    <string name="invalid_invite_revoked_title">Undangannya sudah dicabut</string>
+    <string name="invalid_invite_revoked_body">Pemilik membatalkan link %1$s. Minta link baru kepadanya.</string>
+    <string name="invalid_invite_full_title">Undangannya sudah penuh</string>
+    <string name="invalid_invite_full_body">Link %1$s sudah mencapai batas pemakaian. Minta link baru ke pemilik trip.</string>
+    <string name="invalid_invite_unknown_title">Undangan tidak ditemukan</string>
+    <string name="invalid_invite_unknown_body">Kode %1$s tidak dikenali. Cek lagi link-nya, lalu coba lagi.</string>
+    <string name="invalid_invite_home">Ke Beranda</string>
 </resources>
