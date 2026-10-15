@@ -16,9 +16,12 @@ import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
 import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
+import app.ransel.server.security.EmailSender
+import app.ransel.server.security.LoggingEmailSender
 import app.ransel.server.security.PasswordHasher
 import app.ransel.server.security.TokenService
 import app.ransel.server.service.AuthService
+import app.ransel.server.service.PasswordResetService
 import app.ransel.server.service.SyncService
 import app.ransel.shared.api.ApiRoutes
 import com.zaxxer.hikari.HikariDataSource
@@ -35,12 +38,17 @@ fun main() {
     embeddedServer(Netty, port = config.port, host = "0.0.0.0") { module(config) }.start(wait = true)
 }
 
-fun Application.module(config: AppConfig = AppConfig.fromEnv()) {
+fun Application.module(
+    config: AppConfig = AppConfig.fromEnv(),
+    emailSender: EmailSender = LoggingEmailSender(config.isProduction),
+) {
     val pool = DatabaseFactory.connect(config)
     monitor.subscribe(ApplicationStopped) { (pool as? HikariDataSource)?.close() }
 
     val tokens = TokenService(config)
-    val auth = AuthService(config, PasswordHasher(config.bcryptCost), tokens)
+    val hasher = PasswordHasher(config.bcryptCost)
+    val auth = AuthService(config, hasher, tokens)
+    val passwordReset = PasswordResetService(config, hasher, tokens, emailSender, this)
 
     configureCallLogging()
     configureCors(config.corsOrigins)
@@ -52,7 +60,7 @@ fun Application.module(config: AppConfig = AppConfig.fromEnv()) {
     routing {
         route(ApiRoutes.BASE) {
             healthRoutes()
-            authRoutes(auth)
+            authRoutes(auth, passwordReset)
             authenticate(JWT_AUTH) {
                 meRoutes()
                 tripRoutes()

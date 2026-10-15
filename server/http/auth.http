@@ -32,3 +32,15 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 { "displayName": "Budi S", "defaultCurrency": "IDR" }
+
+### Forgot password -> always 204 (in dev the link is written to the server log)
+POST {{host}}/auth/password/forgot
+Content-Type: application/json
+
+{ "email": "budi@example.com" }
+
+### Reset with the token from the link (single use, 30 min) -> 204, signs out every device
+POST {{host}}/auth/password/reset
+Content-Type: application/json
+
+{ "token": "paste token", "newPassword": "NewPassw0rd" }

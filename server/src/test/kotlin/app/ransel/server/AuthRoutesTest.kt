@@ -7,6 +7,7 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 class AuthRoutesTest {
     private fun register(email: String, password: String = "Passw0rdOk", name: String = "Budi") =
@@ -117,5 +118,53 @@ class AuthRoutesTest {
         assertEquals(HttpStatusCode.TooManyRequests, last)
         val blocked = post("/auth/login", """{"email":"x@example.com","password":"Wrong1234"}""")
         assertEquals("RATE_LIMITED", blocked.errorCode())
+    }
+}
+
+class PasswordResetTest {
+    private fun tokenOf(link: String) = link.substringAfter("token=")
+
+    @Test
+    fun forgotAlways204AndOnlySendsForKnownEmails() = apiTest {
+        signUp("known@example.com")
+        assertEquals(HttpStatusCode.NoContent, post("/auth/password/forgot", """{"email":"Known@Example.com"}""").status)
+        assertEquals(HttpStatusCode.NoContent, post("/auth/password/forgot", """{"email":"ghost@example.com"}""").status)
+
+        val link = TestEmails.awaitLink("known@example.com")
+        assertTrue(link.startsWith("https://ransel.app/reset-password?token="))
+        kotlinx.coroutines.delay(300)
+        assertEquals(1, TestEmails.sent.size)
+    }
+
+    @Test
+    fun resetChangesPasswordSignsOutEveryDeviceAndTokenIsSingleUse() = apiTest {
+        signUp("reset@example.com", password = "OldPassw0rd")
+        val oldRefresh = refreshToken!!
+        post("/auth/password/forgot", """{"email":"reset@example.com"}""")
+        val token = tokenOf(TestEmails.awaitLink("reset@example.com"))
+
+        val weak = post("/auth/password/reset", """{"token":"$token","newPassword":"short"}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, weak.status)
+
+        assertEquals(HttpStatusCode.NoContent, post("/auth/password/reset", """{"token":"$token","newPassword":"NewPassw0rd"}""").status)
+
+        assertEquals("INVALID_CREDENTIALS", post("/auth/login", """{"email":"reset@example.com","password":"OldPassw0rd"}""").errorCode())
+        assertEquals(HttpStatusCode.OK, post("/auth/login", """{"email":"reset@example.com","password":"NewPassw0rd"}""").status)
+        assertEquals("TOKEN_EXPIRED", post("/auth/refresh", """{"refreshToken":"$oldRefresh"}""").errorCode())
+
+        val reuse = post("/auth/password/reset", """{"token":"$token","newPassword":"Another1Pass"}""")
+        assertEquals(HttpStatusCode.BadRequest, reuse.status)
+        assertEquals("RESET_TOKEN_INVALID", reuse.errorCode())
+    }
+
+    @Test
+    fun unknownAndExpiredTokensAreRejected() = apiTest {
+        assertEquals("RESET_TOKEN_INVALID", post("/auth/password/reset", """{"token":"nope","newPassword":"NewPassw0rd"}""").errorCode())
+
+        signUp("late@example.com")
+        post("/auth/password/forgot", """{"email":"late@example.com"}""")
+        val token = tokenOf(TestEmails.awaitLink("late@example.com"))
+        TestDb.expireResetTokens()
+        assertEquals("RESET_TOKEN_INVALID", post("/auth/password/reset", """{"token":"$token","newPassword":"NewPassw0rd"}""").errorCode())
     }
 }

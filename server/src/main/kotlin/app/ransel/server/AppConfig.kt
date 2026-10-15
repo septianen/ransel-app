@@ -19,6 +19,10 @@ data class AppConfig(
     val bcryptCost: Int = 12,
     /** Login/register attempts per client address per minute. */
     val authRateLimitPerMinute: Int = 10,
+    /** Used to build links in emails (password reset). */
+    val appBaseUrl: String = "https://ransel.app",
+    val isProduction: Boolean = false,
+    val passwordResetTtl: Duration = 30.minutes,
 ) {
     companion object {
         const val DEV_JWT_SECRET = "dev-only-secret-never-use-in-production-0123456789"
@@ -37,6 +41,8 @@ data class AppConfig(
                     ?: listOf("http://localhost:8080", "http://localhost:8081"),
                 jwtSecret = secret,
                 jwtIssuer = env["JWT_ISSUER"] ?: "ransel",
+                appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.app").trimEnd('/'),
+                isProduction = production,
             )
         }
     }

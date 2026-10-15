@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import app.ransel.server.security.EmailSender
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
@@ -13,6 +14,7 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -22,6 +24,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.testcontainers.postgresql.PostgreSQLContainer
 import java.sql.DriverManager
 import java.util.UUID
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** One real Postgres 16 per test JVM (docker required); tables are truncated before every test. */
 object TestDb {
@@ -36,6 +39,13 @@ object TestDb {
         bcryptCost = 4,
         authRateLimitPerMinute = 1000,
     )
+
+    fun expireResetTokens() {
+        val c = config()
+        DriverManager.getConnection(c.databaseUrl, c.databaseUser, c.databasePassword).use { conn ->
+            conn.createStatement().use { it.execute("UPDATE password_reset_tokens SET expires_at = now() - interval '1 minute'") }
+        }
+    }
 
     /** Removes every trip and what hangs off it. The seeded dummy user stays. */
     fun reset() {
@@ -52,6 +62,26 @@ object TestDb {
 }
 
 val TestJson = Json { ignoreUnknownKeys = true }
+
+/** Collects "sent" emails so tests can read the reset link. */
+object TestEmails : EmailSender {
+    data class Sent(val to: String, val link: String)
+
+    val sent = CopyOnWriteArrayList<Sent>()
+
+    override suspend fun sendPasswordReset(toEmail: String, displayName: String, link: String) {
+        sent += Sent(toEmail, link)
+    }
+
+    /** `forgot` sends in the background; wait for it. */
+    suspend fun awaitLink(to: String): String {
+        repeat(100) {
+            sent.lastOrNull { it.to.equals(to, ignoreCase = true) }?.let { return it.link }
+            delay(50)
+        }
+        error("no email for $to")
+    }
+}
 
 class Api(val client: HttpClient) {
     /** Access token sent as Bearer; null = anonymous request. */
@@ -100,8 +130,9 @@ suspend fun HttpResponse.errorCode(): String = jsonBody().getValue("error").json
 /** Starts the app on a clean database and runs [block] as a freshly registered user. */
 fun apiTest(config: AppConfig = TestDb.config(), block: suspend Api.() -> Unit) {
     TestDb.reset()
+    TestEmails.sent.clear()
     testApplication {
-        application { module(config) }
+        application { module(config, TestEmails) }
         val client = createClient { install(ContentNegotiation) { json(TestJson) } }
         runBlocking {
             val api = Api(client)
