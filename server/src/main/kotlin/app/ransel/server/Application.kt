@@ -20,6 +20,7 @@ import app.ransel.server.routes.packingRoutes
 import app.ransel.server.routes.packingTemplateRoutes
 import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
+import app.ransel.server.routes.wellKnownRoutes
 import app.ransel.server.security.EmailSender
 import app.ransel.server.security.LoggingEmailSender
 import app.ransel.server.security.PasswordHasher
@@ -65,6 +66,7 @@ fun Application.module(
     configureAuth(config, tokens)
 
     routing {
+        wellKnownRoutes(config)
         route(ApiRoutes.BASE) {
             healthRoutes()
             authRoutes(auth, passwordReset)

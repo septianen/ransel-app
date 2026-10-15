@@ -27,10 +27,17 @@ data class AppConfig(
     val registrationEnabled: Boolean = true,
     /** Account created at startup when missing (never overwritten). Comes from env, not from git. */
     val seedUser: SeedUser? = null,
+    /** Android App Links: `/.well-known/assetlinks.json`. Empty fingerprints = the file answers 404. */
+    val androidPackage: String = "app.ransel",
+    val androidCertSha256: List<String> = emptyList(),
+    /** iOS Universal Links: `/.well-known/apple-app-site-association`, e.g. `ABCDE12345.app.ransel`. Empty = 404. */
+    val iosAppIds: List<String> = emptyList(),
 ) {
     data class SeedUser(val email: String, val password: String, val displayName: String)
 
     companion object {
+        private fun String?.csv() = this?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+
         const val DEV_JWT_SECRET = "dev-only-secret-never-use-in-production-0123456789"
 
         fun fromEnv(env: Map<String, String> = System.getenv()): AppConfig {
@@ -50,6 +57,9 @@ data class AppConfig(
                 appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.app").trimEnd('/'),
                 isProduction = production,
                 registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
+                androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
+                androidCertSha256 = env["ANDROID_CERT_SHA256"].csv(),
+                iosAppIds = env["IOS_APP_IDS"].csv(),
                 seedUser = env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
                     SeedUser(
                         email = email.trim(),

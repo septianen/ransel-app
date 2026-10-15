@@ -17,6 +17,10 @@ services:
       DATABASE_USER: ransel
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://ransel.mietek.tech}
+      # App/Universal Links verification files (served at /.well-known/); empty = 404
+      ANDROID_PACKAGE: ${ANDROID_PACKAGE:-app.ransel}
+      ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}
+      IOS_APP_IDS: ${IOS_APP_IDS:-}
       # Closed beta until an email provider exists: no sign-up, one seeded account.
       REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
       SEED_USER_EMAIL: ${SEED_USER_EMAIL:-}

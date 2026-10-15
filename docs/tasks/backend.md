@@ -33,7 +33,7 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 - [x] **B4.3 Shared expenses.** `paidByUserId` must be a member; splits only for members; validation as Phase 2.
 - [x] **B4.4 Balances & settlements.** `GET /balances` with `computeBalances` + `fewestTransfers` (base currency), `GET/POST /settlements`; settlements also sync.
 - [x] **B4.5 Packing templates.** Seed the three built-in templates (owner_id NULL) in a repeatable seed, list (built-in + own + shared with my trips), create, apply (`skipExisting`).
-- [ ] **B4.6 App links.** Serve `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` for `https://ransel.app/j/*` (values from the frontend agent).
+- [x] **B4.6 App links.** Serve `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` for `https://ransel.app/j/*` (values from the frontend agent). *Served from env (`ANDROID_CERT_SHA256`, `IOS_APP_IDS`); 404 until set. Release SHA-256 and Apple team id still missing, see `docs/specs/app-links.md`.*
 
 **Done when:** two accounts manage one trip and the split-bill result is correct (unit + API tests with the PRD example numbers).
 

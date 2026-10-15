@@ -260,8 +260,8 @@ The swipe session (remaining cards, position, number saved) is stored locally in
 
 ## Open work
 
-- [ ] `POST /trips/{id}/settlements` endpoint (the `settlements` table is in V3); `balances` accounts for settlements.
-- [ ] Seed the built-in packing templates (beach, city trip, mountain hike). `owner_id` is already nullable (V1) and `shared_trip_id` exists (V3).
+- [x] `POST /trips/{id}/settlements` endpoint (the `settlements` table is in V3); `balances` accounts for settlements.
+- [x] Seed the built-in packing templates (beach, city trip, mountain hike). `owner_id` is already nullable (V1) and `shared_trip_id` exists (V3).
 - [ ] Send the password reset email (email provider not chosen yet); `password_reset_tokens` is in V2.
-- [ ] `transfer-ownership` and `leave` endpoints with the `OWNER_CANNOT_LEAVE` rule.
-- [ ] `PUT /trips/{id}/days/{date}/order` replaces `PUT /trips/{id}/itinerary/order` (it saves times too).
+- [x] `transfer-ownership` and `leave` endpoints with the `OWNER_CANNOT_LEAVE` rule.
+- [x] `PUT /trips/{id}/days/{date}/order` replaces `PUT /trips/{id}/itinerary/order` (it saves times too).

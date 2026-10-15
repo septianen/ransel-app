@@ -42,3 +42,15 @@ Copying the dumps off the VPS (rsync/rclone to another machine or bucket) is a s
 
 Every deploy tags the image with the commit SHA. On the VPS: edit `SERVER_IMAGE` in `.env` to an older SHA and run
 `docker compose -f docker-compose.prod.yml up -d`.
+
+## Invite links (App Links / Universal Links)
+
+The API serves `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` (values from the
+repository *variables* `ANDROID_CERT_SHA256` and `IOS_APP_IDS`; both answer 404 until set). Phones fetch them from
+the **host of the invite link**, so that host's nginx must forward them to the API:
+
+```
+location /.well-known/ { proxy_pass http://127.0.0.1:8080; }
+```
+
+Invite URLs returned by the API are `APP_BASE_URL/j/<code>`.

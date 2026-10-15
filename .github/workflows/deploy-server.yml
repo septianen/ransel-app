@@ -89,6 +89,9 @@ jobs:
           SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
           SEED_USER_NAME: ${{ secrets.SEED_USER_NAME }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Not secrets: public verification values. Set them as repository *variables* when known.
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+          IOS_APP_IDS: ${{ vars.IOS_APP_IDS }}
         run: |
           SSH="ssh -p $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes $DEPLOY_USER@$HOST"
           SCP="scp -P $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes"
@@ -105,6 +108,8 @@ jobs:
             echo "APP_BASE_URL=https://ransel.mietek.tech"
             echo "CORS_ORIGINS=https://ransel.mietek.tech"
             echo "REGISTRATION_ENABLED=false"
+            echo "ANDROID_CERT_SHA256=$ANDROID_CERT_SHA256"
+            echo "IOS_APP_IDS=$IOS_APP_IDS"
             echo "SEED_USER_EMAIL=$SEED_USER_EMAIL"
             echo "SEED_USER_PASSWORD=$SEED_USER_PASSWORD"
             echo "SEED_USER_NAME=${SEED_USER_NAME:-Test User}"
