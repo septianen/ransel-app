@@ -48,6 +48,8 @@ object TripMembers : Table("trip_members") {
     val tripId = javaUUID("trip_id")
     val userId = javaUUID("user_id")
     val role = enumerationByName<Role>("role", 16)
+    val joinedAt = timestamp("joined_at")
+    val updatedAt = timestamp("updated_at")
     override val primaryKey = PrimaryKey(tripId, userId)
 }
 
@@ -132,4 +134,17 @@ object PasswordResetTokens : Table("password_reset_tokens") {
     val usedAt = timestamp("used_at").nullable()
     val createdAt = timestamp("created_at")
     override val primaryKey = PrimaryKey(id)
+}
+
+object TripInvites : Table("trip_invites") {
+    val code = text("code")
+    val tripId = javaUUID("trip_id")
+    val role = enumerationByName<Role>("role", 16)
+    val createdBy = javaUUID("created_by")
+    val maxUses = integer("max_uses").nullable()
+    val usedCount = integer("used_count")
+    val expiresAt = timestamp("expires_at")
+    val revokedAt = timestamp("revoked_at").nullable()
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(code)
 }

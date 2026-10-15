@@ -6,6 +6,7 @@ import app.ransel.server.db.ItineraryItems
 import app.ransel.server.db.PackingItems
 import app.ransel.server.db.TripMembers
 import app.ransel.server.db.Trips
+import app.ransel.server.db.Users
 import app.ransel.server.db.toExpenseDto
 import app.ransel.server.db.toItineraryItemDto
 import app.ransel.server.db.toPackingItemDto
@@ -26,6 +27,7 @@ import app.ransel.shared.dto.SyncPushResponse
 import app.ransel.shared.dto.SyncRejection
 import app.ransel.shared.dto.SyncRowRef
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
 import io.ktor.http.HttpStatusCode
 import kotlinx.datetime.toJavaLocalDate
@@ -114,7 +116,9 @@ class SyncService {
                 if (sinceJava == null) mine else mine and (Trips.updatedAt greater sinceJava)
             }
             .toList()
-        val allTripIds = TripMembers.selectAll().where { TripMembers.userId eq userId }.map { it[TripMembers.tripId] }
+        val myRoles = TripMembers.selectAll().where { TripMembers.userId eq userId }
+            .associate { it[TripMembers.tripId] to it[TripMembers.role] }
+        val allTripIds = myRoles.keys.toList()
         val trips = tripRows.map { it.toTripDto(it[TripMembers.role]) }
 
         val items = if (allTripIds.isEmpty()) emptyList() else ItineraryItems.selectAll()
@@ -139,8 +143,27 @@ class SyncService {
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) })
         val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.userId }) }
 
+        // Membership rows of my trips. A removed member leaves no tombstone (the table has no deleted_at):
+        // that user simply stops receiving the trip, and their next push of its rows is rejected TRIP_NOT_FOUND.
+        val members = if (allTripIds.isEmpty()) emptyList() else TripMembers
+            .join(Users, JoinType.INNER, TripMembers.userId, Users.id)
+            .selectAll()
+            .where {
+                val inTrips = TripMembers.tripId inList allTripIds
+                if (sinceJava == null) inTrips else inTrips and (TripMembers.updatedAt greater sinceJava)
+            }.map {
+                TripMemberDto(
+                    tripId = it[TripMembers.tripId].toString(),
+                    userId = it[TripMembers.userId].toString(),
+                    displayName = it[Users.displayName],
+                    email = if (myRoles[it[TripMembers.tripId]] == Role.OWNER) it[Users.email] else null,
+                    role = it[TripMembers.role],
+                    joinedAt = it[TripMembers.joinedAt].toTimestamp(),
+                )
+            }
+
         SyncPullResponse(
-            changes = SyncChanges(trips = trips, itineraryItems = items, packingItems = packing, expenses = expenses),
+            changes = SyncChanges(trips = trips, itineraryItems = items, packingItems = packing, expenses = expenses, members = members),
             serverTime = serverTime.toTimestamp(),
         )
     }

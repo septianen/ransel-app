@@ -12,6 +12,7 @@ import app.ransel.server.routes.authRoutes
 import app.ransel.server.routes.expenseRoutes
 import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
+import app.ransel.server.routes.memberRoutes
 import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
 import app.ransel.server.routes.syncRoutes
@@ -21,6 +22,7 @@ import app.ransel.server.security.LoggingEmailSender
 import app.ransel.server.security.PasswordHasher
 import app.ransel.server.security.TokenService
 import app.ransel.server.service.AuthService
+import app.ransel.server.service.InviteService
 import app.ransel.server.service.PasswordResetService
 import app.ransel.server.service.SyncService
 import app.ransel.shared.api.ApiRoutes
@@ -69,6 +71,7 @@ fun Application.module(
                 packingRoutes()
                 expenseRoutes()
                 syncRoutes(SyncService())
+                memberRoutes(InviteService(config))
             }
         }
     }

@@ -1,0 +1,48 @@
+### Create an invite (OWNER). role EDITOR or VIEWER, expiresAt in the future
+POST {{host}}/trips/{{tripId}}/invites
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "role": "EDITOR", "maxUses": 5, "expiresAt": "2026-12-31T00:00:00Z" }
+
+### List invites with usage (OWNER)
+GET {{host}}/trips/{{tripId}}/invites
+Authorization: Bearer {{token}}
+
+### Revoke
+DELETE {{host}}/trips/{{tripId}}/invites/BALI-XXXX
+Authorization: Bearer {{token}}
+
+### Preview an invite (any signed-in user). 410 INVITE_REVOKED / INVITE_EXPIRED, 409 INVITE_FULL
+GET {{host}}/invites/BALI-XXXX
+Authorization: Bearer {{token}}
+
+### Accept. 409 ALREADY_MEMBER if you are in the trip
+POST {{host}}/invites/BALI-XXXX/accept
+Authorization: Bearer {{token}}
+
+### Members (emails only for the OWNER)
+GET {{host}}/trips/{{tripId}}/members
+Authorization: Bearer {{token}}
+
+### Change role (OWNER)
+PATCH {{host}}/trips/{{tripId}}/members/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "role": "VIEWER" }
+
+### Remove a member (OWNER). Their expenses stay.
+DELETE {{host}}/trips/{{tripId}}/members/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{token}}
+
+### Leave the trip (not the OWNER: 409 OWNER_CANNOT_LEAVE)
+POST {{host}}/trips/{{tripId}}/leave
+Authorization: Bearer {{token}}
+
+### Transfer ownership (OWNER; the old owner becomes EDITOR) -> 204
+POST {{host}}/trips/{{tripId}}/transfer-ownership
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "newOwnerUserId": "00000000-0000-0000-0000-000000000000" }

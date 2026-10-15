@@ -40,6 +40,14 @@ object TestDb {
         authRateLimitPerMinute = 1000,
     )
 
+    /** Runs raw SQL against the test database (to age invites, etc.). */
+    fun exec(sql: String) {
+        val c = config()
+        DriverManager.getConnection(c.databaseUrl, c.databaseUser, c.databasePassword).use { conn ->
+            conn.createStatement().use { it.execute(sql) }
+        }
+    }
+
     fun expireResetTokens() {
         val c = config()
         DriverManager.getConnection(c.databaseUrl, c.databaseUser, c.databasePassword).use { conn ->
@@ -82,6 +90,8 @@ object TestEmails : EmailSender {
         error("no email for $to")
     }
 }
+
+data class Session(val token: String?, val refreshToken: String?, val userId: String)
 
 class Api(val client: HttpClient) {
     /** Access token sent as Bearer; null = anonymous request. */
@@ -140,4 +150,13 @@ fun apiTest(config: AppConfig = TestDb.config(), block: suspend Api.() -> Unit) 
             api.block()
         }
     }
+}
+
+/** Remember who is signed in, so a test can switch between accounts. */
+fun Api.session() = Session(token, refreshToken, userId)
+
+fun Api.use(session: Session) {
+    token = session.token
+    refreshToken = session.refreshToken
+    userId = session.userId
 }

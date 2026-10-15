@@ -18,6 +18,8 @@ import kotlinx.datetime.LocalTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -200,6 +202,30 @@ class SyncRoutesTest {
         assertNull(moved.dayDate)
         assertNull(moved.startTime)
         assertEquals(60, moved.durationMin)
+    }
+
+    @Test
+    fun pullCarriesMembersAndSharedTripsReachTheGuest() = apiTest {
+        val tripId = id()
+        push(SyncChanges(trips = listOf(trip(tripId)), itineraryItems = listOf(item(tripId))))
+        val owner = session()
+        val code = post("/trips/$tripId/invites", """{"role":"EDITOR","expiresAt":"2099-01-01T00:00:00Z"}""")
+            .data().jsonObject.getValue("code").jsonPrimitive.content
+        val cursor = pull().serverTime
+
+        signUp()
+        post("/invites/$code/accept")
+        val guestPull = pull()
+        assertEquals(1, guestPull.changes.trips.size)
+        assertEquals(1, guestPull.changes.itineraryItems.size)
+        assertEquals(2, guestPull.changes.members.size)
+        assertTrue(guestPull.changes.members.all { it.email == null })
+
+        use(owner)
+        val delta = pull(cursor - 1.hours)
+        val joined = delta.changes.members.single { it.userId != owner.userId }
+        assertEquals("EDITOR", joined.role.name)
+        assertNotNull(delta.changes.members.first { it.userId == owner.userId }.email)
     }
 
     @Test

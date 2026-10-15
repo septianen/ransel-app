@@ -28,8 +28,8 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 ## Phase 4 — Multi-member
 
-- [ ] **B4.1 Invites.** Create (OWNER, code from `generateInviteCode`, EDITOR/VIEWER), list with usage, revoke, preview, accept (checks in order: revoked → expired → full → already member; insert member + `used_count + 1` in one transaction).
-- [ ] **B4.2 Members.** List, change role, remove (keeps their expenses and splits), leave (`OWNER_CANNOT_LEAVE`), transfer ownership (old owner → EDITOR). Sync pull includes `members`.
+- [x] **B4.1 Invites.** Create (OWNER, code from `generateInviteCode`, EDITOR/VIEWER), list with usage, revoke, preview, accept (checks in order: revoked → expired → full → already member; insert member + `used_count + 1` in one transaction).
+- [x] **B4.2 Members.** List, change role, remove (keeps their expenses and splits), leave (`OWNER_CANNOT_LEAVE`), transfer ownership (old owner → EDITOR). Sync pull includes `members`.
 - [ ] **B4.3 Shared expenses.** `paidByUserId` must be a member; splits only for members; validation as Phase 2.
 - [ ] **B4.4 Balances & settlements.** `GET /balances` with `computeBalances` + `fewestTransfers` (base currency), `GET/POST /settlements`; settlements also sync.
 - [ ] **B4.5 Packing templates.** Seed the three built-in templates (owner_id NULL) in a repeatable seed, list (built-in + own + shared with my trips), create, apply (`skipExisting`).
