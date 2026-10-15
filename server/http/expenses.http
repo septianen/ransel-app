@@ -1,0 +1,47 @@
+### Record an expense (paidByUserId omitted = you)
+POST {{host}}/trips/{{tripId}}/expenses
+Content-Type: application/json
+
+{
+  "id": "44444444-4444-4444-8444-444444444441",
+  "amountMinor": 50000,
+  "currency": "IDR",
+  "category": "FOOD",
+  "paymentMethod": "E_WALLET",
+  "note": "Nasi campur",
+  "spentAt": "2026-11-20T05:00:00Z"
+}
+
+### Foreign currency: USD 10.00 at 1 USD = 16000 IDR
+POST {{host}}/trips/{{tripId}}/expenses
+Content-Type: application/json
+
+{
+  "id": "44444444-4444-4444-8444-444444444442",
+  "amountMinor": 1000,
+  "currency": "USD",
+  "fxRateToBase": "16000",
+  "category": "SHOPPING",
+  "spentAt": "2026-11-20T18:00:00Z"
+}
+
+### Shares that do not add up -> 422 SPLIT_TOTAL_MISMATCH
+POST {{host}}/trips/{{tripId}}/expenses
+Content-Type: application/json
+
+{
+  "id": "44444444-4444-4444-8444-444444444443",
+  "amountMinor": 100,
+  "currency": "IDR",
+  "spentAt": "2026-11-20T05:00:00Z",
+  "splits": [ { "userId": "00000000-0000-0000-0000-000000000001", "shareMinor": 60 } ]
+}
+
+### List (newest first, splits included)
+GET {{host}}/trips/{{tripId}}/expenses
+
+### Summary (base currency, days in Asia/Jakarta)
+GET {{host}}/trips/{{tripId}}/expenses/summary
+
+### Delete (soft)
+DELETE {{host}}/trips/{{tripId}}/expenses/44444444-4444-4444-8444-444444444441

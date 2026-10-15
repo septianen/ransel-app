@@ -36,16 +36,20 @@ server/src/test/kotlin/  testApplication + Postgres (Testcontainers or docker co
 - **Secrets from env only**: `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `JWT_ISSUER`, `LLM_API_KEY`, `PLACES_API_KEY`, `EMAIL_API_KEY`, `APP_BASE_URL` (https://ransel.app). Provide `.env.example`, never commit `.env`.
 - **Logging**: structured, one line per request with method, path, status, duration and `error.code`. Never log passwords, tokens or full request bodies.
 
-## Run / test (fill in once the project exists)
+## Run / test
+
+Needs JDK 17+ (`JAVA_HOME`), and Docker for the dev database and the tests (Testcontainers starts its own Postgres 16).
 
 ```
-docker compose up -d db          # Postgres for development
+docker compose up -d db          # Postgres for development (repo root)
 ./gradlew :server:run            # http://localhost:8080/api/v1/health
-./gradlew :server:test
-./gradlew :shared:allTests       # contract + domain tests
+./gradlew :server:test           # testApplication + real Postgres via Testcontainers
+./gradlew :shared:jvmTest        # contract + domain tests
 ```
 
-Keep a `server/http/*.http` file per resource with example requests (they double as documentation for the frontend agent).
+Config comes from env vars (defaults match the compose database); see `.env.example`.
+
+`server/http/*.http` has one file per resource with example requests (they double as documentation for the frontend agent); select the `local` environment in `http-client.env.json`.
 
 ## Deploy (end of Phase 2, owner's VPS)
 

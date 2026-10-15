@@ -1,0 +1,35 @@
+### Create a trip (id is a client-generated UUID)
+POST {{host}}/trips
+Content-Type: application/json
+
+{
+  "id": "{{tripId}}",
+  "title": "Bali 4 hari",
+  "destination": "Bali",
+  "startDate": "2026-11-20",
+  "endDate": "2026-11-23",
+  "baseCurrency": "IDR",
+  "budgetMinor": 5000000
+}
+
+### List my trips
+GET {{host}}/trips
+
+### Trip detail + summary
+GET {{host}}/trips/{{tripId}}
+
+### Update (full replacement; activities on removed days become unscheduled)
+PUT {{host}}/trips/{{tripId}}
+Content-Type: application/json
+
+{
+  "title": "Bali 4 hari",
+  "destination": "Bali",
+  "startDate": "2026-11-20",
+  "endDate": "2026-11-23",
+  "baseCurrency": "IDR",
+  "budgetMinor": 5000000
+}
+
+### Delete (soft)
+DELETE {{host}}/trips/{{tripId}}

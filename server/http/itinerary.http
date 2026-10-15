@@ -1,0 +1,53 @@
+### Add an activity
+POST {{host}}/trips/{{tripId}}/itinerary
+Content-Type: application/json
+
+{
+  "id": "22222222-2222-4222-8222-222222222221",
+  "dayDate": "2026-11-20",
+  "startTime": "10:00",
+  "endTime": "11:25",
+  "title": "Pantai Kuta",
+  "category": "ATTRACTION",
+  "sortOrder": 1.0
+}
+
+### Unscheduled place (e.g. from Explore)
+POST {{host}}/trips/{{tripId}}/itinerary
+Content-Type: application/json
+
+{
+  "id": "22222222-2222-4222-8222-222222222222",
+  "title": "Tanah Lot",
+  "category": "ATTRACTION",
+  "durationMin": 90,
+  "source": "AI"
+}
+
+### List (unscheduled first, then by day and sortOrder)
+GET {{host}}/trips/{{tripId}}/itinerary
+
+### Schedule / replace
+PUT {{host}}/trips/{{tripId}}/itinerary/22222222-2222-4222-8222-222222222222
+Content-Type: application/json
+
+{
+  "id": "22222222-2222-4222-8222-222222222222",
+  "dayDate": "2026-11-21",
+  "startTime": "09:00",
+  "endTime": "10:30",
+  "title": "Tanah Lot",
+  "category": "ATTRACTION",
+  "durationMin": 90,
+  "source": "AI",
+  "sortOrder": 1.0
+}
+
+### Save the order + times of one day (returns that day's items)
+PUT {{host}}/trips/{{tripId}}/days/2026-11-20/order
+Content-Type: application/json
+
+{ "items": [ { "id": "22222222-2222-4222-8222-222222222221", "sortOrder": 1.0, "startTime": "10:00", "endTime": "11:25" } ] }
+
+### Delete (soft)
+DELETE {{host}}/trips/{{tripId}}/itinerary/22222222-2222-4222-8222-222222222221

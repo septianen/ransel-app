@@ -1,0 +1,20 @@
+### Add an item
+POST {{host}}/trips/{{tripId}}/packing
+Content-Type: application/json
+
+{ "id": "33333333-3333-4333-8333-333333333331", "category": "CLOTHING", "name": "Kaos", "quantity": 3 }
+
+### List
+GET {{host}}/trips/{{tripId}}/packing
+
+### Tick (null fields are left unchanged)
+PATCH {{host}}/trips/{{tripId}}/packing/33333333-3333-4333-8333-333333333331
+Content-Type: application/json
+
+{ "isPacked": true }
+
+### Uncheck all -> 204
+POST {{host}}/trips/{{tripId}}/packing/uncheck-all
+
+### Delete
+DELETE {{host}}/trips/{{tripId}}/packing/33333333-3333-4333-8333-333333333331
