@@ -9,8 +9,8 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 - [x] **B2.3 Plumbing.** `respondData` helper, `ApiException` + StatusPages mapping to `ApiErrorResponse`, validation via `shared/src/commonMain/kotlin/app/ransel/shared/domain/Validation.kt` (422 + details), request logging, CORS for the web dev origin. A dummy principal = `LOCAL_USER_ID` until Phase 3.
 - [x] **B2.4 Trips.** `GET/POST /trips`, `GET/PUT/DELETE /trips/{id}` with `TripDetailDto` (summary numbers computed in SQL). Creating a trip also inserts the OWNER row in `trip_members`, so `requireRole` works the same in every phase.
 - [x] **B2.5 Itinerary.** List (ordered by `day_date NULLS FIRST, sort_order`), create, replace (also used to schedule), delete, `PUT /trips/{id}/days/{date}/order` in one transaction.
-- [ ] **B2.6 Packing.** List, create, PATCH, DELETE, `POST .../packing/uncheck-all`.
-- [ ] **B2.7 Expenses.** List, create, replace, delete (splits stored but only validated: empty or sum = amount → `SPLIT_TOTAL_MISMATCH`), `GET .../expenses/summary` (all categories, by day, converted with `convertMinor`).
+- [x] **B2.6 Packing.** List, create, PATCH, DELETE, `POST .../packing/uncheck-all`.
+- [x] **B2.7 Expenses.** List, create, replace, delete (splits stored but only validated: empty or sum = amount → `SPLIT_TOTAL_MISMATCH`), `GET .../expenses/summary` (all categories, by day, converted with `convertMinor`).
 - [ ] **B2.8 Tests.** `testApplication` + real Postgres for every route: happy path, validation error, not found, soft delete hidden from lists. `.http` files per resource.
 - [ ] **B2.9 Deploy.** Dockerfile, `docker-compose.prod.yml` (server, db, caddy), GitHub Actions deploy, daily `pg_dump`. Needs VPS + domain from the owner — ask, do not guess.
 
