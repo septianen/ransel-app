@@ -20,6 +20,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import app.ransel.data.remote.ConnectionMonitor
+import app.ransel.ui.adaptive.rememberIsExpanded
+import app.ransel.ui.components.ConnectionErrorState
+import app.ransel.ui.components.ServerErrorState
+import app.ransel.ui.shell.RanselNavigationRail
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
@@ -119,6 +129,9 @@ private fun RanselNavigation() {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val destination = backStack?.destination
+    val expanded = rememberIsExpanded()
+    val monitor: ConnectionMonitor = koinInject()
+    val failure by monitor.failure.collectAsState()
 
     val selected: MainTab? = when {
         destination == null -> MainTab.HOME
@@ -128,55 +141,88 @@ private fun RanselNavigation() {
         destination.hasRoute<AccountRoute>() -> MainTab.ACCOUNT
         else -> null // full-screen destinations hide the bar
     }
+    val showTabs = selected != null || (expanded && destination != null &&
+        (destination.hasRoute<TripRoute>() || destination.hasRoute<CreateTripRoute>() || destination.hasRoute<EditTripRoute>()))
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        // Each screen applies its own system-bar insets (tabs: below; full-screen routes: themselves).
-        contentWindowInsets = WindowInsets(0),
-        bottomBar = {
-            if (selected != null) {
-                RanselBottomBar(
-                    selected = selected,
-                    onSelect = { tab ->
-                        val route: Any = when (tab) {
-                            MainTab.HOME -> HomeRoute
-                            MainTab.TRIPS -> TripListRoute
-                            MainTab.EXPLORE -> ExploreRoute
-                            MainTab.ACCOUNT -> AccountRoute
-                        }
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+    fun openTab(tab: MainTab) {
+        val route: Any = when (tab) {
+            MainTab.HOME -> HomeRoute
+            MainTab.TRIPS -> TripListRoute
+            MainTab.EXPLORE -> ExploreRoute
+            MainTab.ACCOUNT -> AccountRoute
+        }
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxSize()) {
+            // Wide web windows: a navigation rail on the left; phones: the bottom bar below.
+            if (expanded) {
+                RanselNavigationRail(
+                    selected = selected ?: if (destination?.hasRoute<TripRoute>() == true) MainTab.TRIPS else null,
+                    onSelect = ::openTab,
+                    onCreateTrip = { navController.navigate(CreateTripRoute) },
                 )
             }
-        },
-    ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = HomeRoute,
-            modifier = Modifier.padding(padding),
-            enterTransition = {
-                if (betweenTabs()) EnterTransition.None
-                else slideInHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
-            },
-            exitTransition = {
-                if (betweenTabs()) ExitTransition.None
-                else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { -it / 4 }
-            },
-            popEnterTransition = {
-                if (betweenTabs()) EnterTransition.None
-                else slideInHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { -it / 4 }
-            },
-            popExitTransition = {
-                if (betweenTabs()) ExitTransition.None
-                else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
-            },
-        ) {
-            tabs(navController)
-            trips(navController)
+            Scaffold(
+                modifier = Modifier.weight(1f),
+                containerColor = MaterialTheme.colorScheme.background,
+                // Each screen applies its own system-bar insets (tabs: below; full-screen routes: themselves).
+                contentWindowInsets = WindowInsets(0),
+                bottomBar = {
+                    if (!expanded && selected != null) {
+                        RanselBottomBar(selected = selected, onSelect = ::openTab)
+                    }
+                },
+            ) { padding ->
+                NavHost(
+                    navController = navController,
+                    startDestination = HomeRoute,
+                    modifier = Modifier.padding(padding),
+                    enterTransition = {
+                        if (betweenTabs()) EnterTransition.None
+                        else slideInHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
+                    },
+                    exitTransition = {
+                        if (betweenTabs()) ExitTransition.None
+                        else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { -it / 4 }
+                    },
+                    popEnterTransition = {
+                        if (betweenTabs()) EnterTransition.None
+                        else slideInHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { -it / 4 }
+                    },
+                    popExitTransition = {
+                        if (betweenTabs()) ExitTransition.None
+                        else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
+                    },
+                ) {
+                    tabs(navController)
+                    trips(navController)
+                }
+            }
+        }
+
+        // Web: a failed request replaces the screen with the connection / server state (design "State").
+        failure?.let { error ->
+            val back = {
+                monitor.dismiss()
+                navController.navigate(HomeRoute) {
+                    popUpTo(navController.graph.findStartDestination().id)
+                    launchSingleTop = true
+                }
+                Unit
+            }
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                if (error.isConnection) {
+                    ConnectionErrorState(onRetry = monitor::retry, errorCode = error.code, onBack = back)
+                } else {
+                    ServerErrorState(onRetry = monitor::retry, errorCode = error.code, onBack = back)
+                }
+            }
         }
     }
 }
@@ -240,7 +286,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
 }
 
 private fun NavGraphBuilder.trips(navController: NavHostController) {
-    page<TripRoute> { entry ->
+    page<TripRoute>(maxContentWidth = null) { entry ->
         val route = entry.toRoute<TripRoute>()
         TripScreen(
             tripId = route.tripId,
@@ -300,9 +346,20 @@ private fun androidx.compose.animation.AnimatedContentTransitionScope<NavBackSta
  * its own background or the page underneath would show through.
  */
 private inline fun <reified T : Any> NavGraphBuilder.page(
+    maxContentWidth: Dp? = PageMaxWidth,
     noinline content: @Composable (NavBackStackEntry) -> Unit,
 ) {
     composable<T> { entry ->
-        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { content(entry) }
+        Box(
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            // On wide web windows single-column pages (Home, lists, forms) stay a readable width.
+            val width = if (maxContentWidth != null) Modifier.widthIn(max = maxContentWidth) else Modifier
+            Box(width.fillMaxSize()) { content(entry) }
+        }
     }
 }
+
+/** Single-column pages never get wider than this, however wide the window. */
+private val PageMaxWidth = 720.dp

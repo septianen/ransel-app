@@ -370,4 +370,17 @@
     <string name="itinerary_until_next_day">sampai %1$s (+1)</string>
     <string name="packing_collapse">Ciutkan</string>
     <string name="packing_expand">Buka</string>
+
+    <!-- Common states (web: connection / server errors) -->
+    <string name="state_connection_title">Waduh, sinyalnya lagi tidur</string>
+    <string name="state_connection_body">Kami belum bisa memuat. Cek koneksi internetmu, lalu coba lagi.</string>
+    <string name="state_server_title">Sedang Diperbaiki</string>
+    <string name="state_server_body">Ada gangguan di server kami, bukan di perangkatmu. Datamu aman. Coba lagi beberapa saat lagi.</string>
+    <string name="state_retry">Coba lagi</string>
+    <string name="state_back_home">Kembali ke Beranda</string>
+    <string name="state_coming_soon_title">Segera hadir</string>
+
+    <!-- Web side panel -->
+    <string name="sidepanel_packing_ready">%1$d/%2$d siap</string>
+    <string name="sidepanel_open_packing">Buka daftar packing</string>
 </resources>

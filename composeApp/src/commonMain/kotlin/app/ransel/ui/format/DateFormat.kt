@@ -11,7 +11,12 @@ import ransel.composeapp.generated.resources.months_short
 import ransel.composeapp.generated.resources.weekdays_full
 import ransel.composeapp.generated.resources.weekdays_short
 
-/** Calendar text in the app language: "20–23 Nov 2026", "Jum, 20 Nov". Names come from string resources. */
+/**
+ * Calendar text in the app language: "20–23 Nov 2026", "Jum, 20 Nov". Names come from string resources.
+ *
+ * On the web string resources load asynchronously, so the name lists are empty for the first frame(s);
+ * lookups fall back to numbers instead of throwing, and the screen recomposes when the names arrive.
+ */
 @Immutable
 class DateFormatter(
     private val monthsShort: List<String>,
@@ -19,22 +24,24 @@ class DateFormatter(
     private val weekdaysShort: List<String>,
     private val weekdaysFull: List<String>,
 ) {
-    private fun month(d: LocalDate) = monthsShort[d.month.ordinal]
+    private fun month(d: LocalDate) = monthsShort.getOrNull(d.month.ordinal) ?: (d.month.ordinal + 1).toString()
+    private fun weekdayShort(d: LocalDate) = weekdaysShort.getOrNull(d.dayOfWeek.ordinal) ?: ""
+    private fun weekdayFull(d: LocalDate) = weekdaysFull.getOrNull(d.dayOfWeek.ordinal) ?: ""
 
     /** "20 Nov" */
     fun dayMonth(d: LocalDate) = "${d.day} ${month(d)}"
 
     /** "Jum, 20 Nov" */
-    fun weekdayDayMonth(d: LocalDate) = "${weekdaysShort[d.dayOfWeek.ordinal]}, ${dayMonth(d)}"
+    fun weekdayDayMonth(d: LocalDate) = "${weekdayShort(d)}, ${dayMonth(d)}"
 
     /** "Jumat, 20 Nov" */
-    fun fullWeekdayDayMonth(d: LocalDate) = "${weekdaysFull[d.dayOfWeek.ordinal]}, ${dayMonth(d)}"
+    fun fullWeekdayDayMonth(d: LocalDate) = "${weekdayFull(d)}, ${dayMonth(d)}"
 
     /** "20 Nov 2026" */
     fun dayMonthYear(d: LocalDate) = "${dayMonth(d)} ${d.year}"
 
     /** "November 2026" */
-    fun monthYear(d: LocalDate) = "${monthsFull[d.month.ordinal]} ${d.year}"
+    fun monthYear(d: LocalDate) = "${monthsFull.getOrNull(d.month.ordinal) ?: month(d)} ${d.year}"
 
     /** "20–23 Nov 2026", "27 Mar – 2 Apr 2027", "30 Des 2026 – 2 Jan 2027". */
     fun range(start: LocalDate, end: LocalDate): String = when {

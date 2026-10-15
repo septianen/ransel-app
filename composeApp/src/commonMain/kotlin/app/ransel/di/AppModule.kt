@@ -6,6 +6,7 @@ import app.ransel.feature.home.HomeViewModel
 import app.ransel.feature.itinerary.ActivityFormViewModel
 import app.ransel.feature.itinerary.ItineraryViewModel
 import app.ransel.feature.packing.PackingViewModel
+import app.ransel.feature.trip.TripSidePanelViewModel
 import app.ransel.feature.tripform.TripFormViewModel
 import app.ransel.feature.trips.TripListViewModel
 import app.ransel.platform.platformModule
@@ -24,6 +25,7 @@ val commonModule: Module = module {
     viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get()) }
     viewModel { params -> ItineraryViewModel(params.get(), get(), get()) }
     viewModel { params -> PackingViewModel(params.get(), get()) }
+    viewModel { params -> TripSidePanelViewModel(params.get(), get(), get()) }
     viewModel { params -> ExpensesViewModel(params.get(), get()) }
     viewModel { params -> ActivityFormViewModel(
             tripId = params.get<String>(0),

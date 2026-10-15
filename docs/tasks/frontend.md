@@ -48,12 +48,18 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 ## Phase 2 — Web joins (online-only)
 
-- [ ] **F2.1 API client.** Ktor Client per platform, base URL per build type, `ApiResult` mapping from `ApiResponse`/`ApiErrorResponse`, timeouts → `NETWORK_TIMEOUT`.
-- [ ] **F2.2 Web repositories.** `wasmJsMain` implementations that call the Phase 2 endpoints (dummy user, no login yet).
-- [ ] **F2.3 Web layout.** ≥ 1240 dp: navigation rail 96 dp, content in the middle, 360 dp side panel (`WebDetailTrip`); ✕/♥ buttons and arrow keys where swiping is used later.
-- [ ] **F2.4 States.** `StateError` (connection), `StateServerError`, `StateComingSoon`, showing `error.code` small.
+- [x] **F2.1 API client.** Ktor Client per platform, base URL per build type, `ApiResult` mapping from `ApiResponse`/`ApiErrorResponse`, timeouts → `NETWORK_TIMEOUT`.
+  - Done. `RanselApi` + `createApiHttpClient` (commonMain `data/remote`), `ApiResult`/`ApiFailure`; timeouts → `NETWORK_TIMEOUT`, no answer → `NETWORK_UNAVAILABLE`. Base URL: `http://localhost:8080` on localhost, else the page origin, or `window.RANSEL_API_ORIGIN`. MockEngine tests in `RanselApiTest` (written, not run yet).
+- [x] **F2.2 Web repositories.** `wasmJsMain` implementations that call the Phase 2 endpoints (dummy user, no login yet).
+  - Done. `Remote*Repository` in `wasmJsMain` behind the same interfaces; every screen re-fetches after any write (shared invalidation counter). Preferences live in `localStorage`. `TripRepository.create` now returns Unit. Known cost: the trips list makes one detail request per trip.
+- [x] **F2.3 Web layout.** ≥ 1240 dp: navigation rail 96 dp, content in the middle, 360 dp side panel (`WebDetailTrip`); ✕/♥ buttons and arrow keys where swiping is used later.
+  - Done. ≥ 1240 dp: 96 dp rail replaces the bottom bar, trip detail gets a 360 dp side panel (budget + record expense, packing summary), sheets become centered dialogs, single-column pages are capped at 720 dp. The Unscheduled box stays in the itinerary column (scheduling lives there). ✕/♥ and arrow keys come with Explore (Phase 5).
+- [x] **F2.4 States.** `StateError` (connection), `StateServerError`, `StateComingSoon`, showing `error.code` small.
+  - Done. `ConnectionErrorState` / `ServerErrorState` / `ComingSoonState` with the capybara art and the API error code shown small. Web: any failed request shows the connection or server state over the app, with "Coba lagi" (re-fetch) and "Kembali ke Beranda".
 
 **Done when:** the same trip flows from Phase 1 work in the browser against the deployed (or local) server.
+
+> Status: verified against the local server (Postgres in Docker) in headless Firefox: list/open a trip, tick a packing item, record an expense (85.000), connection-error state. Not yet checked: Chrome/Safari, the deployed server.
 
 ## Phase 3 — Auth and sync
 

@@ -55,7 +55,14 @@ kotlin {
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         outputModuleName.set("composeApp")
-        browser { commonWebpackConfig { outputFileName = "composeApp.js" } }
+        browser {
+            commonWebpackConfig {
+                outputFileName = "composeApp.js"
+                // 8080 is the Ktor server; CORS_ORIGINS allows localhost:8081 (server/.env.example).
+                devServer = (devServer ?: org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig.DevServer())
+                    .copy(port = 8081)
+            }
+        }
         binaries.executable()
     }
 

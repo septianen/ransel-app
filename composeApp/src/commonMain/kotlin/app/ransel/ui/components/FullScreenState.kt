@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -51,8 +52,11 @@ fun FullScreenState(
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
 ) {
+    // Centered column, never wider than 480 dp: on a wide web window a full-width button looks wrong.
+    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .widthIn(max = 480.dp)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 24.dp),
@@ -96,6 +100,7 @@ fun FullScreenState(
                 modifier = Modifier.heightIn(min = 48.dp),
             ) { Text(secondaryLabel, style = MaterialTheme.typography.titleMedium) }
         }
+    }
     }
 }
 

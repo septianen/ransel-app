@@ -370,4 +370,17 @@
     <string name="itinerary_until_next_day">until %1$s (+1)</string>
     <string name="packing_collapse">Collapse</string>
     <string name="packing_expand">Expand</string>
+
+    <!-- Common states (web: connection / server errors) -->
+    <string name="state_connection_title">Oops, the signal is asleep</string>
+    <string name="state_connection_body">We can't load this right now. Check your internet connection, then try again.</string>
+    <string name="state_server_title">Under repair</string>
+    <string name="state_server_body">Something is wrong on our server, not on your device. Your data is safe. Try again in a moment.</string>
+    <string name="state_retry">Try again</string>
+    <string name="state_back_home">Back to Home</string>
+    <string name="state_coming_soon_title">Coming soon</string>
+
+    <!-- Web side panel -->
+    <string name="sidepanel_packing_ready">%1$d/%2$d ready</string>
+    <string name="sidepanel_open_packing">Open packing list</string>
 </resources>

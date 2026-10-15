@@ -2,6 +2,9 @@ package app.ransel.feature.trip
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -12,10 +15,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import app.ransel.data.repository.TripRepository
 import app.ransel.feature.expenses.ExpensesTab
 import app.ransel.feature.itinerary.ItineraryTab
 import app.ransel.feature.packing.PackingTab
+import app.ransel.ui.adaptive.rememberIsExpanded
 import app.ransel.ui.components.TripHeader
 import app.ransel.ui.components.TripTab
 import app.ransel.ui.format.rememberDateFormatter
@@ -41,23 +46,42 @@ fun TripScreen(
     val dates = rememberDateFormatter()
     val current = trip
 
-    Column(modifier.fillMaxSize().statusBarsPadding()) {
-        TripHeader(
-            title = current?.title.orEmpty(),
-            dates = current?.let { dates.range(it.startDate, it.endDate) }.orEmpty(),
-            selectedTab = tab,
-            onTabSelected = { tab = it },
-            onBack = onBack,
-            onEdit = onEditTrip,
-        )
-        Box(Modifier.weight(1f).navigationBarsPadding()) {
-            if (current != null) {
-                when (tab) {
-                    TripTab.ITINERARY -> ItineraryTab(current, onAddActivity, onEditActivity)
-                    TripTab.PACKING -> PackingTab(current)
-                    TripTab.EXPENSES -> ExpensesTab(current)
+    val expanded = rememberIsExpanded()
+
+    @Composable
+    fun Main(modifier: Modifier) {
+        Column(modifier) {
+            TripHeader(
+                title = current?.title.orEmpty(),
+                dates = current?.let { dates.range(it.startDate, it.endDate) }.orEmpty(),
+                selectedTab = tab,
+                onTabSelected = { tab = it },
+                onBack = onBack,
+                onEdit = onEditTrip,
+            )
+            Box(Modifier.weight(1f).navigationBarsPadding()) {
+                if (current != null) {
+                    when (tab) {
+                        TripTab.ITINERARY -> ItineraryTab(current, onAddActivity, onEditActivity)
+                        TripTab.PACKING -> PackingTab(current)
+                        TripTab.EXPENSES -> ExpensesTab(current)
+                    }
                 }
             }
         }
+    }
+
+    if (expanded && current != null) {
+        // Wide web window: main column + 360 dp side panel (design "Detail trip versi web").
+        Row(modifier.fillMaxSize().statusBarsPadding()) {
+            Main(Modifier.weight(1f).fillMaxHeight())
+            TripSidePanel(
+                trip = current,
+                onOpenTab = { tab = it },
+                modifier = Modifier.width(384.dp),
+            )
+        }
+    } else {
+        Main(modifier.fillMaxSize().statusBarsPadding())
     }
 }

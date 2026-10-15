@@ -49,6 +49,13 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - Debug builds: Account → "Load sample trip" seeds the "Bali 4 hari" example; Account → component gallery.
 - UI tests run only on the emulator: set `ANDROID_SERIAL` so Gradle does not install test APKs on a physical phone.
 
+## Web (Phase 2)
+
+- Needs the API: `docker compose up -d db` and `./gradlew :server:run` (see `server/CLAUDE.md`), then the web dev server on **8081** (8080 is the API; `CORS_ORIGINS` already allows it).
+- The web app is online-only: `wasmJsMain` has `Remote*Repository` (Ktor) instead of Room, preferences in `localStorage`, no onboarding, no in-app language switch (the browser language decides).
+- Compose resources load asynchronously on the web: string arrays start empty, so never index them without a fallback (`DateFormatter` does).
+- Wide windows (≥ 1240 dp): navigation rail, side panel on trip detail, dialogs instead of bottom sheets (`ui/adaptive`).
+
 ## Rules
 
 - ViewModels get `ApiResult<T>` / domain models, never HTTP status codes. Map `ApiError.code` (`ErrorCode`) to the state screens; show the code small where the design does.
@@ -62,7 +69,7 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 ```
 ./gradlew :composeApp:assembleDebug                 # Android
 open iosApp/iosApp.xcodeproj                        # iOS simulator
-./gradlew :composeApp:wasmJsBrowserDevelopmentRun   # Web (from Phase 2)
+./gradlew :composeApp:wasmJsBrowserDevelopmentRun   # Web (from Phase 2): http://localhost:8081, API at http://localhost:8080
 ./gradlew :shared:allTests                          # on Linux: :shared:jvmTest :shared:testDebugUnitTest :shared:wasmJsBrowserTest
 ```
 
