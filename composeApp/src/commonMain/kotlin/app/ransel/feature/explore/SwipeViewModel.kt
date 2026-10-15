@@ -85,7 +85,7 @@ class SwipeViewModel(
                     }
                 }
                 is ApiResult.Failure -> _state.value =
-                    if (result.error.code == ErrorCode.AI_QUOTA_EXCEEDED) SwipeUiState.QuotaExceeded(null)
+                    if (result.error.code == ErrorCode.AI_QUOTA_EXCEEDED) SwipeUiState.QuotaExceeded(result.error.toQuota())
                     else SwipeUiState.Error(result.error)
             }
         }
@@ -183,6 +183,14 @@ class SwipeViewModel(
         }
         if (s.cards.size - s.position <= PREFETCH_AT) prefetchIfNeeded()
     }
+}
+
+/** The 429 carries `used`, `limit` and `resetsAt` in `details`. */
+private fun ApiFailure.toQuota(): QuotaDto? {
+    val d = details ?: return null
+    val limit = d["limit"]?.toIntOrNull() ?: return null
+    val resets = d["resetsAt"]?.let { runCatching { kotlin.time.Instant.parse(it) }.getOrNull() } ?: return null
+    return QuotaDto(used = d["used"]?.toIntOrNull() ?: limit, limit = limit, resetsAt = resets)
 }
 
 private fun app.ransel.data.explore.ExploreForm.toRequest(newSearch: Boolean, exclude: List<String>) =

@@ -58,7 +58,9 @@ class ExploreViewModel(
 
     val state: StateFlow<ExploreUiState> = combine(
         trips.observeTrips(), sessionManager.state, store.session, input,
-    ) { list, session, resume, form ->
+    ) { all, session, resume, form ->
+        // The server only lets editors and owners search for a trip (viewers would get 403).
+        val list = all.filter { it.myRole.atLeast(app.ransel.shared.model.Role.EDITOR) }
         val chosen = list.firstOrNull { it.id == form.tripId } ?: pickFeaturedTrip(list, today()) ?: list.firstOrNull()
         ExploreUiState(
             loading = session is SessionState.Loading,

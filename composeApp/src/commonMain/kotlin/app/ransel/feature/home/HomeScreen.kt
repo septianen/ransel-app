@@ -165,8 +165,9 @@ private fun HomeTripContent(
     ) {
         Header(title = stringResource(Res.string.home_title))
         FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, TripSection.ITINERARY) })
+        val canExplore = onExplore != null && state.trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
         TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) }, showUnscheduled = onExplore != null)
-        if (onExplore != null) ExploreCallout(state.trip.destination, onTry = { onExplore(state.trip.id) })
+        if (canExplore && onExplore != null) ExploreCallout(state.trip.destination, onTry = { onExplore(state.trip.id) })
     }
 }
 

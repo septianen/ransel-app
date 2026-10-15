@@ -154,4 +154,25 @@ class SwipeViewModelTest {
         vm.loaded()
         assertIs<SwipeUiState.NoResults>(vm.state.value)
     }
+
+    @Test
+    fun quotaExceededKeepsTheLimitAndResetTime() = runTest {
+        val quotaApi = RanselApi(
+            createApiHttpClient(
+                MockEngine {
+                    respond(
+                        """{"error":{"code":"AI_QUOTA_EXCEEDED","message":"used up",
+                            "details":{"used":"10","limit":"10","resetsAt":"2026-10-16T17:00:00Z"}}}""",
+                        HttpStatusCode.TooManyRequests, json,
+                    )
+                },
+            ),
+            origin = "http://api.test",
+        )
+        val vm = SwipeViewModel(store(ExploreSession(form)), quotaApi, InMemoryItineraryRepository(InMemoryStore()))
+        vm.loaded()
+        val quota = assertIs<SwipeUiState.QuotaExceeded>(vm.state.value).quota
+        assertEquals(10, quota?.limit)
+        assertEquals("2026-10-16T17:00:00Z", quota?.resetsAt.toString())
+    }
 }
