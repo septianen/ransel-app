@@ -1,5 +1,0 @@
-# Automatic HTTPS. DNS for api.ransel.app must point at this VPS first.
-api.ransel.app {
-	encode zstd gzip
-	reverse_proxy server:8080
-}

@@ -1,28 +1,30 @@
-# Production stack on the VPS: server + Postgres (private) + Caddy (HTTPS).
-# Secrets come from a `.env` file next to this file on the VPS (never committed); see .env.example.
+# Production stack on the VPS: server + Postgres. HTTPS is terminated by the host's nginx, which
+# proxies ranselapi.mietek.tech to 127.0.0.1:8080 (see deploy/nginx/). Postgres is never published.
+# Configuration comes from a `.env` file next to this file (written by the deploy workflow; never committed).
 services:
   server:
-    image: ${SERVER_IMAGE:-ghcr.io/OWNER/ransel-server:latest}
+    image: ${SERVER_IMAGE:-ghcr.io/septianen/ransel-server:latest}
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"   # loopback only; nginx is the public entry
     environment:
       PORT: 8080
       APP_ENV: production
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ characters)}
       JWT_ISSUER: ${JWT_ISSUER:-ransel}
-      APP_BASE_URL: ${APP_BASE_URL:-https://ransel.app}
+      APP_BASE_URL: ${APP_BASE_URL:-https://ransel.mietek.tech}
+      DATABASE_URL: jdbc:postgresql://db:5432/ransel
+      DATABASE_USER: ransel
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://ransel.mietek.tech}
       # Closed beta until an email provider exists: no sign-up, one seeded account.
       REGISTRATION_ENABLED: ${REGISTRATION_ENABLED:-false}
       SEED_USER_EMAIL: ${SEED_USER_EMAIL:-}
       SEED_USER_PASSWORD: ${SEED_USER_PASSWORD:-}
       SEED_USER_NAME: ${SEED_USER_NAME:-Test User}
-      DATABASE_URL: jdbc:postgresql://db:5432/ransel
-      DATABASE_USER: ransel
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://ransel.app}
     depends_on:
       db:
         condition: service_healthy
-    networks: [internal]
 
   db:
     image: postgres:16
@@ -37,25 +39,6 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ransel"]
       interval: 10s
       retries: 10
-    networks: [internal]   # not published to the host
-
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on: [server]
-    networks: [internal]
-
-networks:
-  internal:
 
 volumes:
   ransel-db:
-  caddy-data:
-  caddy-config:
