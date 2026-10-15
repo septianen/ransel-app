@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import app.ransel.server.db.DatabaseFactory
 import app.ransel.server.plugins.configureSerialization
 import app.ransel.server.routes.healthRoutes
 import app.ransel.shared.api.ApiRoutes
@@ -15,6 +16,7 @@ fun main() {
 }
 
 fun Application.module(config: AppConfig = AppConfig.fromEnv()) {
+    DatabaseFactory.connect(config)
     configureSerialization()
     routing {
         route(ApiRoutes.BASE) {

@@ -86,7 +86,7 @@ CREATE TABLE itinerary_items (
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at              TIMESTAMPTZ,
-    CONSTRAINT itinerary_time_range CHECK (end_time IS NULL OR start_time IS NULL OR end_time >= start_time),
+    -- end_time may be earlier than start_time: the activity ends the next day (23:00-01:00).
     CONSTRAINT itinerary_latlng_pair CHECK ((lat IS NULL) = (lng IS NULL))
 );
 
