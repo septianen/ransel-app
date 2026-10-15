@@ -21,7 +21,7 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 - [x] **B3.1 Auth.** `register`, `login`, `refresh` (rotating refresh tokens stored as SHA-256 hashes), `logout`; bcrypt; short-lived JWT access token; `INVALID_CREDENTIALS`, `EMAIL_ALREADY_REGISTERED`, `TOKEN_EXPIRED`. Rate-limit login attempts.
 - [x] **B3.2 Me.** `GET/PATCH /me` (display name, default currency for new trips).
 - [x] **B3.3 Real principal.** Replace the dummy user with the JWT subject; every route except health/auth requires a token; `requireRole` per trip.
-- [ ] **B3.4 Sync.** `POST /sync` (per-row last-write-wins, access check per trip, one transaction per batch, accepted/rejected lists) and `GET /sync?since=` (every visible row changed after `since`, deletes included, `serverTime`). Test the scenarios in TRD "Testing".
+- [x] **B3.4 Sync.** `POST /sync` (per-row last-write-wins, access check per trip, one transaction per batch, accepted/rejected lists) and `GET /sync?since=` (every visible row changed after `since`, deletes included, `serverTime`). Test the scenarios in TRD "Testing".
 - [ ] **B3.5 Password reset.** `forgot` (always 204, token valid 30 min, single use, stored hashed) and `reset` (new hash, token used, revoke all refresh tokens). Email sender behind an interface; until the provider is chosen, a dev implementation that logs the link.
 
 **Done when:** a trip created offline on a phone shows up on the web once the phone is online.

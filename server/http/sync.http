@@ -1,0 +1,24 @@
+### First pull (omit since): everything you can see, tombstones included
+GET {{host}}/sync
+Authorization: Bearer {{token}}
+
+### Delta pull: use serverTime from the previous response
+GET {{host}}/sync?since=2026-10-15T00:00:00Z
+Authorization: Bearer {{token}}
+
+### Push pending rows. accepted/rejected come back per row; rejected rows carry an ErrorCode
+POST {{host}}/sync
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "changes": {
+    "trips": [
+      {
+        "id": "{{tripId}}", "ownerId": "paste your user id", "title": "Bali 4 hari", "destination": "Bali",
+        "startDate": "2026-11-20", "endDate": "2026-11-23", "baseCurrency": "IDR",
+        "createdAt": "2026-10-15T01:00:00Z", "updatedAt": "2026-10-15T01:00:00Z"
+      }
+    ]
+  }
+}

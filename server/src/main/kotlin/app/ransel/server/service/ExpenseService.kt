@@ -122,7 +122,7 @@ object ExpenseService {
         return row.toExpenseDto(splits)
     }
 
-    private fun replaceSplits(expenseId: UUID, splits: List<ExpenseSplitDto>) {
+    internal fun replaceSplits(expenseId: UUID, splits: List<ExpenseSplitDto>) {
         ExpenseSplits.deleteWhere { ExpenseSplits.expenseId eq expenseId }
         if (splits.isNotEmpty()) {
             ExpenseSplits.batchInsert(splits) { split ->
@@ -133,7 +133,7 @@ object ExpenseService {
         }
     }
 
-    private fun fill(it: org.jetbrains.exposed.v1.core.statements.UpdateBuilder<*>, body: ExpenseInput, payer: UUID) {
+    internal fun fill(it: org.jetbrains.exposed.v1.core.statements.UpdateBuilder<*>, body: ExpenseInput, payer: UUID) {
         it[Expenses.amountMinor] = body.amountMinor
         it[Expenses.currency] = body.currency
         it[Expenses.fxRateToBase] = body.fxRateToBase?.let { rate -> BigDecimal(rate) }
@@ -148,7 +148,7 @@ object ExpenseService {
         ApiException(HttpStatusCode.UnprocessableEntity, ErrorCode.VALIDATION_FAILED, "Validation failed", mapOf(*pairs))
 
     /** Phase 2 only checks shape and totals; membership of payer/split users is added with Phase 4 (B4.3). */
-    private fun validate(body: ExpenseInput, payer: UUID) {
+    internal fun validate(body: ExpenseInput, payer: UUID) {
         val problems = buildMap {
             if (body.amountMinor <= 0) put("amountMinor", "MUST_BE_POSITIVE")
             if (!isValidCurrency(body.currency)) put("currency", "INVALID_CURRENCY")

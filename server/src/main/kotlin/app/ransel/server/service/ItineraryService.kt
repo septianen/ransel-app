@@ -108,7 +108,7 @@ object ItineraryService {
             .where { liveIn(tripId) and (ItineraryItems.id eq itemId) }
             .singleOrNull()?.toItineraryItemDto() ?: throw notFound("Itinerary item")
 
-    private fun fill(it: UpdateBuilder<*>, body: ItineraryItemInput) {
+    internal fun fill(it: UpdateBuilder<*>, body: ItineraryItemInput) {
         it[ItineraryItems.dayDate] = body.dayDate?.toJavaLocalDate()
         it[ItineraryItems.startTime] = body.startTime?.toJavaLocalTime()
         it[ItineraryItems.endTime] = body.endTime?.toJavaLocalTime()
@@ -126,7 +126,7 @@ object ItineraryService {
     }
 
     // endTime may be earlier than startTime (ends next day), so there is deliberately no time-order rule.
-    private fun validate(body: ItineraryItemInput): Map<String, String> = buildMap {
+    internal fun validate(body: ItineraryItemInput): Map<String, String> = buildMap {
         if (body.title.isBlank()) put("title", "REQUIRED")
         if ((body.lat == null) != (body.lng == null)) put("lat", "LAT_LNG_BOTH_OR_NONE")
         if (body.lat != null && body.lat!! !in -90.0..90.0) put("lat", "OUT_OF_RANGE")

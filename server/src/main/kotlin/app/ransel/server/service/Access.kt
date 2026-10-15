@@ -27,3 +27,10 @@ fun requireRole(tripId: UUID, userId: UUID, min: Role): Role {
     if (!role.atLeast(min)) throw forbidden()
     return role
 }
+
+/** Membership role regardless of whether the trip is deleted (sync needs to see tombstones); null = not a member. */
+fun memberRole(tripId: UUID, userId: UUID): Role? = transaction {
+    TripMembers.select(TripMembers.role)
+        .where { (TripMembers.tripId eq tripId) and (TripMembers.userId eq userId) }
+        .singleOrNull()?.get(TripMembers.role)
+}

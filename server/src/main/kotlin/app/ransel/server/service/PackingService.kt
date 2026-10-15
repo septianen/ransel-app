@@ -88,7 +88,7 @@ object PackingService {
         PackingItems.selectAll().where { liveIn(tripId) and (PackingItems.id eq itemId) }
             .singleOrNull()?.toPackingItemDto() ?: throw notFound("Packing item")
 
-    private fun validate(name: String, quantity: Int): Map<String, String> = buildMap {
+    internal fun validate(name: String, quantity: Int): Map<String, String> = buildMap {
         if (name.isBlank()) put("name", "REQUIRED")
         if (quantity <= 0) put("quantity", "MUST_BE_POSITIVE")
     }

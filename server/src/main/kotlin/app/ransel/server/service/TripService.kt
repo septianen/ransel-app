@@ -97,19 +97,7 @@ object TripService {
                 it[budgetMinor] = body.budgetMinor
                 it[coverUrl] = body.coverUrl
             }
-            // Shortening the trip never deletes activities: those on removed days become unscheduled.
-            val live = ItineraryItems.selectAll()
-                .where { (ItineraryItems.tripId eq tripId) and ItineraryItems.deletedAt.isNull() and ItineraryItems.dayDate.isNotNull() }
-                .map { it.toItineraryItemDto() }
-            itemsOutsideRange(live, body.startDate, body.endDate).forEach { item ->
-                val input = item.toUnscheduledInput()
-                ItineraryItems.update({ ItineraryItems.id eq UUID.fromString(item.id) }) {
-                    it[dayDate] = null
-                    it[startTime] = null
-                    it[endTime] = null
-                    it[durationMin] = input.durationMin
-                }
-            }
+            unscheduleOutsideRange(tripId, body.startDate, body.endDate)
             load(tripId, role)
         }
     }
@@ -122,6 +110,22 @@ object TripService {
             ItineraryItems.update({ (ItineraryItems.tripId eq tripId) and ItineraryItems.deletedAt.isNull() }) { it[deletedAt] = now }
             PackingItems.update({ (PackingItems.tripId eq tripId) and PackingItems.deletedAt.isNull() }) { it[deletedAt] = now }
             Expenses.update({ (Expenses.tripId eq tripId) and Expenses.deletedAt.isNull() }) { it[deletedAt] = now }
+        }
+    }
+
+    /** Shortening a trip never deletes activities: those on removed days become unscheduled. Runs in the caller's transaction. */
+    internal fun unscheduleOutsideRange(tripId: UUID, start: kotlinx.datetime.LocalDate, end: kotlinx.datetime.LocalDate) {
+        val live = ItineraryItems.selectAll()
+            .where { (ItineraryItems.tripId eq tripId) and ItineraryItems.deletedAt.isNull() and ItineraryItems.dayDate.isNotNull() }
+            .map { it.toItineraryItemDto() }
+        itemsOutsideRange(live, start, end).forEach { item ->
+            val input = item.toUnscheduledInput()
+            ItineraryItems.update({ ItineraryItems.id eq UUID.fromString(item.id) }) {
+                it[dayDate] = null
+                it[startTime] = null
+                it[endTime] = null
+                it[durationMin] = input.durationMin
+            }
         }
     }
 

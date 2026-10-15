@@ -14,10 +14,12 @@ import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
 import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
+import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
 import app.ransel.server.security.PasswordHasher
 import app.ransel.server.security.TokenService
 import app.ransel.server.service.AuthService
+import app.ransel.server.service.SyncService
 import app.ransel.shared.api.ApiRoutes
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
@@ -57,6 +59,7 @@ fun Application.module(config: AppConfig = AppConfig.fromEnv()) {
                 itineraryRoutes()
                 packingRoutes()
                 expenseRoutes()
+                syncRoutes(SyncService())
             }
         }
     }
