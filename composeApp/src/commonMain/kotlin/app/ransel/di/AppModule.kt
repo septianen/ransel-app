@@ -9,6 +9,7 @@ import app.ransel.data.invite.InviteLinks
 import app.ransel.feature.invite.InviteSheetViewModel
 import app.ransel.feature.invite.JoinTripViewModel
 import app.ransel.feature.members.MembersViewModel
+import app.ransel.feature.packing.PackingTemplatesViewModel
 import app.ransel.feature.packing.PackingViewModel
 import app.ransel.feature.trip.TripSidePanelViewModel
 import app.ransel.feature.tripform.TripFormViewModel
@@ -48,6 +49,7 @@ val commonModule: Module = module {
     viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get()) }
     viewModel { params -> ItineraryViewModel(params.get(), get(), get()) }
     viewModel { params -> PackingViewModel(params.get(), get()) }
+    viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get()) }
     viewModel { params -> TripSidePanelViewModel(params.get(), get(), get()) }
     viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get()) }
     single { InviteLinks() }

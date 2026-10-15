@@ -17,6 +17,8 @@ import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
 import app.ransel.shared.dto.BalancesDto
+import app.ransel.shared.dto.CreatePackingTemplateRequest
+import app.ransel.shared.dto.PackingTemplateDto
 import app.ransel.shared.dto.CreateInviteRequest
 import app.ransel.shared.dto.CreateSettlementRequest
 import app.ransel.shared.dto.SettlementDto
@@ -172,6 +174,11 @@ class RanselApi(
     suspend fun settlements(tripId: String): ApiResult<List<SettlementDto>> = get(ApiRoutes.settlements(tripId))
     suspend fun createSettlement(tripId: String, request: CreateSettlementRequest): ApiResult<SettlementDto> =
         send(HttpMethod.Post, ApiRoutes.settlements(tripId), request)
+
+    // ── packing templates (Phase 4) ─────────────────────────────────────────
+    suspend fun packingTemplates(): ApiResult<List<PackingTemplateDto>> = get(ApiRoutes.PACKING_TEMPLATES)
+    suspend fun createPackingTemplate(request: CreatePackingTemplateRequest): ApiResult<PackingTemplateDto> =
+        send(HttpMethod.Post, ApiRoutes.PACKING_TEMPLATES, request)
 
     // ── invites (Phase 4) ───────────────────────────────────────────────────
     suspend fun invites(tripId: String): ApiResult<List<InviteDto>> = get(ApiRoutes.invites(tripId))

@@ -49,6 +49,11 @@ interface PackingRepository {
     suspend fun update(tripId: String, itemId: String, patch: PatchPackingItemRequest)
     suspend fun delete(tripId: String, itemId: String)
     suspend fun uncheckAll(tripId: String)
+
+    /** Adds several items (applying a template). One by one: each goes through the normal local-first path. */
+    suspend fun addAll(tripId: String, requests: List<CreatePackingItemRequest>) {
+        requests.forEach { add(tripId, it) }
+    }
 }
 
 interface ExpenseRepository {

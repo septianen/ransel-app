@@ -74,6 +74,11 @@ import ransel.composeapp.generated.resources.packing_menu
 import ransel.composeapp.generated.resources.packing_progress_count
 import ransel.composeapp.generated.resources.packing_progress_title
 import ransel.composeapp.generated.resources.packing_uncheck_all
+import ransel.composeapp.generated.resources.template_added
+import ransel.composeapp.generated.resources.template_apply_title
+import ransel.composeapp.generated.resources.template_error
+import ransel.composeapp.generated.resources.template_save_title
+import ransel.composeapp.generated.resources.template_saved
 
 @Composable
 fun PackingTab(
@@ -83,7 +88,28 @@ fun PackingTab(
 ) {
     val state by viewModel.state.collectAsState()
     val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
+    // Templates live on the server: they need an account (guests keep the plain list).
+    val session: app.ransel.data.auth.SessionManager = org.koin.compose.koinInject()
+    val signedIn = session.state.collectAsState().value is app.ransel.data.auth.SessionState.SignedIn
+    val canUseTemplates = canEdit && signedIn
+    val templates: PackingTemplatesViewModel =
+        koinViewModel(key = "packing-templates-${trip.id}") { parametersOf(trip.id) }
+    val templateState by templates.state.collectAsState()
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
+    val addedText = stringResource(Res.string.template_added)
+    val savedText = stringResource(Res.string.template_saved)
+    val errorText = stringResource(Res.string.template_error)
     var sheet by remember { mutableStateOf<SheetTarget?>(null) }
+    androidx.compose.runtime.LaunchedEffect(templates) {
+        templates.eventFlow.collect { event ->
+            snackbar.currentSnackbarData?.dismiss()
+            when (event) {
+                is TemplateEvent.Applied -> { sheet = null; snackbar.showSnackbar(addedText.replace("%1\$d", event.count.toString())) }
+                TemplateEvent.Saved -> { sheet = null; snackbar.showSnackbar(savedText) }
+                is TemplateEvent.Problem -> snackbar.showSnackbar(errorText)
+            }
+        }
+    }
     val editing = state.groups.flatMap { it.items }.firstOrNull { it.id == (sheet as? SheetTarget.Edit)?.itemId }
     val today = remember { today() }
 
@@ -95,6 +121,9 @@ fun PackingTab(
                 body = stringResource(Res.string.packing_empty_body, trip.title),
                 primaryLabel = if (canEdit) stringResource(Res.string.packing_add) else null,
                 onPrimary = if (canEdit) ({ sheet = SheetTarget.Add }) else null,
+                // The ⋮ menu is not on screen yet, so an empty list offers templates here (the main reason to use them).
+                secondaryLabel = if (canUseTemplates) stringResource(Res.string.template_apply_title) else null,
+                onSecondary = if (canUseTemplates) ({ templates.load(); sheet = SheetTarget.UseTemplate }) else null,
                 illustration = painterResource(Res.drawable.capybara_bedroll_lantern),
             )
             else -> {
@@ -106,6 +135,8 @@ fun PackingTab(
                     onEdit = { sheet = SheetTarget.Edit(it.id) },
                     onUncheckAll = viewModel::uncheckAll,
                     canEdit = canEdit,
+                    onUseTemplate = if (canUseTemplates) ({ templates.load(); sheet = SheetTarget.UseTemplate }) else null,
+                    onSaveTemplate = if (canUseTemplates) ({ sheet = SheetTarget.SaveTemplate }) else null,
                 )
                 if (canEdit) {
                     AddFab(
@@ -117,7 +148,31 @@ fun PackingTab(
         }
     }
 
+    androidx.compose.material3.SnackbarHost(
+        hostState = snackbar,
+        modifier = Modifier.padding(16.dp),
+        snackbar = { data -> app.ransel.ui.components.UndoSnackbar(message = data.visuals.message) },
+    )
+
+    val allItems = state.groups.flatMap { it.items }
     when (val target = sheet) {
+        SheetTarget.UseTemplate -> ApplyTemplateSheet(
+            state = templateState,
+            existing = allItems,
+            onSelect = templates::select,
+            onSkipChange = templates::setSkipExisting,
+            onRetry = templates::load,
+            onApply = templates::apply,
+            onSaveCurrent = { sheet = SheetTarget.SaveTemplate },
+            onDismiss = { sheet = null },
+        )
+        SheetTarget.SaveTemplate -> SaveTemplateSheet(
+            defaultName = trip.title,
+            items = allItems,
+            busy = templateState.busy,
+            onSave = templates::save,
+            onDismiss = { sheet = null },
+        )
         SheetTarget.Add -> AddPackingItemSheet(
             tripTitle = trip.title,
             itemCount = state.total,
@@ -158,6 +213,8 @@ private fun PackingList(
     onEdit: (PackingItemDto) -> Unit,
     onUncheckAll: () -> Unit,
     canEdit: Boolean,
+    onUseTemplate: (() -> Unit)?,
+    onSaveTemplate: (() -> Unit)?,
 ) {
     Column(
         Modifier
@@ -166,7 +223,7 @@ private fun PackingList(
             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        ProgressCard(trip, state, today, onUncheckAll, canEdit)
+        ProgressCard(trip, state, today, onUncheckAll, canEdit, onUseTemplate, onSaveTemplate)
         state.groups.forEach { group ->
             PackingGroupSection(group, onToggle = onToggle, onEdit = onEdit, canEdit = canEdit)
         }
@@ -260,6 +317,8 @@ private fun ProgressCard(
     today: kotlinx.datetime.LocalDate,
     onUncheckAll: () -> Unit,
     canEdit: Boolean,
+    onUseTemplate: (() -> Unit)?,
+    onSaveTemplate: (() -> Unit)?,
 ) {
     var menu by remember { mutableStateOf(false) }
     Column(
@@ -295,6 +354,20 @@ private fun ProgressCard(
                     contentAlignment = Alignment.Center,
                 ) { Symbol(Symbols.moreVert, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    if (onUseTemplate != null) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.template_apply_title)) },
+                            leadingIcon = { Symbol(Symbols.contentCopy) },
+                            onClick = { menu = false; onUseTemplate() },
+                        )
+                    }
+                    if (onSaveTemplate != null) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.template_save_title)) },
+                            leadingIcon = { Symbol(Symbols.bookmarkAdd) },
+                            onClick = { menu = false; onSaveTemplate() },
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text(stringResource(Res.string.packing_uncheck_all)) },
                         leadingIcon = { Symbol(Symbols.checklist) },
@@ -396,5 +469,7 @@ private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
 /** What the add/edit sheet is showing. */
 sealed interface SheetTarget {
     data object Add : SheetTarget
+    data object UseTemplate : SheetTarget
+    data object SaveTemplate : SheetTarget
     data class Edit(val itemId: String) : SheetTarget
 }

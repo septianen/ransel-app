@@ -579,4 +579,28 @@
         <item quantity="one">%1$d person</item>
         <item quantity="other">%1$d people</item>
     </plurals>
+
+    <!-- Packing templates (Phase 4) -->
+    <string name="template_apply_title">Use template</string>
+    <string name="template_builtin">Built-in</string>
+    <string name="template_mine">My templates</string>
+    <string name="template_none">You have not saved any template yet.</string>
+    <string name="template_size">%1$d items · %2$d categories</string>
+    <string name="template_skip_existing">Skip %1$d items already on the list</string>
+    <string name="template_add_items">Add %1$d items</string>
+    <string name="template_save_from_list">Save this list as a template</string>
+    <string name="template_added">%1$d items added</string>
+    <string name="template_saved">Template saved</string>
+    <string name="template_error">Templates are not available right now. Check your connection and try again.</string>
+    <string name="template_save_title">Save as template</string>
+    <string name="template_save_subtitle">Reuse this list for your next trip.</string>
+    <string name="template_name">Template name</string>
+    <string name="template_name_error">Give the template a name</string>
+    <string name="template_contents">Contents · %1$d items</string>
+    <string name="template_keep_quantities">Keep quantities</string>
+    <string name="template_keep_quantities_hint">E.g. T-shirt ×3 stays ×3</string>
+    <string name="template_share">Share with trip members</string>
+    <string name="template_share_hint">Other members can use this template</string>
+    <string name="template_save_note">Ticked state is not saved. Every item starts unpacked.</string>
+    <string name="template_save">Save template</string>
 </resources>

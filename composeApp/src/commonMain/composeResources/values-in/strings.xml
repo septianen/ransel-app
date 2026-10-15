@@ -575,4 +575,28 @@
     <plurals name="shared_people">
         <item quantity="other">%1$d orang</item>
     </plurals>
+
+    <!-- Packing templates (Phase 4) -->
+    <string name="template_apply_title">Pakai template</string>
+    <string name="template_builtin">Bawaan</string>
+    <string name="template_mine">Template saya</string>
+    <string name="template_none">Kamu belum menyimpan template.</string>
+    <string name="template_size">%1$d barang · %2$d kategori</string>
+    <string name="template_skip_existing">Lewati %1$d barang yang sudah ada</string>
+    <string name="template_add_items">Tambahkan %1$d barang</string>
+    <string name="template_save_from_list">Simpan daftar ini sebagai template</string>
+    <string name="template_added">%1$d barang ditambahkan</string>
+    <string name="template_saved">Template tersimpan</string>
+    <string name="template_error">Template belum bisa dimuat. Cek koneksimu, lalu coba lagi.</string>
+    <string name="template_save_title">Simpan sebagai template</string>
+    <string name="template_save_subtitle">Pakai lagi daftar ini untuk trip berikutnya.</string>
+    <string name="template_name">Nama template</string>
+    <string name="template_name_error">Beri nama template</string>
+    <string name="template_contents">Isi template · %1$d barang</string>
+    <string name="template_keep_quantities">Simpan jumlah barang</string>
+    <string name="template_keep_quantities_hint">Mis. Kaos ×3 tetap ×3</string>
+    <string name="template_share">Bagikan ke anggota trip</string>
+    <string name="template_share_hint">Anggota lain bisa memakai template ini</string>
+    <string name="template_save_note">Status centang tidak ikut disimpan. Semua barang mulai dari belum siap.</string>
+    <string name="template_save">Simpan template</string>
 </resources>
