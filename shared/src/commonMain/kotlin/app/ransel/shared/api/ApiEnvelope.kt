@@ -57,6 +57,7 @@ object ErrorCode {
     const val NOT_FOUND = "NOT_FOUND"                      // 404, non-trip resources
     const val FORBIDDEN = "FORBIDDEN"                      // 403, role too low for this action
     const val CONFLICT = "CONFLICT"                        // 409, generic
+    const val RATE_LIMITED = "RATE_LIMITED"                // 429, too many requests (e.g. login attempts); retry after the Retry-After header
 
     // auth (Phase 3)
     const val UNAUTHORIZED = "UNAUTHORIZED"                // 401, no/invalid access token
