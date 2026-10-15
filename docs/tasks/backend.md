@@ -32,7 +32,7 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 - [x] **B4.2 Members.** List, change role, remove (keeps their expenses and splits), leave (`OWNER_CANNOT_LEAVE`), transfer ownership (old owner → EDITOR). Sync pull includes `members`.
 - [x] **B4.3 Shared expenses.** `paidByUserId` must be a member; splits only for members; validation as Phase 2.
 - [x] **B4.4 Balances & settlements.** `GET /balances` with `computeBalances` + `fewestTransfers` (base currency), `GET/POST /settlements`; settlements also sync.
-- [ ] **B4.5 Packing templates.** Seed the three built-in templates (owner_id NULL) in a repeatable seed, list (built-in + own + shared with my trips), create, apply (`skipExisting`).
+- [x] **B4.5 Packing templates.** Seed the three built-in templates (owner_id NULL) in a repeatable seed, list (built-in + own + shared with my trips), create, apply (`skipExisting`).
 - [ ] **B4.6 App links.** Serve `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` for `https://ransel.app/j/*` (values from the frontend agent).
 
 **Done when:** two accounts manage one trip and the split-bill result is correct (unit + API tests with the PRD example numbers).

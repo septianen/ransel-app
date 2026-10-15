@@ -26,6 +26,7 @@ dependencies {
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.java.time)
+    implementation(libs.exposed.json)
     implementation(libs.flyway.core)
     runtimeOnly(libs.flyway.postgresql)
     implementation(libs.hikari)

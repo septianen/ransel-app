@@ -1,6 +1,7 @@
 package app.ransel.server
 
 import app.ransel.server.db.DatabaseFactory
+import app.ransel.server.db.TemplateSeed
 import app.ransel.server.plugins.JWT_AUTH
 import app.ransel.server.plugins.configureAuth
 import app.ransel.server.plugins.configureCallLogging
@@ -16,6 +17,7 @@ import app.ransel.server.routes.itineraryRoutes
 import app.ransel.server.routes.memberRoutes
 import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
+import app.ransel.server.routes.packingTemplateRoutes
 import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
 import app.ransel.server.security.EmailSender
@@ -46,6 +48,7 @@ fun Application.module(
     emailSender: EmailSender = LoggingEmailSender(config.isProduction),
 ) {
     val pool = DatabaseFactory.connect(config)
+    TemplateSeed.run()
     monitor.subscribe(ApplicationStopped) { (pool as? HikariDataSource)?.close() }
 
     val tokens = TokenService(config)
@@ -74,6 +77,7 @@ fun Application.module(
                 syncRoutes(SyncService())
                 memberRoutes(InviteService(config))
                 balanceRoutes()
+                packingTemplateRoutes()
             }
         }
     }

@@ -10,6 +10,9 @@ import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.time
 import org.jetbrains.exposed.v1.javatime.timestamp
+import org.jetbrains.exposed.v1.json.jsonb
+import app.ransel.shared.dto.TemplateItem
+import kotlinx.serialization.json.Json
 
 /*
  * Exposed mappings of the Flyway schema (V1..V3). Flyway owns the DDL; these objects only describe it.
@@ -156,6 +159,19 @@ object Settlements : Table("settlements") {
     val toUserId = javaUUID("to_user_id")
     val amountMinor = long("amount_minor")
     val settledAt = timestamp("settled_at")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object PackingTemplates : Table("packing_templates") {
+    val id = javaUUID("id")
+    /** Null = built-in. */
+    val ownerId = javaUUID("owner_id").nullable()
+    val sharedTripId = javaUUID("shared_trip_id").nullable()
+    val name = text("name")
+    val items = jsonb<List<TemplateItem>>("items", Json)
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
