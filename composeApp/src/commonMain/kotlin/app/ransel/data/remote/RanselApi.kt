@@ -51,6 +51,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.request
@@ -73,6 +74,12 @@ val ApiJson = Json {
 }
 
 private const val REQUEST_TIMEOUT_MILLIS = 15_000L
+
+/**
+ * A search runs an LLM call (up to 45 s on the server, retried once) plus Places lookups, so it needs far more
+ * than the 15 s of a normal request. The background batch (`newSearch=false`) takes the same path.
+ */
+private const val RECOMMENDATION_TIMEOUT_MILLIS = 100_000L
 
 /**
  * HTTP client for the API. [engine] is only passed by tests (MockEngine); otherwise the platform's
@@ -185,7 +192,7 @@ class RanselApi(
 
     // ── Explore AI (Phase 5) ────────────────────────────────────────────────
     suspend fun recommend(request: RecommendationRequest): ApiResult<RecommendationResponse> =
-        send(HttpMethod.Post, ApiRoutes.RECOMMENDATIONS, request)
+        send(HttpMethod.Post, ApiRoutes.RECOMMENDATIONS, request, timeoutMillis = RECOMMENDATION_TIMEOUT_MILLIS)
     suspend fun sendFeedback(request: FeedbackRequest): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.RECOMMENDATION_FEEDBACK, bodyOf = { contentType(ContentType.Application.Json); setBody(request) }) { }
     suspend fun undoFeedback(tripId: String, placeId: String): ApiResult<Unit> =
@@ -204,8 +211,17 @@ class RanselApi(
     private suspend inline fun <reified T> get(path: String): ApiResult<T> =
         call(HttpMethod.Get, path) { it.body<ApiResponse<T>>().data }
 
-    private suspend inline fun <reified B : Any, reified T> send(method: HttpMethod, path: String, body: B): ApiResult<T> =
-        call(method, path, bodyOf = { contentType(ContentType.Application.Json); setBody(body) }) {
+    private suspend inline fun <reified B : Any, reified T> send(
+        method: HttpMethod,
+        path: String,
+        body: B,
+        timeoutMillis: Long? = null,
+    ): ApiResult<T> =
+        call(method, path, bodyOf = {
+            contentType(ContentType.Application.Json)
+            setBody(body)
+            if (timeoutMillis != null) timeout { requestTimeoutMillis = timeoutMillis }
+        }) {
             it.body<ApiResponse<T>>().data
         }
 
