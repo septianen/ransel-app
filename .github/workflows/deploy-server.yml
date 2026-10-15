@@ -122,7 +122,7 @@ jobs:
             echo "LLM_API_KEY=$LLM_API_KEY"
             echo "PLACES_API_KEY=$PLACES_API_KEY"
             echo "LLM_MODEL=${LLM_MODEL:-gemini-3.5-flash}"
-            echo "LLM_FALLBACK_MODEL=${LLM_FALLBACK_MODEL:-gemini-flash-latest}"
+            echo "LLM_FALLBACK_MODEL=${LLM_FALLBACK_MODEL:-gemini-3.1-flash-lite}"
           } | $SSH "umask 077 && cat > '$DEPLOY_PATH/.env'"
 
           printf '%s' "$GHCR_TOKEN" | $SSH "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"

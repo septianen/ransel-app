@@ -37,7 +37,7 @@ data class AppConfig(
     val llmBaseUrl: String = "https://generativelanguage.googleapis.com/v1beta",
     val llmModel: String = "gemini-3.5-flash",
     /** Used when the primary model answers 429/5xx. Blank = none. */
-    val llmFallbackModel: String = "gemini-flash-latest",
+    val llmFallbackModel: String = "gemini-3.1-flash-lite",
     val placesApiKey: String = "",
     val aiCacheTtl: Duration = 3.days,
 ) {
@@ -88,7 +88,7 @@ data class AppConfig(
                 llmApiKey = env["LLM_API_KEY"].orEmpty().trim(),
                 llmBaseUrl = (env["LLM_BASE_URL"]?.takeIf { it.isNotBlank() } ?: "https://generativelanguage.googleapis.com/v1beta").trimEnd('/'),
                 llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.5-flash",
-                llmFallbackModel = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-flash-latest",
+                llmFallbackModel = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.1-flash-lite",
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),
