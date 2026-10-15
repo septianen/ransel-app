@@ -1,5 +1,6 @@
 ### Create a trip (id is a client-generated UUID)
 POST {{host}}/trips
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -14,12 +15,15 @@ Content-Type: application/json
 
 ### List my trips
 GET {{host}}/trips
+Authorization: Bearer {{token}}
 
 ### Trip detail + summary
 GET {{host}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
 
 ### Update (full replacement; activities on removed days become unscheduled)
 PUT {{host}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -33,3 +37,4 @@ Content-Type: application/json
 
 ### Delete (soft)
 DELETE {{host}}/trips/{{tripId}}
+Authorization: Bearer {{token}}

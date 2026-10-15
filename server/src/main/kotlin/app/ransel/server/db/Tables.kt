@@ -19,6 +19,12 @@ import org.jetbrains.exposed.v1.javatime.timestamp
 object Users : Table("users") {
     val id = javaUUID("id")
     val displayName = text("display_name")
+    /** Null only for the seeded Phase 2 dummy user (guest data); real accounts always have both. */
+    val email = text("email").nullable()
+    val passwordHash = text("password_hash").nullable()
+    val defaultCurrency = char("default_currency", 3)
+    val createdAt = timestamp("created_at")
+    val deletedAt = timestamp("deleted_at").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -104,4 +110,16 @@ object ExpenseSplits : Table("expense_splits") {
     val userId = javaUUID("user_id")
     val shareMinor = long("share_minor")
     override val primaryKey = PrimaryKey(expenseId, userId)
+}
+
+object RefreshTokens : Table("refresh_tokens") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    /** SHA-256 hex of the token; the token itself is never stored. */
+    val tokenHash = text("token_hash")
+    val deviceName = text("device_name").nullable()
+    val expiresAt = timestamp("expires_at")
+    val revokedAt = timestamp("revoked_at").nullable()
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
 }

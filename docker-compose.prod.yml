@@ -6,6 +6,9 @@ services:
     restart: unless-stopped
     environment:
       PORT: 8080
+      APP_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ characters)}
+      JWT_ISSUER: ${JWT_ISSUER:-ransel}
       DATABASE_URL: jdbc:postgresql://db:5432/ransel
       DATABASE_USER: ransel
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?set DATABASE_PASSWORD}

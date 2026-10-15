@@ -1,5 +1,6 @@
 ### Add an activity
 POST {{host}}/trips/{{tripId}}/itinerary
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -14,6 +15,7 @@ Content-Type: application/json
 
 ### Unscheduled place (e.g. from Explore)
 POST {{host}}/trips/{{tripId}}/itinerary
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -26,9 +28,11 @@ Content-Type: application/json
 
 ### List (unscheduled first, then by day and sortOrder)
 GET {{host}}/trips/{{tripId}}/itinerary
+Authorization: Bearer {{token}}
 
 ### Schedule / replace
 PUT {{host}}/trips/{{tripId}}/itinerary/22222222-2222-4222-8222-222222222222
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -45,9 +49,11 @@ Content-Type: application/json
 
 ### Save the order + times of one day (returns that day's items)
 PUT {{host}}/trips/{{tripId}}/days/2026-11-20/order
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "items": [ { "id": "22222222-2222-4222-8222-222222222221", "sortOrder": 1.0, "startTime": "10:00", "endTime": "11:25" } ] }
 
 ### Delete (soft)
 DELETE {{host}}/trips/{{tripId}}/itinerary/22222222-2222-4222-8222-222222222221
+Authorization: Bearer {{token}}

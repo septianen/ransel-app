@@ -49,6 +49,13 @@ fun Application.configureStatusPages() {
                 ApiError(ErrorCode.VALIDATION_FAILED, "Malformed request body"),
             )
         }
+        // Sent by the RateLimit plugin (Retry-After is already set); give it the standard error body.
+        status(HttpStatusCode.TooManyRequests) { call, _ ->
+            call.respondError(
+                HttpStatusCode.TooManyRequests,
+                ApiError(ErrorCode.RATE_LIMITED, "Too many attempts, try again in a minute"),
+            )
+        }
         exception<Throwable> { call, e ->
             // Full detail stays in the log; the body never carries a stack trace or SQL text.
             log.error("Unhandled error on {} {}", call.request.local.method.value, call.request.local.uri, e)

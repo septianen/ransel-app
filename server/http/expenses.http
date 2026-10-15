@@ -1,5 +1,6 @@
 ### Record an expense (paidByUserId omitted = you)
 POST {{host}}/trips/{{tripId}}/expenses
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -14,6 +15,7 @@ Content-Type: application/json
 
 ### Foreign currency: USD 10.00 at 1 USD = 16000 IDR
 POST {{host}}/trips/{{tripId}}/expenses
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -27,6 +29,7 @@ Content-Type: application/json
 
 ### Shares that do not add up -> 422 SPLIT_TOTAL_MISMATCH
 POST {{host}}/trips/{{tripId}}/expenses
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -39,9 +42,12 @@ Content-Type: application/json
 
 ### List (newest first, splits included)
 GET {{host}}/trips/{{tripId}}/expenses
+Authorization: Bearer {{token}}
 
 ### Summary (base currency, days in Asia/Jakarta)
 GET {{host}}/trips/{{tripId}}/expenses/summary
+Authorization: Bearer {{token}}
 
 ### Delete (soft)
 DELETE {{host}}/trips/{{tripId}}/expenses/44444444-4444-4444-8444-444444444441
+Authorization: Bearer {{token}}

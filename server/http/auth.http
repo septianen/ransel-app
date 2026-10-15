@@ -1,0 +1,34 @@
+### Register (201). Copy accessToken into http-client.env.json as "token".
+POST {{host}}/auth/register
+Content-Type: application/json
+
+{ "email": "budi@example.com", "password": "Passw0rdOk", "displayName": "Budi", "deviceName": "dev" }
+
+### Login
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{ "email": "budi@example.com", "password": "Passw0rdOk", "deviceName": "dev" }
+
+### Refresh (rotates the refresh token; the old one stops working)
+POST {{host}}/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "paste refreshToken" }
+
+### Logout this device -> 204
+POST {{host}}/auth/logout
+Content-Type: application/json
+
+{ "refreshToken": "paste refreshToken" }
+
+### Me
+GET {{host}}/me
+Authorization: Bearer {{token}}
+
+### Update me
+PATCH {{host}}/me
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "displayName": "Budi S", "defaultCurrency": "IDR" }
