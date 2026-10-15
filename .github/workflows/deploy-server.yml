@@ -82,7 +82,7 @@ jobs:
           HOST: ${{ secrets.DEPLOY_HOST }}
           PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || format('/home/{0}/ransel', secrets.DEPLOY_USER) }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/app/opt/ransel' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           SEED_USER_EMAIL: ${{ secrets.SEED_USER_EMAIL }}

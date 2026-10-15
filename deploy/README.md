@@ -11,7 +11,11 @@ sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d ranselapi.mietek.tech
 ```
 
-The user that deploys (`sen`) must be in the `docker` group and own the deploy folder (default `/home/<user>/ransel`, override with the repository variable `DEPLOY_PATH`).
+The user that deploys (`sen`) must be in the `docker` group and own the deploy folder. The default is `/app/opt/ransel` (override with the repository variable `DEPLOY_PATH`):
+
+```
+sudo mkdir -p /app/opt/ransel && sudo chown -R sen:sen /app
+```
 
 ## GitHub secrets (Settings -> Secrets and variables -> Actions)
 
@@ -29,7 +33,7 @@ The user that deploys (`sen`) must be in the `docker` group and own the deploy f
 `deploy/backup-db.sh` dumps the database into `backups/` and keeps 14 days. Add to the deploy user's crontab (`crontab -e`):
 
 ```
-15 3 * * * cd /home/sen/ransel && ./deploy/backup-db.sh >> backup.log 2>&1
+15 3 * * * cd /app/opt/ransel && ./deploy/backup-db.sh >> backup.log 2>&1
 ```
 
 Copying the dumps off the VPS (rsync/rclone to another machine or bucket) is a separate step.
