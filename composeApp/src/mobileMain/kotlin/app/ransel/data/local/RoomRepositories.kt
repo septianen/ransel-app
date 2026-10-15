@@ -235,6 +235,12 @@ class RoomPreferencesRepository(private val db: RanselDatabase) : PreferencesRep
     override suspend fun setOnboardingCompleted(completed: Boolean) = put(ONBOARDING_DONE, completed.toString())
     override suspend fun setLanguage(language: AppLanguage) = put(LANGUAGE, language.name)
 
+    override suspend fun getString(key: String): String? = db.preferenceDao().get(key)?.ifEmpty { null }
+
+    override suspend fun putString(key: String, value: String?) {
+        if (value == null) db.preferenceDao().remove(key) else put(key, value)
+    }
+
     private suspend fun put(key: String, value: String) = db.preferenceDao().set(PreferenceEntity(key, value))
 
     private companion object {

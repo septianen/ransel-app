@@ -93,11 +93,16 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 ## Phase 5 — Explore AI
 
-- [ ] **F5.1 Explore tab.** `PreferensiAI` (form prefilled from the trip), `JelajahLanjut` (Continue card + magenta dot on the tab), `JelajahTamu` (guest), `JelajahTanpaTrip` (no trip).
-- [ ] **F5.2 Swipe.** `MemuatRekomendasi`, `Swipe` (no rotation, outline + SIMPAN/LEWATI label, throw at 40% width), `SwipeKanan`, `SwipeKiri`, `SwipeTersimpan`, Undo, prefetch at 3 cards left (`newSearch=false`), `GelapSwipe`.
-- [ ] **F5.3 Save.** Swipe right creates the itinerary item (unscheduled, `source=AI`, placeId, lat/lng, `durationMin`) through the normal repository + sends feedback; swipe left sends SKIP; undo deletes both.
-- [ ] **F5.4 States.** `SwipeHabis`, `SwipeError`, `SwipeTidakAda`, `SwipeKuota` ("10 dari 10").
-- [ ] **F5.5 Entry points.** Show the Home callout, "Cari inspirasi dengan AI" buttons and the unscheduled count in "Persiapan trip".
+- [x] **F5.1 Explore tab.** `PreferensiAI` (form prefilled from the trip), `JelajahLanjut` (Continue card + magenta dot on the tab), `JelajahTamu` (guest), `JelajahTanpaTrip` (no trip).
+  - Done. `ExploreScreen`: guest state (needs an account; on mobile guests), no-trip state, the preference form prefilled from the featured trip (a menu switches trip), and the "Lanjutkan" card; the Explore tab shows the magenta dot while a session is unfinished. The session (form, cards, swipes) is stored per device as JSON in the preferences (`ExploreSessionStore`).
+- [x] **F5.2 Swipe.** `MemuatRekomendasi`, `Swipe` (no rotation, outline + SIMPAN/LEWATI label, throw at 40% width), `SwipeKanan`, `SwipeKiri`, `SwipeTersimpan`, Undo, prefetch at 3 cards left (`newSearch=false`), `GelapSwipe`.
+  - Done. `SwipeScreen` + `SwipeViewModel`: loading, card stack, drag with outline and SIMPAN/LEWATI label (no rotation, throw at 40 % of the width), ✕ / undo / ♥ buttons, "n dari m" + "n disimpan", prefetch with `newSearch=false` when 3 cards are left. Photos are not shown: the category colour and icon stand in until the backend offers a photo proxy (the Places key must not reach the app).
+- [x] **F5.3 Save.** Swipe right creates the itinerary item (unscheduled, `source=AI`, placeId, lat/lng, `durationMin`) through the normal repository + sends feedback; swipe left sends SKIP; undo deletes both.
+  - Done. Right swipe saves an unscheduled item (`source=AI`, placeId, lat/lng, `durationMin`) through the normal itinerary repository and sends LIKE; left swipe sends SKIP; Undo deletes the item and the stored feedback. Feedback is best-effort (offline never blocks swiping).
+- [x] **F5.4 States.** `SwipeHabis`, `SwipeError`, `SwipeTidakAda`, `SwipeKuota` ("10 dari 10").
+  - Done. `SwipeHabis` (finished, with "Lihat di itinerary"), `SwipeError` (AI_UNAVAILABLE, connection variant), `SwipeTidakAda`, `SwipeKuota`. The quota screen says "10 dari 10" using the limit from the response when known.
+- [x] **F5.5 Entry points.** Show the Home callout, "Cari inspirasi dengan AI" buttons and the unscheduled count in "Persiapan trip".
+  - Done. Home callout ("Bingung mau ke mana di …?" → Coba), the "belum dijadwalkan" column in "Persiapan trip", and "Cari inspirasi dengan AI" on an empty itinerary day (signed-in editors/owners). Entering from a trip pre-selects that trip in the form. Not built: "Cari tempat lain" in the unscheduled sheet and the AI filter there (no design).
 
 **Done when:** recommendations can be swiped, saved places appear in "Belum dijadwalkan", and they can be scheduled into a day.
 

@@ -33,6 +33,9 @@ internal class LocalStoragePreferencesRepository : PreferencesRepository {
     override suspend fun setLanguage(language: AppLanguage) =
         write(LANGUAGE, language.name) { it.copy(language = language) }
 
+    override suspend fun getString(key: String): String? = storageGet("ransel.$key").ifEmpty { null }
+    override suspend fun putString(key: String, value: String?) = storageSet("ransel.$key", value.orEmpty())
+
     private fun write(key: String, value: String, change: (AppPreferences) -> AppPreferences) {
         storageSet(key, value)
         state.update(change)

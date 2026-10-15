@@ -26,4 +26,8 @@ interface PreferencesRepository {
     suspend fun setSkipReorderConfirmation(skip: Boolean)
     suspend fun setOnboardingCompleted(completed: Boolean)
     suspend fun setLanguage(language: AppLanguage)
+
+    /** Small per-device blobs (e.g. the unfinished Explore session as JSON). null/blank = not set. */
+    suspend fun getString(key: String): String? = null
+    suspend fun putString(key: String, value: String?) = Unit
 }

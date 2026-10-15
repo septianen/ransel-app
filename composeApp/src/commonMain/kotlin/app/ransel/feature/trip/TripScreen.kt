@@ -40,6 +40,7 @@ fun TripScreen(
     onBack: () -> Unit,
     onEditTrip: () -> Unit,
     onMembers: () -> Unit,
+    onExplore: () -> Unit,
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -73,7 +74,7 @@ fun TripScreen(
             Box(Modifier.weight(1f).navigationBarsPadding()) {
                 if (current != null) {
                     when (tab) {
-                        TripTab.ITINERARY -> ItineraryTab(current, onAddActivity, onEditActivity)
+                        TripTab.ITINERARY -> ItineraryTab(current, onAddActivity, onEditActivity, onExplore = if (signedIn) onExplore else null)
                         TripTab.PACKING -> PackingTab(current)
                         TripTab.EXPENSES -> ExpensesTab(current)
                     }

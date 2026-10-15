@@ -99,6 +99,10 @@ import app.ransel.navigation.EditTripRoute
 import app.ransel.navigation.ExploreRoute
 import app.ransel.navigation.HomeRoute
 import app.ransel.navigation.JoinTripRoute
+import app.ransel.navigation.SwipeRoute
+import app.ransel.feature.explore.ExploreScreen
+import app.ransel.feature.explore.SwipeScreen
+import app.ransel.data.explore.ExploreSessionStore
 import app.ransel.navigation.MembersRoute
 import app.ransel.feature.invite.JoinTripScreen
 import app.ransel.data.invite.InviteLinks
@@ -198,6 +202,8 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     val sessionState by sessionManager.state.collectAsState()
     LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }
     // An invite link was opened (or `/j/<code>` on the web): show the join screen over whatever is open.
+    val exploreStore: ExploreSessionStore = koinInject()
+    val exploreSession by exploreStore.session.collectAsState()
     val inviteLinks: InviteLinks = koinInject()
     val pendingInvite by inviteLinks.pending.collectAsState()
     val currentEntry by navController.currentBackStackEntryAsState()
@@ -279,7 +285,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
                     if (!expanded && selected != null) {
-                        RanselBottomBar(selected = selected, onSelect = ::openTab)
+                        RanselBottomBar(selected = selected, onSelect = ::openTab, exploreHasSession = exploreSession?.finished == false)
                     }
                 },
             ) { padding ->
@@ -304,8 +310,8 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                         else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
                     },
                 ) {
-                    tabs(navController)
-                    trips(navController)
+                    tabs(navController, exploreStore)
+                    trips(navController, exploreStore)
                     authGraph(navController, allowGuest = !requiresAccount, onFinished = {
                         // Signed in (or chose offline): back to the app's home, dropping the auth screens.
                         navController.navigate(HomeRoute) {
@@ -341,7 +347,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     }
 }
 
-private fun NavGraphBuilder.tabs(navController: NavHostController) {
+private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore: ExploreSessionStore) {
     page<HomeRoute> {
         HomeScreen(
             modifier = Modifier.statusBarsPadding(),
@@ -354,6 +360,13 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
                 navController.navigate(TripRoute(id, tab.name))
             },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
+            onExplore = { id ->
+                exploreStore.preferTrip(id)
+                navController.navigate(ExploreRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                }
+            },
         )
     }
     page<TripListRoute> {
@@ -364,10 +377,27 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
         )
     }
     page<ExploreRoute> {
-        PlaceholderScreen(
-            stringResource(Res.string.placeholder_explore_title),
-            stringResource(Res.string.placeholder_body),
-            modifier = Modifier.statusBarsPadding(),
+        ExploreScreen(
+            onSignIn = { navController.navigate(SignInRoute) },
+            onSignUp = { navController.navigate(SignUpRoute) },
+            onCreateTrip = { navController.navigate(CreateTripRoute) },
+            onOpenSwipe = { navController.navigate(SwipeRoute) },
+        )
+    }
+    page<SwipeRoute> {
+        SwipeScreen(
+            onClose = { navController.popBackStack() },
+            // Back to the form (the session was dropped or replaced there).
+            onChangePreferences = { navController.popBackStack() },
+            onOpenItinerary = { id ->
+                navController.navigate(TripRoute(id, TripTab.ITINERARY.name)) { popUpTo<SwipeRoute> { inclusive = true } }
+            },
+            onHome = {
+                navController.navigate(HomeRoute) {
+                    popUpTo(navController.graph.findStartDestination().id)
+                    launchSingleTop = true
+                }
+            },
         )
     }
     page<AccountRoute> {
@@ -401,7 +431,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
     }
 }
 
-private fun NavGraphBuilder.trips(navController: NavHostController) {
+private fun NavGraphBuilder.trips(navController: NavHostController, exploreStore: ExploreSessionStore) {
     page<TripRoute>(maxContentWidth = null) { entry ->
         val route = entry.toRoute<TripRoute>()
         TripScreen(
@@ -410,6 +440,13 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onBack = { navController.popBackStack() },
             onEditTrip = { navController.navigate(EditTripRoute(route.tripId)) },
             onMembers = { navController.navigate(MembersRoute(route.tripId)) },
+            onExplore = {
+                exploreStore.preferTrip(route.tripId)
+                navController.navigate(ExploreRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                }
+            },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
         )

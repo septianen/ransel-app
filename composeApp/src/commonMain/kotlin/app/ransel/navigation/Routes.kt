@@ -33,5 +33,8 @@ import kotlinx.serialization.Serializable
 // Members (Phase 4).
 @Serializable data class MembersRoute(val tripId: String)
 
+/** Swipe through the recommendations of the stored Explore session. */
+@Serializable data object SwipeRoute
+
 /** Invite link or code opened: preview and join, or the invalid-invite state. */
 @Serializable data class JoinTripRoute(val code: String)

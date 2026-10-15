@@ -98,6 +98,7 @@ import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_undo
 import ransel.composeapp.generated.resources.capybara_world_map
 import ransel.composeapp.generated.resources.itinerary_add_activity
+import ransel.composeapp.generated.resources.itinerary_explore_ai
 import ransel.composeapp.generated.resources.itinerary_day_chip
 import ransel.composeapp.generated.resources.itinerary_day_heading
 import ransel.composeapp.generated.resources.itinerary_drag_hint
@@ -124,6 +125,7 @@ fun ItineraryTab(
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onExplore: (() -> Unit)? = null,
     viewModel: ItineraryViewModel = koinViewModel(key = "itinerary-${trip.id}") { parametersOf(trip) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -164,6 +166,7 @@ fun ItineraryTab(
             onAddActivity = { onAddActivity(state.selectedDay?.toString()) },
             onEditActivity = onEditActivity,
             canEdit = canEdit,
+            onExplore = if (canEdit) onExplore else null,
             viewModel = viewModel,
         )
         SnackbarHost(
@@ -197,6 +200,7 @@ private fun ItineraryContent(
     onAddActivity: () -> Unit,
     onEditActivity: (String) -> Unit,
     canEdit: Boolean,
+    onExplore: (() -> Unit)?,
     viewModel: ItineraryViewModel,
 ) {
     val dates = rememberDateFormatter()
@@ -265,6 +269,7 @@ private fun ItineraryContent(
                         onEdit = onEditActivity,
                         onAddActivity = onAddActivity,
                         canEdit = canEdit,
+                        onExplore = onExplore,
                         emptyTitle = stringResource(Res.string.itinerary_empty_title, state.selectedIndex + 1),
                     )
                 }
@@ -385,6 +390,7 @@ private fun DaySection(
     onEdit: (String) -> Unit,
     onAddActivity: () -> Unit,
     canEdit: Boolean,
+    onExplore: (() -> Unit)?,
     emptyTitle: String,
 ) {
     val finish by rememberUpdatedState(onFinish)
@@ -432,7 +438,7 @@ private fun DaySection(
     ) {
         Text(heading, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 12.dp))
         if (items.isEmpty()) {
-            EmptyDay(title = emptyTitle, onAddActivity = if (canEdit) onAddActivity else null)
+            EmptyDay(title = emptyTitle, onAddActivity = if (canEdit) onAddActivity else null, onExplore = onExplore)
             return@Column
         }
         items.forEachIndexed { index, item ->
@@ -560,7 +566,7 @@ private fun TimelineRow(
 }
 
 @Composable
-private fun EmptyDay(title: String, onAddActivity: (() -> Unit)?) {
+private fun EmptyDay(title: String, onAddActivity: (() -> Unit)?, onExplore: (() -> Unit)?) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -582,6 +588,16 @@ private fun EmptyDay(title: String, onAddActivity: (() -> Unit)?) {
                 Symbol(Symbols.add, tint = MaterialTheme.colorScheme.onPrimary)
                 Text(
                     stringResource(Res.string.itinerary_add_activity),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
+        if (onExplore != null) {
+            androidx.compose.material3.TextButton(onClick = onExplore, modifier = Modifier.heightIn(min = 48.dp)) {
+                Symbol(Symbols.autoAwesome, filled = true, tint = MaterialTheme.colorScheme.tertiary)
+                Text(
+                    stringResource(Res.string.itinerary_explore_ai),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(start = 8.dp),
                 )

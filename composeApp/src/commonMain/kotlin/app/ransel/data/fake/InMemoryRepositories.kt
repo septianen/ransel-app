@@ -222,4 +222,7 @@ class InMemoryPreferencesRepository(initial: AppPreferences = AppPreferences()) 
     override suspend fun setSkipReorderConfirmation(skip: Boolean) = state.update { it.copy(skipReorderConfirmation = skip) }
     override suspend fun setOnboardingCompleted(completed: Boolean) = state.update { it.copy(onboardingCompleted = completed) }
     override suspend fun setLanguage(language: AppLanguage) = state.update { it.copy(language = language) }
+    private val strings = mutableMapOf<String, String>()
+    override suspend fun getString(key: String): String? = strings[key]
+    override suspend fun putString(key: String, value: String?) { if (value == null) strings.remove(key) else strings[key] = value }
 }

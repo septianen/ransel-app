@@ -64,7 +64,12 @@ import ransel.composeapp.generated.resources.home_empty_body
 import ransel.composeapp.generated.resources.home_empty_title
 import ransel.composeapp.generated.resources.home_prep_days_filled
 import ransel.composeapp.generated.resources.home_prep_items_ready
+import ransel.composeapp.generated.resources.home_explore_body
+import ransel.composeapp.generated.resources.home_explore_cta
+import ransel.composeapp.generated.resources.home_explore_title
+import ransel.composeapp.generated.resources.home_prep_arrange
 import ransel.composeapp.generated.resources.home_prep_title
+import ransel.composeapp.generated.resources.home_prep_unscheduled
 import ransel.composeapp.generated.resources.home_title
 import ransel.composeapp.generated.resources.home_title_empty
 import ransel.composeapp.generated.resources.home_trip_meta_day1
@@ -83,10 +88,11 @@ fun HomeScreen(
     onOpenTrip: (tripId: String, section: TripSection) -> Unit,
     onCreateTrip: () -> Unit,
     modifier: Modifier = Modifier,
+    onExplore: ((tripId: String) -> Unit)? = null,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    HomeContent(state, onOpenTrip, onCreateTrip, modifier)
+    HomeContent(state, onOpenTrip, onCreateTrip, modifier, onExplore)
 }
 
 @Composable
@@ -95,6 +101,7 @@ fun HomeContent(
     onOpenTrip: (tripId: String, section: TripSection) -> Unit,
     onCreateTrip: () -> Unit,
     modifier: Modifier = Modifier,
+    onExplore: ((tripId: String) -> Unit)? = null,
 ) {
     when (state) {
         HomeUiState.Loading -> Box(modifier.fillMaxSize())
@@ -109,7 +116,7 @@ fun HomeContent(
                 illustration = painterResource(Res.drawable.capybara_phone),
             )
         }
-        is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier)
+        is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier, onExplore)
     }
 }
 
@@ -146,6 +153,7 @@ private fun HomeTripContent(
     state: HomeUiState.Content,
     onOpenTrip: (String, TripSection) -> Unit,
     modifier: Modifier = Modifier,
+    onExplore: ((String) -> Unit)? = null,
 ) {
     val dates = rememberDateFormatter()
     Column(
@@ -157,7 +165,8 @@ private fun HomeTripContent(
     ) {
         Header(title = stringResource(Res.string.home_title))
         FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, TripSection.ITINERARY) })
-        TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) })
+        TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) }, showUnscheduled = onExplore != null)
+        if (onExplore != null) ExploreCallout(state.trip.destination, onTry = { onExplore(state.trip.id) })
     }
 }
 
@@ -221,9 +230,9 @@ private fun FeaturedTripCard(state: HomeUiState.Content, dates: DateFormatter, o
     }
 }
 
-/** "Persiapan trip": days filled and packing progress. The unscheduled column arrives with Explore (Phase 5). */
+/** "Persiapan trip": days filled, packing progress and (with Explore) the unscheduled places. */
 @Composable
-private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSection) -> Unit) {
+private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSection) -> Unit, showUnscheduled: Boolean) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -264,7 +273,58 @@ private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSe
                 label = stringResource(Res.string.home_prep_items_ready),
                 onClick = { onOpen(TripSection.PACKING) },
             )
+            if (showUnscheduled) {
+                Column(
+                    Modifier.weight(1f).clickable { onOpen(TripSection.ITINERARY) }.padding(horizontal = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Box(
+                        Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(IrisTheme.accents.magenta),
+                        contentAlignment = Alignment.Center,
+                    ) { Symbol(Symbols.autoAwesome, size = 18.dp, filled = true, tint = IrisTheme.accents.onAccent) }
+                    Spacer6()
+                    Text("${summary.unscheduledCount}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        stringResource(Res.string.home_prep_unscheduled),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        stringResource(Res.string.home_prep_arrange),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
         }
+    }
+}
+
+/** "Bingung mau ke mana di Bali?" with a "Coba" button that opens Explore for this trip. */
+@Composable
+private fun ExploreCallout(destination: String, onTry: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.tertiaryContainer)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(Res.string.home_explore_title, destination),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Text(
+                stringResource(Res.string.home_explore_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        }
+        androidx.compose.material3.Button(onClick = onTry) { Text(stringResource(Res.string.home_explore_cta)) }
     }
 }
 

@@ -17,6 +17,9 @@ import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
 import app.ransel.shared.dto.BalancesDto
+import app.ransel.shared.dto.FeedbackRequest
+import app.ransel.shared.dto.RecommendationRequest
+import app.ransel.shared.dto.RecommendationResponse
 import app.ransel.shared.dto.CreatePackingTemplateRequest
 import app.ransel.shared.dto.PackingTemplateDto
 import app.ransel.shared.dto.CreateInviteRequest
@@ -179,6 +182,14 @@ class RanselApi(
     suspend fun packingTemplates(): ApiResult<List<PackingTemplateDto>> = get(ApiRoutes.PACKING_TEMPLATES)
     suspend fun createPackingTemplate(request: CreatePackingTemplateRequest): ApiResult<PackingTemplateDto> =
         send(HttpMethod.Post, ApiRoutes.PACKING_TEMPLATES, request)
+
+    // ── Explore AI (Phase 5) ────────────────────────────────────────────────
+    suspend fun recommend(request: RecommendationRequest): ApiResult<RecommendationResponse> =
+        send(HttpMethod.Post, ApiRoutes.RECOMMENDATIONS, request)
+    suspend fun sendFeedback(request: FeedbackRequest): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.RECOMMENDATION_FEEDBACK, bodyOf = { contentType(ContentType.Application.Json); setBody(request) }) { }
+    suspend fun undoFeedback(tripId: String, placeId: String): ApiResult<Unit> =
+        delete(ApiRoutes.recommendationFeedback(tripId, placeId))
 
     // ── invites (Phase 4) ───────────────────────────────────────────────────
     suspend fun invites(tripId: String): ApiResult<List<InviteDto>> = get(ApiRoutes.invites(tripId))
