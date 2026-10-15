@@ -50,7 +50,7 @@ One-time, like the API host: copy `deploy/nginx/ransel.mietek.tech.conf` to `sit
 ### App Links / Universal Links
 
 The API serves `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` (values from the
-repository *variables* `ANDROID_CERT_SHA256` and `IOS_APP_IDS`; both answer 404 until set). Phones fetch them from
+repository variables *or secrets* `ANDROID_CERT_SHA256` and `IOS_APP_IDS`; both answer 404 until set). Phones fetch them from
 the **host of the invite link**, so that host's nginx must forward them to the API:
 
 ```

@@ -89,9 +89,9 @@ jobs:
           SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
           SEED_USER_NAME: ${{ secrets.SEED_USER_NAME }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Not secrets: public verification values. Set them as repository *variables* when known.
-          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
-          IOS_APP_IDS: ${{ vars.IOS_APP_IDS }}
+          # Public verification values. Read from a repository variable, or from a secret of the same name.
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 || secrets.ANDROID_CERT_SHA256 }}
+          IOS_APP_IDS: ${{ vars.IOS_APP_IDS || secrets.IOS_APP_IDS }}
         run: |
           SSH="ssh -p $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes $DEPLOY_USER@$HOST"
           SCP="scp -P $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes"
