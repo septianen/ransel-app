@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -97,7 +98,7 @@ fun AuthScaffold(
             content()
         }
         // Hide the footer while the keyboard is up so it does not squeeze the form.
-        if (footer != null && !WindowInsets.isImeVisible) Box(Modifier.padding(horizontal = 24.dp).padding(top = 8.dp, bottom = 28.dp)) { footer() }
+        if (footer != null && WindowInsets.ime.getBottom(LocalDensity.current) == 0) Box(Modifier.padding(horizontal = 24.dp).padding(top = 8.dp, bottom = 28.dp)) { footer() }
     }
 }
 
