@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -56,6 +58,7 @@ import ransel.composeapp.generated.resources.password_rule_letter
 import ransel.composeapp.generated.resources.password_show
 import ransel.composeapp.generated.resources.reset_token_invalid_body
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 /** Shared frame of the auth screens: optional back, 26/32 title, muted subtitle, scrolling body, footer line. */
 @Composable
 fun AuthScaffold(
@@ -93,7 +96,8 @@ fun AuthScaffold(
             }
             content()
         }
-        if (footer != null) Box(Modifier.padding(horizontal = 24.dp).padding(top = 8.dp, bottom = 28.dp)) { footer() }
+        // Hide the footer while the keyboard is up so it does not squeeze the form.
+        if (footer != null && !WindowInsets.isImeVisible) Box(Modifier.padding(horizontal = 24.dp).padding(top = 8.dp, bottom = 28.dp)) { footer() }
     }
 }
 

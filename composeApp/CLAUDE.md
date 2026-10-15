@@ -56,11 +56,19 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - Compose resources load asynchronously on the web: string arrays start empty, so never index them without a fallback (`DateFormatter` does).
 - Wide windows (≥ 1240 dp): navigation rail, side panel on trip detail, dialogs instead of bottom sheets (`ui/adaptive`).
 
+## Auth and sync (Phase 3)
+
+- `data/auth`: `SessionManager` (state: Loading / SignedOut / SignedIn / Expired), `TokenStore` per platform, `AuthRepository`, `SessionHooks` (mobile: guest data re-owned on sign-in, wiped on sign-out).
+- `RanselApi` adds the bearer token and refreshes once on 401; ViewModels only see `ApiResult`.
+- Mobile sync lives in `mobileMain/data/sync/SyncCoordinator`; the UI reads `SyncStatus` (no-op on web). A row is pending while `syncState = PENDING`; REJECTED rows are kept but never re-sent.
+- Local API origin for Android is `BuildConfig.API_ORIGIN` (emulator: `http://10.0.2.2:8080`).
+- iOS `KeychainTokenStore` and the iOS origin are unverified on Linux.
+
 ## Rules
 
 - ViewModels get `ApiResult<T>` / domain models, never HTTP status codes. Map `ApiError.code` (`ErrorCode`) to the state screens; show the code small where the design does.
 - Business rules come from `shared/domain` (reorder, scheduling, split, balances, password check). Do not copy them into the app.
-- Phase 1 has no server and no account: owner/payer is `LOCAL_USER_ID`. Hide UI that needs later phases (Explore AI entry points, members button, sync rows in Account) until that phase, or show them disabled with the "Segera hadir" state if the design shows them.
+- Guests (no account) use `LOCAL_USER_ID` as owner/payer; once signed in, new rows use the user id. Hide UI that needs later phases (Explore AI entry points, members button, sync rows in Account) until that phase, or show them disabled with the "Segera hadir" state if the design shows them.
 - Local preferences (theme mode, "Jangan tanya lagi" for the reorder dialog, Explore swipe session for the "Lanjutkan" card) are per device, not synced.
 - Tokens (Phase 3): Android Keystore / iOS Keychain; on web keep the access token in memory and the refresh token in storage with the accepted risk noted in TRD.
 

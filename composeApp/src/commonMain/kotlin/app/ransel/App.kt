@@ -190,6 +190,18 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     val sessionState by sessionManager.state.collectAsState()
     LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }
     LaunchedEffect(sessionState) {
+        // Signed in from an auth screen (sign in / sign up): leave the auth flow, back to Home.
+        val here = navController.currentDestination
+        val onAuthScreen = here != null && listOf(
+            SignInRoute::class, SignUpRoute::class, ForgotPasswordRoute::class,
+            CheckEmailRoute::class, NewPasswordRoute::class, SessionExpiredRoute::class,
+        ).any { here.hasRoute(it) }
+        if (sessionState is SessionState.SignedIn && onAuthScreen) {
+            navController.navigate(HomeRoute) {
+                popUpTo(navController.graph.findStartDestination().id)
+                launchSingleTop = true
+            }
+        }
         // Mobile: the refresh token died. Offer "sign in again" once per expiry; other screens stay usable.
         if (sessionState is SessionState.Expired) navController.navigate(SessionExpiredRoute) { launchSingleTop = true }
     }

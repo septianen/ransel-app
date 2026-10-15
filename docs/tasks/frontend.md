@@ -63,11 +63,16 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 ## Phase 3 — Auth and sync
 
-- [ ] **F3.1 Auth screens.** `Masuk` (with "Pakai tanpa akun dulu" on mobile only), `Daftar` (live password checklist from `checkPassword`), `LupaSandi`, `CekEmail` (resend countdown), `SandiBaru`, `SesiBerakhir` ("Nanti saja, pakai offline").
-- [ ] **F3.2 Tokens.** Secure storage per platform, refresh on 401, logout.
-- [ ] **F3.3 Sync (mobile).** Mark local writes `pending`, push on reconnect/app start, pull with `since`, apply LWW; `Offline` banner + `cloud_upload` markers; `KembaliOnline` snackbar with the count.
-- [ ] **F3.4 Guest → account.** On first sign-in rewrite `LOCAL_USER_ID` to the user id, then push.
-- [ ] **F3.5 Account.** Profile, sync status, sign out; web requires sign-in (no guest option).
+- [x] **F3.1 Auth screens.** `Masuk` (with "Pakai tanpa akun dulu" on mobile only), `Daftar` (live password checklist from `checkPassword`), `LupaSandi`, `CekEmail` (resend countdown), `SandiBaru`, `SesiBerakhir` ("Nanti saja, pakai offline").
+  - Done 2026-10-15. Verified on web (register, wrong password, forgot → check email → reset via `/reset-password?token=`) and Android emulator. `feature/auth`; routes in `navigation/Routes.kt`; mobile shows them on top of the tabs, web gates the whole app (`SessionGate`). "Buka aplikasi email" opens `mailto:`.
+- [x] **F3.2 Tokens.** Secure storage per platform, refresh on 401, logout.
+  - Done 2026-10-15. `data/auth` (`SessionManager`, `TokenStore`): Android Keystore AES-GCM + private prefs (verified: session survives reinstall-update), web refresh token in localStorage + access token in memory, iOS Keychain (`KeychainTokenStore`, **not compiled on this Linux host: check on a Mac**). 401 → one refresh (single-flight) and retry; a rejected refresh token → `SessionExpired`. API origin: `BuildConfig.API_ORIGIN` (`-Pransel.apiOrigin=…`, default `http://10.0.2.2:8080`, cleartext only in debug).
+- [x] **F3.3 Sync (mobile).** Mark local writes `pending`, push on reconnect/app start, pull with `since`, apply LWW; `Offline` banner + `cloud_upload` markers; `KembaliOnline` snackbar with the count.
+  - Done 2026-10-15. `SyncCoordinator` (mobileMain): push pending in batches (rows stay pending if edited during the request), pull with `since`, LWW apply (a newer pending local row wins), CONFLICT → full pull. Triggers: sign-in/start, every 60 s, ~1.5 s after a local write, backoff 15 s→2 min while offline. UI: offline banner under trip tabs, `cloud_upload` marker (`LocalPendingIds`), back-online toast. Verified on the emulator with Wi-Fi/data off. No WorkManager/BGTaskScheduler: sync runs while the app process is alive.
+- [x] **F3.4 Guest → account.** On first sign-in rewrite `LOCAL_USER_ID` to the user id, then push.
+  - Done 2026-10-15. `RoomSessionHooks.onSignedIn`: only if guest rows exist, rewrite owner/payer to the user id and mark everything pending; new rows use the signed-in user id. Verified: guest "Bali 4 hari" appeared in the account on the server.
+- [x] **F3.5 Account.** Profile, sync status, sign out; web requires sign-in (no guest option).
+  - Done 2026-10-15. Account: profile row, sync row (status + "Sinkronkan"), sign out with confirm (mentions unsent changes; best-effort flush, then wipes local data). Signed-out mobile shows Masuk/Daftar. No profile editing screen (not designed).
 
 **Done when:** a trip created offline on a phone shows up on the web once the phone is online.
 
