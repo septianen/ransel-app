@@ -127,6 +127,8 @@ fun ItineraryTab(
     viewModel: ItineraryViewModel = koinViewModel(key = "itinerary-${trip.id}") { parametersOf(trip) },
 ) {
     val state by viewModel.state.collectAsState()
+    // Viewers see the plan but cannot change it (PRD "Roles"); the server refuses their writes anyway.
+    val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val undoLabel = stringResource(Res.string.action_undo)
@@ -161,6 +163,7 @@ fun ItineraryTab(
             onMoveToDay = viewModel::moveToDay,
             onAddActivity = { onAddActivity(state.selectedDay?.toString()) },
             onEditActivity = onEditActivity,
+            canEdit = canEdit,
             viewModel = viewModel,
         )
         SnackbarHost(
@@ -193,6 +196,7 @@ private fun ItineraryContent(
     onMoveToDay: (String, LocalDate) -> Unit,
     onAddActivity: () -> Unit,
     onEditActivity: (String) -> Unit,
+    canEdit: Boolean,
     viewModel: ItineraryViewModel,
 ) {
     val dates = rememberDateFormatter()
@@ -241,7 +245,7 @@ private fun ItineraryContent(
                     UnscheduledBox(
                         items = state.unscheduled,
                         onSeeAll = { showUnscheduled = true },
-                        onSchedule = { scheduleItemId = it.id },
+                        onSchedule = if (canEdit) ({ scheduleItemId = it.id }) else null,
                     )
                 }
                 if (drag.isDragging) {
@@ -260,11 +264,12 @@ private fun ItineraryContent(
                         onFinish = ::finishDrag,
                         onEdit = onEditActivity,
                         onAddActivity = onAddActivity,
+                        canEdit = canEdit,
                         emptyTitle = stringResource(Res.string.itinerary_empty_title, state.selectedIndex + 1),
                     )
                 }
             }
-            if (items.isNotEmpty() && !drag.isDragging) {
+            if (canEdit && items.isNotEmpty() && !drag.isDragging) {
                 AddActivityFab(onAddActivity, Modifier.align(Alignment.BottomEnd).padding(16.dp))
             }
         }
@@ -279,6 +284,7 @@ private fun ItineraryContent(
                 scheduleItemId = it.id
             },
             onDelete = { viewModel.deleteItem(it.id) },
+            canEdit = canEdit,
         )
     }
     val toSchedule = state.unscheduled.firstOrNull { it.id == scheduleItemId }
@@ -378,6 +384,7 @@ private fun DaySection(
     onFinish: () -> Unit,
     onEdit: (String) -> Unit,
     onAddActivity: () -> Unit,
+    canEdit: Boolean,
     emptyTitle: String,
 ) {
     val finish by rememberUpdatedState(onFinish)
@@ -387,7 +394,8 @@ private fun DaySection(
     Column(
         Modifier
             .onGloballyPositioned { containerRoot = it.positionInRoot() }
-            .pointerInput(drag) {
+            .pointerInput(drag, canEdit) {
+                if (!canEdit) return@pointerInput
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val rootPos = containerRoot + down.position
@@ -424,7 +432,7 @@ private fun DaySection(
     ) {
         Text(heading, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 12.dp))
         if (items.isEmpty()) {
-            EmptyDay(title = emptyTitle, onAddActivity = onAddActivity)
+            EmptyDay(title = emptyTitle, onAddActivity = if (canEdit) onAddActivity else null)
             return@Column
         }
         items.forEachIndexed { index, item ->
@@ -552,7 +560,7 @@ private fun TimelineRow(
 }
 
 @Composable
-private fun EmptyDay(title: String, onAddActivity: () -> Unit) {
+private fun EmptyDay(title: String, onAddActivity: (() -> Unit)?) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -569,13 +577,15 @@ private fun EmptyDay(title: String, onAddActivity: () -> Unit) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(onClick = onAddActivity, modifier = Modifier.heightIn(min = 48.dp)) {
-            Symbol(Symbols.add, tint = MaterialTheme.colorScheme.onPrimary)
-            Text(
-                stringResource(Res.string.itinerary_add_activity),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 8.dp),
-            )
+        if (onAddActivity != null) {
+            Button(onClick = onAddActivity, modifier = Modifier.heightIn(min = 48.dp)) {
+                Symbol(Symbols.add, tint = MaterialTheme.colorScheme.onPrimary)
+                Text(
+                    stringResource(Res.string.itinerary_add_activity),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
     }
 }
@@ -608,7 +618,7 @@ private fun AddActivityFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
 private fun UnscheduledBox(
     items: List<ItineraryItemDto>,
     onSeeAll: () -> Unit,
-    onSchedule: (ItineraryItemDto) -> Unit,
+    onSchedule: ((ItineraryItemDto) -> Unit)?,
 ) {
     Column(
         Modifier
@@ -644,7 +654,7 @@ private fun UnscheduledBox(
             )
         }
         items.take(2).forEach { item ->
-            UnscheduledRow(item, onSchedule = { onSchedule(item) })
+            UnscheduledRow(item, onSchedule = onSchedule?.let { schedule -> { schedule(item) } })
         }
     }
 }
@@ -652,7 +662,7 @@ private fun UnscheduledBox(
 @Composable
 internal fun UnscheduledRow(
     item: ItineraryItemDto,
-    onSchedule: () -> Unit,
+    onSchedule: (() -> Unit)?,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
@@ -685,11 +695,13 @@ internal fun UnscheduledRow(
                 )
             }
         }
-        OutlinedButton(
-            onClick = onSchedule,
-            modifier = Modifier.heightIn(min = 36.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-        ) { Text(stringResource(Res.string.itinerary_schedule), style = MaterialTheme.typography.labelLarge) }
+        if (onSchedule != null) {
+            OutlinedButton(
+                onClick = onSchedule,
+                modifier = Modifier.heightIn(min = 36.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+            ) { Text(stringResource(Res.string.itinerary_schedule), style = MaterialTheme.typography.labelLarge) }
+        }
         trailing?.invoke()
     }
 }

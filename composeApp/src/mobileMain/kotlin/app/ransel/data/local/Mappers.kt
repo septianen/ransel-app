@@ -25,7 +25,7 @@ private inline fun <reified E : Enum<E>> enumOr(name: String, fallback: E): E =
 fun TripEntity.toDto() = TripDto(
     id = id, ownerId = ownerId, title = title, destination = destination,
     startDate = LocalDate.parse(startDate), endDate = LocalDate.parse(endDate),
-    baseCurrency = baseCurrency, budgetMinor = budgetMinor, coverUrl = coverUrl, myRole = Role.OWNER,
+    baseCurrency = baseCurrency, budgetMinor = budgetMinor, coverUrl = coverUrl, myRole = enumOr(myRole, Role.OWNER),
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
 
@@ -60,7 +60,7 @@ fun TripDto.toEntity() = TripEntity(
     startDate = startDate.toString(), endDate = endDate.toString(), baseCurrency = baseCurrency,
     budgetMinor = budgetMinor, coverUrl = coverUrl,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
-    syncState = SyncState.SYNCED,
+    syncState = SyncState.SYNCED, myRole = myRole.name,
 )
 
 fun ItineraryItemDto.toEntity() = ItineraryItemEntity(

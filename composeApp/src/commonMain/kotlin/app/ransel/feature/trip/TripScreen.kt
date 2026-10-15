@@ -66,7 +66,7 @@ fun TripScreen(
                 selectedTab = tab,
                 onTabSelected = { tab = it },
                 onBack = onBack,
-                onEdit = onEditTrip,
+                onEdit = if (current?.myRole == app.ransel.shared.model.Role.OWNER) onEditTrip else null,
                 onMembers = if (signedIn) onMembers else null,
             )
             if (offline) app.ransel.ui.components.OfflineBanner()

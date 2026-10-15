@@ -16,8 +16,11 @@ import kotlinx.coroutines.Dispatchers
         ExpenseEntity::class,
         PreferenceEntity::class,
     ],
-    version = 2,
-    autoMigrations = [AutoMigration(from = 1, to = 2)], // expenses.splitsJson
+    version = 3,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2), // expenses.splitsJson
+        AutoMigration(from = 2, to = 3), // trips.myRole
+    ],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
 abstract class RanselDatabase : RoomDatabase() {

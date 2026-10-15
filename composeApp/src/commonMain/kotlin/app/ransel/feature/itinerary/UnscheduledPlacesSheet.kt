@@ -42,6 +42,7 @@ fun UnscheduledPlacesSheet(
     onDismiss: () -> Unit,
     onSchedule: (ItineraryItemDto) -> Unit,
     onDelete: (ItineraryItemDto) -> Unit,
+    canEdit: Boolean = true,
 ) {
     AdaptiveSheet(onDismiss = onDismiss) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -69,8 +70,8 @@ fun UnscheduledPlacesSheet(
                 var menu by remember { mutableStateOf(false) }
                 UnscheduledRow(
                     item = item,
-                    onSchedule = { onSchedule(item) },
-                    trailing = {
+                    onSchedule = if (canEdit) ({ onSchedule(item) }) else null,
+                    trailing = if (!canEdit) null else {{
                         Box {
                             Box(
                                 Modifier.size(40.dp).clickable { menu = true },
@@ -93,7 +94,7 @@ fun UnscheduledPlacesSheet(
                                 )
                             }
                         }
-                    },
+                    }},
                 )
             }
         }

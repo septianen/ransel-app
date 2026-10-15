@@ -87,6 +87,7 @@ fun ExpensesTab(
     val members by viewModel.members.collectAsState()
     val balances by viewModel.balances.collectAsState()
     val shared = members.size > 1
+    val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
     val myUserId = viewModel.myUserId
     var sharedTab by rememberSaveable { mutableStateOf(SharedTab.SUMMARY) }
     var sheet by remember { mutableStateOf<ExpenseSheetTarget?>(null) }
@@ -99,8 +100,8 @@ fun ExpensesTab(
             state.isEmpty -> FullScreenState(
                 title = stringResource(Res.string.expenses_empty_title),
                 body = stringResource(Res.string.expenses_empty_body, trip.title),
-                primaryLabel = stringResource(Res.string.expenses_record),
-                onPrimary = { sheet = ExpenseSheetTarget.New },
+                primaryLabel = if (canEdit) stringResource(Res.string.expenses_record) else null,
+                onPrimary = if (canEdit) ({ sheet = ExpenseSheetTarget.New }) else null,
                 illustration = painterResource(Res.drawable.capybara_cash_backpack)
             )
             else -> {
@@ -158,16 +159,18 @@ fun ExpensesTab(
                             group.items.forEach { expense ->
                                 ExpenseRow(
                                     expense, tz, members.takeIf { shared }, myUserId,
-                                    onClick = { sheet = ExpenseSheetTarget.Edit(expense.id) },
+                                    onClick = if (canEdit) ({ sheet = ExpenseSheetTarget.Edit(expense.id) }) else null,
                                 )
                             }
                         }
                     }
                 }
-                RecordFab(
-                    onClick = { sheet = ExpenseSheetTarget.New },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                )
+                if (canEdit) {
+                    RecordFab(
+                        onClick = { sheet = ExpenseSheetTarget.New },
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                    )
+                }
             }
         }
     }
@@ -262,11 +265,11 @@ private fun ExpenseRow(
     tz: TimeZone,
     members: List<TripMemberDto>?,
     myUserId: String?,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
 ) {
     val time = expense.spentAt.toLocalDateTime(tz).time
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(onClick = onClick),
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

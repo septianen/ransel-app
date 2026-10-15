@@ -1,5 +1,6 @@
 package app.ransel.data.local
 
+import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
@@ -33,6 +34,8 @@ data class TripEntity(
     val updatedAt: Long,
     val deletedAt: Long?,
     val syncState: String = SyncState.PENDING,
+    /** The signed-in user's role in this trip (Phase 4, DB v3); trips made on this device are always OWNER. */
+    @ColumnInfo(defaultValue = "OWNER") val myRole: String = "OWNER",
 )
 
 @Entity(tableName = "itinerary_items", indices = [Index("tripId")])

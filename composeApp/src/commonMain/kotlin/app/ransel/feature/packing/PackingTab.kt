@@ -82,6 +82,7 @@ fun PackingTab(
     viewModel: PackingViewModel = koinViewModel(key = "packing-${trip.id}") { parametersOf(trip.id) },
 ) {
     val state by viewModel.state.collectAsState()
+    val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
     var sheet by remember { mutableStateOf<SheetTarget?>(null) }
     val editing = state.groups.flatMap { it.items }.firstOrNull { it.id == (sheet as? SheetTarget.Edit)?.itemId }
     val today = remember { today() }
@@ -92,8 +93,8 @@ fun PackingTab(
             state.total == 0 -> FullScreenState(
                 title = stringResource(Res.string.packing_empty_title),
                 body = stringResource(Res.string.packing_empty_body, trip.title),
-                primaryLabel = stringResource(Res.string.packing_add),
-                onPrimary = { sheet = SheetTarget.Add },
+                primaryLabel = if (canEdit) stringResource(Res.string.packing_add) else null,
+                onPrimary = if (canEdit) ({ sheet = SheetTarget.Add }) else null,
                 illustration = painterResource(Res.drawable.capybara_bedroll_lantern),
             )
             else -> {
@@ -104,11 +105,14 @@ fun PackingTab(
                     onToggle = viewModel::toggle,
                     onEdit = { sheet = SheetTarget.Edit(it.id) },
                     onUncheckAll = viewModel::uncheckAll,
+                    canEdit = canEdit,
                 )
-                AddFab(
-                    onClick = { sheet = SheetTarget.Add },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                )
+                if (canEdit) {
+                    AddFab(
+                        onClick = { sheet = SheetTarget.Add },
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                    )
+                }
             }
         }
     }
@@ -153,6 +157,7 @@ private fun PackingList(
     onToggle: (PackingItemDto) -> Unit,
     onEdit: (PackingItemDto) -> Unit,
     onUncheckAll: () -> Unit,
+    canEdit: Boolean,
 ) {
     Column(
         Modifier
@@ -161,9 +166,9 @@ private fun PackingList(
             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        ProgressCard(trip, state, today, onUncheckAll)
+        ProgressCard(trip, state, today, onUncheckAll, canEdit)
         state.groups.forEach { group ->
-            PackingGroupSection(group, onToggle = onToggle, onEdit = onEdit)
+            PackingGroupSection(group, onToggle = onToggle, onEdit = onEdit, canEdit = canEdit)
         }
     }
 }
@@ -177,6 +182,7 @@ private fun PackingGroupSection(
     group: PackingGroup,
     onToggle: (PackingItemDto) -> Unit,
     onEdit: (PackingItemDto) -> Unit,
+    canEdit: Boolean,
 ) {
     var expanded by rememberSaveable(group.category.name) { mutableStateOf(true) }
     val chevron by animateFloatAsState(if (expanded) 180f else 0f, label = "packing-group-chevron")
@@ -240,7 +246,7 @@ private fun PackingGroupSection(
             // Items start under the category name (tile 32 dp + gap 12 dp), with room on the right.
             Column(Modifier.padding(start = 44.dp, end = 12.dp)) {
                 group.items.forEach { item ->
-                    PackingRow(item, onToggle = { onToggle(item) }, onLongPress = { onEdit(item) })
+                    PackingRow(item, onToggle = { onToggle(item) }, onLongPress = { onEdit(item) }, enabled = canEdit)
                 }
             }
         }
@@ -248,7 +254,13 @@ private fun PackingGroupSection(
 }
 
 @Composable
-private fun ProgressCard(trip: TripDto, state: PackingUiState, today: kotlinx.datetime.LocalDate, onUncheckAll: () -> Unit) {
+private fun ProgressCard(
+    trip: TripDto,
+    state: PackingUiState,
+    today: kotlinx.datetime.LocalDate,
+    onUncheckAll: () -> Unit,
+    canEdit: Boolean,
+) {
     var menu by remember { mutableStateOf(false) }
     Column(
         Modifier
@@ -275,7 +287,7 @@ private fun ProgressCard(trip: TripDto, state: PackingUiState, today: kotlinx.da
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Box {
+            if (canEdit) Box {
                 Box(
                     Modifier
                         .size(40.dp)
@@ -316,12 +328,12 @@ private fun ProgressCard(trip: TripDto, state: PackingUiState, today: kotlinx.da
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun PackingRow(item: PackingItemDto, onToggle: () -> Unit, onLongPress: () -> Unit) {
+private fun PackingRow(item: PackingItemDto, onToggle: () -> Unit, onLongPress: () -> Unit, enabled: Boolean) {
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .combinedClickable(role = Role.Checkbox, onClick = onToggle, onLongClick = onLongPress),
+            .combinedClickable(enabled = enabled, role = Role.Checkbox, onClick = onToggle, onLongClick = onLongPress),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

@@ -66,7 +66,10 @@ fun TripSidePanel(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         state.summary?.let { summary ->
-            BudgetCard(trip, summary, onRecordExpense = { onOpenTab(TripTab.EXPENSES) })
+            BudgetCard(
+                trip, summary,
+                onRecordExpense = if (trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)) ({ onOpenTab(TripTab.EXPENSES) }) else null,
+            )
         }
         if (state.packingGroups.isNotEmpty()) {
             PackingCard(state.packingGroups, onOpenPacking = { onOpenTab(TripTab.PACKING) })
@@ -75,16 +78,18 @@ fun TripSidePanel(
 }
 
 @Composable
-private fun BudgetCard(trip: TripDto, summary: TripSummaryDto, onRecordExpense: () -> Unit) {
+private fun BudgetCard(trip: TripDto, summary: TripSummaryDto, onRecordExpense: (() -> Unit)?) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         BudgetProgress(spentMinor = summary.spentMinor, budgetMinor = trip.budgetMinor, currency = trip.baseCurrency)
-        Button(onClick = onRecordExpense, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-            app.ransel.ui.symbols.Symbol(Symbols.receiptLong, tint = MaterialTheme.colorScheme.onPrimary)
-            Text(
-                stringResource(Res.string.expenses_record),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 8.dp),
-            )
+        if (onRecordExpense != null) {
+            Button(onClick = onRecordExpense, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                app.ransel.ui.symbols.Symbol(Symbols.receiptLong, tint = MaterialTheme.colorScheme.onPrimary)
+                Text(
+                    stringResource(Res.string.expenses_record),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
     }
 }
