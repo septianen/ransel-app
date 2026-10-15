@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import app.ransel.data.repository.AppLanguage
 import app.ransel.data.repository.AppPreferences
 import app.ransel.feature.currency.CurrencySheet
+import app.ransel.platform.supportsInAppLanguage
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.feature.currency.RadioMark
 import app.ransel.ui.symbols.Symbol
@@ -103,10 +104,12 @@ fun AccountScreen(
                     Symbols.darkMode, stringResource(Res.string.account_theme), stringResource(prefs.themeMode.label),
                     onClick = { sheet = AccountSheet.THEME },
                 )
-                SettingRow(
-                    Symbols.translate, stringResource(Res.string.account_language), stringResource(prefs.language.label),
-                    onClick = { sheet = AccountSheet.LANGUAGE },
-                )
+                if (supportsInAppLanguage) {
+                    SettingRow(
+                        Symbols.translate, stringResource(Res.string.account_language), stringResource(prefs.language.label),
+                        onClick = { sheet = AccountSheet.LANGUAGE },
+                    )
+                }
                 SwitchRow(
                     Symbols.swipeVertical,
                     stringResource(Res.string.account_confirm_reorder),

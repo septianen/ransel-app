@@ -5,6 +5,8 @@ import app.ransel.data.local.DATABASE_FILE
 import app.ransel.data.local.RanselDatabase
 import app.ransel.data.local.RanselDatabaseConstructor
 import app.ransel.data.local.configureAndBuild
+import app.ransel.data.remote.ConnectionMonitor
+import app.ransel.data.remote.NoConnectionMonitor
 import app.ransel.di.mobileDataModule
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.Platform
@@ -29,6 +31,7 @@ private fun databasePath(): String {
 
 actual val platformModule: Module = module {
     includes(mobileDataModule)
+    single<ConnectionMonitor> { NoConnectionMonitor }
     single<RanselDatabase> {
         Room.databaseBuilder<RanselDatabase>(
             name = databasePath(),
@@ -39,3 +42,5 @@ actual val platformModule: Module = module {
 
 @OptIn(ExperimentalNativeApi::class)
 actual val isDebugBuild: Boolean = Platform.isDebugBinary
+
+actual val supportsInAppLanguage: Boolean = true

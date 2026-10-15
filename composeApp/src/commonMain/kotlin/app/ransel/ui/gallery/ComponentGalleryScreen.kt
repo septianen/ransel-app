@@ -81,7 +81,7 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         errorCode = "NETWORK_TIMEOUT",
                         primaryLabel = "Coba lagi",
                         onPrimary = {},
-                    )           
+                    )
                 }
                 Section("TripHeader") {
                     TripHeader("Bali 4 hari", "20–23 Nov 2026", TripTab.ITINERARY, {}, {}, onMembers = {})

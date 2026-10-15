@@ -59,7 +59,7 @@ class RoomTripRepository(private val db: RanselDatabase) : TripRepository {
         }
     }.filterNotNull()
 
-    override suspend fun create(request: CreateTripRequest): TripDto {
+    override suspend fun create(request: CreateTripRequest) {
         val stamp = now().toMillis()
         val entity = TripEntity(
             id = request.id, ownerId = LOCAL_USER_ID, title = request.title.trim(),
@@ -69,7 +69,6 @@ class RoomTripRepository(private val db: RanselDatabase) : TripRepository {
             createdAt = stamp, updatedAt = stamp, deletedAt = null,
         )
         db.tripDao().upsert(entity)
-        return entity.toDto()
     }
 
     override suspend fun update(tripId: String, request: UpdateTripRequest) {

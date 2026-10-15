@@ -63,7 +63,7 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
             }
         }.filterNotNull()
 
-    override suspend fun create(request: CreateTripRequest): TripDto {
+    override suspend fun create(request: CreateTripRequest) {
         val stamp = now()
         val trip = TripDto(
             id = request.id, ownerId = LOCAL_USER_ID, title = request.title, destination = request.destination,
@@ -71,7 +71,6 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
             budgetMinor = request.budgetMinor, coverUrl = request.coverUrl, createdAt = stamp, updatedAt = stamp,
         )
         store.trips.update { it + trip }
-        return trip
     }
 
     override suspend fun update(tripId: String, request: UpdateTripRequest) {

@@ -27,7 +27,7 @@ interface TripRepository {
     fun observeTrips(): Flow<List<TripDto>>
     fun observeTrip(tripId: String): Flow<TripDto?>
     fun observeSummary(tripId: String): Flow<TripSummaryDto>
-    suspend fun create(request: CreateTripRequest): TripDto
+    suspend fun create(request: CreateTripRequest)
     suspend fun update(tripId: String, request: UpdateTripRequest)
     /** Soft delete; takes the trip's itinerary, packing and expenses with it. */
     suspend fun delete(tripId: String)

@@ -80,6 +80,8 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.ktor.client.mock)
+            implementation(libs.kotlinx.coroutines.test)
         }
         // Room 3 lives only here (Android + iOS). Never reference it from commonMain or wasmJsMain.
         val mobileMain by getting {
