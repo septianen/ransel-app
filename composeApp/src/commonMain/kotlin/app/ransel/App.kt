@@ -96,11 +96,13 @@ import app.ransel.navigation.ActivityFormRoute
 import app.ransel.navigation.ComponentGalleryRoute
 import app.ransel.navigation.CreateTripRoute
 import app.ransel.navigation.EditTripRoute
+import app.ransel.navigation.ExplorePreferencesRoute
 import app.ransel.navigation.ExploreRoute
 import app.ransel.navigation.HomeRoute
 import app.ransel.navigation.JoinTripRoute
 import app.ransel.navigation.SwipeRoute
-import app.ransel.feature.explore.ExploreScreen
+import app.ransel.feature.explore.ExplorePreferencesScreen
+import app.ransel.feature.explore.ExploreTripPickerScreen
 import app.ransel.feature.explore.SwipeScreen
 import app.ransel.data.explore.ExploreSessionStore
 import app.ransel.navigation.MembersRoute
@@ -255,7 +257,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
         destination == null -> MainTab.HOME
         destination.hasRoute<HomeRoute>() -> MainTab.HOME
         destination.hasRoute<TripListRoute>() -> MainTab.TRIPS
-        destination.hasRoute<ExploreRoute>() -> MainTab.EXPLORE
+        destination.hasRoute<ExploreRoute>() || destination.hasRoute<ExplorePreferencesRoute>() -> MainTab.EXPLORE
         destination.hasRoute<AccountRoute>() -> MainTab.ACCOUNT
         else -> null // full-screen destinations hide the bar
     }
@@ -320,7 +322,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                     },
                 ) {
                     tabs(navController, exploreStore)
-                    trips(navController, exploreStore)
+                    trips(navController)
                     authGraph(navController, allowGuest = !requiresAccount, onFinished = {
                         // Signed in (or chose offline): back to the app's home, dropping the auth screens.
                         navController.navigate(HomeRoute) {
@@ -369,13 +371,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
                 navController.navigate(TripRoute(id, tab.name))
             },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
-            onExplore = { id ->
-                exploreStore.preferTrip(id)
-                navController.navigate(ExploreRoute) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                }
-            },
+            onExplore = { id -> navController.navigate(ExplorePreferencesRoute(id)) },
         )
     }
     page<TripListRoute> {
@@ -386,18 +382,35 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
         )
     }
     page<ExploreRoute> {
-        ExploreScreen(
+        ExploreTripPickerScreen(
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
-            onCreateTrip = { navController.navigate(CreateTripRoute) },
+            onPickTrip = { navController.navigate(ExplorePreferencesRoute(it)) },
+            onNewTrip = { navController.navigate(ExplorePreferencesRoute(null)) },
+            // Nothing to pick: go straight to the new-trip form and leave the picker out of the back stack.
+            onNoTrips = { navController.navigate(ExplorePreferencesRoute(null)) { popUpTo<ExploreRoute> { inclusive = true } } },
+            onOpenSwipe = { navController.navigate(SwipeRoute) },
+        )
+    }
+    page<ExplorePreferencesRoute> { entry ->
+        val route = entry.toRoute<ExplorePreferencesRoute>()
+        ExplorePreferencesScreen(
+            tripId = route.tripId,
+            onBack = { navController.popBackStack() },
+            // "Ganti": back to the picker, whichever way the form was opened.
+            onChangeTrip = { navController.navigate(ExploreRoute) { popUpTo<ExplorePreferencesRoute> { inclusive = true } } },
             onOpenSwipe = { navController.navigate(SwipeRoute) },
         )
     }
     page<SwipeRoute> {
         SwipeScreen(
             onClose = { navController.popBackStack() },
-            // Back to the form (the session was dropped or replaced there).
-            onChangePreferences = { navController.popBackStack() },
+            // Back to the form of the same trip, filled in with the last answers.
+            onChangePreferences = {
+                val id = exploreStore.session.value?.form?.tripId ?: exploreStore.lastTripId
+                if (id == null) navController.popBackStack()
+                else navController.navigate(ExplorePreferencesRoute(id)) { popUpTo<SwipeRoute> { inclusive = true } }
+            },
             onOpenItinerary = { id ->
                 navController.navigate(TripRoute(id, TripTab.ITINERARY.name)) { popUpTo<SwipeRoute> { inclusive = true } }
             },
@@ -440,7 +453,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
     }
 }
 
-private fun NavGraphBuilder.trips(navController: NavHostController, exploreStore: ExploreSessionStore) {
+private fun NavGraphBuilder.trips(navController: NavHostController) {
     page<TripRoute>(maxContentWidth = null) { entry ->
         val route = entry.toRoute<TripRoute>()
         TripScreen(
@@ -449,13 +462,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, exploreStore
             onBack = { navController.popBackStack() },
             onEditTrip = { navController.navigate(EditTripRoute(route.tripId)) },
             onMembers = { navController.navigate(MembersRoute(route.tripId)) },
-            onExplore = {
-                exploreStore.preferTrip(route.tripId)
-                navController.navigate(ExploreRoute) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                }
-            },
+            onExplore = { navController.navigate(ExplorePreferencesRoute(route.tripId)) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
         )

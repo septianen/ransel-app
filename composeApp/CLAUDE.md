@@ -70,7 +70,7 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - Members and invites are server-only (no Room tables): `MembersViewModel` and `InviteSheetViewModel` call `RanselApi` directly, on mobile too. The members button only shows for signed-in users.
 - Invite links: `data/invite/InviteLinks` holds the code the user arrived with until the join screen is closed or accepted; `MainActivity` (Android) and `initialInviteCode()` (web) feed it. After accepting, mobile calls `syncNow()` and waits for the trip to appear locally.
 - Shared expenses: `ExpensesViewModel` loads members and balances from the API (empty = solo behaviour). Splits are stored per expense (`ExpenseEntity.splitsJson`, DB v2) and travel through the normal sync; `SplitState` holds the form, the maths is `shared/domain`.
-- Explore AI (Phase 5): `ExploreViewModel` (form), `SwipeViewModel` (cards, save/skip/undo, prefetch), both over `ExploreSessionStore` (unfinished session as JSON in the preferences, also drives the tab dot). The backend (B5.x) must be live for real recommendations; tests use a MockEngine.
+- Explore AI (Phase 5): `ExploreTripPickerViewModel` (step 1, trip list), `ExplorePreferencesViewModel` (step 2, existing or new trip, suggestions with 8 s timeout), `SwipeViewModel` (cards, save/skip/undo, prefetch), both over `ExploreSessionStore` (unfinished session as JSON in the preferences, also drives the tab dot). The backend (B5.x) must be live for real recommendations; tests use a MockEngine.
 - Point a debug build at the deployed API with `-Pransel.apiOrigin=https://ranselapi.mietek.tech`.
 
 ## Rules

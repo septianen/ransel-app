@@ -17,6 +17,7 @@ import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
 import app.ransel.shared.dto.BalancesDto
+import app.ransel.shared.dto.ExploreSuggestionsResponse
 import app.ransel.shared.dto.FeedbackRequest
 import app.ransel.shared.dto.RecommendationRequest
 import app.ransel.shared.dto.RecommendationResponse
@@ -191,6 +192,26 @@ class RanselApi(
         send(HttpMethod.Post, ApiRoutes.PACKING_TEMPLATES, request)
 
     // ── Explore AI (Phase 5) ────────────────────────────────────────────────
+    /**
+     * Destination interests for the form: pass [tripId] (existing trip) or [destination] + [month] as `YYYY-MM`
+     * (new trip). Never counts against the daily quota. [language] is "id" or "en"; null = let the engine decide.
+     */
+    suspend fun exploreSuggestions(
+        tripId: String? = null,
+        destination: String? = null,
+        month: String? = null,
+        language: String? = null,
+    ): ApiResult<ExploreSuggestionsResponse> = call(
+        HttpMethod.Get,
+        ApiRoutes.EXPLORE_SUGGESTIONS,
+        bodyOf = {
+            tripId?.let { parameter("tripId", it) }
+            destination?.let { parameter("destination", it) }
+            month?.let { parameter("month", it) }
+            language?.let { header(HttpHeaders.AcceptLanguage, it) }
+        },
+    ) { it.body<ApiResponse<ExploreSuggestionsResponse>>().data }
+
     suspend fun recommend(request: RecommendationRequest): ApiResult<RecommendationResponse> =
         send(HttpMethod.Post, ApiRoutes.RECOMMENDATIONS, request, timeoutMillis = RECOMMENDATION_TIMEOUT_MILLIS)
     suspend fun sendFeedback(request: FeedbackRequest): ApiResult<Unit> =
