@@ -63,7 +63,10 @@ data class RecommendationItem(
     val lng: Double,
     /** Filled lazily for the top cards only (cost control). */
     val rating: Double? = null,
+    /** Signed path relative to `ApiRoutes.BASE` (see `ApiRoutes.placePhoto`); valid 7 days. The image may still 404. */
     val photoUrl: String? = null,
+    /** Author credit Google requires next to the photo. Filled for the top cards only, like [rating]. */
+    val photoAttribution: String? = null,
     val address: String? = null,
 )
 

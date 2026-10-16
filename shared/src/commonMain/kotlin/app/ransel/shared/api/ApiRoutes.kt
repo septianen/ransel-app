@@ -66,4 +66,6 @@ object ApiRoutes {
     const val RECOMMENDATION_FEEDBACK = "/recommendations/feedback" // POST FeedbackRequest → 204
     fun recommendationFeedback(tripId: String, placeId: String) =
         "/recommendations/feedback/$tripId/$placeId"               // DELETE = undo the last swipe → 204
+    /** Signed image proxy, no bearer: `RecommendationItem.photoUrl` is this path plus `?exp=&sig=`, relative to [BASE]. */
+    fun placePhoto(placeId: String) = "/places/photo/$placeId"     // GET → image bytes, 404 if no photo
 }
