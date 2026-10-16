@@ -54,6 +54,13 @@ Every deploy tags the image with the commit SHA. On the VPS: edit `SERVER_IMAGE`
 
 One-time, like the API host: copy `deploy/nginx/ransel.mietek.tech.conf` to `sites-available`, enable it, `nginx -t`, reload, then `sudo certbot --nginx -d ransel.mietek.tech`. It serves the web app from `/opt/ransel/web` (single-page fallback, so `/j/<code>` opens the app) and forwards `/.well-known/` to the API.
 
+Gotchas from the first setup:
+
+- **Symlink into `sites-enabled` before running certbot** (`sudo ln -s /etc/nginx/sites-available/ransel.mietek.tech.conf /etc/nginx/sites-enabled/ransel.mietek.tech`). Otherwise certbot attaches the certificate to the `default` site with `return 404` and every path answers 404.
+- After certbot, the 443 block may contain `if ($host = ransel.mietek.tech) { return 301 https://$host$request_uri; }`. Delete it from the 443 block (keep it in the port 80 block); left there it is a redirect loop.
+- SSH to the VPS listens on port 2212, not 22.
+- `index.html` has `<base href="/">`, so the script, `.wasm` files and resources also load on deep links like `/j/<code>`.
+
 ### Publishing the web build
 
 No workflow deploys the web app yet. By hand, from the repo root:
@@ -75,5 +82,12 @@ the **host of the invite link**, so that host's nginx must forward them to the A
 ```
 location /.well-known/ { proxy_pass http://127.0.0.1:8080; }
 ```
+
+`ANDROID_CERT_SHA256` is a comma-separated list: put the release keystore fingerprint and, for builds installed from Android
+Studio, the debug keystore fingerprint (`keytool -list -v -keystore ~/.android/debug.keystore -storepass android`). Remove the
+debug one before a public release. Changing a repository variable does not start a deploy: run *Deploy server* by hand
+(`gh workflow run deploy-server.yml --ref main`) or push a change under `server/`, `shared/` or `deploy/`. Check with
+`curl https://ransel.mietek.tech/.well-known/assetlinks.json`, and on the phone
+`adb shell pm verify-app-links --re-verify app.ransel`, then `adb shell pm get-app-links app.ransel`.
 
 Invite URLs returned by the API are `APP_BASE_URL/j/<code>`.
