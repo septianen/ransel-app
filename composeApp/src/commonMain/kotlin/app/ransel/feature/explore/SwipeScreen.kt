@@ -68,12 +68,13 @@ import app.ransel.ui.components.UndoSnackbar
 import app.ransel.ui.format.formatDurationApprox
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
+import app.ransel.ui.components.ScooterLoading
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import kotlin.math.abs
 import kotlin.math.roundToInt
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -105,9 +106,9 @@ fun SwipeScreen(
                 val result = snackbar.showSnackbar(
                     message = getString(Res.string.swipe_saved, event.title),
                     actionLabel = undoLabel,
-                )
                     // With an action, Material keeps the snackbar until dismissed; Short closes it after about 4 s.
                     duration = SnackbarDuration.Short,
+                )
                 if (result == SnackbarResult.ActionPerformed) viewModel.undo()
             }
         }
@@ -230,18 +231,17 @@ private fun SwipeHeader(session: ExploreSession?, destination: String, onClose: 
 private fun LoadingContent(onClose: () -> Unit, onTune: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         SwipeHeader(null, "", onClose, onTune)
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-            Text(stringResource(Res.string.swipe_loading), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Box(
-            Modifier.weight(1f).fillMaxWidth().padding(16.dp).clip(IrisShape.xl).background(MaterialTheme.colorScheme.surface),
-            contentAlignment = Alignment.Center,
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Symbol(Symbols.autoAwesome, filled = true, tint = MaterialTheme.colorScheme.tertiary)
-                Text(stringResource(Res.string.swipe_loading_hint), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-            }
+        // Design `MemuatRekomendasi`: the capybara rides a scooter while the LLM and Places answer (5-10 s).
+        Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp), contentAlignment = Alignment.Center) {
+            ScooterLoading(
+                messages = listOf(
+                    stringResource(Res.string.explore_loading_1),
+                    stringResource(Res.string.explore_loading_2),
+                    stringResource(Res.string.explore_loading_3),
+                    stringResource(Res.string.explore_loading_4),
+                ),
+                hint = stringResource(Res.string.explore_loading_hint),
+            )
         }
     }
 }

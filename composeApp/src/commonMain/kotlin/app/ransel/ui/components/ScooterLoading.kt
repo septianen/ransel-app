@@ -48,7 +48,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
@@ -89,6 +88,7 @@ private const val SCENE_LEFT = -123f
 private const val SCENE_TOP = 42f
 private const val SCENE_W = 720f
 private const val SCENE_H = 540f
+private const val ART_H = 582f
 private const val TILE_WIDTH = 760f
 private const val MESSAGE_EVERY_MS = 2_500L
 
@@ -246,12 +246,13 @@ private fun ScooterScene(reduceMotion: Boolean, modifier: Modifier) {
         // Plate: a soft ellipse inset 6 % top, 8 % sides, 4 % bottom of the stage box.
         drawOval(plate, Offset(size.width * 0.08f, size.height * 0.06f), Size(size.width * 0.84f, size.height * 0.90f))
 
+        // Width fits the scene box (x -123..597). Vertically the artwork spans y 0 (top of the helmet) to 582 (ground),
+        // taller than the box, so centre that range instead; nothing is clipped, like the prototype's visible overflow.
         val s = size.width / SCENE_W
-        val top = (size.height - SCENE_H * s) / 2f - SCENE_TOP * s
+        val top = (size.height - ART_H * s) / 2f
         withTransform({
             translate(-SCENE_LEFT * s, top)
             scale(s, s, Offset.Zero)
-            clipRect(SCENE_LEFT, SCENE_TOP, SCENE_LEFT + SCENE_W, SCENE_TOP + SCENE_H)
         }) {
             // 1. ground strip, does not bob: two tiles scroll left, one tile width per loop.
             val scroll = -TILE_WIDTH * (clock?.ground?.value ?: 0f)
