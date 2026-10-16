@@ -103,7 +103,8 @@ fun ActivityFormScreen(
         navigationDescription = stringResource(Res.string.trip_close),
         saveLabel = stringResource(Res.string.activity_save),
         onSave = viewModel::save,
-        saveEnabled = !state.saving && !state.loading,
+        saveEnabled = !state.loading,
+        saving = state.saving,
     ) {
         IrisTextField(
             label = stringResource(Res.string.activity_title),

@@ -120,7 +120,7 @@ fun SignInScreen(
             Text(stringResource(Res.string.forgot_password_link), style = MaterialTheme.typography.labelLarge)
         }
         AuthProblemText(state.problem)
-        AuthPrimaryButton(stringResource(Res.string.sign_in_action), viewModel::submit, enabled = !state.loading)
+        AuthPrimaryButton(stringResource(Res.string.sign_in_action), viewModel::submit, loading = state.loading)
         if (onContinueWithoutAccount != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 HorizontalDivider(Modifier.weight(1f))
@@ -176,7 +176,7 @@ fun SignUpScreen(
             Text(stringResource(Res.string.field_error_terms), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }
         AuthProblemText(state.problem)
-        AuthPrimaryButton(stringResource(Res.string.sign_up_action), viewModel::submit, enabled = !state.loading)
+        AuthPrimaryButton(stringResource(Res.string.sign_up_action), viewModel::submit, loading = state.loading)
     }
 }
 
@@ -205,7 +205,7 @@ fun ForgotPasswordScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
         )
         AuthProblemText(state.problem)
-        AuthPrimaryButton(stringResource(Res.string.forgot_send), viewModel::submit, enabled = !state.loading)
+        AuthPrimaryButton(stringResource(Res.string.forgot_send), viewModel::submit, loading = state.loading)
     }
 }
 
@@ -309,7 +309,7 @@ fun NewPasswordScreen(
                 error = if (state.mismatch) stringResource(Res.string.new_password_mismatch) else null,
             )
             AuthProblemText(state.problem)
-            AuthPrimaryButton(stringResource(Res.string.new_password_save), viewModel::submit, enabled = !state.loading)
+            AuthPrimaryButton(stringResource(Res.string.new_password_save), viewModel::submit, loading = state.loading)
         }
     }
 }

@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,6 +47,7 @@ fun FormScaffold(
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
     saveEnabled: Boolean = true,
+    saving: Boolean = false,
     navigationSymbol: String = Symbols.arrowBack,
     navigationDescription: String = stringResource(Res.string.action_back),
     content: @Composable ColumnScope.() -> Unit,
@@ -91,8 +91,9 @@ fun FormScaffold(
             content = content,
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Button(
+        LoadingButton(
             onClick = onSave,
+            loading = saving,
             enabled = saveEnabled,
             modifier = Modifier
                 .fillMaxWidth()

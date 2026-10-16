@@ -43,6 +43,7 @@ import app.ransel.shared.dto.InvitePreviewDto
 import app.ransel.shared.model.Role
 import app.ransel.ui.components.ConnectionErrorState
 import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.ServerErrorState
 import app.ransel.ui.components.TripCover
 import app.ransel.ui.format.rememberDateFormatter
@@ -217,7 +218,7 @@ fun JoinTripContent(
                 .padding(horizontal = 24.dp).padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Button(onClick = onJoin, enabled = !joining, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+            LoadingButton(onClick = onJoin, loading = joining, modifier = Modifier.fillMaxWidth().height(48.dp)) {
                 Text(stringResource(Res.string.join_trip_action), style = MaterialTheme.typography.titleMedium)
             }
             TextButton(onClick = onLater, modifier = Modifier.fillMaxWidth().height(48.dp)) {

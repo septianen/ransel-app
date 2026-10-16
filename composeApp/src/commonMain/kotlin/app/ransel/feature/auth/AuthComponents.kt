@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.domain.PasswordCheck
 import app.ransel.ui.components.IrisTextField
+import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import org.jetbrains.compose.resources.stringResource
@@ -180,8 +180,14 @@ private fun RuleRow(met: Boolean, text: String) {
 }
 
 @Composable
-fun AuthPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
-    Button(onClick = onClick, enabled = enabled, modifier = modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+fun AuthPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    loading: Boolean = false,
+) {
+    LoadingButton(onClick = onClick, loading = loading, enabled = enabled, modifier = modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Text(text, style = MaterialTheme.typography.titleMedium)
     }
 }

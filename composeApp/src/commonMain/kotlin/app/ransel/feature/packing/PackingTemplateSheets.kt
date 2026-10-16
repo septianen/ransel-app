@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -40,6 +39,7 @@ import app.ransel.shared.model.PackingCategory
 import app.ransel.ui.category.label
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.IrisTextField
+import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.PackingCategoryIcon
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
@@ -151,9 +151,10 @@ fun ApplyTemplateSheet(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
-                Button(
+                LoadingButton(
                     onClick = onApply,
-                    enabled = !state.busy && toAdd > 0,
+                    loading = state.busy,
+                    enabled = toAdd > 0,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Text(
@@ -297,11 +298,12 @@ fun SaveTemplateSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Button(
+            LoadingButton(
                 onClick = {
                     if (name.isBlank()) showError = true else onSave(name, keep, share)
                 },
-                enabled = !busy && items.isNotEmpty(),
+                loading = busy,
+                enabled = items.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text(stringResource(Res.string.template_save), style = MaterialTheme.typography.titleMedium) }
         }

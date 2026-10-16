@@ -14,11 +14,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.model.Category
@@ -27,6 +30,8 @@ import app.ransel.ui.components.BudgetProgress
 import app.ransel.ui.components.CategoryIcon
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.LoadingButton
+import app.ransel.ui.components.LoadingOutlinedButton
 import app.ransel.ui.components.MoneyText
 import app.ransel.ui.components.PackingCategoryIcon
 import app.ransel.ui.components.IrisTextField
@@ -118,6 +123,14 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 }
                 Section("UndoSnackbar") {
                     UndoSnackbar("Jadwal Hari 1 dirapatkan", actionLabel = "Urungkan", onAction = {})
+                }
+                Section("LoadingButton") {
+                    // Tap either button: it shows the spinner for 2 s and ignores clicks meanwhile.
+                    var loading by remember { mutableStateOf(false) }
+                    LaunchedEffect(loading) { if (loading) { delay(2_000); loading = false } }
+                    LoadingButton(onClick = { loading = true }, loading = loading, modifier = Modifier.fillMaxWidth()) { Text("Simpan") }
+                    LoadingOutlinedButton(onClick = { loading = true }, loading = loading, modifier = Modifier.fillMaxWidth()) { Text("Tandai lunas") }
+                    LoadingButton(onClick = {}, loading = false, enabled = false, modifier = Modifier.fillMaxWidth()) { Text("Disabled") }
                 }
                 Section("ConfirmDialog / AdaptiveSheet / FormScaffold") {
                     Button(onClick = { showDialog = true }) { Text("ConfirmDialog") }

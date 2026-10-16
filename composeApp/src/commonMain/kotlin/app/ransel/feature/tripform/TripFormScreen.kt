@@ -115,7 +115,8 @@ fun TripFormScreen(
         navigationDescription = stringResource(Res.string.trip_close),
         saveLabel = stringResource(if (state.isEditing) Res.string.trip_save_changes else Res.string.trips_create),
         onSave = viewModel::save,
-        saveEnabled = !state.saving && !state.loading,
+        saveEnabled = !state.loading,
+        saving = state.saving,
     ) {
         if (state.isEditing) {
             TripCover(

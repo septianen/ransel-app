@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +37,7 @@ import app.ransel.shared.dto.MemberBalanceDto
 import app.ransel.shared.dto.TransferDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.ui.components.ConnectionErrorState
+import app.ransel.ui.components.LoadingOutlinedButton
 import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.components.ServerErrorState
 import app.ransel.ui.format.formatMoney
@@ -304,7 +304,7 @@ private fun TransferRow(
                 Text(stringResource(Res.string.shared_settled), style = MaterialTheme.typography.labelLarge, color = scheme.primary)
             }
         } else {
-            OutlinedButton(onClick = onSettle, enabled = enabled) {
+            LoadingOutlinedButton(onClick = onSettle, loading = !enabled) {
                 Text(stringResource(Res.string.shared_mark_settled), style = MaterialTheme.typography.labelLarge)
             }
         }
