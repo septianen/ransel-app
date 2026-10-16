@@ -679,6 +679,8 @@
     <string name="swipe_label_save">SIMPAN</string>
     <string name="swipe_label_skip">LEWATI</string>
     <string name="swipe_decimal_separator">,</string>
+    <string name="swipe_photo_credit">Foto: %1$s</string>
+    <string name="swipe_photo_credit_google">Foto: Google</string>
     <string name="swipe_change_preferences">Ubah preferensi</string>
     <string name="swipe_back_home">Kembali ke Beranda</string>
     <string name="swipe_done_title">Semua sudah kamu lihat</string>

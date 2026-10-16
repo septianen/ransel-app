@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -38,7 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +51,12 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import app.ransel.data.explore.ExploreCard
 import app.ransel.data.explore.ExploreSession
+import app.ransel.data.remote.apiOrigin
+import app.ransel.shared.api.ApiRoutes
+import coil3.SingletonImageLoader
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.model.BudgetLevel
 import app.ransel.ui.category.itineraryLabel
@@ -64,6 +73,7 @@ import app.ransel.ui.theme.IrisTheme
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -88,13 +98,16 @@ fun SwipeScreen(
     val snackbar = remember { SnackbarHostState() }
     val undoLabel = stringResource(Res.string.action_undo)
     LaunchedEffect(viewModel) {
-        viewModel.eventFlow.collect { event ->
+        // collectLatest: showSnackbar suspends until the snackbar is gone, so a plain collect would make the
+        // next one wait. A new event cancels the previous showSnackbar (which dismisses it) and shows at once.
+        viewModel.eventFlow.collectLatest { event ->
             if (event is SwipeEvent.Saved) {
-                snackbar.currentSnackbarData?.dismiss()
                 val result = snackbar.showSnackbar(
                     message = getString(Res.string.swipe_saved, event.title),
                     actionLabel = undoLabel,
                 )
+                    // With an action, Material keeps the snackbar until dismissed; Short closes it after about 4 s.
+                    duration = SnackbarDuration.Short,
                 if (result == SnackbarResult.ActionPerformed) viewModel.undo()
             }
         }
@@ -254,6 +267,13 @@ private fun CardsContent(
         }
     }
 
+    // Warm the cache with the next card's photo only (Google photos are billed per request).
+    val platformContext = LocalPlatformContext.current
+    val nextPhoto = session.cards.getOrNull(session.position + 1)?.let(::photoModel)
+    LaunchedEffect(nextPhoto) {
+        if (nextPhoto != null) SingletonImageLoader.get(platformContext).enqueue(ImageRequest.Builder(platformContext).data(nextPhoto).build())
+    }
+
     Column(Modifier.fillMaxSize()) {
         SwipeHeader(session, session.form.destination, onClose, onTune)
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -346,6 +366,13 @@ private fun RoundAction(
     }
 }
 
+/** Absolute URL of the card photo (the API gives a signed path relative to `ApiRoutes.BASE`); null without a photo. */
+private fun photoModel(card: ExploreCard): String? {
+    val path = card.item.photoUrl?.takeIf { it.isNotBlank() } ?: return null
+    if (path.startsWith("http")) return path
+    return apiOrigin().trimEnd('/') + ApiRoutes.BASE + "/" + path.trimStart('/')
+}
+
 /** The card itself. [drag] is -1..1 (left..right); the outline and label fade in with it, nothing rotates. */
 @Composable
 private fun RecommendationCard(card: ExploreCard, drag: Float) {
@@ -364,9 +391,26 @@ private fun RecommendationCard(card: ExploreCard, drag: Float) {
             .background(scheme.surface)
             .border(if (abs(drag) > 0.05f) 3.dp else 0.dp, outline.copy(alpha = abs(drag).coerceIn(0.3f, 1f)), IrisShape.xl),
     ) {
-        // Photos need a Places proxy (the key must never reach the app), so the category colour stands in.
+        // The category colour and icon stay underneath: placeholder while loading and fallback without a photo or on error.
         Box(Modifier.weight(1f).fillMaxWidth().background(card.category.tileColor())) {
             Symbol(card.category.symbol, size = 96.dp, filled = true, tint = IrisTheme.accents.onAccent.copy(alpha = 0.35f), modifier = Modifier.align(Alignment.Center))
+            val photo = photoModel(card)
+            if (photo != null) {
+                AsyncImage(model = photo, contentDescription = item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                // The credit is shown whenever a photo is requested; a failed load leaves it over the colour, which is harmless.
+                Text(
+                    item.photoAttribution?.let { stringResource(Res.string.swipe_photo_credit, it) } ?: stringResource(Res.string.swipe_photo_credit_google),
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))))
+                        .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Row(
                 Modifier.align(Alignment.TopStart).padding(16.dp).clip(CircleShape).background(scheme.surface).padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,

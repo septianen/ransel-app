@@ -684,6 +684,8 @@
     <string name="swipe_label_save">SAVE</string>
     <string name="swipe_label_skip">SKIP</string>
     <string name="swipe_decimal_separator">.</string>
+    <string name="swipe_photo_credit">Photo: %1$s</string>
+    <string name="swipe_photo_credit_google">Photo: Google</string>
     <string name="swipe_change_preferences">Change preferences</string>
     <string name="swipe_back_home">Back to Home</string>
     <string name="swipe_done_title">You have seen everything</string>

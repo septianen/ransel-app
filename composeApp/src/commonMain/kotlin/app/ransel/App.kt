@@ -117,6 +117,9 @@ import app.ransel.ui.shell.PlaceholderScreen
 import app.ransel.ui.shell.RanselBottomBar
 import app.ransel.ui.theme.IrisTheme
 import org.jetbrains.compose.resources.stringResource
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.network.ktor3.KtorNetworkFetcherFactory
 import org.koin.compose.koinInject
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.debug_component_gallery
@@ -129,6 +132,12 @@ import ransel.composeapp.generated.resources.placeholder_explore_title
 /** App shell: theme and language from preferences, first-launch onboarding, then the tabs. */
 @Composable
 fun App() {
+    // Coil needs its network fetcher registered explicitly outside the JVM; plain Ktor GET, no bearer header.
+    remember {
+        SingletonImageLoader.setSafe { context ->
+            ImageLoader.Builder(context).components { add(KtorNetworkFetcherFactory()) }.build()
+        }
+    }
     val preferencesRepository: PreferencesRepository = koinInject()
     val preferences by preferencesRepository.observe().collectAsState(initial = AppPreferences(loaded = false))
     val scope = rememberCoroutineScope()
