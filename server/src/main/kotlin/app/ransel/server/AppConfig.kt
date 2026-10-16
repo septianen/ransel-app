@@ -35,9 +35,9 @@ data class AppConfig(
     /** Explore AI. Blank keys = the feature answers 503 AI_UNAVAILABLE; the rest of the API is unaffected. */
     val llmApiKey: String = "",
     val llmBaseUrl: String = "https://generativelanguage.googleapis.com/v1beta",
-    val llmModel: String = "gemini-3.5-flash",
+    val llmModel: String = "gemini-3.1-flash-lite",
     /** Used when the primary model answers 429/5xx. Blank = none. */
-    val llmFallbackModel: String = "gemini-3.1-flash-lite",
+    val llmFallbackModel: String = "gemini-3.5-flash",
     val placesApiKey: String = "",
     /** HMAC key for the signed place-photo links. Required in production, separate from [jwtSecret]. */
     val photoSigningSecret: String = DEV_PHOTO_SIGNING_SECRET,
@@ -98,8 +98,8 @@ data class AppConfig(
                 registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
                 llmApiKey = env["LLM_API_KEY"].orEmpty().trim(),
                 llmBaseUrl = (env["LLM_BASE_URL"]?.takeIf { it.isNotBlank() } ?: "https://generativelanguage.googleapis.com/v1beta").trimEnd('/'),
-                llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.5-flash",
-                llmFallbackModel = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.1-flash-lite",
+                llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.1-flash-lite",
+                llmFallbackModel = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.5-flash",
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 photoSigningSecret = photoSecret,
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
