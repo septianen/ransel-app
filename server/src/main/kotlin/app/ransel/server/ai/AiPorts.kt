@@ -20,6 +20,8 @@ data class LlmQuery(
     /** First day of the trip, as `YYYY-MM-DD`: the prompt names the month so seasonal places fit. */
     val startDate: String,
     val priceLevel: PriceLevel,
+    /** Local price edges for this destination and month; null = unknown, the prompt then has no numbers. */
+    val priceGuide: PriceGuide?,
     val interests: List<Interest>,
     /** Destination interests the user ticked ("Sakura", "Diving"). */
     val extraInterests: List<String>,
@@ -38,10 +40,15 @@ data class LlmCandidate(
     val category: Category = Category.ATTRACTION,
     val reason: String = "",
     val priceLevel: Int? = null,
+    /** Typical cost per person in USD (a meal, a ticket); null for free places. The price filter compares it with [PriceGuide]. */
+    val costUsd: Double? = null,
     val suggestedDurationMin: Int? = null,
     val lat: Double? = null,
     val lng: Double? = null,
 )
+
+/** Spend per person in USD at the edge between `$` and `$$` ([lowMaxUsd]) and between `$$` and `$$$` ([midMaxUsd]). */
+data class PriceGuide(val lowMaxUsd: Double, val midMaxUsd: Double)
 
 /** Destination interests for the Explore form plus a price guide, as asked from the LLM. */
 data class InterestSuggestions(
@@ -68,10 +75,7 @@ data class PlaceDetails(
     val lat: Double,
     val lng: Double,
     val address: String?,
-    val rating: Double?,
-    /** Google priceLevel 0–4 (FREE = 0 … VERY_EXPENSIVE = 4); null when Google has no price for the place. */
-    val priceLevel: Int? = null,
-    /** Author credit of the first photo; only filled together with [rating]. */
+    /** Author credit of the first photo; only filled when asked for. */
     val photoAttribution: String? = null,
 )
 
@@ -85,14 +89,17 @@ interface PlacesClient {
     /** Text Search (IDs Only: free). Null = no such place, which drops the candidate. */
     suspend fun findPlaceId(name: String, destination: String, focusArea: String? = null): String?
 
-    /** Place Details with a minimal field mask. [withRating] raises the billing tier, so only ask for the top cards. */
-    suspend fun details(placeId: String, withRating: Boolean): PlaceDetails?
+    /**
+     * Place Details with a minimal field mask, Essentials tier only (no rating or price: those are Enterprise).
+     * [withPhotoCredit] adds the photo author, which is for the cards the user actually sees.
+     */
+    suspend fun details(placeId: String, withPhotoCredit: Boolean): PlaceDetails?
 
     /** First photo of the place, null if it has none. Throws [PlacesQuotaException] when Google rejects for quota. */
     suspend fun photo(placeId: String): PlacePhoto?
 }
 
-/** A validated suggestion as kept in `recommendation_cache`. No photo, no rating: those are fetched when shown. */
+/** A validated suggestion as kept in `recommendation_cache`. No photo: it is fetched when shown. */
 @Serializable
 data class CachedPlace(
     val placeId: String,
@@ -100,8 +107,8 @@ data class CachedPlace(
     val category: Category,
     val reason: String,
     val priceLevel: Int? = null,
-    /** Google's price level (0–4) when it had one; the price filter uses this, never the LLM's guess. */
-    val placesPriceLevel: Int? = null,
+    /** The LLM's cost estimate in USD per person, kept so the price filter can run on cached entries. */
+    val costUsd: Double? = null,
     val suggestedDurationMin: Int,
     val lat: Double,
     val lng: Double,

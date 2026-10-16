@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import app.ransel.server.ai.AiMetrics
 import app.ransel.server.ai.AiServices
 import app.ransel.server.ai.EcbFxRates
 import app.ransel.server.ai.ExploreSuggestionService
@@ -81,8 +82,8 @@ fun Application.module(
     val (aiServices, aiHttp) = if (ai != null) ai to null else aiServicesFrom(config)
     monitor.subscribe(ApplicationStopped) { aiHttp?.close() }
     val photoSigner = PhotoSigner(config.photoSigningSecret)
-    val recommendations = RecommendationService(config, aiServices, photoSigner = photoSigner)
-    val placePhotos = PlacePhotoService(aiServices.places, recommendations.metrics)
+    val aiMetrics = AiMetrics()
+    val placePhotos = PlacePhotoService(aiServices.places, aiMetrics)
     // Its own scope on a real dispatcher: it must not run on (and be sped up by) the host application's scheduler.
     val maintenance = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     monitor.subscribe(ApplicationStopped) { maintenance.cancel() }
@@ -91,7 +92,8 @@ fun Application.module(
     val fxHttp = if (fx == null && ai == null) HttpClient(OkHttp) else null
     monitor.subscribe(ApplicationStopped) { fxHttp?.close() }
     val ecb = fxHttp?.let { EcbFxRates(it) }
-    val suggestions = ExploreSuggestionService(aiServices.llm, fx ?: ecb ?: NoFxRates, recommendations.metrics)
+    val suggestions = ExploreSuggestionService(aiServices.llm, fx ?: ecb ?: NoFxRates, aiMetrics)
+    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions)
     if (ecb != null) {
         maintenance.launch {
             while (isActive) {

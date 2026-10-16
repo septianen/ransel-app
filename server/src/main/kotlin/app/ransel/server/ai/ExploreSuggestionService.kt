@@ -69,6 +69,10 @@ class ExploreSuggestionService(
         return ExploreSuggestionsResponse(interests = guide.interests)
     }
 
+    /** The price edges for a destination and month, from the cache or one short LLM call; null when unavailable. */
+    suspend fun priceGuide(destination: String, month: String, language: String = "id"): PriceGuide? =
+        guide(destination, month, language)?.let { PriceGuide(it.lowMaxUsd, it.midMaxUsd) }
+
     /** Fills the cache after a trip is created or moved. Failures are ignored; this is only a head start. */
     suspend fun warm(destination: String, month: String) {
         if (destination.isBlank() || destination.length > MAX_DESTINATION) return

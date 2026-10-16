@@ -30,7 +30,7 @@ import kotlin.test.assertTrue
 private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
 
 private val query = LlmQuery(
-    destination = "Bali", focusArea = null, days = 4, startDate = "2026-11-20", priceLevel = PriceLevel.MEDIUM,
+    destination = "Bali", focusArea = null, days = 4, startDate = "2026-11-20", priceLevel = PriceLevel.MEDIUM, priceGuide = null,
     interests = listOf(Interest.FOOD, Interest.NATURE), extraInterests = emptyList(),
     style = TravelStyle.SANTAI, notes = "tanpa babi", liked = listOf("Tanah Lot"), skipped = listOf("Pantai Kuta"), count = 15,
 )
@@ -151,19 +151,21 @@ class GooglePlacesClientTest {
     }
 
     @Test
-    fun ratingIsOnlyRequestedWhenAskedFor() = runBlocking {
+    fun photoCreditIsOnlyRequestedWhenAskedForAndNeverTheEnterpriseFields() = runBlocking {
         val seen = mutableListOf<HttpRequestData>()
-        val body = """{"location":{"latitude":-8.62,"longitude":115.09},"formattedAddress":"Beraban, Tabanan","rating":4.6}"""
+        val body = """{"location":{"latitude":-8.62,"longitude":115.09},"formattedAddress":"Beraban, Tabanan","photos":[{"name":"places/ChIJabc/photos/R","authorAttributions":[{"displayName":"Made Wijaya"}]}]}"""
         val c = client(seen, HttpStatusCode.OK to body, HttpStatusCode.OK to body)
 
-        val plain = c.details("ChIJabc", withRating = false)!!
-        val rated = c.details("ChIJabc", withRating = true)!!
+        val plain = c.details("ChIJabc", withPhotoCredit = false)!!
+        val credited = c.details("ChIJabc", withPhotoCredit = true)!!
 
-        assertEquals("location,formattedAddress,priceLevel", seen[0].headers["X-Goog-FieldMask"])
-        assertEquals("location,formattedAddress,priceLevel,rating,photos", seen[1].headers["X-Goog-FieldMask"])
+        assertEquals("location,formattedAddress", seen[0].headers["X-Goog-FieldMask"])
+        assertEquals("location,formattedAddress,photos", seen[1].headers["X-Goog-FieldMask"])
+        assertTrue(seen.none { "rating" in it.headers["X-Goog-FieldMask"].orEmpty() || "priceLevel" in it.headers["X-Goog-FieldMask"].orEmpty() })
         assertEquals(-8.62, plain.lat)
-        assertEquals("Beraban, Tabanan", rated.address)
-        assertEquals(4.6, rated.rating)
+        assertNull(plain.photoAttribution)
+        assertEquals("Beraban, Tabanan", credited.address)
+        assertEquals("Made Wijaya", credited.photoAttribution)
     }
 
     @Test
@@ -219,16 +221,6 @@ class ExploreParsingTest {
         assertFailsWith<Exception> { app.ransel.server.ai.LlmOutput.parseInterests("""{"interests":["a","b"],"priceGuide":{"lowMaxUsd":1,"midMaxUsd":2}}""") }
         assertFailsWith<Exception> { app.ransel.server.ai.LlmOutput.parseInterests("""{"interests":["a","b","c"],"priceGuide":{"lowMaxUsd":5,"midMaxUsd":2}}""") }
         assertFailsWith<Exception> { app.ransel.server.ai.LlmOutput.parseInterests("not json") }
-    }
-
-    @Test
-    fun placesPriceEnumBecomesZeroToFourAndUnspecifiedIsNull() = runBlocking {
-        val http = HttpClient(MockEngine { respond(
-            """{"location":{"latitude":1.0,"longitude":2.0},"priceLevel":"PRICE_LEVEL_EXPENSIVE"}""", HttpStatusCode.OK, jsonHeaders) })
-        assertEquals(3, GooglePlacesClient(http, "k", "https://places.test/v1").details("x", false)!!.priceLevel)
-        val none = HttpClient(MockEngine { respond(
-            """{"location":{"latitude":1.0,"longitude":2.0},"priceLevel":"PRICE_LEVEL_UNSPECIFIED"}""", HttpStatusCode.OK, jsonHeaders) })
-        assertNull(GooglePlacesClient(none, "k", "https://places.test/v1").details("x", false)!!.priceLevel)
     }
 
     @Test

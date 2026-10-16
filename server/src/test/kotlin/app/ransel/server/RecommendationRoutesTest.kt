@@ -66,13 +66,11 @@ private class FakeLlm(
 private class FakePlaces(
     private val known: Map<String, Pair<Double, Double>>,
     var allFail: Boolean = false,
-    /** Google price level per place name; a place not listed has no price. */
-    private val prices: Map<String, Int> = emptyMap(),
 ) : PlacesClient {
     var lastFocusArea: String? = null
     val searches = AtomicInteger()
     val details = AtomicInteger()
-    val ratedLookups = AtomicInteger()
+    val creditLookups = AtomicInteger()
 
     override suspend fun findPlaceId(name: String, destination: String, focusArea: String?): String? {
         lastFocusArea = focusArea
@@ -91,17 +89,17 @@ private class FakePlaces(
         return if (placeId in noPhotoFor) null else PlacePhoto(byteArrayOf(9, 8, 7), "image/jpeg")
     }
 
-    override suspend fun details(placeId: String, withRating: Boolean): PlaceDetails? {
+    override suspend fun details(placeId: String, withPhotoCredit: Boolean): PlaceDetails? {
         details.incrementAndGet()
-        if (withRating) ratedLookups.incrementAndGet()
+        if (withPhotoCredit) creditLookups.incrementAndGet()
         val name = placeId.removePrefix("place-")
         val (lat, lng) = known[name] ?: return null
-        return PlaceDetails(placeId, lat, lng, "Jl. $name", if (withRating) 4.5 else null, prices[name], if (withRating) "Foto $name" else null)
+        return PlaceDetails(placeId, lat, lng, "Jl. $name", if (withPhotoCredit) "Foto $name" else null)
     }
 }
 
-private fun candidate(name: String, category: Category = Category.ATTRACTION) =
-    LlmCandidate(name = name, category = category, reason = "Cocok untuk $name", priceLevel = 2, suggestedDurationMin = 90)
+private fun candidate(name: String, category: Category = Category.ATTRACTION, cost: Double? = null) =
+    LlmCandidate(name = name, category = category, reason = "Cocok untuk $name", priceLevel = 2, costUsd = cost, suggestedDurationMin = 90)
 
 private val BALI = mapOf(
     "Pantai Kuta" to (-8.72 to 115.17),
@@ -173,13 +171,14 @@ class RecommendationRoutesTest {
     }
 
     @Test
-    fun onlyTheTopCardsGetARatingLookup() {
+    fun onlyTheTopCardsGetAPhotoCreditAndNoRatingIsEverFetched() {
         val (llm, places) = fakes()
         apiTest(ai = AiServices(llm, places)) {
             val items = post("/recommendations", request(trip())).data().jsonObject.getValue("groups").jsonArray
                 .flatMap { it.jsonObject.getValue("items").jsonArray }.map { it.jsonObject }
-            assertEquals(3, places.ratedLookups.get())
-            assertEquals(3, items.count { it["rating"] != null && it["rating"].toString() != "null" })
+            assertEquals(3, places.creditLookups.get())
+            assertEquals(3, items.count { it["photoAttribution"] != null })
+            assertTrue(items.none { it["rating"] != null }, "ratings are Enterprise tier and are not fetched")
             assertEquals(4, places.searches.get() - 1) // 5 candidates searched; none repeated
         }
     }
@@ -326,23 +325,45 @@ class RecommendationRoutesTest {
 
     // ── Explore per trip (docs/specs/AI-Recommendation-Spec.md) ─────────────
 
-    private val pricedPlaces = mapOf("Pantai Kuta" to 4, "Tanah Lot" to 1, "Warung Babi Guling" to 1) // Kopi Seniman: no price
-
     private suspend fun Api.names(response: io.ktor.client.statement.HttpResponse) =
         response.data().jsonObject.getValue("groups").jsonArray
             .flatMap { g -> g.jsonObject.getValue("items").jsonArray.map { it.jsonObject.str("name") } }.toSet()
 
     @Test
-    fun priceLevelDropsPlacesMoreThanOneStepAwayAndKeepsUnpricedOnes() {
-        val (llm, _) = fakes()
-        apiTest(ai = AiServices(llm, FakePlaces(BALI, prices = pricedPlaces))) {
+    fun priceLevelDropsPlacesMoreThanOneStepAwayAndKeepsFreeOnes() {
+        // The fake guide (30 / 90 USD): Kuta 150 = HIGH, Tanah Lot 5 and Warung 8 = LOW, Kopi 40 = MEDIUM, Uluwatu free.
+        val llm = FakeLlm(
+            listOf(
+                candidate("Pantai Kuta", cost = 150.0), candidate("Tanah Lot", cost = 5.0),
+                candidate("Warung Babi Guling", Category.FOOD, cost = 8.0), candidate("Kopi Seniman", Category.FOOD, cost = 40.0),
+                candidate("Pura Uluwatu"),
+            ),
+        )
+        apiTest(ai = AiServices(llm, FakePlaces(BALI))) {
             val trip = trip()
-            // LOW (Places 0–1): the 4 = very expensive place is two steps away
-            assertEquals(setOf("Tanah Lot", "Warung Babi Guling", "Kopi Seniman"), names(post("/recommendations", request(trip, price = "LOW"))))
-            // MEDIUM: everything is within one step
-            assertEquals(4, names(post("/recommendations", request(trip, price = "MEDIUM"))).size)
-            // HIGH (Places 3–4): the cheap ones are two steps away; the one without a price stays
-            assertEquals(setOf("Pantai Kuta", "Kopi Seniman"), names(post("/recommendations", request(trip, price = "HIGH"))))
+            assertEquals(setOf("Tanah Lot", "Warung Babi Guling", "Kopi Seniman", "Pura Uluwatu"), names(post("/recommendations", request(trip, price = "LOW"))))
+            assertEquals(5, names(post("/recommendations", request(trip, price = "MEDIUM"))).size, "MEDIUM is within one step of everything")
+            assertEquals(setOf("Pantai Kuta", "Kopi Seniman", "Pura Uluwatu"), names(post("/recommendations", request(trip, price = "HIGH"))))
+        }
+    }
+
+    @Test
+    fun searchAsksTheLlmWithTheLocalPriceGuide() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            post("/recommendations", request(trip("Tokyo"), price = "LOW"))
+            val guide = llm.lastQuery?.priceGuide
+            assertEquals(30.0, guide?.lowMaxUsd)
+            assertEquals(90.0, guide?.midMaxUsd)
+        }
+    }
+
+    @Test
+    fun withoutAPriceGuideNothingIsFiltered() {
+        val llm = FakeLlm(listOf(candidate("Pantai Kuta", cost = 150.0), candidate("Tanah Lot", cost = 5.0)))
+        llm.interestFailures = 100 // the guide cannot be had
+        apiTest(ai = AiServices(llm, FakePlaces(BALI))) {
+            assertEquals(2, names(post("/recommendations", request(trip(), price = "LOW"))).size)
         }
     }
 

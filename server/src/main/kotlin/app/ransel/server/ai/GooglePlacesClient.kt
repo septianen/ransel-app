@@ -23,8 +23,8 @@ import kotlinx.serialization.json.put
 /**
  * Google Places API (New). Cost control lives in the field masks:
  *  - Text Search with `places.id` only is the free "IDs Only" tier;
- *  - Place Details with `location,formattedAddress` is Essentials; adding `rating` raises the call to Pro,
- *    so [details] only asks for it when told to.
+ *  - Place Details with `location,formattedAddress` is Essentials (10,000 free a month). `photos` is IDs Only and
+ *    does not raise the tier. `rating` and `priceLevel` are Enterprise (1,000 free a month, $20 per 1,000): never asked.
  * The key goes in a header, never in a URL, and nothing here is ever returned to the app.
  */
 class GooglePlacesClient(
@@ -52,9 +52,8 @@ class GooglePlacesClient(
         return body["places"]?.jsonArray?.firstOrNull()?.jsonObject?.get("id")?.jsonPrimitive?.content
     }
 
-    override suspend fun details(placeId: String, withRating: Boolean): PlaceDetails? {
-        // priceLevel raises the call above Essentials; it is fetched once per grounded place and then cached with it.
-        val mask = if (withRating) "location,formattedAddress,priceLevel,rating,photos" else "location,formattedAddress,priceLevel"
+    override suspend fun details(placeId: String, withPhotoCredit: Boolean): PlaceDetails? {
+        val mask = if (withPhotoCredit) "location,formattedAddress,photos" else "location,formattedAddress"
         val response = http.get("$baseUrl/places/$placeId") {
             header("X-Goog-Api-Key", apiKey)
             header("X-Goog-FieldMask", mask)
@@ -70,9 +69,7 @@ class GooglePlacesClient(
             lat = lat,
             lng = lng,
             address = body["formattedAddress"]?.jsonPrimitive?.content,
-            rating = body["rating"]?.jsonPrimitive?.doubleOrNull,
-            priceLevel = priceLevelOf(body["priceLevel"]?.jsonPrimitive?.content),
-            photoAttribution = if (withRating) body.firstPhoto()?.get("authorAttributions")?.jsonArray
+            photoAttribution = if (withPhotoCredit) body.firstPhoto()?.get("authorAttributions")?.jsonArray
                 ?.firstOrNull()?.jsonObject?.get("displayName")?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } else null,
         )
     }
@@ -111,15 +108,5 @@ class GooglePlacesClient(
 
     private companion object {
         const val PHOTO_WIDTH_PX = 800
-
-        /** Places (New) sends `PRICE_LEVEL_MODERATE`; UNSPECIFIED and unknown values mean "no price". */
-        fun priceLevelOf(raw: String?): Int? = when (raw) {
-            "PRICE_LEVEL_FREE" -> 0
-            "PRICE_LEVEL_INEXPENSIVE" -> 1
-            "PRICE_LEVEL_MODERATE" -> 2
-            "PRICE_LEVEL_EXPENSIVE" -> 3
-            "PRICE_LEVEL_VERY_EXPENSIVE" -> 4
-            else -> null
-        }
     }
 }

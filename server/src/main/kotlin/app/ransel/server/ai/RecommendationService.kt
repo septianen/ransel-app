@@ -70,6 +70,8 @@ class RecommendationService(
     private val ai: AiServices,
     val metrics: AiMetrics = AiMetrics(),
     private val photoSigner: PhotoSigner = PhotoSigner(config.photoSigningSecret),
+    /** Source of the local price guide; null = no price filter and no numbers in the prompt. */
+    private val suggestions: ExploreSuggestionService? = null,
 ) {
     private val log = LoggerFactory.getLogger(RecommendationService::class.java)
 
@@ -95,6 +97,7 @@ class RecommendationService(
 
         metrics.searches.incrementAndGet()
         val key = cacheKey(body, trip)
+        val guide = suggestions?.priceGuide(trip.destination, monthOf(trip.startDate))
         val cached = readCache(key)
         val candidates: List<CachedPlace> = if (cached != null) {
             metrics.cacheHits.incrementAndGet()
@@ -102,6 +105,7 @@ class RecommendationService(
         } else {
             val query = LlmQuery(
                 destination = trip.destination.trim(),
+                priceGuide = guide,
                 focusArea = body.focusArea?.trim()?.takeIf { it.isNotEmpty() },
                 days = trip.startDate.daysUntil(trip.endDate) + 1,
                 startDate = trip.startDate.toString(),
@@ -120,10 +124,10 @@ class RecommendationService(
         // The price filter runs here, not before the cache write, so a cached entry stays valid for every price level.
         val picked = candidates.filter { it.placeId !in seen }
             .filter { place ->
-                priceFits(place.placesPriceLevel, body.priceLevel).also { if (!it) metrics.priceFiltered.incrementAndGet() }
+                priceFits(place.costUsd, guide, body.priceLevel).also { if (!it) metrics.priceFiltered.incrementAndGet() }
             }
             .take(MAX_CARDS)
-        val items = withRatings(picked)
+        val items = withPhotoCredits(picked)
 
         val quota = if (body.newSearch) consume(userId) else currentUsage(userId).let(::toQuota)
         log.info(
@@ -188,7 +192,7 @@ class RecommendationService(
                             metrics.placesSearchCalls.incrementAndGet()
                             val id = ai.places.findPlaceId(candidate.name, query.destination, query.focusArea) ?: return@withPermit null
                             metrics.placesDetailsCalls.incrementAndGet()
-                            val details = ai.places.details(id, withRating = false) ?: return@withPermit null
+                            val details = ai.places.details(id, withPhotoCredit = false) ?: return@withPermit null
                             candidate to details
                         } catch (e: Exception) {
                             synchronized(this@RecommendationService) { failures++ }
@@ -210,7 +214,7 @@ class RecommendationService(
                 category = c.category,
                 reason = c.reason.trim(),
                 priceLevel = c.priceLevel?.takeIf { it in 0..4 },
-                placesPriceLevel = d.priceLevel,
+                costUsd = c.costUsd?.takeIf { it > 0 },
                 suggestedDurationMin = (c.suggestedDurationMin ?: DEFAULT_DURATION_MIN).coerceIn(15, 480),
                 lat = d.lat,
                 lng = d.lng,
@@ -237,23 +241,21 @@ class RecommendationService(
         throw unavailable()
     }
 
-    /** Fetches ratings for the top cards only (the billing tier rises with the rating field). */
-    private suspend fun withRatings(places: List<CachedPlace>): List<Pair<Category, RecommendationItem>> = coroutineScope {
+    /** Photo credit for the top cards only: Google requires it next to the photo. Ratings are not fetched (Enterprise tier). */
+    private suspend fun withPhotoCredits(places: List<CachedPlace>): List<Pair<Category, RecommendationItem>> = coroutineScope {
         places.mapIndexed { index, place ->
             async {
-                var rating: Double? = null
                 var address = place.address
                 var attribution: String? = null
-                if (index < RATED_CARDS) {
+                if (index < CREDITED_CARDS) {
                     try {
                         metrics.placesDetailsCalls.incrementAndGet()
-                        ai.places.details(place.placeId, withRating = true)?.let {
-                            rating = it.rating
+                        ai.places.details(place.placeId, withPhotoCredit = true)?.let {
                             attribution = it.photoAttribution
                             address = it.address ?: address
                         }
                     } catch (e: Exception) {
-                        log.warn("Rating lookup failed: {}", e.javaClass.simpleName) // a card without a rating is fine
+                        log.warn("Photo credit lookup failed: {}", e.javaClass.simpleName) // a card without a credit is fine
                     }
                 }
                 place.category to RecommendationItem(
@@ -264,7 +266,6 @@ class RecommendationService(
                     suggestedDurationMin = place.suggestedDurationMin,
                     lat = place.lat,
                     lng = place.lng,
-                    rating = rating,
                     photoUrl = photoSigner.signedPath(place.placeId),
                     photoAttribution = attribution,
                     address = address,
@@ -349,7 +350,7 @@ class RecommendationService(
         val text = listOf(
             normalizeDestination(trip.destination),
             normalizeDestination(body.focusArea.orEmpty()),
-            "%04d-%02d".format(trip.startDate.year, trip.startDate.monthNumber),
+            monthOf(trip.startDate),
             body.interests.map { it.name }.distinct().sorted().joinToString(","),
             body.extraInterests.map(::normalizeDestination).filter { it.isNotEmpty() }.distinct().sorted().joinToString(","),
             body.priceLevel.name,
@@ -367,14 +368,21 @@ class RecommendationService(
     }
 
     /**
-     * LOW = Places 0–1, MEDIUM = 2, HIGH = 3–4. A place is dropped when it is more than one step away from the chosen
-     * level; places Google has no price for stay (most parks and temples have none).
+     * The LLM's [costUsd] per person against the destination's [guide]: below the lower edge is LOW, above the upper
+     * edge HIGH, else MEDIUM. A place is dropped when it is more than one step from [wanted], so MEDIUM keeps
+     * everything. Free places (no cost) and an unknown guide keep the place.
      */
-    internal fun priceFits(placesLevel: Int?, wanted: PriceLevel): Boolean {
-        if (placesLevel == null) return true
-        val step = when (placesLevel) { in 0..1 -> 0; 2 -> 1; else -> 2 }
-        return kotlin.math.abs(step - wanted.ordinal) <= 1
+    internal fun priceFits(costUsd: Double?, guide: PriceGuide?, wanted: PriceLevel): Boolean {
+        if (costUsd == null || costUsd <= 0 || guide == null) return true
+        val actual = when {
+            costUsd < guide.lowMaxUsd -> PriceLevel.LOW
+            costUsd > guide.midMaxUsd -> PriceLevel.HIGH
+            else -> PriceLevel.MEDIUM
+        }
+        return kotlin.math.abs(actual.ordinal - wanted.ordinal) <= 1
     }
+
+    private fun monthOf(date: LocalDate) = "%04d-%02d".format(date.year, date.monthNumber)
 
     private fun readCache(key: String): List<CachedPlace>? = transaction {
         val row = RecommendationCache.selectAll()
@@ -419,7 +427,7 @@ class RecommendationService(
         const val CANDIDATES_ASKED = 18
         const val MAX_CANDIDATES = 20
         const val MAX_CARDS = 15
-        const val RATED_CARDS = 3
+        const val CREDITED_CARDS = 3
         const val GROUNDING_PARALLELISM = 5
         const val DEFAULT_DURATION_MIN = 60
         const val MAX_SPREAD_KM = 150.0
