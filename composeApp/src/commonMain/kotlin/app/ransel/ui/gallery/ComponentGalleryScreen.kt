@@ -39,7 +39,15 @@ import app.ransel.ui.components.SectionHeader
 import app.ransel.ui.components.TripCover
 import app.ransel.ui.components.TripHeader
 import app.ransel.ui.components.TripTab
+import app.ransel.ui.components.ScooterLoading
 import app.ransel.ui.components.UndoSnackbar
+import org.jetbrains.compose.resources.stringResource
+import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.explore_loading_1
+import ransel.composeapp.generated.resources.explore_loading_2
+import ransel.composeapp.generated.resources.explore_loading_3
+import ransel.composeapp.generated.resources.explore_loading_4
+import ransel.composeapp.generated.resources.explore_loading_hint
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.FormScaffold
 import app.ransel.ui.preview.IrisPreview
@@ -131,6 +139,17 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     LoadingButton(onClick = { loading = true }, loading = loading, modifier = Modifier.fillMaxWidth()) { Text("Simpan") }
                     LoadingOutlinedButton(onClick = { loading = true }, loading = loading, modifier = Modifier.fillMaxWidth()) { Text("Tandai lunas") }
                     LoadingButton(onClick = {}, loading = false, enabled = false, modifier = Modifier.fillMaxWidth()) { Text("Disabled") }
+                }
+                Section("ScooterLoading") {
+                    ScooterLoading(
+                        messages = listOf(
+                            stringResource(Res.string.explore_loading_1),
+                            stringResource(Res.string.explore_loading_2),
+                            stringResource(Res.string.explore_loading_3),
+                            stringResource(Res.string.explore_loading_4),
+                        ),
+                        hint = stringResource(Res.string.explore_loading_hint),
+                    )
                 }
                 Section("ConfirmDialog / AdaptiveSheet / FormScaffold") {
                     Button(onClick = { showDialog = true }) { Text("ConfirmDialog") }

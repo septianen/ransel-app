@@ -670,6 +670,12 @@
     <string name="swipe_ai_title">Explore AI</string>
     <string name="swipe_loading">Preparing recommendations…</string>
     <string name="swipe_loading_hint">Looking for places that match your interests…</string>
+    <string name="explore_loading_1">Looking for fun places…</string>
+    <string name="explore_loading_2">Checking the map…</string>
+    <string name="explore_loading_3">Picking the best matches…</string>
+    <string name="explore_loading_4">Almost there…</string>
+    <string name="explore_loading_hint">Usually 5–10 seconds</string>
+    <string name="explore_loading_description">Loading recommendations</string>
     <string name="swipe_progress">%1$d of %2$d</string>
     <string name="swipe_saved_count">%1$d saved</string>
     <string name="swipe_saved">%1$s saved to Unscheduled</string>

@@ -105,6 +105,7 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
   - Done. Home callout ("Bingung mau ke mana di …?" → Coba), the "belum dijadwalkan" column in "Persiapan trip", and "Cari inspirasi dengan AI" on an empty itinerary day (signed-in editors/owners). Entering from a trip pre-selects that trip in the form. Not built: "Cari tempat lain" in the unscheduled sheet and the AI filter there (no design).
 
 - [ ] **F5.6 Card photos.** Needs backend B5.7. Coil 3 in `commonMain` (Android, iOS, wasmJs) on the existing Ktor engine per platform; resolve the relative `photoUrl` against `apiOrigin()` + `ApiRoutes.BASE`. `RecommendationCard` shows the photo over the category colour (the colour stays as placeholder and as fallback when there is no photo or the load fails), keeps the category chip and SIMPAN/LEWATI label on top, and shows `photoAttribution` (or a generic "Foto: Google") as small text over a scrim, readable in dark theme. Prefetch only the next card's image. Check on the Android emulator and on web (no CORS errors).
+- [ ] **F5.7 Scooter loading.** Use `ScooterLoading` (`ui/components/ScooterLoading.kt`) for the Explore loading state (`MemuatRekomendasi`) in `SwipeScreen`. The component is built, with `rememberReduceMotion` (`ui/motion`), previews and a Component Gallery entry; wiring it into `SwipeScreen` and checking it on iOS (not compiled on Linux) are still open.
 
 **Done when:** recommendations can be swiped, saved places appear in "Belum dijadwalkan", and they can be scheduled into a day.
 

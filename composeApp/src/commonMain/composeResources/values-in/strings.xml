@@ -665,6 +665,12 @@
     <string name="swipe_ai_title">Jelajah AI</string>
     <string name="swipe_loading">Menyiapkan rekomendasi…</string>
     <string name="swipe_loading_hint">Mencari tempat yang cocok dengan minatmu…</string>
+    <string name="explore_loading_1">Mencari tempat seru…</string>
+    <string name="explore_loading_2">Mengecek di peta…</string>
+    <string name="explore_loading_3">Memilih yang paling cocok…</string>
+    <string name="explore_loading_4">Hampir sampai…</string>
+    <string name="explore_loading_hint">Biasanya 5–10 detik</string>
+    <string name="explore_loading_description">Memuat rekomendasi</string>
     <string name="swipe_progress">%1$d dari %2$d</string>
     <string name="swipe_saved_count">%1$d disimpan</string>
     <string name="swipe_saved">%1$s disimpan ke Belum dijadwalkan</string>
