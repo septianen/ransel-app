@@ -153,7 +153,8 @@ fun JoinTripContent(
 
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Column(
-                Modifier.widthIn(max = 480.dp).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
+                // Bottom padding sits inside the scroll area: it clips drawing, so the card's shadow needs room there.
+                Modifier.widthIn(max = 480.dp).verticalScroll(rememberScrollState()).padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
