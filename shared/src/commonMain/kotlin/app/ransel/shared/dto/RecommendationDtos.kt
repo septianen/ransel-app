@@ -82,7 +82,7 @@ data class RecommendationItem(
     val suggestedDurationMin: Int,
     val lat: Double,
     val lng: Double,
-    /** Filled lazily for the top cards only (cost control). */
+    /** Not filled any more: Google ratings are an Enterprise-tier field and cost too much. Always null; do not show a rating. */
     val rating: Double? = null,
     /** Signed path relative to `ApiRoutes.BASE` (see `ApiRoutes.placePhoto`); valid 7 days. The image may still 404. */
     val photoUrl: String? = null,
