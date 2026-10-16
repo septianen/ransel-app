@@ -12,10 +12,12 @@ import io.ktor.http.HttpStatusCode
 private object NotConfiguredLlm : LlmClient {
     override val modelName = "none"
     override suspend fun suggest(query: LlmQuery): List<LlmCandidate> = throw notConfigured()
+    override suspend fun suggestInterests(destination: String, month: String, language: String): InterestSuggestions =
+        throw notConfigured()
 }
 
 private object NotConfiguredPlaces : PlacesClient {
-    override suspend fun findPlaceId(name: String, destination: String): String? = throw notConfigured()
+    override suspend fun findPlaceId(name: String, destination: String, focusArea: String?): String? = throw notConfigured()
     override suspend fun details(placeId: String, withRating: Boolean): PlaceDetails? = throw notConfigured()
     override suspend fun photo(placeId: String): PlacePhoto? = throw notConfigured()
 }

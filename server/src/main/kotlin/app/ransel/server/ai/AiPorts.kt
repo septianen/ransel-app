@@ -1,8 +1,8 @@
 package app.ransel.server.ai
 
-import app.ransel.shared.model.BudgetLevel
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.Interest
+import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.TravelStyle
 import kotlinx.serialization.Serializable
 
@@ -14,9 +14,15 @@ import kotlinx.serialization.Serializable
 /** What the LLM is asked for. */
 data class LlmQuery(
     val destination: String,
+    /** Narrows the search to an area of the destination. */
+    val focusArea: String?,
     val days: Int,
-    val budget: BudgetLevel,
+    /** First day of the trip, as `YYYY-MM-DD`: the prompt names the month so seasonal places fit. */
+    val startDate: String,
+    val priceLevel: PriceLevel,
     val interests: List<Interest>,
+    /** Destination interests the user ticked ("Sakura", "Diving"). */
+    val extraInterests: List<String>,
     val style: TravelStyle,
     val notes: String?,
     /** Names the user liked / skipped in this trip, as a taste signal. */
@@ -37,12 +43,24 @@ data class LlmCandidate(
     val lng: Double? = null,
 )
 
+/** Destination interests for the Explore form plus a price guide, as asked from the LLM. */
+data class InterestSuggestions(
+    val interests: List<String>,
+    /** Typical spend per person per day (USD) at the edge between `$` and `$$`. */
+    val lowMaxUsd: Double,
+    /** Same, between `$$` and `$$$`. */
+    val midMaxUsd: Double,
+)
+
 interface LlmClient {
     /** Stored next to cached results. */
     val modelName: String
 
     /** Returns the parsed suggestions. Throws on transport errors or unparseable output (the caller retries once). */
     suspend fun suggest(query: LlmQuery): List<LlmCandidate>
+
+    /** Short call for the Explore form. [language] is `id` or `en`; [month] is `YYYY-MM`. Throws on failure. */
+    suspend fun suggestInterests(destination: String, month: String, language: String): InterestSuggestions
 }
 
 data class PlaceDetails(
@@ -51,6 +69,8 @@ data class PlaceDetails(
     val lng: Double,
     val address: String?,
     val rating: Double?,
+    /** Google priceLevel 0–4 (FREE = 0 … VERY_EXPENSIVE = 4); null when Google has no price for the place. */
+    val priceLevel: Int? = null,
     /** Author credit of the first photo; only filled together with [rating]. */
     val photoAttribution: String? = null,
 )
@@ -63,7 +83,7 @@ class PlacesQuotaException(status: Int) : RuntimeException("Places photo HTTP $s
 
 interface PlacesClient {
     /** Text Search (IDs Only: free). Null = no such place, which drops the candidate. */
-    suspend fun findPlaceId(name: String, destination: String): String?
+    suspend fun findPlaceId(name: String, destination: String, focusArea: String? = null): String?
 
     /** Place Details with a minimal field mask. [withRating] raises the billing tier, so only ask for the top cards. */
     suspend fun details(placeId: String, withRating: Boolean): PlaceDetails?
@@ -80,6 +100,8 @@ data class CachedPlace(
     val category: Category,
     val reason: String,
     val priceLevel: Int? = null,
+    /** Google's price level (0–4) when it had one; the price filter uses this, never the LLM's guess. */
+    val placesPriceLevel: Int? = null,
     val suggestedDurationMin: Int,
     val lat: Double,
     val lng: Double,

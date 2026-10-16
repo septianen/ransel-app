@@ -43,6 +43,8 @@ data class AppConfig(
     val photoSigningSecret: String = DEV_PHOTO_SIGNING_SECRET,
     /** Photo proxy requests per client address per minute (a card stack loads several at once). */
     val photoRateLimitPerMinute: Int = 120,
+    /** `GET /explore/suggestions` per user per hour (soft limit; it never uses the daily search quota). */
+    val suggestionsRateLimitPerHour: Int = 60,
     val aiCacheTtl: Duration = 3.days,
 ) {
     data class SeedUser(val email: String, val password: String, val displayName: String)

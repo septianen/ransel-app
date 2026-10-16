@@ -1,6 +1,10 @@
 package app.ransel.server
 
 import app.ransel.server.ai.AiServices
+import app.ransel.server.ai.EcbFxRates
+import app.ransel.server.ai.ExploreSuggestionService
+import app.ransel.server.ai.FxRates
+import app.ransel.server.ai.NoFxRates
 import app.ransel.server.ai.PhotoSigner
 import app.ransel.server.ai.PlacePhotoService
 import app.ransel.server.ai.RecommendationService
@@ -16,6 +20,7 @@ import app.ransel.server.plugins.configureSerialization
 import app.ransel.server.plugins.configureStatusPages
 import app.ransel.server.routes.authRoutes
 import app.ransel.server.routes.balanceRoutes
+import app.ransel.server.routes.exploreRoutes
 import app.ransel.server.routes.expenseRoutes
 import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
@@ -35,9 +40,12 @@ import app.ransel.server.security.TokenService
 import app.ransel.server.service.AuthService
 import app.ransel.server.service.InviteService
 import app.ransel.server.service.PasswordResetService
+import app.ransel.server.service.TripEvents
 import app.ransel.server.service.SyncService
 import app.ransel.shared.api.ApiRoutes
 import com.zaxxer.hikari.HikariDataSource
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.auth.authenticate
@@ -63,6 +71,8 @@ fun Application.module(
     config: AppConfig = AppConfig.fromEnv(),
     emailSender: EmailSender = LoggingEmailSender(config.isProduction),
     ai: AiServices? = null,
+    /** Null = ECB rates when the real AI clients are used, none in tests. */
+    fx: FxRates? = null,
 ) {
     val pool = DatabaseFactory.connect(config)
     TemplateSeed.run()
@@ -76,11 +86,32 @@ fun Application.module(
     // Its own scope on a real dispatcher: it must not run on (and be sped up by) the host application's scheduler.
     val maintenance = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     monitor.subscribe(ApplicationStopped) { maintenance.cancel() }
+
+    // Explore form: destination interests (cached per destination + month) and the price level from a trip budget.
+    val fxHttp = if (fx == null && ai == null) HttpClient(OkHttp) else null
+    monitor.subscribe(ApplicationStopped) { fxHttp?.close() }
+    val ecb = fxHttp?.let { EcbFxRates(it) }
+    val suggestions = ExploreSuggestionService(aiServices.llm, fx ?: ecb ?: NoFxRates, recommendations.metrics)
+    if (ecb != null) {
+        maintenance.launch {
+            while (isActive) {
+                ecb.refresh()
+                delay(24.hours)
+            }
+        }
+    }
+    // A new or moved trip gets its destination interests ready before the user opens Explore.
+    TripEvents.onTripSaved = { destination, startDate ->
+        maintenance.launch {
+            runCatching { suggestions.warm(destination, "%04d-%02d".format(startDate.year, startDate.monthNumber)) }
+        }
+    }
     maintenance.launch {
         // Hourly: drop expired cache rows and log the AI counters (cost visibility, TRD "Observability").
         while (isActive) {
             delay(1.hours)
             runCatching { recommendations.purgeExpiredCache() }
+            runCatching { suggestions.purgeExpired() }
             recommendations.metrics.logSummary()
         }
     }
@@ -115,6 +146,7 @@ fun Application.module(
                 balanceRoutes()
                 packingTemplateRoutes()
                 recommendationRoutes(recommendations)
+                exploreRoutes(suggestions)
             }
         }
     }

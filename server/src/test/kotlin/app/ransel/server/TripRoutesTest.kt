@@ -8,8 +8,8 @@ import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-internal fun tripJson(id: String = UUID.randomUUID().toString(), title: String = "Bali 4 hari", start: String = "2026-11-20", end: String = "2026-11-23", budget: Long? = 5_000_000) =
-    """{"id":"$id","title":"$title","destination":"Bali","startDate":"$start","endDate":"$end","baseCurrency":"IDR","budgetMinor":${budget ?: "null"}}"""
+internal fun tripJson(id: String = UUID.randomUUID().toString(), title: String = "Bali 4 hari", start: String = "2026-11-20", end: String = "2026-11-23", budget: Long? = 5_000_000, destination: String = "Bali") =
+    """{"id":"$id","title":"$title","destination":"$destination","startDate":"$start","endDate":"$end","baseCurrency":"IDR","budgetMinor":${budget ?: "null"}}"""
 
 class TripRoutesTest {
     @Test

@@ -34,14 +34,14 @@ class GooglePlacesClient(
 ) : PlacesClient {
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun findPlaceId(name: String, destination: String): String? {
+    override suspend fun findPlaceId(name: String, destination: String, focusArea: String?): String? {
         val response = http.post("$baseUrl/places:searchText") {
             header("X-Goog-Api-Key", apiKey)
             header("X-Goog-FieldMask", "places.id")
             contentType(ContentType.Application.Json)
             setBody(
                 buildJsonObject {
-                    put("textQuery", "$name, $destination")
+                    put("textQuery", listOfNotNull(name, focusArea?.takeIf { it.isNotBlank() }, destination).joinToString(", "))
                     put("maxResultCount", 1)
                     put("languageCode", "id")
                 }.toString(),
@@ -53,7 +53,8 @@ class GooglePlacesClient(
     }
 
     override suspend fun details(placeId: String, withRating: Boolean): PlaceDetails? {
-        val mask = if (withRating) "location,formattedAddress,rating,photos" else "location,formattedAddress"
+        // priceLevel raises the call above Essentials; it is fetched once per grounded place and then cached with it.
+        val mask = if (withRating) "location,formattedAddress,priceLevel,rating,photos" else "location,formattedAddress,priceLevel"
         val response = http.get("$baseUrl/places/$placeId") {
             header("X-Goog-Api-Key", apiKey)
             header("X-Goog-FieldMask", mask)
@@ -70,6 +71,7 @@ class GooglePlacesClient(
             lng = lng,
             address = body["formattedAddress"]?.jsonPrimitive?.content,
             rating = body["rating"]?.jsonPrimitive?.doubleOrNull,
+            priceLevel = priceLevelOf(body["priceLevel"]?.jsonPrimitive?.content),
             photoAttribution = if (withRating) body.firstPhoto()?.get("authorAttributions")?.jsonArray
                 ?.firstOrNull()?.jsonObject?.get("displayName")?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } else null,
         )
@@ -109,5 +111,15 @@ class GooglePlacesClient(
 
     private companion object {
         const val PHOTO_WIDTH_PX = 800
+
+        /** Places (New) sends `PRICE_LEVEL_MODERATE`; UNSPECIFIED and unknown values mean "no price". */
+        fun priceLevelOf(raw: String?): Int? = when (raw) {
+            "PRICE_LEVEL_FREE" -> 0
+            "PRICE_LEVEL_INEXPENSIVE" -> 1
+            "PRICE_LEVEL_MODERATE" -> 2
+            "PRICE_LEVEL_EXPENSIVE" -> 3
+            "PRICE_LEVEL_VERY_EXPENSIVE" -> 4
+            else -> null
+        }
     }
 }

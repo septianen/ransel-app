@@ -201,6 +201,7 @@ class SyncService {
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
+            if (dto.deletedAt == null) TripEvents.onTripSaved(dto.destination, dto.startDate)
             TripMembers.insert {
                 it[tripId] = id
                 it[TripMembers.userId] = userId
@@ -224,6 +225,7 @@ class SyncService {
             it[coverUrl] = dto.coverUrl
             it[deletedAt] = dto.deletedAt?.toJavaInstant()
         }
+        if (dto.deletedAt == null) TripEvents.onTripSaved(dto.destination, dto.startDate)
         if (dto.deletedAt != null && existing[Trips.deletedAt] == null) {
             val now = Instant.now()
             ItineraryItems.update({ (ItineraryItems.tripId eq id) and ItineraryItems.deletedAt.isNull() }) { it[deletedAt] = now }

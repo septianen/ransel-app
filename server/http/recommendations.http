@@ -1,3 +1,12 @@
+### Form chips for an existing trip (VIEWER+): destination interests + suggested price level. No quota; 60 per user per hour
+GET {{host}}/explore/suggestions?tripId={{tripId}}
+Authorization: Bearer {{token}}
+Accept-Language: id
+
+### Form chips for a new trip (destination + month of the start date)
+GET {{host}}/explore/suggestions?destination=Tokyo&month=2026-03
+Authorization: Bearer {{token}}
+
 ### Search (EDITOR+ on the trip). Counts 1 of 10 daily searches (resets 00:00 WIB)
 POST {{host}}/recommendations
 Content-Type: application/json
@@ -5,11 +14,10 @@ Authorization: Bearer {{token}}
 
 {
   "tripId": "{{tripId}}",
-  "destination": "Bali",
-  "startDate": "2026-11-20",
-  "endDate": "2026-11-23",
-  "budget": "SEDANG",
+  "focusArea": "Ubud",
+  "priceLevel": "MEDIUM",
   "interests": ["FOOD", "NATURE"],
+  "extraInterests": ["Diving"],
   "style": "SANTAI",
   "notes": "tanpa babi",
   "excludePlaceIds": [],
@@ -22,8 +30,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "tripId": "{{tripId}}", "destination": "Bali", "startDate": "2026-11-20", "endDate": "2026-11-23",
-  "budget": "SEDANG", "interests": ["FOOD", "NATURE"], "style": "SANTAI",
+  "tripId": "{{tripId}}", "priceLevel": "MEDIUM", "interests": ["FOOD", "NATURE"], "style": "SANTAI",
   "excludePlaceIds": ["paste placeIds already shown"], "newSearch": false
 }
 

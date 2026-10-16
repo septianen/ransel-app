@@ -73,6 +73,7 @@ object TripService {
             it[TripMembers.userId] = userId
             it[role] = Role.OWNER
         }
+        TripEvents.onTripSaved(body.destination, body.startDate)
         load(id, Role.OWNER)
     }
 
@@ -98,6 +99,7 @@ object TripService {
                 it[coverUrl] = body.coverUrl
             }
             unscheduleOutsideRange(tripId, body.startDate, body.endDate)
+            TripEvents.onTripSaved(body.destination, body.startDate)
             load(tripId, role)
         }
     }

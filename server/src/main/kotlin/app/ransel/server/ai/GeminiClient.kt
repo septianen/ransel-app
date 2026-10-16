@@ -37,12 +37,22 @@ class GeminiClient(
     /** HTTP-level trouble that another model may not have; parse problems are not this. */
     private class Overloaded(message: String) : RuntimeException(message)
 
-    override suspend fun suggest(query: LlmQuery): List<LlmCandidate> {
+    override suspend fun suggest(query: LlmQuery): List<LlmCandidate> =
+        LlmOutput.parsePlaces(generate(Prompt.system(), Prompt.user(query), temperature = 0.7))
+
+    override suspend fun suggestInterests(destination: String, month: String, language: String): InterestSuggestions =
+        LlmOutput.parseInterests(
+            generate(Prompt.interestsSystem(), Prompt.interestsUser(destination, month, language), temperature = 0.4),
+            coreLabels = CORE_LABELS,
+        )
+
+    /** Tries the primary model, then the fallback when the first is overloaded (429/5xx). Returns the raw JSON text. */
+    private suspend fun generate(system: String, user: String, temperature: Double): String {
         val models = listOfNotNull(modelName, fallbackModel?.takeIf { it.isNotBlank() && it != modelName })
         var last: Overloaded? = null
         for (model in models) {
             try {
-                return suggestWith(model, query)
+                return generateWith(model, system, user, temperature)
             } catch (e: Overloaded) {
                 last = e
                 log.warn("LLM model {} unavailable: {}", model, e.message)
@@ -51,16 +61,16 @@ class GeminiClient(
         throw last ?: IllegalStateException("no LLM model configured")
     }
 
-    private suspend fun suggestWith(model: String, query: LlmQuery): List<LlmCandidate> {
+    private suspend fun generateWith(model: String, system: String, user: String, temperature: Double): String {
         val request = buildJsonObject {
-            put("systemInstruction", buildJsonObject { put("parts", parts(Prompt.system())) })
+            put("systemInstruction", buildJsonObject { put("parts", parts(system)) })
             put(
                 "contents",
                 buildJsonArray {
                     add(
                         buildJsonObject {
                             put("role", "user")
-                            put("parts", parts(Prompt.user(query)))
+                            put("parts", parts(user))
                         },
                     )
                 },
@@ -68,7 +78,7 @@ class GeminiClient(
             put(
                 "generationConfig",
                 buildJsonObject {
-                    put("temperature", 0.7)
+                    put("temperature", temperature)
                     // Headroom: "thinking" models spend part of this budget before the visible answer.
                     put("maxOutputTokens", 8192)
                     put("responseMimeType", "application/json")
@@ -94,7 +104,15 @@ class GeminiClient(
             ?.mapNotNull { it.jsonObject["text"]?.jsonPrimitive?.content }
             ?.joinToString("")
         if (text.isNullOrBlank()) error("LLM returned no text (finishReason=${candidate["finishReason"]?.jsonPrimitive?.content})")
-        return LlmOutput.parsePlaces(text)
+        return text
+    }
+
+    private companion object {
+        /** Core interest names in both languages: the model is told to skip them, this is the safety net. */
+        val CORE_LABELS = setOf(
+            "nature", "alam", "food", "kuliner", "culture", "budaya", "history", "sejarah", "shopping", "belanja",
+            "adventure", "petualangan", "nightlife", "hiburan malam", "photo spots", "spot foto", "relax", "santai",
+        )
     }
 
     private fun parts(text: String) = buildJsonArray { add(buildJsonObject { put("text", text) }) }

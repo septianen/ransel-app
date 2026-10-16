@@ -4,6 +4,7 @@ import app.ransel.server.AppConfig
 import app.ransel.server.db.AiUsage
 import app.ransel.server.db.RecommendationCache
 import app.ransel.server.db.RecommendationFeedback
+import app.ransel.server.db.Trips
 import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.requireValid
 import app.ransel.server.plugins.validationFailed
@@ -18,6 +19,7 @@ import app.ransel.shared.dto.RecommendationRequest
 import app.ransel.shared.dto.RecommendationResponse
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.FeedbackAction
+import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.Role
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.async
@@ -32,11 +34,13 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import kotlinx.datetime.toJavaLocalDate
+import kotlinx.datetime.toKotlinLocalDate
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.plus
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -75,6 +79,8 @@ class RecommendationService(
         validate(body)
         // Liked places become itinerary items, so only people who can edit the trip may search.
         requireRole(tripId, userId, Role.EDITOR)
+        val trip = loadTrip(tripId)
+        if (todayWib() > trip.endDate) throw validationFailed(mapOf("tripId" to "TRIP_ENDED"))
 
         // Pre-check, so an exhausted user costs nothing. The counter itself moves only after a successful search.
         if (body.newSearch) failIfExhausted(currentUsage(userId))
@@ -88,17 +94,20 @@ class RecommendationService(
         val seen = feedback.map { it[RecommendationFeedback.placeId] }.toSet() + body.excludePlaceIds
 
         metrics.searches.incrementAndGet()
-        val key = cacheKey(body)
+        val key = cacheKey(body, trip)
         val cached = readCache(key)
         val candidates: List<CachedPlace> = if (cached != null) {
             metrics.cacheHits.incrementAndGet()
             cached
         } else {
             val query = LlmQuery(
-                destination = body.destination.trim(),
-                days = body.startDate.daysUntil(body.endDate) + 1,
-                budget = body.budget,
+                destination = trip.destination.trim(),
+                focusArea = body.focusArea?.trim()?.takeIf { it.isNotEmpty() },
+                days = trip.startDate.daysUntil(trip.endDate) + 1,
+                startDate = trip.startDate.toString(),
+                priceLevel = body.priceLevel,
                 interests = body.interests.distinct(),
+                extraInterests = body.extraInterests.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
                 style = body.style,
                 notes = body.notes?.trim()?.takeIf { it.isNotEmpty() },
                 liked = feedback.filter { it[RecommendationFeedback.action] == FeedbackAction.LIKE }.take(20).map { it[RecommendationFeedback.placeName] },
@@ -108,7 +117,12 @@ class RecommendationService(
             generate(query).also { if (it.isNotEmpty()) writeCache(key, query.destination, it) }
         }
 
-        val picked = candidates.filter { it.placeId !in seen }.take(MAX_CARDS)
+        // The price filter runs here, not before the cache write, so a cached entry stays valid for every price level.
+        val picked = candidates.filter { it.placeId !in seen }
+            .filter { place ->
+                priceFits(place.placesPriceLevel, body.priceLevel).also { if (!it) metrics.priceFiltered.incrementAndGet() }
+            }
+            .take(MAX_CARDS)
         val items = withRatings(picked)
 
         val quota = if (body.newSearch) consume(userId) else currentUsage(userId).let(::toQuota)
@@ -172,7 +186,7 @@ class RecommendationService(
                     gate.withPermit {
                         try {
                             metrics.placesSearchCalls.incrementAndGet()
-                            val id = ai.places.findPlaceId(candidate.name, query.destination) ?: return@withPermit null
+                            val id = ai.places.findPlaceId(candidate.name, query.destination, query.focusArea) ?: return@withPermit null
                             metrics.placesDetailsCalls.incrementAndGet()
                             val details = ai.places.details(id, withRating = false) ?: return@withPermit null
                             candidate to details
@@ -196,6 +210,7 @@ class RecommendationService(
                 category = c.category,
                 reason = c.reason.trim(),
                 priceLevel = c.priceLevel?.takeIf { it in 0..4 },
+                placesPriceLevel = d.priceLevel,
                 suggestedDurationMin = (c.suggestedDurationMin ?: DEFAULT_DURATION_MIN).coerceIn(15, 480),
                 lat = d.lat,
                 lng = d.lng,
@@ -330,15 +345,35 @@ class RecommendationService(
     // ── cache ───────────────────────────────────────────────────────────────
 
     /** Normalized so "Bali", " bali " and "BALI" share an entry. Notes are part of the key: they change the answer. */
-    internal fun cacheKey(body: RecommendationRequest): String {
+    internal fun cacheKey(body: RecommendationRequest, trip: TripFacts): String {
         val text = listOf(
-            body.destination.trim().lowercase().replace(Regex("\\s+"), " "),
+            normalizeDestination(trip.destination),
+            normalizeDestination(body.focusArea.orEmpty()),
+            "%04d-%02d".format(trip.startDate.year, trip.startDate.monthNumber),
             body.interests.map { it.name }.distinct().sorted().joinToString(","),
-            body.budget.name,
+            body.extraInterests.map(::normalizeDestination).filter { it.isNotEmpty() }.distinct().sorted().joinToString(","),
+            body.priceLevel.name,
             body.style.name,
-            body.notes?.trim()?.lowercase()?.replace(Regex("\\s+"), " ").orEmpty(),
+            normalizeDestination(body.notes.orEmpty()),
         ).joinToString("|")
         return MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
+    }
+
+    internal class TripFacts(val destination: String, val startDate: LocalDate, val endDate: LocalDate)
+
+    private fun loadTrip(tripId: UUID): TripFacts = transaction {
+        val row = Trips.selectAll().where { (Trips.id eq tripId) and Trips.deletedAt.isNull() }.single()
+        TripFacts(row[Trips.destination], row[Trips.startDate].toKotlinLocalDate(), row[Trips.endDate].toKotlinLocalDate())
+    }
+
+    /**
+     * LOW = Places 0–1, MEDIUM = 2, HIGH = 3–4. A place is dropped when it is more than one step away from the chosen
+     * level; places Google has no price for stay (most parks and temples have none).
+     */
+    internal fun priceFits(placesLevel: Int?, wanted: PriceLevel): Boolean {
+        if (placesLevel == null) return true
+        val step = when (placesLevel) { in 0..1 -> 0; 2 -> 1; else -> 2 }
+        return kotlin.math.abs(step - wanted.ordinal) <= 1
     }
 
     private fun readCache(key: String): List<CachedPlace>? = transaction {
@@ -366,8 +401,10 @@ class RecommendationService(
 
     private fun validate(body: RecommendationRequest) = requireValid(
         buildMap {
-            if (body.destination.isBlank() || body.destination.length > 200) put("destination", "REQUIRED")
-            if (body.endDate < body.startDate) put("endDate", "MUST_BE_AFTER_START")
+            if (body.interests.isEmpty() && body.extraInterests.none { it.isNotBlank() }) put("interests", "EMPTY")
+            if (body.extraInterests.size > MAX_EXTRA_INTERESTS) put("extraInterests", "TOO_MANY")
+            else if (body.extraInterests.any { it.length > MAX_EXTRA_LENGTH }) put("extraInterests", "TOO_LONG")
+            if (body.focusArea != null && body.focusArea!!.length > MAX_FOCUS_AREA) put("focusArea", "TOO_LONG")
             if (body.notes != null && body.notes!!.length > 500) put("notes", "TOO_LONG")
             if (body.excludePlaceIds.size > 500) put("excludePlaceIds", "TOO_MANY")
         },
@@ -386,5 +423,8 @@ class RecommendationService(
         const val GROUNDING_PARALLELISM = 5
         const val DEFAULT_DURATION_MIN = 60
         const val MAX_SPREAD_KM = 150.0
+        const val MAX_EXTRA_INTERESTS = 5
+        const val MAX_EXTRA_LENGTH = 40
+        const val MAX_FOCUS_AREA = 60
     }
 }

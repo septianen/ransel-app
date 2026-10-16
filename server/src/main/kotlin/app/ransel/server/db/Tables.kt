@@ -198,6 +198,19 @@ object RecommendationCache : Table("recommendation_cache") {
     override val primaryKey = PrimaryKey(queryHash)
 }
 
+object ExploreSuggestionsCache : Table("explore_suggestions_cache") {
+    val destination = text("destination")
+    val month = text("month")
+    val language = text("language")
+    val interests = jsonb<List<String>>("interests", Json)
+    val priceLowMaxUsd = decimal("price_low_max_usd", 10, 2)
+    val priceMidMaxUsd = decimal("price_mid_max_usd", 10, 2)
+    val model = text("model")
+    val createdAt = timestamp("created_at")
+    val expiresAt = timestamp("expires_at")
+    override val primaryKey = PrimaryKey(destination, month, language)
+}
+
 object RecommendationFeedback : Table("recommendation_feedback") {
     val tripId = javaUUID("trip_id")
     val userId = javaUUID("user_id")

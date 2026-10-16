@@ -3,7 +3,7 @@ package app.ransel.server
 import app.ransel.server.ai.GeminiClient
 import app.ransel.server.ai.GooglePlacesClient
 import app.ransel.server.ai.LlmQuery
-import app.ransel.shared.model.BudgetLevel
+import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.Interest
 import app.ransel.shared.model.TravelStyle
@@ -30,7 +30,8 @@ import kotlin.test.assertTrue
 private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
 
 private val query = LlmQuery(
-    destination = "Bali", days = 4, budget = BudgetLevel.SEDANG, interests = listOf(Interest.FOOD, Interest.NATURE),
+    destination = "Bali", focusArea = null, days = 4, startDate = "2026-11-20", priceLevel = PriceLevel.MEDIUM,
+    interests = listOf(Interest.FOOD, Interest.NATURE), extraInterests = emptyList(),
     style = TravelStyle.SANTAI, notes = "tanpa babi", liked = listOf("Tanah Lot"), skipped = listOf("Pantai Kuta"), count = 15,
 )
 
@@ -158,8 +159,8 @@ class GooglePlacesClientTest {
         val plain = c.details("ChIJabc", withRating = false)!!
         val rated = c.details("ChIJabc", withRating = true)!!
 
-        assertEquals("location,formattedAddress", seen[0].headers["X-Goog-FieldMask"])
-        assertEquals("location,formattedAddress,rating,photos", seen[1].headers["X-Goog-FieldMask"])
+        assertEquals("location,formattedAddress,priceLevel", seen[0].headers["X-Goog-FieldMask"])
+        assertEquals("location,formattedAddress,priceLevel,rating,photos", seen[1].headers["X-Goog-FieldMask"])
         assertEquals(-8.62, plain.lat)
         assertEquals("Beraban, Tabanan", rated.address)
         assertEquals(4.6, rated.rating)
@@ -201,3 +202,42 @@ class GooglePlacesClientTest {
         }
     }
 }
+
+class ExploreParsingTest {
+    @Test
+    fun interestsAreCleanedAndNeedAPriceGuide() {
+        val tooLong = "x".repeat(41)
+        val answer = """{"interests":["Sakura"," Onsen ","sakura","Kuliner","$tooLong","Ryokan"],"priceGuide":{"lowMaxUsd":40,"midMaxUsd":120}}"""
+        val parsed = app.ransel.server.ai.LlmOutput.parseInterests("```json\n$answer\n```", coreLabels = setOf("kuliner"))
+        assertEquals(listOf("Sakura", "Onsen", "Ryokan"), parsed.interests)
+        assertEquals(3, parsed.interests.size, "duplicates, core labels and over-long labels are dropped")
+        assertEquals(120.0, parsed.midMaxUsd)
+    }
+
+    @Test
+    fun badAnswersThrowSoTheCallerRetries() {
+        assertFailsWith<Exception> { app.ransel.server.ai.LlmOutput.parseInterests("""{"interests":["a","b"],"priceGuide":{"lowMaxUsd":1,"midMaxUsd":2}}""") }
+        assertFailsWith<Exception> { app.ransel.server.ai.LlmOutput.parseInterests("""{"interests":["a","b","c"],"priceGuide":{"lowMaxUsd":5,"midMaxUsd":2}}""") }
+        assertFailsWith<Exception> { app.ransel.server.ai.LlmOutput.parseInterests("not json") }
+    }
+
+    @Test
+    fun placesPriceEnumBecomesZeroToFourAndUnspecifiedIsNull() = runBlocking {
+        val http = HttpClient(MockEngine { respond(
+            """{"location":{"latitude":1.0,"longitude":2.0},"priceLevel":"PRICE_LEVEL_EXPENSIVE"}""", HttpStatusCode.OK, jsonHeaders) })
+        assertEquals(3, GooglePlacesClient(http, "k", "https://places.test/v1").details("x", false)!!.priceLevel)
+        val none = HttpClient(MockEngine { respond(
+            """{"location":{"latitude":1.0,"longitude":2.0},"priceLevel":"PRICE_LEVEL_UNSPECIFIED"}""", HttpStatusCode.OK, jsonHeaders) })
+        assertNull(GooglePlacesClient(none, "k", "https://places.test/v1").details("x", false)!!.priceLevel)
+    }
+
+    @Test
+    fun ecbRatesConvertThroughEuro() {
+        val xml = """<Cube><Cube time='2026-10-16'><Cube currency='USD' rate='1.08'/><Cube currency='IDR' rate='17280.0'/><Cube currency='JPY' rate='162'/></Cube></Cube>"""
+        val rates = app.ransel.server.ai.EcbFxRates.parse(xml) + ("EUR" to 1.0)
+        // Rp1.600.000 (0 decimals) = EUR 92.59 = USD 100
+        assertEquals(100.0, app.ransel.server.ai.EcbFxRates.convert(rates, 1_600_000, "IDR")!!, 0.01)
+        assertNull(app.ransel.server.ai.EcbFxRates.convert(rates, 100, "XYZ"))
+    }
+}
+

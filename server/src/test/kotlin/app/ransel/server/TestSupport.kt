@@ -144,12 +144,13 @@ suspend fun HttpResponse.errorCode(): String = jsonBody().getValue("error").json
 fun apiTest(
     config: AppConfig = TestDb.config(),
     ai: app.ransel.server.ai.AiServices? = null,
+    fx: app.ransel.server.ai.FxRates? = null,
     block: suspend Api.() -> Unit,
 ) {
     TestDb.reset()
     TestEmails.sent.clear()
     testApplication {
-        application { module(config, TestEmails, ai) }
+        application { module(config, TestEmails, ai, fx) }
         val client = createClient { install(ContentNegotiation) { json(TestJson) } }
         runBlocking {
             val api = Api(client)

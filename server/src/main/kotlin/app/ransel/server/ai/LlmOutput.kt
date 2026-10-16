@@ -4,7 +4,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 
 /** The model is asked for JSON but not forced to the schema ("soft" JSON), so parsing is lenient. */
 object LlmOutput {
@@ -21,4 +24,25 @@ object LlmOutput {
         }
         return array.map { lenient.decodeFromJsonElement(LlmCandidate.serializer(), it) }
     }
+
+    /** `{"interests":["Sakura",...],"priceGuide":{"lowMaxUsd":30,"midMaxUsd":90}}`; interests are cleaned, 3–5 kept. */
+    fun parseInterests(content: String, coreLabels: Set<String> = emptySet()): InterestSuggestions {
+        val cleaned = content.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val root = lenient.parseToJsonElement(cleaned) as? JsonObject ?: error("unexpected JSON")
+        val interests = (root["interests"] as? JsonArray ?: error("no interests array"))
+            .mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull?.trim() }
+            .filter { it.isNotEmpty() && it.length <= MAX_INTEREST_LENGTH && it.lowercase() !in coreLabels }
+            .distinctBy { it.lowercase() }
+            .take(MAX_INTERESTS)
+        require(interests.size >= MIN_INTERESTS) { "too few interests" }
+        val guide = root["priceGuide"] as? JsonObject ?: error("no priceGuide")
+        val low = guide["lowMaxUsd"]?.jsonPrimitive?.doubleOrNull ?: error("no lowMaxUsd")
+        val mid = guide["midMaxUsd"]?.jsonPrimitive?.doubleOrNull ?: error("no midMaxUsd")
+        require(low > 0 && mid > low) { "bad price guide" }
+        return InterestSuggestions(interests, low, mid)
+    }
+
+    const val MIN_INTERESTS = 3
+    const val MAX_INTERESTS = 5
+    const val MAX_INTEREST_LENGTH = 40
 }
