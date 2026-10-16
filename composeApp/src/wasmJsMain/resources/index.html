@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Deep links such as /j/<code> are served index.html too; without this the script and .wasm load from /j/. -->
+    <base href="/">
     <title>RANSEL</title>
     <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #FFFFFF; }</style>
     <script>
