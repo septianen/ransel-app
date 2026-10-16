@@ -1,12 +1,11 @@
 package app.ransel.shared.dto
 
-import app.ransel.shared.model.BudgetLevel
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.FeedbackAction
 import app.ransel.shared.model.Interest
+import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.TravelStyle
 import app.ransel.shared.serialization.Timestamp
-import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 /*
@@ -20,21 +19,43 @@ import kotlinx.serialization.Serializable
  * Undo: DELETE /recommendations/feedback/{tripId}/{placeId} (+ delete the item it created).
  */
 
-/** POST /recommendations. 429 AI_QUOTA_EXCEEDED when the 10 daily searches are used up. */
+/**
+ * POST /recommendations. Destination and dates come from the trip (spec: docs/specs/AI-Recommendation-Spec.md).
+ * 429 AI_QUOTA_EXCEEDED when the 10 daily searches are used up; 404 TRIP_NOT_FOUND; 403 FORBIDDEN for a VIEWER;
+ * 422 VALIDATION_FAILED with details.tripId = TRIP_ENDED, details.interests = EMPTY (no core and no extra interest)
+ * or details.extraInterests = TOO_MANY.
+ */
 @Serializable
 data class RecommendationRequest(
     val tripId: String,
-    val destination: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
-    val budget: BudgetLevel,
+    /** Narrows one search to an area of the destination, at most 60 characters. Null = the whole destination. */
+    val focusArea: String? = null,
+    val priceLevel: PriceLevel,
     val interests: List<Interest>,
+    /** The ticked destination interests, copied from [ExploreSuggestionsResponse.interests]: at most 5, each at most 40 characters. */
+    val extraInterests: List<String> = emptyList(),
     val style: TravelStyle,
     val notes: String? = null,
     /** placeIds already liked or skipped in this session; the server also excludes stored feedback. */
     val excludePlaceIds: List<String> = emptyList(),
     /** false for the background "next batch" request (does not count against the quota). */
     val newSearch: Boolean = true,
+)
+
+/**
+ * GET /explore/suggestions?tripId= (existing trip, role at least VIEWER) or ?destination=&month=YYYY-MM (new trip).
+ * Never uses the daily quota; soft limit 60 requests per user per hour (429 RATE_LIMITED). Language follows Accept-Language.
+ * A failure is not an error: [interests] is empty and the app hides the "Khas <destination>" box.
+ */
+@Serializable
+data class ExploreSuggestionsResponse(
+    /** 3–5 destination interests, each at most 40 characters. Empty = hide the box. */
+    val interests: List<String> = emptyList(),
+    /** Only with tripId and a trip budget: the price level matching budget / days / members. */
+    val suggestedPriceLevel: PriceLevel? = null,
+    /** Budget per person per day in the trip's base currency, for the preselect note. Same condition as above. */
+    val budgetPerPersonPerDayMinor: Long? = null,
+    val currency: String? = null,
 )
 
 @Serializable

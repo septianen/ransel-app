@@ -89,7 +89,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 Enums:
 
 - `category` on itinerary\_items and expenses uses one shared enum: ATTRACTION, FOOD, TRANSPORT, LODGING, SHOPPING, OTHER. Itinerary labels: Wisata/Explore, Kuliner/Eat, Perjalanan/Travel, Menginap/Stay, Belanja/Shop, Lainnya/Other. Expense labels: Aktivitas/Activities, Makan/Food, Transport, Penginapan/Lodging, Belanja/Shopping, Lainnya/Other. Both use the same color per value.
-- AI interests: NATURE, FOOD, BEACH, CULTURE, SHOPPING, ADVENTURE, NIGHTLIFE, PHOTO. Budget: HEMAT, SEDANG, BEBAS. Style: SANTAI, PADAT.
+- AI core interests: NATURE, FOOD, CULTURE, SHOPPING, ADVENTURE, NIGHTLIFE, PHOTO, RELAX (destination interests are free strings from the AI). Price level: LOW, MEDIUM, HIGH. Style: SANTAI, PADAT. Details: `docs/specs/AI-Recommendation-Spec.md`, which wins over this section for Explore.
 - Expense `payment_method` (the "Bayar pakai" field): CASH, DEBIT\_CARD, CREDIT\_CARD, TRANSFER, E\_WALLET, OTHER; default CASH.
 
 Notes:
@@ -135,6 +135,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET ★ | /trips/{id}/settlements | List settlements | 4 |
 | GET, POST ★ | /packing-templates | Built-in + user templates / save a template | 4 |
 | POST ★ | /trips/{id}/packing/apply-template | Use a template (option to skip items already there) | 4 |
+| GET | /explore/suggestions | Destination interests + suggested price level for the Explore form (no quota) | 5 |
 | POST | /recommendations | AI recommendations from preferences | 5 |
 | POST ★ | /recommendations/feedback | LIKE / SKIP per place | 5 |
 | DELETE ★ | /recommendations/feedback/{tripId}/{placeId} | Undo the last swipe | 5 |
@@ -217,8 +218,8 @@ The result is sent to `PUT /trips/{id}/days/{date}/order`. Undo simply resends t
 
 The server receives the preferences, asks the LLM for candidate places as JSON, validates every place against the Places API, then sends 10–15 cards to the app.
 
-1. The app sends `POST /recommendations` with destination, date range, budget per person per day (HEMAT/SEDANG/BEBAS), interests, style (SANTAI/PADAT), notes, `tripId`, and the `placeId`s already liked or skipped.
-2. The server checks the user's quota (429 `AI_QUOTA_EXCEEDED` when used up), then checks `recommendation_cache` with a key hashed from destination + interests + budget.
+1. The app sends `POST /recommendations` with `tripId` (destination and dates come from the trip), optional focus area, price level (LOW/MEDIUM/HIGH, relative to local prices), core and destination interests, style (SANTAI/PADAT), notes, and the `placeId`s already liked or skipped. The form is fed by `GET /explore/suggestions` (destination interests cached per destination + month for 30 days, no quota).
+2. The server checks the user's quota (429 `AI_QUOTA_EXCEEDED` when used up), then checks `recommendation_cache` with a key hashed from destination + focus area + month + interests + price level + style.
 3. Cache miss: call the LLM with a prompt asking for JSON that matches the schema; parse into a `@Serializable` data class in `shared`; on a parse failure retry once → `AI_UNAVAILABLE`.
 4. Validate every name with Places Text Search (IDs Only, free); places that are not found are dropped. Details (photo, rating) are fetched lazily for the top 2–3 cards only.
 5. An empty result after validation → an empty response; the app shows the "No good match yet" state naming the preferences that caused it.

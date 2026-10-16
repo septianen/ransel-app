@@ -62,6 +62,7 @@ object ApiRoutes {
     fun applyTemplate(tripId: String) = "/trips/$tripId/packing/apply-template" // POST ApplyTemplateRequest → List<PackingItemDto>
 
     // Phase 5 ─ Explore AI
+    const val EXPLORE_SUGGESTIONS = "/explore/suggestions"         // GET ?tripId= | ?destination=&month=YYYY-MM → ExploreSuggestionsResponse
     const val RECOMMENDATIONS = "/recommendations"                 // POST RecommendationRequest → RecommendationResponse
     const val RECOMMENDATION_FEEDBACK = "/recommendations/feedback" // POST FeedbackRequest → 204
     fun recommendationFeedback(tripId: String, placeId: String) =

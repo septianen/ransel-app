@@ -46,13 +46,19 @@ enum class ItemSource { MANUAL, AI }
 @Serializable
 enum class FeedbackAction { LIKE, SKIP }
 
-/** Explore form: budget per person per day. Hemat < Rp300rb, Sedang Rp300–800rb, Bebas > Rp800rb. */
+/**
+ * Explore form: price of the places, relative to local prices (a cheap ramen stall in Tokyo is LOW in Tokyo).
+ * UI: `$` Murah, `$$` Sedang, `$$$` Mewah. Maps to Google Places priceLevel: LOW = 0–1, MEDIUM = 2, HIGH = 3–4.
+ */
 @Serializable
-enum class BudgetLevel { HEMAT, SEDANG, BEBAS }
+enum class PriceLevel { LOW, MEDIUM, HIGH }
 
-/** Explore form interests (multi-select). UI: Alam, Kuliner, Pantai, Budaya, Belanja, Petualangan, Hiburan malam, Foto. */
+/**
+ * Explore core interests (multi-select), valid in every destination. UI: Alam, Kuliner, Budaya & sejarah, Belanja,
+ * Petualangan, Hiburan malam, Spot foto, Santai. Beach is not core: it comes as a destination interest where it fits.
+ */
 @Serializable
-enum class Interest { NATURE, FOOD, BEACH, CULTURE, SHOPPING, ADVENTURE, NIGHTLIFE, PHOTO }
+enum class Interest { NATURE, FOOD, CULTURE, SHOPPING, ADVENTURE, NIGHTLIFE, PHOTO, RELAX }
 
 /** Explore form travel style. SANTAI = 2–3 places a day, PADAT = 4–6. */
 @Serializable
