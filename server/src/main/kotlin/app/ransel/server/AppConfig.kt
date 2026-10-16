@@ -39,6 +39,10 @@ data class AppConfig(
     /** Used when the primary model answers 429/5xx. Blank = none. */
     val llmFallbackModel: String = "gemini-3.1-flash-lite",
     val placesApiKey: String = "",
+    /** HMAC key for the signed place-photo links. Required in production, separate from [jwtSecret]. */
+    val photoSigningSecret: String = DEV_PHOTO_SIGNING_SECRET,
+    /** Photo proxy requests per client address per minute (a card stack loads several at once). */
+    val photoRateLimitPerMinute: Int = 120,
     val aiCacheTtl: Duration = 3.days,
 ) {
     data class SeedUser(val email: String, val password: String, val displayName: String)
@@ -68,11 +72,16 @@ data class AppConfig(
 
         const val DEV_JWT_SECRET = "dev-only-secret-never-use-in-production-0123456789"
 
+        const val DEV_PHOTO_SIGNING_SECRET = "dev-only-photo-secret-never-use-in-production-0123456789"
+
         fun fromEnv(env: Map<String, String> = System.getenv()): AppConfig {
             val production = env["APP_ENV"] == "production"
             val secret = env["JWT_SECRET"]
                 ?: if (production) error("JWT_SECRET is required when APP_ENV=production") else DEV_JWT_SECRET
             if (production) check(secret.length >= 32) { "JWT_SECRET must be at least 32 characters" }
+            val photoSecret = env["PHOTO_SIGNING_SECRET"]?.takeIf { it.isNotBlank() }
+                ?: if (production) error("PHOTO_SIGNING_SECRET is required when APP_ENV=production") else DEV_PHOTO_SIGNING_SECRET
+            if (production) check(photoSecret.length >= 32) { "PHOTO_SIGNING_SECRET must be at least 32 characters" }
             return AppConfig(
                 port = env["PORT"]?.toIntOrNull() ?: 8080,
                 databaseUrl = env["DATABASE_URL"] ?: "jdbc:postgresql://localhost:5432/ransel",
@@ -90,6 +99,7 @@ data class AppConfig(
                 llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.5-flash",
                 llmFallbackModel = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.1-flash-lite",
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
+                photoSigningSecret = photoSecret,
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),
                 iosAppIds = env["IOS_APP_IDS"].csv(),

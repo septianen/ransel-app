@@ -4,6 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -52,7 +53,7 @@ class GooglePlacesClient(
     }
 
     override suspend fun details(placeId: String, withRating: Boolean): PlaceDetails? {
-        val mask = if (withRating) "location,formattedAddress,rating" else "location,formattedAddress"
+        val mask = if (withRating) "location,formattedAddress,rating,photos" else "location,formattedAddress"
         val response = http.get("$baseUrl/places/$placeId") {
             header("X-Goog-Api-Key", apiKey)
             header("X-Goog-FieldMask", mask)
@@ -69,6 +70,44 @@ class GooglePlacesClient(
             lng = lng,
             address = body["formattedAddress"]?.jsonPrimitive?.content,
             rating = body["rating"]?.jsonPrimitive?.doubleOrNull,
+            photoAttribution = if (withRating) body.firstPhoto()?.get("authorAttributions")?.jsonArray
+                ?.firstOrNull()?.jsonObject?.get("displayName")?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } else null,
         )
+    }
+
+    /** Two calls: the photo's resource name (Place Details, `photos`), then its bytes (Place Photo, 800 px wide). */
+    override suspend fun photo(placeId: String): PlacePhoto? {
+        val detailsResponse = http.get("$baseUrl/places/$placeId") {
+            header("X-Goog-Api-Key", apiKey)
+            header("X-Goog-FieldMask", "photos")
+        }
+        failOnQuota(detailsResponse.status)
+        if (detailsResponse.status == HttpStatusCode.NotFound) return null
+        if (!detailsResponse.status.isSuccess()) error("Places photo lookup HTTP ${detailsResponse.status.value}")
+        val body: JsonObject = json.parseToJsonElement(detailsResponse.body<String>()).jsonObject
+        val name = body.firstPhoto()?.get("name")?.jsonPrimitive?.content ?: return null
+
+        val media = http.get("$baseUrl/$name/media") {
+            header("X-Goog-Api-Key", apiKey)
+            parameter("maxWidthPx", PHOTO_WIDTH_PX)
+        }
+        failOnQuota(media.status)
+        if (media.status == HttpStatusCode.NotFound) return null
+        if (!media.status.isSuccess()) error("Places photo HTTP ${media.status.value}")
+        val type = media.contentType()?.withoutParameters()?.toString() ?: return null
+        if (!type.startsWith("image/")) return null
+        return PlacePhoto(media.body<ByteArray>(), type)
+    }
+
+    private fun JsonObject.firstPhoto(): JsonObject? = get("photos")?.jsonArray?.firstOrNull()?.jsonObject
+
+    private fun failOnQuota(status: HttpStatusCode) {
+        if (status == HttpStatusCode.TooManyRequests || status == HttpStatusCode.Forbidden) {
+            throw PlacesQuotaException(status.value)
+        }
+    }
+
+    private companion object {
+        const val PHOTO_WIDTH_PX = 800
     }
 }

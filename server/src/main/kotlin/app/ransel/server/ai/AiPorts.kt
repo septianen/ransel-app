@@ -51,7 +51,15 @@ data class PlaceDetails(
     val lng: Double,
     val address: String?,
     val rating: Double?,
+    /** Author credit of the first photo; only filled together with [rating]. */
+    val photoAttribution: String? = null,
 )
+
+/** Image bytes of a place photo, as Google serves them. */
+class PlacePhoto(val bytes: ByteArray, val contentType: String)
+
+/** Google refused the photo request for quota or permission reasons (429/403); the proxy answers 404 and counts it. */
+class PlacesQuotaException(status: Int) : RuntimeException("Places photo HTTP $status")
 
 interface PlacesClient {
     /** Text Search (IDs Only: free). Null = no such place, which drops the candidate. */
@@ -59,6 +67,9 @@ interface PlacesClient {
 
     /** Place Details with a minimal field mask. [withRating] raises the billing tier, so only ask for the top cards. */
     suspend fun details(placeId: String, withRating: Boolean): PlaceDetails?
+
+    /** First photo of the place, null if it has none. Throws [PlacesQuotaException] when Google rejects for quota. */
+    suspend fun photo(placeId: String): PlacePhoto?
 }
 
 /** A validated suggestion as kept in `recommendation_cache`. No photo, no rating: those are fetched when shown. */

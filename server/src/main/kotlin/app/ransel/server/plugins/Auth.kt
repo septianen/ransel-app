@@ -20,6 +20,7 @@ import kotlin.time.Duration.Companion.minutes
 
 const val JWT_AUTH = "jwt"
 val AuthRateLimit = RateLimitName("auth")
+val PhotoRateLimit = RateLimitName("photo")
 
 fun Application.configureAuth(config: AppConfig, tokens: TokenService) {
     install(Authentication) {
@@ -44,6 +45,10 @@ fun Application.configureRateLimit(config: AppConfig) {
     install(RateLimit) {
         register(AuthRateLimit) {
             rateLimiter(limit = config.authRateLimitPerMinute, refillPeriod = 1.minutes)
+            requestKey { call -> call.request.origin.remoteHost }
+        }
+        register(PhotoRateLimit) {
+            rateLimiter(limit = config.photoRateLimitPerMinute, refillPeriod = 1.minutes)
             requestKey { call -> call.request.origin.remoteHost }
         }
     }

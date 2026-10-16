@@ -84,6 +84,7 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/ransel' }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          PHOTO_SIGNING_SECRET: ${{ secrets.PHOTO_SIGNING_SECRET }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           SEED_USER_EMAIL: ${{ secrets.SEED_USER_EMAIL }}
           SEED_USER_PASSWORD: ${{ secrets.SEED_USER_PASSWORD }}
@@ -109,6 +110,7 @@ jobs:
           {
             echo "SERVER_IMAGE=$IMAGE:${{ github.sha }}"
             echo "JWT_SECRET=$JWT_SECRET"
+            echo "PHOTO_SIGNING_SECRET=$PHOTO_SIGNING_SECRET"
             echo "DATABASE_PASSWORD=$DATABASE_PASSWORD"
             echo "APP_BASE_URL=https://ransel.mietek.tech"
             echo "CORS_ORIGINS=https://ransel.mietek.tech"

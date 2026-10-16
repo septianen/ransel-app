@@ -4,9 +4,13 @@ import app.ransel.server.ai.AiServices
 import app.ransel.server.ai.LlmCandidate
 import app.ransel.server.ai.LlmClient
 import app.ransel.server.ai.LlmQuery
+import app.ransel.server.ai.PhotoSigner
 import app.ransel.server.ai.PlaceDetails
+import app.ransel.server.ai.PlacePhoto
+import app.ransel.server.ai.PlacesQuotaException
 import app.ransel.server.ai.PlacesClient
 import app.ransel.shared.model.Category
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -15,6 +19,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
+import kotlin.time.Duration.Companion.minutes
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -54,12 +59,22 @@ private class FakePlaces(
         return if (name in known) "place-$name" else null
     }
 
+    var noPhotoFor: Set<String> = emptySet()
+    var quotaHit = false
+    val photoCalls = AtomicInteger()
+
+    override suspend fun photo(placeId: String): PlacePhoto? {
+        photoCalls.incrementAndGet()
+        if (quotaHit) throw PlacesQuotaException(429)
+        return if (placeId in noPhotoFor) null else PlacePhoto(byteArrayOf(9, 8, 7), "image/jpeg")
+    }
+
     override suspend fun details(placeId: String, withRating: Boolean): PlaceDetails? {
         details.incrementAndGet()
         if (withRating) ratedLookups.incrementAndGet()
         val name = placeId.removePrefix("place-")
         val (lat, lng) = known[name] ?: return null
-        return PlaceDetails(placeId, lat, lng, "Jl. $name", if (withRating) 4.5 else null)
+        return PlaceDetails(placeId, lat, lng, "Jl. $name", if (withRating) 4.5 else null, if (withRating) "Foto $name" else null)
     }
 }
 
@@ -119,7 +134,8 @@ class RecommendationRoutesTest {
             assertEquals("place-Pantai Kuta", first.str("placeId"))
             assertEquals(-8.72, first.getValue("lat").jsonPrimitive.content.toDouble())
             assertEquals(90, first.str("suggestedDurationMin").toInt())
-            assertNull(first["photoUrl"]?.takeIf { it.toString() != "null" })
+            assertTrue(first.str("photoUrl").startsWith("/places/photo/place-Pantai Kuta?exp="), "every card gets a signed photo path")
+            assertEquals("Foto Pantai Kuta", first.str("photoAttribution"))
 
             val quota = data.getValue("quota").jsonObject
             assertEquals("1", quota.str("used"))
@@ -278,5 +294,65 @@ class RecommendationRoutesTest {
         assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
         assertEquals("AI_UNAVAILABLE", response.errorCode())
         assertEquals(HttpStatusCode.OK, get("/trips/$tripId").status)
+    }
+
+    // ── place photo proxy ───────────────────────────────────────────────────
+
+    private val signer = PhotoSigner(TestDb.config().photoSigningSecret)
+
+    /** The photo path of the first card, relative to /api/v1 and used without any bearer token. */
+    private suspend fun Api.firstPhotoPath(): String {
+        val groups = post("/recommendations", request(trip())).data().jsonObject.getValue("groups").jsonArray
+        return groups.first().jsonObject.getValue("items").jsonArray.first().jsonObject.str("photoUrl")
+    }
+
+    @Test
+    fun validSignatureStreamsThePhotoWithoutABearerToken() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            val path = firstPhotoPath()
+            token = null
+            val response = get(path)
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals("image/jpeg", response.headers["Content-Type"])
+            assertEquals(listOf<Byte>(9, 8, 7), response.readRawBytes().toList())
+        }
+    }
+
+    @Test
+    fun badOrExpiredSignatureIsRejectedWithoutCallingGoogle() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            val path = firstPhotoPath()
+            assertEquals(HttpStatusCode.NotFound, get(path.replace("sig=", "sig=x")).status)
+            assertEquals(HttpStatusCode.NotFound, get(path.substringBefore("&sig=")).status)
+            assertEquals(HttpStatusCode.NotFound, get("/places/photo/place-Tanah Lot?" + path.substringAfter('?')).status)
+
+            val expired = PhotoSigner(TestDb.config().photoSigningSecret, validFor = (-1).minutes).signedPath("place-Pantai Kuta")
+            assertEquals(HttpStatusCode.NotFound, get(expired).status)
+            assertEquals(0, places.photoCalls.get())
+        }
+    }
+
+    @Test
+    fun placeWithoutPhotoOrRefusedByGoogleIs404NeverAServerError() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            places.noPhotoFor = setOf("place-Pantai Kuta")
+            assertEquals(HttpStatusCode.NotFound, get(signer.signedPath("place-Pantai Kuta")).status)
+
+            places.quotaHit = true
+            assertEquals(HttpStatusCode.NotFound, get(signer.signedPath("place-Tanah Lot")).status)
+        }
+    }
+
+    @Test
+    fun repeatedRequestsForOnePhotoHitGoogleOnce() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            val path = signer.signedPath("place-Pantai Kuta")
+            repeat(3) { assertEquals(HttpStatusCode.OK, get(path).status) }
+            assertEquals(1, places.photoCalls.get())
+        }
     }
 }

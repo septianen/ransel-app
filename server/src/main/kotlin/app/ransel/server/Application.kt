@@ -1,6 +1,8 @@
 package app.ransel.server
 
 import app.ransel.server.ai.AiServices
+import app.ransel.server.ai.PhotoSigner
+import app.ransel.server.ai.PlacePhotoService
 import app.ransel.server.ai.RecommendationService
 import app.ransel.server.ai.aiServicesFrom
 import app.ransel.server.db.DatabaseFactory
@@ -21,6 +23,7 @@ import app.ransel.server.routes.memberRoutes
 import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
 import app.ransel.server.routes.packingTemplateRoutes
+import app.ransel.server.routes.placePhotoRoutes
 import app.ransel.server.routes.recommendationRoutes
 import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
@@ -67,7 +70,9 @@ fun Application.module(
 
     val (aiServices, aiHttp) = if (ai != null) ai to null else aiServicesFrom(config)
     monitor.subscribe(ApplicationStopped) { aiHttp?.close() }
-    val recommendations = RecommendationService(config, aiServices)
+    val photoSigner = PhotoSigner(config.photoSigningSecret)
+    val recommendations = RecommendationService(config, aiServices, photoSigner = photoSigner)
+    val placePhotos = PlacePhotoService(aiServices.places, recommendations.metrics)
     // Its own scope on a real dispatcher: it must not run on (and be sped up by) the host application's scheduler.
     val maintenance = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     monitor.subscribe(ApplicationStopped) { maintenance.cancel() }
@@ -98,6 +103,7 @@ fun Application.module(
         route(ApiRoutes.BASE) {
             healthRoutes()
             authRoutes(auth, passwordReset)
+            placePhotoRoutes(photoSigner, placePhotos)
             authenticate(JWT_AUTH) {
                 meRoutes()
                 tripRoutes()

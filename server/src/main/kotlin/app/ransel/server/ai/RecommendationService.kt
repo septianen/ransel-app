@@ -65,6 +65,7 @@ class RecommendationService(
     private val config: AppConfig,
     private val ai: AiServices,
     val metrics: AiMetrics = AiMetrics(),
+    private val photoSigner: PhotoSigner = PhotoSigner(config.photoSigningSecret),
 ) {
     private val log = LoggerFactory.getLogger(RecommendationService::class.java)
 
@@ -227,11 +228,13 @@ class RecommendationService(
             async {
                 var rating: Double? = null
                 var address = place.address
+                var attribution: String? = null
                 if (index < RATED_CARDS) {
                     try {
                         metrics.placesDetailsCalls.incrementAndGet()
                         ai.places.details(place.placeId, withRating = true)?.let {
                             rating = it.rating
+                            attribution = it.photoAttribution
                             address = it.address ?: address
                         }
                     } catch (e: Exception) {
@@ -247,7 +250,8 @@ class RecommendationService(
                     lat = place.lat,
                     lng = place.lng,
                     rating = rating,
-                    photoUrl = null, // Photos need a key-hiding proxy endpoint (contract change); see report
+                    photoUrl = photoSigner.signedPath(place.placeId),
+                    photoAttribution = attribution,
                     address = address,
                 )
             }

@@ -11,6 +11,7 @@ services:
       PORT: 8080
       APP_ENV: production
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ characters)}
+      PHOTO_SIGNING_SECRET: ${PHOTO_SIGNING_SECRET:?set PHOTO_SIGNING_SECRET (32+ characters)}
       JWT_ISSUER: ${JWT_ISSUER:-ransel}
       APP_BASE_URL: ${APP_BASE_URL:-https://ransel.mietek.tech}
       DATABASE_URL: jdbc:postgresql://db:5432/ransel

@@ -159,7 +159,7 @@ class GooglePlacesClientTest {
         val rated = c.details("ChIJabc", withRating = true)!!
 
         assertEquals("location,formattedAddress", seen[0].headers["X-Goog-FieldMask"])
-        assertEquals("location,formattedAddress,rating", seen[1].headers["X-Goog-FieldMask"])
+        assertEquals("location,formattedAddress,rating,photos", seen[1].headers["X-Goog-FieldMask"])
         assertEquals(-8.62, plain.lat)
         assertEquals("Beraban, Tabanan", rated.address)
         assertEquals(4.6, rated.rating)
@@ -171,5 +171,33 @@ class GooglePlacesClientTest {
             assertNull(client(mutableListOf(), HttpStatusCode.NotFound to "{}").details("nope", false))
         }
         assertFailsWith<Exception> { runBlocking { client(mutableListOf(), HttpStatusCode.Forbidden to "{}").details("x", false) } }
+    }
+
+    @Test
+    fun photoNeedsTwoCallsAndNeverPutsTheKeyInTheUrl() = runBlocking {
+        val seen = mutableListOf<HttpRequestData>()
+        val http = HttpClient(MockEngine { request ->
+            seen += request
+            if (request.url.encodedPath.endsWith("/media")) {
+                respond(byteArrayOf(1, 2, 3), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "image/jpeg"))
+            } else {
+                respond("""{"photos":[{"name":"places/ChIJabc/photos/REF1"}]}""", HttpStatusCode.OK, jsonHeaders)
+            }
+        })
+        val photo = GooglePlacesClient(http, "g-secret", "https://places.test/v1").photo("ChIJabc")!!
+
+        assertEquals("image/jpeg", photo.contentType)
+        assertEquals(listOf<Byte>(1, 2, 3), photo.bytes.toList())
+        assertEquals("photos", seen[0].headers["X-Goog-FieldMask"])
+        assertEquals("/v1/places/ChIJabc/photos/REF1/media", seen[1].url.encodedPath)
+        assertTrue(seen.none { it.url.toString().contains("g-secret") })
+    }
+
+    @Test
+    fun placeWithoutPhotosIsNullAndQuotaRejectionsAreTyped() {
+        runBlocking { assertNull(client(mutableListOf(), HttpStatusCode.OK to "{}").photo("ChIJabc")) }
+        assertFailsWith<app.ransel.server.ai.PlacesQuotaException> {
+            runBlocking { client(mutableListOf(), HttpStatusCode.TooManyRequests to "{}").photo("ChIJabc") }
+        }
     }
 }

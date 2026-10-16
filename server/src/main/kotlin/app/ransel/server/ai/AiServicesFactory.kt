@@ -17,6 +17,7 @@ private object NotConfiguredLlm : LlmClient {
 private object NotConfiguredPlaces : PlacesClient {
     override suspend fun findPlaceId(name: String, destination: String): String? = throw notConfigured()
     override suspend fun details(placeId: String, withRating: Boolean): PlaceDetails? = throw notConfigured()
+    override suspend fun photo(placeId: String): PlacePhoto? = throw notConfigured()
 }
 
 private fun notConfigured() =

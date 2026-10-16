@@ -25,10 +25,15 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 | `DEPLOY_KNOWN_HOSTS` | output of `ssh-keyscan -p <port> -t ed25519 <host>` (verify the fingerprint) |
 | `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER` | VPS address, SSH port, SSH user |
 | `JWT_SECRET` | 32+ random characters (`openssl rand -hex 32`) |
+| `PHOTO_SIGNING_SECRET` | 32+ random characters, different from `JWT_SECRET` (`openssl rand -hex 32`); signs place-photo links |
 | `DATABASE_PASSWORD` | random, letters and digits (`openssl rand -hex 24`) |
 | `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_USER_NAME` | the closed-beta account |
 | `LLM_API_KEY`, `PLACES_API_KEY` (optional until Explore goes live) | Gemini API key (Google AI Studio) and Google Places (New) key. Set the repository *variable* `LLM_MODEL` to a model id your key can call (`curl -H "x-goog-api-key: $KEY" https://generativelanguage.googleapis.com/v1beta/models`). Without them Explore answers 503 `AI_UNAVAILABLE`. Restrict the Places key to the Places API and set a **budget alert** in Google Cloud |
 | `SEED_USERS` (optional) | more accounts: `email\|password\|name;email\|password\|name`. Use letters and digits in passwords (no `\|`, `;` or `$`) |
+
+### Place photo quota (do this before enabling photos)
+
+Cards show Google place photos through the signed proxy `GET /api/v1/places/photo/{placeId}`. Each uncached photo is a billed Place Photo request (1,000 per month are free). In Google Cloud Console → APIs & Services → Places API (New) → Quotas, cap *Place Photo requests per day* at about 30 (1,000 / 30 days ≈ 33), and keep the budget alert from above. When the cap is hit the proxy answers 404 and the app falls back to the category colour; the counters `placesPhoto` and `placesPhotoQuotaHits` appear in the hourly `ai.metrics` log line.
 
 ## Backups
 

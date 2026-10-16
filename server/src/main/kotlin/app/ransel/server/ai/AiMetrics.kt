@@ -14,6 +14,8 @@ class AiMetrics {
     val llmFailures = AtomicLong()
     val placesSearchCalls = AtomicLong()
     val placesDetailsCalls = AtomicLong()
+    val placesPhotoCalls = AtomicLong()
+    val placesPhotoQuotaHits = AtomicLong()
     val quotaRejections = AtomicLong()
     val unavailable = AtomicLong()
 
@@ -24,6 +26,7 @@ class AiMetrics {
         val rate = if (s == 0L) "n/a" else "%.0f%%".format(100.0 * cacheHits.get() / s)
         return "ai.metrics searches=$s cacheHitRate=$rate llmCalls=${llmCalls.get()} llmFailures=${llmFailures.get()} " +
             "placesSearch=${placesSearchCalls.get()} placesDetails=${placesDetailsCalls.get()} " +
+            "placesPhoto=${placesPhotoCalls.get()} placesPhotoQuotaHits=${placesPhotoQuotaHits.get()} " +
             "quota429=${quotaRejections.get()} unavailable503=${unavailable.get()}"
     }
 
