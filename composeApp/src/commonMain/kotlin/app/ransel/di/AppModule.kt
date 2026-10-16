@@ -7,7 +7,8 @@ import app.ransel.feature.itinerary.ActivityFormViewModel
 import app.ransel.feature.itinerary.ItineraryViewModel
 import app.ransel.data.invite.InviteLinks
 import app.ransel.data.explore.ExploreSessionStore
-import app.ransel.feature.explore.ExploreViewModel
+import app.ransel.feature.explore.ExplorePreferencesViewModel
+import app.ransel.feature.explore.ExploreTripPickerViewModel
 import app.ransel.feature.explore.SwipeViewModel
 import app.ransel.feature.invite.InviteSheetViewModel
 import app.ransel.feature.invite.JoinTripViewModel
@@ -58,7 +59,8 @@ val commonModule: Module = module {
     viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get()) }
     single { InviteLinks() }
     single { ExploreSessionStore(get()) }
-    viewModelOf(::ExploreViewModel)
+    viewModelOf(::ExploreTripPickerViewModel)
+    viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
     viewModelOf(::SwipeViewModel)
     viewModel { params -> InviteSheetViewModel(params.get(), get()) }
     viewModel { params -> JoinTripViewModel(params.get(), get(), get(), get(), get(), get()) }

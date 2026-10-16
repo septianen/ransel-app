@@ -58,7 +58,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import app.ransel.shared.api.ErrorCode
-import app.ransel.shared.model.BudgetLevel
+import app.ransel.shared.model.PriceLevel
 import app.ransel.ui.category.itineraryLabel
 import app.ransel.ui.category.symbol
 import app.ransel.ui.category.tileColor
@@ -140,7 +140,7 @@ fun SwipeScreen(
                     body = stringResource(
                         Res.string.swipe_none_body,
                         s.session.form.destination,
-                        stringResource(s.session.form.budget.label),
+                        stringResource(s.session.form.priceLevel.label),
                     ),
                     illustration = painterResource(Res.drawable.capybara_magnifier_map),
                     primaryLabel = stringResource(Res.string.swipe_change_preferences),
@@ -213,7 +213,7 @@ private fun SwipeHeader(session: ExploreSession?, destination: String, onClose: 
         Column(Modifier.weight(1f).padding(start = 4.dp)) {
             Text(stringResource(Res.string.explore_for, destination), style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (session != null) {
-                val interests = session.form.interests.map { stringResource(it.label) }.joinToString(", ")
+                val interests = (session.form.interests.map { stringResource(it.label) } + session.form.extraInterests).joinToString(", ")
                 Text(
                     "$interests · ${stringResource(session.form.style.label)}",
                     style = MaterialTheme.typography.bodySmall,
@@ -445,16 +445,8 @@ private fun RecommendationCard(card: ExploreCard, drag: Float) {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(item.name, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold), maxLines = 2, overflow = TextOverflow.Ellipsis)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                item.rating?.let { rating ->
-                    val tenths = (rating * 10).roundToInt()
-                    val separator = stringResource(Res.string.swipe_decimal_separator)
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Symbol(Symbols.star, size = 18.dp, filled = true, tint = IrisTheme.accents.yellow)
-                        Text("${tenths / 10}$separator${tenths % 10}", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
                 item.priceLevel?.let { level ->
-                    val budget = when { level <= 1 -> BudgetLevel.HEMAT; level == 2 -> BudgetLevel.SEDANG; else -> BudgetLevel.BEBAS }
+                    val budget = when { level <= 1 -> PriceLevel.LOW; level == 2 -> PriceLevel.MEDIUM; else -> PriceLevel.HIGH }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Symbol(Symbols.payments, size = 18.dp, tint = scheme.onSurfaceVariant)
                         Text(stringResource(budget.label), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)

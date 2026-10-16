@@ -195,7 +195,7 @@ private fun ApiFailure.toQuota(): QuotaDto? {
 
 private fun app.ransel.data.explore.ExploreForm.toRequest(newSearch: Boolean, exclude: List<String>) =
     RecommendationRequest(
-        tripId = tripId, destination = destination, startDate = startDate, endDate = endDate,
-        budget = budget, interests = interests, style = style, notes = notes.trim().ifEmpty { null },
+        tripId = tripId, focusArea = focusArea.trim().ifEmpty { null }, priceLevel = priceLevel,
+        interests = interests, extraInterests = extraInterests, style = style, notes = notes.trim().ifEmpty { null },
         excludePlaceIds = exclude, newSearch = newSearch,
     )

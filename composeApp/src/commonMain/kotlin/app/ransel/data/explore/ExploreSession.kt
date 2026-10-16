@@ -3,9 +3,9 @@ package app.ransel.data.explore
 import app.ransel.data.remote.ApiJson
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.shared.dto.RecommendationItem
-import app.ransel.shared.model.BudgetLevel
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.Interest
+import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.TravelStyle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
-/** What the user typed in the Explore form (design `PreferensiAI`). The trip supplies destination and dates. */
+/** What the user typed in the Explore form (design `PreferensiAI`). The trip supplies destination and dates (display only). */
 @Serializable
 data class ExploreForm(
     val tripId: String,
@@ -25,8 +25,11 @@ data class ExploreForm(
     val destination: String,
     val startDate: LocalDate,
     val endDate: LocalDate,
-    val budget: BudgetLevel = BudgetLevel.SEDANG,
+    val focusArea: String = "",
+    val priceLevel: PriceLevel = PriceLevel.MEDIUM,
     val interests: List<Interest> = emptyList(),
+    /** Ticked "Khas <destination>" chips, sent as `extraInterests`. */
+    val extraInterests: List<String> = emptyList(),
     val style: TravelStyle = TravelStyle.SANTAI,
     val notes: String = "",
 )
@@ -70,12 +73,13 @@ class ExploreSessionStore(private val preferences: PreferencesRepository) {
         }
     }
 
-    /** Entry points inside a trip ("Cari inspirasi dengan AI") ask the Explore form to start with that trip. */
-    private var preferredTripId: String? = null
-    fun preferTrip(tripId: String) { preferredTripId = tripId }
-    fun takePreferredTrip(): String? = preferredTripId.also { preferredTripId = null }
+    /** The form of the session that was just dropped ("Ubah preferensi"), so the next form starts with the same answers. */
+    private var lastForm: ExploreForm? = null
+    val lastTripId: String? get() = lastForm?.tripId
+    fun takeLastForm(tripId: String): ExploreForm? = lastForm?.takeIf { it.tripId == tripId }.also { lastForm = null }
 
     suspend fun save(session: ExploreSession?) {
+        if (session == null) _session.value?.form?.let { lastForm = it }
         _session.value = session
         preferences.putString(KEY, session?.let { ApiJson.encodeToString(ExploreSession.serializer(), it) })
     }

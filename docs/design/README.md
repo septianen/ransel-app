@@ -80,10 +80,14 @@ Phase = the roadmap phase in which the screen must be implemented.
 
 | File | Code name | Board title | Phase | Illustration | Overlay on |
 | --- | --- | --- | --- | --- | --- |
-| `screens/PreferensiAI.html` | `ExploreScreen` | Jelajah: tanpa sesi (konten penuh) | 5 |  |  |
-| `screens/JelajahLanjut.html` | `ExploreScreen` (resume card) | Jelajah: ada sesi belum selesai (konten penuh) | 5 |  |  |
-| `screens/JelajahTamu.html` | `ExploreScreen` (guest) | Jelajah: belum masuk (tamu) | 5 |  |  |
-| `screens/JelajahTanpaTrip.html` | `ExploreScreen` (no trip) | Jelajah: belum ada trip | 5 |  |  |
+| `screens/PilihTripJelajah.html` (canvas board) | `ExploreTripPickerScreen` | Jelajah: pilih trip | 5 |  |  |
+| `screens/JelajahLanjut.html` | `ExploreTripPickerScreen` (resume card) | Jelajah: ada sesi belum selesai | 5 |  |  |
+| `screens/JelajahTamu.html` | `ExploreTripPickerScreen` (guest) | Jelajah: belum masuk (tamu) | 5 |  |  |
+| `screens/PreferensiAI.html` | `ExplorePreferencesScreen` (existing trip) | Jelajah: cari untuk trip (Bali, harga dari budget, Khas Bali) | 5 |  |  |
+| `PreferensiAITokyo` (canvas board) | `ExplorePreferencesScreen` (existing trip) | Tokyo tanpa budget, Khas Tokyo (Sakura) | 5 |  |  |
+| `JelajahTripBaru`, `JelajahTripBaruMemuat` (canvas boards) | `ExplorePreferencesScreen` (new trip) | Trip baru, minat khas dimuat / memuat | 5 |  |  |
+| `WebJelajah*` (canvas boards) | same screens, wide window | Jelajah di web | 5 |  |  |
+| `screens/JelajahTanpaTrip.html` | superseded: no eligible trip goes straight to `ExplorePreferencesScreen` (new trip) | Jelajah: belum ada trip | 5 |  |  |
 | `screens/MemuatRekomendasi.html` | `SwipeScreen` (loading) | Swipe: memuat | 5 |  |  |
 | `screens/Swipe.html` | `SwipeScreen` | Swipe rekomendasi | 5 |  |  |
 | `screens/SwipeKanan.html` | `SwipeScreen` (dragging right) | Swipe: geser kanan (simpan) | 5 |  |  |
