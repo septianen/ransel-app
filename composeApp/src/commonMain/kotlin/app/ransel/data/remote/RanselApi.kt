@@ -19,6 +19,7 @@ import app.ransel.shared.dto.SyncPushResponse
 import app.ransel.shared.dto.BalancesDto
 import app.ransel.shared.dto.ExploreSuggestionsResponse
 import app.ransel.shared.dto.FeedbackRequest
+import app.ransel.shared.dto.PlaceDetailDto
 import app.ransel.shared.dto.RecommendationRequest
 import app.ransel.shared.dto.RecommendationResponse
 import app.ransel.shared.dto.CreatePackingTemplateRequest
@@ -218,6 +219,16 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.RECOMMENDATION_FEEDBACK, bodyOf = { contentType(ContentType.Application.Json); setBody(request) }) { }
     suspend fun undoFeedback(tripId: String, placeId: String): ApiResult<Unit> =
         delete(ApiRoutes.recommendationFeedback(tripId, placeId))
+
+    /** Detail text of a place for the itinerary entry; [name] only matters when the server must rebuild an expired text. */
+    suspend fun placeDetail(placeId: String, name: String?, currency: String?): ApiResult<PlaceDetailDto> = call(
+        HttpMethod.Get,
+        ApiRoutes.placeDetail(placeId),
+        bodyOf = {
+            name?.let { parameter("name", it) }
+            currency?.let { parameter("currency", it) }
+        },
+    ) { it.body<ApiResponse<PlaceDetailDto>>().data }
 
     // ── invites (Phase 4) ───────────────────────────────────────────────────
     suspend fun invites(tripId: String): ApiResult<List<InviteDto>> = get(ApiRoutes.invites(tripId))

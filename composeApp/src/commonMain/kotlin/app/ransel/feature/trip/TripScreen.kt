@@ -43,6 +43,7 @@ fun TripScreen(
     onExplore: () -> Unit,
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
+    onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
 ) {
@@ -74,7 +75,12 @@ fun TripScreen(
             Box(Modifier.weight(1f).navigationBarsPadding()) {
                 if (current != null) {
                     when (tab) {
-                        TripTab.ITINERARY -> ItineraryTab(current, onAddActivity, onEditActivity, onExplore = if (signedIn) onExplore else null)
+                        TripTab.ITINERARY -> ItineraryTab(
+                            current, onAddActivity, onEditActivity,
+                            onExplore = if (signedIn) onExplore else null,
+                            // The place text lives on the server: guests have no account to ask it with.
+                            onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
+                        )
                         TripTab.PACKING -> PackingTab(current)
                         TripTab.EXPENSES -> ExpensesTab(current)
                     }

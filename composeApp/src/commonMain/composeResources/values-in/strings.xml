@@ -717,4 +717,20 @@
     <string name="home_explore_body">Pilih tempat favoritmu dengan swipe.</string>
     <string name="home_explore_cta">Coba</string>
     <string name="itinerary_explore_ai">Cari inspirasi dengan AI</string>
+    <!-- Detail tempat (layar penuh, dari kartu swipe atau itinerary) -->
+    <string name="place_detail_title">Detail tempat</string>
+    <string name="place_detail_open">Lihat detail tempat</string>
+    <string name="place_detail_about">Tentang tempat ini</string>
+    <string name="place_detail_highlights">Perlu diketahui</string>
+    <string name="place_detail_hours">Jam buka</string>
+    <string name="place_detail_hours_ai">Perkiraan AI</string>
+    <string name="place_detail_hours_note">Jam bisa berubah, cek di Google Maps sebelum berangkat.</string>
+    <string name="place_detail_location">Lokasi</string>
+    <string name="place_detail_open_maps">Buka di Google Maps</string>
+    <string name="place_detail_best_time">Waktu terbaik: %1$s</string>
+    <string name="place_detail_cost">± %1$s per orang</string>
+    <string name="place_detail_loading">Menyiapkan detail tempat…</string>
+    <string name="place_detail_error">Detail belum bisa dimuat.</string>
+    <string name="place_detail_save">Simpan</string>
+    <string name="place_detail_skip">Lewati</string>
 </resources>

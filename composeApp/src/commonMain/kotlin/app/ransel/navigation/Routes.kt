@@ -38,5 +38,17 @@ import kotlinx.serialization.Serializable
 /** Swipe through the recommendations of the stored Explore session. */
 @Serializable data object SwipeRoute
 
+/**
+ * Full-screen detail of a recommended place. From a swipe card the card is read from the Explore session and the
+ * Skip / Save buttons show. From the itinerary ([fromItinerary]) it is loaded by [placeId] and there are no buttons;
+ * [name] (the item title) lets the server rebuild an expired text, [currency] is the trip's base currency.
+ */
+@Serializable data class PlaceDetailRoute(
+    val placeId: String,
+    val fromItinerary: Boolean = false,
+    val name: String? = null,
+    val currency: String? = null,
+)
+
 /** Invite link or code opened: preview and join, or the invalid-invite state. */
 @Serializable data class JoinTripRoute(val code: String)

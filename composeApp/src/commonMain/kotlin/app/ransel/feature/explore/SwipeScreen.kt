@@ -51,12 +51,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import app.ransel.data.explore.ExploreCard
 import app.ransel.data.explore.ExploreSession
-import app.ransel.data.remote.apiOrigin
-import app.ransel.shared.api.ApiRoutes
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.model.PriceLevel
 import app.ransel.ui.category.itineraryLabel
@@ -92,6 +89,7 @@ fun SwipeScreen(
     onChangePreferences: () -> Unit,
     onOpenItinerary: (tripId: String) -> Unit,
     onHome: () -> Unit,
+    onOpenDetail: (placeId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SwipeViewModel = koinViewModel(),
 ) {
@@ -126,6 +124,7 @@ fun SwipeScreen(
                 onLike = viewModel::like,
                 onSkip = viewModel::skip,
                 onUndo = viewModel::undo,
+                onOpenDetail = onOpenDetail,
             )
             is SwipeUiState.Finished -> StateWithClose(onClose) {
                 FinishedContent(
@@ -254,8 +253,10 @@ private fun CardsContent(
     onLike: () -> Unit,
     onSkip: () -> Unit,
     onUndo: () -> Unit,
+    onOpenDetail: (placeId: String) -> Unit,
 ) {
     val card = session.cards.getOrNull(session.position)
+    val openDetailLabel = stringResource(Res.string.place_detail_open)
     val scope = rememberCoroutineScope()
     val dx = remember(card?.item?.placeId) { Animatable(0f) }
     var width = 1f
@@ -269,9 +270,10 @@ private fun CardsContent(
 
     // Warm the cache with the next card's photo only (Google photos are billed per request).
     val platformContext = LocalPlatformContext.current
-    val nextPhoto = session.cards.getOrNull(session.position + 1)?.let(::photoModel)
+    val nextCard = session.cards.getOrNull(session.position + 1)
+    val nextPhoto = nextCard?.let { placePhotoRequest(platformContext, it.item.photoUrl, it.item.placeId) }
     LaunchedEffect(nextPhoto) {
-        if (nextPhoto != null) SingletonImageLoader.get(platformContext).enqueue(ImageRequest.Builder(platformContext).data(nextPhoto).build())
+        if (nextPhoto != null) SingletonImageLoader.get(platformContext).enqueue(nextPhoto)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -308,6 +310,8 @@ private fun CardsContent(
                         .fillMaxSize()
                         .padding(bottom = 24.dp)
                         .offset { IntOffset(dx.value.roundToInt(), 0) }
+                        // A tap opens the detail; a horizontal drag still swipes (the drag consumes the gesture).
+                        .clickable(onClickLabel = openDetailLabel, role = Role.Button) { onOpenDetail(card.item.placeId) }
                         .pointerInput(card.item.placeId) {
                             detectHorizontalDragGestures(
                                 onDragEnd = {
@@ -324,7 +328,7 @@ private fun CardsContent(
                             }
                         },
                 ) {
-                    RecommendationCard(card, progress)
+                    RecommendationCard(card, progress, onInfo = { onOpenDetail(card.item.placeId) })
                 }
             }
         }
@@ -367,16 +371,12 @@ private fun RoundAction(
     }
 }
 
-/** Absolute URL of the card photo (the API gives a signed path relative to `ApiRoutes.BASE`); null without a photo. */
-private fun photoModel(card: ExploreCard): String? {
-    val path = card.item.photoUrl?.takeIf { it.isNotBlank() } ?: return null
-    if (path.startsWith("http")) return path
-    return apiOrigin().trimEnd('/') + ApiRoutes.BASE + "/" + path.trimStart('/')
-}
-
-/** The card itself. [drag] is -1..1 (left..right); the outline and label fade in with it, nothing rotates. */
+/**
+ * The card itself. [drag] is -1..1 (left..right); the outline and label fade in with it, nothing rotates.
+ * [onInfo] is the visible info button (the whole card is tappable too); it is the way to the detail with a mouse or keyboard.
+ */
 @Composable
-private fun RecommendationCard(card: ExploreCard, drag: Float) {
+private fun RecommendationCard(card: ExploreCard, drag: Float, onInfo: () -> Unit) {
     val item = card.item
     val scheme = MaterialTheme.colorScheme
     val outline = when {
@@ -395,7 +395,7 @@ private fun RecommendationCard(card: ExploreCard, drag: Float) {
         // The category colour and icon stay underneath: placeholder while loading and fallback without a photo or on error.
         Box(Modifier.weight(1f).fillMaxWidth().background(card.category.tileColor())) {
             Symbol(card.category.symbol, size = 96.dp, filled = true, tint = IrisTheme.accents.onAccent.copy(alpha = 0.35f), modifier = Modifier.align(Alignment.Center))
-            val photo = photoModel(card)
+            val photo = rememberPlacePhotoRequest(item.photoUrl, item.placeId)
             if (photo != null) {
                 AsyncImage(model = photo, contentDescription = item.name, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                 // The credit is shown whenever a photo is requested; a failed load leaves it over the colour, which is harmless.
@@ -419,6 +419,18 @@ private fun RecommendationCard(card: ExploreCard, drag: Float) {
             ) {
                 Symbol(card.category.symbol, size = 16.dp, filled = true, tint = card.category.tileColor())
                 Text(stringResource(card.category.itineraryLabel), style = MaterialTheme.typography.labelMedium)
+            }
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable(role = Role.Button, onClick = onInfo),
+                contentAlignment = Alignment.Center,
+            ) {
+                Symbol(Symbols.info, contentDescription = stringResource(Res.string.place_detail_open), size = 22.dp, tint = Color.White)
             }
             if (abs(drag) > 0.05f) {
                 val right = drag > 0

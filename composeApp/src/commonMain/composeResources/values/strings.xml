@@ -723,4 +723,20 @@
     <string name="home_explore_body">Pick your favourite places with a swipe.</string>
     <string name="home_explore_cta">Try</string>
     <string name="itinerary_explore_ai">Find inspiration with AI</string>
+    <!-- Place detail (full screen, from a swipe card or the itinerary) -->
+    <string name="place_detail_title">Place details</string>
+    <string name="place_detail_open">View place details</string>
+    <string name="place_detail_about">About this place</string>
+    <string name="place_detail_highlights">Good to know</string>
+    <string name="place_detail_hours">Opening hours</string>
+    <string name="place_detail_hours_ai">AI estimate</string>
+    <string name="place_detail_hours_note">Hours can change, check Google Maps before you go.</string>
+    <string name="place_detail_location">Location</string>
+    <string name="place_detail_open_maps">Open in Google Maps</string>
+    <string name="place_detail_best_time">Best time: %1$s</string>
+    <string name="place_detail_cost">≈ %1$s per person</string>
+    <string name="place_detail_loading">Preparing place details…</string>
+    <string name="place_detail_error">The details could not be loaded.</string>
+    <string name="place_detail_save">Save</string>
+    <string name="place_detail_skip">Skip</string>
 </resources>

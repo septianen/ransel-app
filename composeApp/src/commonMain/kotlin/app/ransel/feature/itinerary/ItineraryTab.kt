@@ -42,6 +42,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -98,6 +100,7 @@ import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_undo
 import ransel.composeapp.generated.resources.capybara_world_map
 import ransel.composeapp.generated.resources.itinerary_add_activity
+import ransel.composeapp.generated.resources.place_detail_open
 import ransel.composeapp.generated.resources.itinerary_explore_ai
 import ransel.composeapp.generated.resources.itinerary_day_chip
 import ransel.composeapp.generated.resources.itinerary_day_heading
@@ -126,6 +129,8 @@ fun ItineraryTab(
     onEditActivity: (itemId: String) -> Unit,
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
+    /** Opens the saved detail of an AI place (design `ItineraryLihatDetail`); null hides the info buttons. */
+    onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
     viewModel: ItineraryViewModel = koinViewModel(key = "itinerary-${trip.id}") { parametersOf(trip) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -157,18 +162,23 @@ fun ItineraryTab(
         }
     }
 
+    val openDetail: ((ItineraryItemDto) -> Unit)? = onOpenPlaceDetail?.let { open ->
+        { item: ItineraryItemDto -> item.placeId?.let { open(it, item.title, trip.baseCurrency) } }
+    }
     Box(modifier.fillMaxSize()) {
-        ItineraryContent(
-            state = state,
-            onSelectDay = viewModel::selectDay,
-            onReorder = viewModel::onReorder,
-            onMoveToDay = viewModel::moveToDay,
-            onAddActivity = { onAddActivity(state.selectedDay?.toString()) },
-            onEditActivity = onEditActivity,
-            canEdit = canEdit,
-            onExplore = if (canEdit) onExplore else null,
-            viewModel = viewModel,
-        )
+        CompositionLocalProvider(LocalOpenPlaceDetail provides openDetail) {
+            ItineraryContent(
+                state = state,
+                onSelectDay = viewModel::selectDay,
+                onReorder = viewModel::onReorder,
+                onMoveToDay = viewModel::moveToDay,
+                onAddActivity = { onAddActivity(state.selectedDay?.toString()) },
+                onEditActivity = onEditActivity,
+                canEdit = canEdit,
+                onExplore = if (canEdit) onExplore else null,
+                viewModel = viewModel,
+            )
+        }
         SnackbarHost(
             hostState = snackbar,
             modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
@@ -556,6 +566,7 @@ private fun TimelineRow(
                 )
             }
             app.ransel.ui.components.PendingMarker(item.id)
+            if (!dragging) PlaceDetailButton(item)
             // Handle: touching it drags immediately; the rest of the row needs a long press.
             // Gestures are detected by the container in DaySection (this row moves while dragging).
             Box(Modifier.size(48.dp).testTag("drag-handle-${item.id}"), contentAlignment = Alignment.Center) {
@@ -625,6 +636,24 @@ private fun AddActivityFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onPrimary,
         )
+    }
+}
+
+// ── Place detail entry ───────────────────────────────────────────────────────
+
+/** Set by [ItineraryTab] when the signed-in user can open a place's saved detail; null = no info buttons. */
+private val LocalOpenPlaceDetail = staticCompositionLocalOf<((ItineraryItemDto) -> Unit)?> { null }
+
+/** Info button on items that carry a Google place id (the ones saved from Explore): opens the saved detail. */
+@Composable
+private fun PlaceDetailButton(item: ItineraryItemDto) {
+    val open = LocalOpenPlaceDetail.current
+    if (open == null || item.placeId == null) return
+    Box(
+        Modifier.size(40.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button) { open(item) },
+        contentAlignment = Alignment.Center,
+    ) {
+        Symbol(Symbols.info, contentDescription = stringResource(Res.string.place_detail_open), tint = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -711,6 +740,7 @@ internal fun UnscheduledRow(
                 )
             }
         }
+        PlaceDetailButton(item)
         if (onSchedule != null) {
             OutlinedButton(
                 onClick = onSchedule,

@@ -9,6 +9,7 @@ import app.ransel.data.invite.InviteLinks
 import app.ransel.data.explore.ExploreSessionStore
 import app.ransel.feature.explore.ExplorePreferencesViewModel
 import app.ransel.feature.explore.ExploreTripPickerViewModel
+import app.ransel.feature.explore.PlaceDetailViewModel
 import app.ransel.feature.explore.SwipeViewModel
 import app.ransel.feature.invite.InviteSheetViewModel
 import app.ransel.feature.invite.JoinTripViewModel
@@ -62,6 +63,7 @@ val commonModule: Module = module {
     viewModelOf(::ExploreTripPickerViewModel)
     viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
     viewModelOf(::SwipeViewModel)
+    viewModel { params -> PlaceDetailViewModel(params.get(), get(), get()) }
     viewModel { params -> InviteSheetViewModel(params.get(), get()) }
     viewModel { params -> JoinTripViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> MembersViewModel(params.get(), get(), get(), get()) }

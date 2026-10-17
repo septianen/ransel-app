@@ -123,6 +123,10 @@ import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
+import app.ransel.feature.explore.PlaceDetailScreen
+import app.ransel.feature.explore.SwipeViewModel
+import app.ransel.navigation.PlaceDetailRoute
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.debug_component_gallery
 import ransel.composeapp.generated.resources.debug_seed_sample
@@ -420,6 +424,22 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
                     launchSingleTop = true
                 }
             },
+            onOpenDetail = { placeId -> navController.navigate(PlaceDetailRoute(placeId)) },
+        )
+    }
+    page<PlaceDetailRoute>(maxContentWidth = null) { entry -> // adapts itself: two columns from 900 dp
+        val route = entry.toRoute<PlaceDetailRoute>()
+        // From a swipe card: Skip / Save act on the swipe screen's own ViewModel, so they change the same session.
+        // Without a swipe screen below (or from the itinerary) there are no buttons.
+        val swipeEntry = remember(entry) {
+            if (route.fromItinerary) null else runCatching { navController.getBackStackEntry<SwipeRoute>() }.getOrNull()
+        }
+        val swipe: SwipeViewModel? = swipeEntry?.let { koinViewModel<SwipeViewModel>(viewModelStoreOwner = it) }
+        PlaceDetailScreen(
+            route = route,
+            onBack = { navController.popBackStack() },
+            onSkip = swipe?.let { vm -> { vm.skip(); navController.popBackStack() } },
+            onSave = swipe?.let { vm -> { vm.like(); navController.popBackStack() } },
         )
     }
     page<AccountRoute> {
@@ -465,6 +485,9 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onExplore = { navController.navigate(ExplorePreferencesRoute(route.tripId)) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
+            onOpenPlaceDetail = { placeId, name, currency ->
+                navController.navigate(PlaceDetailRoute(placeId, fromItinerary = true, name = name, currency = currency))
+            },
         )
     }
     page<JoinTripRoute> { entry ->
