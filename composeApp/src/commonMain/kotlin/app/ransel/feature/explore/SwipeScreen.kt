@@ -353,14 +353,15 @@ private fun RoundAction(
     Surface(
         modifier = Modifier
             .size(size.dp)
-            .alpha(if (enabled) 1f else 0.4f)
-            .shadow(8.dp, CircleShape)
+            // No .alpha() on this modifier: it renders into an offscreen layer that crops the shadow.
+            // The disabled look is a flatter shadow plus a faded icon instead.
+            .shadow(if (enabled) 8.dp else 2.dp, CircleShape)
             .clip(CircleShape)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(Modifier.alpha(if (enabled) 1f else 0.4f), contentAlignment = Alignment.Center) {
             Symbol(symbol, contentDescription = description, size = if (size >= 64) 32.dp else 24.dp, filled = filled, tint = tint)
         }
     }
