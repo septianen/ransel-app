@@ -100,6 +100,9 @@ Phase = the roadmap phase in which the screen must be implemented.
 | `screens/GelapSwipe.html` | `SwipeScreen` (dark) | Tema gelap: Swipe | 5 |  |  |
 | `screens/DetailTempat.html` | `PlaceDetailScreen` | Detail tempat: foto, harga, deskripsi, jam buka (perkiraan AI), lokasi, Lewati/Simpan | 5 |  | Swipe |
 | `screens/DetailTempatMemuat.html` | `PlaceDetailScreen` (loading) | Detail tempat: kondisi cadangan saat teks dibangun ulang (hanya dari itinerary, cache kedaluwarsa) | 5 |  | Swipe |
+| `screens/ItineraryLihatDetail.html` | `ItineraryScreen` (AI items) | Itinerary: tombol info membuka detail tempat AI | 5 |  |  |
+| `screens/DetailTempatItinerary.html` | `PlaceDetailScreen` (from itinerary) | Detail tempat dari itinerary, tanpa Lewati/Simpan | 5 |  | ItineraryLihatDetail |
+| `WebItineraryLihatDetail`, `WebDetailTempatItinerary` (canvas boards) | same, wide window | Web: lihat detail dari itinerary | 5 |  |  |
 | `screens/DetailTempatGelap.html` | `PlaceDetailScreen` (dark) | Tema gelap: Detail tempat | 5 |  | Swipe |
 | `screens/Voting.html` | `SwipeScreen` (vote mode) | Voting: swipe dari rekomendasi teman, sisa waktu | 5 |  | Itinerary |
 | `screens/VotingBanner.html` | `VoteBanner` on `ItineraryScreen` | Itinerary: banner "Rina meminta pilihanmu" | 5 |  |  |
