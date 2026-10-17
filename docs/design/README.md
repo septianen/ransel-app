@@ -98,6 +98,16 @@ Phase = the roadmap phase in which the screen must be implemented.
 | `screens/SwipeTidakAda.html` | `SwipeScreen` (no results) | Jelajah AI: tidak ada hasil | 5 | `capybara-magnifier-map` |  |
 | `screens/SwipeKuota.html` | `SwipeScreen` (quota exceeded) | Jelajah AI: kuota habis | 5 | `capybara-firefly` |  |
 | `screens/GelapSwipe.html` | `SwipeScreen` (dark) | Tema gelap: Swipe | 5 |  |  |
+| `screens/DetailTempat.html` | `PlaceDetailScreen` | Detail tempat: foto, harga, deskripsi, jam buka (perkiraan AI), lokasi, Lewati/Simpan | 5 |  | Swipe |
+| `screens/DetailTempatMemuat.html` | `PlaceDetailScreen` (loading) | Detail tempat: kondisi cadangan saat teks dibangun ulang (hanya dari itinerary, cache kedaluwarsa) | 5 |  | Swipe |
+| `screens/DetailTempatGelap.html` | `PlaceDetailScreen` (dark) | Tema gelap: Detail tempat | 5 |  | Swipe |
+| `screens/Voting.html` | `SwipeScreen` (vote mode) | Voting: swipe dari rekomendasi teman, sisa waktu | 5 |  | Itinerary |
+| `screens/VotingBanner.html` | `VoteBanner` on `ItineraryScreen` | Itinerary: banner "Rina meminta pilihanmu" | 5 |  |  |
+| `screens/VotingMenunggu.html` | `SwipeScreen` (voted all) | Voting: suaramu sudah masuk | 5 |  | Voting |
+| `screens/VotingHasil.html` | `VoteResultScreen` (owner) | Voting: hasil, siapa belum voting, masukkan ke itinerary | 5 |  | Itinerary |
+| `screens/VotingDitutup.html` | `VoteResultScreen` (member, closed) | Voting: ditutup, pilihan owner | 5 |  | Itinerary |
+| `WebDetailTempat`, `WebGelapDetailTempat` (canvas boards) | `PlaceDetailScreen` (wide window) | Web: detail tempat, terang dan gelap | 5 |  | WebSwipe |
+| `WebVoting`, `WebVotingBanner`, `WebVotingMenunggu`, `WebVotingHasil`, `WebVotingDitutup` (canvas boards) | `SwipeScreen` (vote mode), `VoteBanner`, `VoteResultScreen` (wide window) | Web: voting | 5 |  | WebDetailTrip |
 
 ### Onboarding, account, sync
 
