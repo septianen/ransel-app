@@ -13,6 +13,9 @@ import kotlin.math.pow
 interface FxRates {
     /** USD value of [amountMinor] (minor units of [currency]); null if the rate is unknown. */
     fun toUsd(amountMinor: Long, currency: String): Double?
+
+    /** Minor units of [currency] worth [usd] dollars; null if the rate is unknown. The place detail shows costs in the trip currency. */
+    fun fromUsd(usd: Double, currency: String): Long? = null
 }
 
 /**
@@ -41,6 +44,8 @@ class EcbFxRates(
 
     override fun toUsd(amountMinor: Long, currency: String): Double? = convert(perEur.get(), amountMinor, currency)
 
+    override fun fromUsd(usd: Double, currency: String): Long? = convertFromUsd(perEur.get(), usd, currency)
+
     companion object {
         private val CUBE = Regex("""currency=['"]([A-Z]{3})['"]\s+rate=['"]([0-9.]+)['"]""")
 
@@ -52,6 +57,14 @@ class EcbFxRates(
             val own = perEur[currency.uppercase()] ?: return null
             val major = amountMinor / 10.0.pow(currencyDecimals(currency))
             return major * usd / own
+        }
+
+        /** Inverse of [convert]: dollars to minor units, rounded to a whole minor unit. */
+        internal fun convertFromUsd(perEur: Map<String, Double>, usd: Double, currency: String): Long? {
+            val usdRate = perEur["USD"] ?: return null
+            val own = perEur[currency.uppercase()] ?: return null
+            val major = usd * own / usdRate
+            return Math.round(major * 10.0.pow(currencyDecimals(currency)))
         }
     }
 }

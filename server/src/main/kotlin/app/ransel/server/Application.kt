@@ -7,6 +7,7 @@ import app.ransel.server.ai.ExploreSuggestionService
 import app.ransel.server.ai.FxRates
 import app.ransel.server.ai.NoFxRates
 import app.ransel.server.ai.PhotoSigner
+import app.ransel.server.ai.PlaceDetailService
 import app.ransel.server.ai.PlacePhotoService
 import app.ransel.server.ai.RecommendationService
 import app.ransel.server.ai.aiServicesFrom
@@ -29,6 +30,7 @@ import app.ransel.server.routes.memberRoutes
 import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
 import app.ransel.server.routes.packingTemplateRoutes
+import app.ransel.server.routes.placeDetailRoutes
 import app.ransel.server.routes.placePhotoRoutes
 import app.ransel.server.routes.recommendationRoutes
 import app.ransel.server.routes.syncRoutes
@@ -93,7 +95,9 @@ fun Application.module(
     monitor.subscribe(ApplicationStopped) { fxHttp?.close() }
     val ecb = fxHttp?.let { EcbFxRates(it) }
     val suggestions = ExploreSuggestionService(aiServices.llm, fx ?: ecb ?: NoFxRates, aiMetrics)
-    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions)
+    val fxRates = fx ?: ecb ?: NoFxRates
+    val placeDetails = PlaceDetailService(aiServices, photoSigner, fxRates, aiMetrics)
+    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails)
     if (ecb != null) {
         maintenance.launch {
             while (isActive) {
@@ -114,6 +118,7 @@ fun Application.module(
             delay(1.hours)
             runCatching { recommendations.purgeExpiredCache() }
             runCatching { suggestions.purgeExpired() }
+            runCatching { placeDetails.purgeExpired() }
             recommendations.metrics.logSummary()
         }
     }
@@ -149,6 +154,7 @@ fun Application.module(
                 packingTemplateRoutes()
                 recommendationRoutes(recommendations)
                 exploreRoutes(suggestions)
+                placeDetailRoutes(placeDetails)
             }
         }
     }

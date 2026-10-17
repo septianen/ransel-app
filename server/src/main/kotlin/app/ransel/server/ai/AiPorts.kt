@@ -1,5 +1,6 @@
 package app.ransel.server.ai
 
+import app.ransel.shared.dto.OpeningHoursLine
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.Interest
 import app.ransel.shared.model.PriceLevel
@@ -45,6 +46,21 @@ data class LlmCandidate(
     val suggestedDurationMin: Int? = null,
     val lat: Double? = null,
     val lng: Double? = null,
+    // Detail text, written in the same call (docs/specs/voting-spec.md "Place detail"). Missing or unsure = null/empty.
+    val about: String? = null,
+    val highlights: List<String> = emptyList(),
+    val openingHours: List<OpeningHoursLine> = emptyList(),
+    val bestTime: String? = null,
+)
+
+/** Detail text of one place asked on its own (the itinerary reopened a place whose cached text expired). */
+@Serializable
+data class LlmPlaceText(
+    val about: String? = null,
+    val highlights: List<String> = emptyList(),
+    val openingHours: List<OpeningHoursLine> = emptyList(),
+    val bestTime: String? = null,
+    val costUsd: Double? = null,
 )
 
 /** Spend per person in USD at the edge between `$` and `$$` ([lowMaxUsd]) and between `$$` and `$$$` ([midMaxUsd]). */
@@ -68,6 +84,10 @@ interface LlmClient {
 
     /** Short call for the Explore form. [language] is `id` or `en`; [month] is `YYYY-MM`. Throws on failure. */
     suspend fun suggestInterests(destination: String, month: String, language: String): InterestSuggestions
+
+    /** Detail text for one known place (name and address come from Google or our cache). Default: not supported. */
+    suspend fun describe(name: String, address: String?): LlmPlaceText =
+        throw UnsupportedOperationException("describe is not supported")
 }
 
 data class PlaceDetails(
@@ -113,6 +133,24 @@ data class CachedPlace(
     val lat: Double,
     val lng: Double,
     val address: String? = null,
+    val about: String? = null,
+    val highlights: List<String> = emptyList(),
+    val openingHours: List<OpeningHoursLine> = emptyList(),
+    val bestTime: String? = null,
+)
+
+/** What `place_detail_cache` keeps per place, so the itinerary can open it again later. */
+@Serializable
+data class CachedDetail(
+    val name: String,
+    val address: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val about: String? = null,
+    val highlights: List<String> = emptyList(),
+    val openingHours: List<OpeningHoursLine> = emptyList(),
+    val bestTime: String? = null,
+    val costUsd: Double? = null,
 )
 
 class AiServices(val llm: LlmClient, val places: PlacesClient)

@@ -20,6 +20,9 @@ class AiMetrics {
     val suggestionCacheHits = AtomicLong()
     val suggestionFailures = AtomicLong()
     val priceFiltered = AtomicLong()
+    val placeDetailReads = AtomicLong()
+    val placeDetailCacheHits = AtomicLong()
+    val placeDetailLlmCalls = AtomicLong()
     val quotaRejections = AtomicLong()
     val unavailable = AtomicLong()
 
@@ -33,6 +36,7 @@ class AiMetrics {
             "placesPhoto=${placesPhotoCalls.get()} placesPhotoQuotaHits=${placesPhotoQuotaHits.get()} " +
             "suggestions=${suggestionCalls.get()} suggestionCacheHits=${suggestionCacheHits.get()} " +
             "suggestionFailures=${suggestionFailures.get()} priceFiltered=${priceFiltered.get()} " +
+            "placeDetail=${placeDetailReads.get()} placeDetailCacheHits=${placeDetailCacheHits.get()} placeDetailLlm=${placeDetailLlmCalls.get()} " +
             "quota429=${quotaRejections.get()} unavailable503=${unavailable.get()}"
     }
 

@@ -46,6 +46,9 @@ class GeminiClient(
             coreLabels = CORE_LABELS,
         )
 
+    override suspend fun describe(name: String, address: String?): LlmPlaceText =
+        LlmOutput.parsePlaceText(generate(Prompt.detailSystem(), Prompt.detailUser(name, address), temperature = 0.4))
+
     /** Tries the primary model, then the fallback when the first is overloaded (429/5xx). Returns the raw JSON text. */
     private suspend fun generate(system: String, user: String, temperature: Double): String {
         val models = listOfNotNull(modelName, fallbackModel?.takeIf { it.isNotBlank() && it != modelName })

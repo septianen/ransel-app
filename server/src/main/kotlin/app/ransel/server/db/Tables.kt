@@ -12,6 +12,7 @@ import org.jetbrains.exposed.v1.javatime.time
 import org.jetbrains.exposed.v1.javatime.timestamp
 import org.jetbrains.exposed.v1.json.jsonb
 import app.ransel.shared.dto.TemplateItem
+import app.ransel.server.ai.CachedDetail
 import app.ransel.server.ai.CachedPlace
 import app.ransel.shared.model.FeedbackAction
 import kotlinx.serialization.json.Json
@@ -196,6 +197,16 @@ object RecommendationCache : Table("recommendation_cache") {
     val createdAt = timestamp("created_at")
     val expiresAt = timestamp("expires_at")
     override val primaryKey = PrimaryKey(queryHash)
+}
+
+object PlaceDetailCache : Table("place_detail_cache") {
+    val placeId = text("place_id")
+    val lang = text("lang")
+    val response = jsonb<CachedDetail>("response", Json)
+    val model = text("model")
+    val createdAt = timestamp("created_at")
+    val expiresAt = timestamp("expires_at")
+    override val primaryKey = PrimaryKey(placeId, lang)
 }
 
 object ExploreSuggestionsCache : Table("explore_suggestions_cache") {

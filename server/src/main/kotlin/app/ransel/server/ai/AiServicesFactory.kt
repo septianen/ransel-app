@@ -14,6 +14,7 @@ private object NotConfiguredLlm : LlmClient {
     override suspend fun suggest(query: LlmQuery): List<LlmCandidate> = throw notConfigured()
     override suspend fun suggestInterests(destination: String, month: String, language: String): InterestSuggestions =
         throw notConfigured()
+    override suspend fun describe(name: String, address: String?): LlmPlaceText = throw notConfigured()
 }
 
 private object NotConfiguredPlaces : PlacesClient {

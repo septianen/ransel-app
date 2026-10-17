@@ -72,6 +72,10 @@ class RecommendationService(
     private val photoSigner: PhotoSigner = PhotoSigner(config.photoSigningSecret),
     /** Source of the local price guide; null = no price filter and no numbers in the prompt. */
     private val suggestions: ExploreSuggestionService? = null,
+    /** Converts the LLM's USD cost estimate to the trip currency for the cards. */
+    private val fx: FxRates = NoFxRates,
+    /** Keeps each place's detail text for the itinerary; null = not kept (tests that do not care). */
+    private val details: PlaceDetailService? = null,
 ) {
     private val log = LoggerFactory.getLogger(RecommendationService::class.java)
 
@@ -118,7 +122,12 @@ class RecommendationService(
                 skipped = feedback.filter { it[RecommendationFeedback.action] == FeedbackAction.SKIP }.take(20).map { it[RecommendationFeedback.placeName] },
                 count = CANDIDATES_ASKED,
             )
-            generate(query).also { if (it.isNotEmpty()) writeCache(key, query.destination, it) }
+            generate(query).also {
+                if (it.isNotEmpty()) {
+                    writeCache(key, query.destination, it)
+                    runCatching { details?.remember(it) }.onFailure { e -> log.warn("Keeping place detail failed: {}", e.javaClass.simpleName) }
+                }
+            }
         }
 
         // The price filter runs here, not before the cache write, so a cached entry stays valid for every price level.
@@ -127,7 +136,7 @@ class RecommendationService(
                 priceFits(place.costUsd, guide, body.priceLevel).also { if (!it) metrics.priceFiltered.incrementAndGet() }
             }
             .take(MAX_CARDS)
-        val items = withPhotoCredits(picked)
+        val items = withPhotoCredits(picked, trip.baseCurrency)
 
         val quota = if (body.newSearch) consume(userId) else currentUsage(userId).let(::toQuota)
         log.info(
@@ -219,6 +228,10 @@ class RecommendationService(
                 lat = d.lat,
                 lng = d.lng,
                 address = d.address,
+                about = c.about?.trim()?.take(LlmOutput.MAX_ABOUT)?.ifEmpty { null },
+                highlights = c.highlights.map { it.trim().take(LlmOutput.MAX_HIGHLIGHT) }.filter { it.isNotEmpty() }.take(3),
+                openingHours = c.openingHours.filter { it.label.isNotBlank() && it.hours.isNotBlank() }.take(3),
+                bestTime = c.bestTime?.trim()?.take(LlmOutput.MAX_HIGHLIGHT)?.ifEmpty { null },
             )
         }
     }
@@ -242,7 +255,7 @@ class RecommendationService(
     }
 
     /** Photo credit for the top cards only: Google requires it next to the photo. Ratings are not fetched (Enterprise tier). */
-    private suspend fun withPhotoCredits(places: List<CachedPlace>): List<Pair<Category, RecommendationItem>> = coroutineScope {
+    private suspend fun withPhotoCredits(places: List<CachedPlace>, currency: String): List<Pair<Category, RecommendationItem>> = coroutineScope {
         places.mapIndexed { index, place ->
             async {
                 var address = place.address
@@ -258,6 +271,7 @@ class RecommendationService(
                         log.warn("Photo credit lookup failed: {}", e.javaClass.simpleName) // a card without a credit is fine
                     }
                 }
+                val costMinor = place.costUsd?.let { fx.fromUsd(it, currency) }
                 place.category to RecommendationItem(
                     placeId = place.placeId,
                     name = place.name,
@@ -269,6 +283,12 @@ class RecommendationService(
                     photoUrl = photoSigner.signedPath(place.placeId),
                     photoAttribution = attribution,
                     address = address,
+                    about = place.about,
+                    highlights = place.highlights,
+                    openingHours = place.openingHours,
+                    bestTime = place.bestTime,
+                    estimatedCostMinor = costMinor,
+                    costCurrency = if (costMinor != null) currency else null,
                 )
             }
         }.awaitAll()
@@ -356,15 +376,16 @@ class RecommendationService(
             body.priceLevel.name,
             body.style.name,
             normalizeDestination(body.notes.orEmpty()),
+            "detail-v1", // entries cached before the detail text existed do not carry it: a new key refills them
         ).joinToString("|")
         return MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
-    internal class TripFacts(val destination: String, val startDate: LocalDate, val endDate: LocalDate)
+    internal class TripFacts(val destination: String, val startDate: LocalDate, val endDate: LocalDate, val baseCurrency: String = "IDR")
 
     private fun loadTrip(tripId: UUID): TripFacts = transaction {
         val row = Trips.selectAll().where { (Trips.id eq tripId) and Trips.deletedAt.isNull() }.single()
-        TripFacts(row[Trips.destination], row[Trips.startDate].toKotlinLocalDate(), row[Trips.endDate].toKotlinLocalDate())
+        TripFacts(row[Trips.destination], row[Trips.startDate].toKotlinLocalDate(), row[Trips.endDate].toKotlinLocalDate(), row[Trips.baseCurrency].trim())
     }
 
     /**

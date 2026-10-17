@@ -1,5 +1,6 @@
 package app.ransel.server.ai
 
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -22,7 +23,28 @@ object LlmOutput {
             is JsonObject -> root["places"]?.jsonArray ?: error("no places array")
             else -> error("unexpected JSON")
         }
-        return array.map { lenient.decodeFromJsonElement(LlmCandidate.serializer(), it) }
+        return array.map(::decodeCandidate)
+    }
+
+    /** A malformed detail field (say an opening hours line without hours) must not cost the whole search: retry without them. */
+    private fun decodeCandidate(element: JsonElement): LlmCandidate = try {
+        lenient.decodeFromJsonElement(LlmCandidate.serializer(), element)
+    } catch (e: SerializationException) {
+        val obj = element as? JsonObject ?: throw e
+        lenient.decodeFromJsonElement(LlmCandidate.serializer(), JsonObject(obj.filterKeys { it !in DETAIL_KEYS }))
+    }
+
+    /** `{"about":...,"highlights":[...],"openingHours":[{"label","hours"}],"bestTime":...,"costUsd":...}`; text is trimmed and capped. */
+    fun parsePlaceText(content: String): LlmPlaceText {
+        val cleaned = content.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val text = lenient.decodeFromJsonElement(LlmPlaceText.serializer(), lenient.parseToJsonElement(cleaned))
+        return text.copy(
+            about = text.about?.trim()?.take(MAX_ABOUT)?.ifEmpty { null },
+            highlights = text.highlights.map { it.trim().take(MAX_HIGHLIGHT) }.filter { it.isNotEmpty() }.take(3),
+            openingHours = text.openingHours.filter { it.label.isNotBlank() && it.hours.isNotBlank() }.take(3),
+            bestTime = text.bestTime?.trim()?.take(MAX_HIGHLIGHT)?.ifEmpty { null },
+            costUsd = text.costUsd?.takeIf { it > 0 },
+        )
     }
 
     /** `{"interests":["Sakura",...],"priceGuide":{"lowMaxUsd":30,"midMaxUsd":90}}`; interests are cleaned, 3–5 kept. */
@@ -42,6 +64,9 @@ object LlmOutput {
         return InterestSuggestions(interests, low, mid)
     }
 
+    private val DETAIL_KEYS = setOf("about", "highlights", "openingHours", "bestTime")
+    const val MAX_ABOUT = 600
+    const val MAX_HIGHLIGHT = 140
     const val MIN_INTERESTS = 3
     const val MAX_INTERESTS = 5
     const val MAX_INTEREST_LENGTH = 40
