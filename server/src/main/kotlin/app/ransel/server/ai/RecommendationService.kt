@@ -247,7 +247,7 @@ class RecommendationService(
             } catch (e: Exception) {
                 metrics.llmFailures.incrementAndGet()
                 last = e
-                log.warn("LLM attempt {} failed: {}", it + 1, e.javaClass.simpleName)
+                log.warn("LLM attempt {} failed: {}: {}", it + 1, e.javaClass.simpleName, e.message?.take(200))
             }
         }
         log.error("LLM failed twice", last)
