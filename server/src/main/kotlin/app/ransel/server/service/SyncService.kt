@@ -40,6 +40,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -114,34 +115,43 @@ class SyncService {
         val serverTime = dbNow().minusSeconds(PULL_MARGIN_SECONDS)
         val sinceJava = since?.toJavaInstant()
 
+        val myRoles = TripMembers.selectAll().where { TripMembers.userId eq userId }
+            .associate { it[TripMembers.tripId] to it[TripMembers.role] }
+        val allTripIds = myRoles.keys.toList()
+        // Trips I joined after `since` (invite accepted): their rows are older than my cursor, so a plain
+        // `updated_at > since` filter would never deliver them. Send those trips whole.
+        val newTripIds = if (sinceJava == null) emptyList() else TripMembers.selectAll()
+            .where { (TripMembers.userId eq userId) and (TripMembers.updatedAt greater sinceJava) }
+            .map { it[TripMembers.tripId] }
+
         val tripRows = TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id)
             .selectAll()
             .where {
                 val mine = TripMembers.userId eq userId
-                if (sinceJava == null) mine else mine and (Trips.updatedAt greater sinceJava)
+                if (sinceJava == null) mine else mine and ((Trips.updatedAt greater sinceJava) or (Trips.id inList newTripIds))
             }
             .toList()
-        val myRoles = TripMembers.selectAll().where { TripMembers.userId eq userId }
-            .associate { it[TripMembers.tripId] to it[TripMembers.role] }
-        val allTripIds = myRoles.keys.toList()
         val trips = tripRows.map { it.toTripDto(it[TripMembers.role]) }
 
         val items = if (allTripIds.isEmpty()) emptyList() else ItineraryItems.selectAll()
             .where {
                 val inTrips = ItineraryItems.tripId inList allTripIds
-                if (sinceJava == null) inTrips else inTrips and (ItineraryItems.updatedAt greater sinceJava)
+                if (sinceJava == null) inTrips
+                else inTrips and ((ItineraryItems.updatedAt greater sinceJava) or (ItineraryItems.tripId inList newTripIds))
             }.map { it.toItineraryItemDto() }
 
         val packing = if (allTripIds.isEmpty()) emptyList() else PackingItems.selectAll()
             .where {
                 val inTrips = PackingItems.tripId inList allTripIds
-                if (sinceJava == null) inTrips else inTrips and (PackingItems.updatedAt greater sinceJava)
+                if (sinceJava == null) inTrips
+                else inTrips and ((PackingItems.updatedAt greater sinceJava) or (PackingItems.tripId inList newTripIds))
             }.map { it.toPackingItemDto() }
 
         val expenseRows = if (allTripIds.isEmpty()) emptyList() else Expenses.selectAll()
             .where {
                 val inTrips = Expenses.tripId inList allTripIds
-                if (sinceJava == null) inTrips else inTrips and (Expenses.updatedAt greater sinceJava)
+                if (sinceJava == null) inTrips
+                else inTrips and ((Expenses.updatedAt greater sinceJava) or (Expenses.tripId inList newTripIds))
             }.toList()
         val splits = if (expenseRows.isEmpty()) emptyMap() else ExpenseSplits.selectAll()
             .where { ExpenseSplits.expenseId inList expenseRows.map { it[Expenses.id] } }
@@ -151,7 +161,8 @@ class SyncService {
         val settlements = if (allTripIds.isEmpty()) emptyList() else Settlements.selectAll()
             .where {
                 val inTrips = Settlements.tripId inList allTripIds
-                if (sinceJava == null) inTrips else inTrips and (Settlements.updatedAt greater sinceJava)
+                if (sinceJava == null) inTrips
+                else inTrips and ((Settlements.updatedAt greater sinceJava) or (Settlements.tripId inList newTripIds))
             }.map { it.toSettlementDto() }
 
         // Membership rows of my trips. A removed member leaves no tombstone (the table has no deleted_at):
@@ -161,7 +172,8 @@ class SyncService {
             .selectAll()
             .where {
                 val inTrips = TripMembers.tripId inList allTripIds
-                if (sinceJava == null) inTrips else inTrips and (TripMembers.updatedAt greater sinceJava)
+                if (sinceJava == null) inTrips
+                else inTrips and ((TripMembers.updatedAt greater sinceJava) or (TripMembers.tripId inList newTripIds))
             }.map {
                 TripMemberDto(
                     tripId = it[TripMembers.tripId].toString(),

@@ -229,6 +229,29 @@ class SyncRoutesTest {
     }
 
     @Test
+    fun joiningTripAfterTheCursorDeliversItWhole() = apiTest {
+        val tripId = id()
+        val itemId = id()
+        push(SyncChanges(trips = listOf(trip(tripId)), itineraryItems = listOf(item(tripId, itemId))))
+        val owner = session()
+        val code = post("/trips/$tripId/invites", """{"role":"EDITOR","expiresAt":"2099-01-01T00:00:00Z"}""")
+            .data().jsonObject.getValue("code").jsonPrimitive.content
+
+        signUp()
+        // The guest's cursor is later than every row of the trip: only the membership is newer.
+        kotlinx.coroutines.delay(1_000)
+        val cursor = Clock.System.now()
+        kotlinx.coroutines.delay(200)
+        post("/invites/$code/accept")
+
+        val delta = pull(cursor).changes
+        assertEquals(tripId, delta.trips.single().id)
+        assertEquals(itemId, delta.itineraryItems.single().id)
+        assertEquals(2, delta.members.size)
+        use(owner)
+    }
+
+    @Test
     fun invalidSinceIs422() = apiTest {
         assertEquals(HttpStatusCode.UnprocessableEntity, get("/sync?since=yesterday").status)
     }
