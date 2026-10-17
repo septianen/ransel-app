@@ -89,6 +89,50 @@ data class RecommendationItem(
     /** Author credit Google requires next to the photo. Filled for the top cards only, like [rating]. */
     val photoAttribution: String? = null,
     val address: String? = null,
+    // ── Place detail text, written by the LLM in the same call as the search (spec "Place detail").
+    // All optional with defaults: stored Explore sessions and older servers keep working. Null/empty = not known; hide the block.
+    /** Two or three sentences about the place, in the user's language. */
+    val about: String? = null,
+    /** Up to three short tips ("Perlu diketahui"). */
+    val highlights: List<String> = emptyList(),
+    /** Typical opening hours, an AI estimate (not Google data): show it labelled as such, next to a Google Maps link. */
+    val openingHours: List<OpeningHoursLine> = emptyList(),
+    /** Best time to go, one short phrase, for example "Pagi sebelum jam 9". */
+    val bestTime: String? = null,
+    /** Typical cost per person in [costCurrency]'s minor unit; null = free or unknown. */
+    val estimatedCostMinor: Long? = null,
+    /** The trip's base currency (the estimate is converted to it). */
+    val costCurrency: String? = null,
+)
+
+/** One line of opening hours, for example label "Setiap hari" and hours "08.00 – 18.00". Text, not times: it is an estimate. */
+@Serializable
+data class OpeningHoursLine(
+    val label: String,
+    val hours: String,
+)
+
+/**
+ * GET /places/{placeId}/detail: the saved detail text of one place, for opening it again from the itinerary.
+ * Served from `place_detail_cache`; rebuilt by one small LLM call when the cached row expired.
+ * The Google Maps link is built on the client with `googleMapsPlaceUrl`.
+ */
+@Serializable
+data class PlaceDetailDto(
+    val placeId: String,
+    val name: String,
+    val address: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    /** Fresh signed path like [RecommendationItem.photoUrl]. */
+    val photoUrl: String? = null,
+    val photoAttribution: String? = null,
+    val about: String? = null,
+    val highlights: List<String> = emptyList(),
+    val openingHours: List<OpeningHoursLine> = emptyList(),
+    val bestTime: String? = null,
+    val estimatedCostMinor: Long? = null,
+    val costCurrency: String? = null,
 )
 
 @Serializable
