@@ -445,7 +445,7 @@ class RecommendationService(
     }
 
     private companion object {
-        const val CANDIDATES_ASKED = 18
+        const val CANDIDATES_ASKED = 16
         const val MAX_CANDIDATES = 20
         const val MAX_CARDS = 15
         const val CREDITED_CARDS = 3

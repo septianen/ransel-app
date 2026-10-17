@@ -11,8 +11,8 @@ object Prompt {
         {"places":[{"name":"official place name","category":"ATTRACTION|FOOD|TRANSPORT|LODGING|SHOPPING|OTHER",
         "reason":"one short sentence in Indonesian saying why it matches this traveller",
         "priceLevel":0-4,"costUsd":number or null,"suggestedDurationMin":minutes,"lat":number,"lng":number,
-        "about":"2 to 3 sentences in Indonesian about the place",
-        "highlights":["up to 3 short practical tips in Indonesian"],
+        "about":"1 to 2 short sentences in Indonesian, at most 35 words",
+        "highlights":["up to 2 short practical tips in Indonesian, 8 words each"],
         "openingHours":[{"label":"Setiap hari","hours":"08.00 – 18.00"}],
         "bestTime":"short phrase in Indonesian, for example Pagi sebelum jam 9"}]}
         about, highlights, openingHours and bestTime: only what you are fairly sure of. openingHours are the typical hours
