@@ -9,6 +9,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -307,7 +308,9 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                 NavHost(
                     navController = navController,
                     startDestination = HomeRoute,
-                    modifier = Modifier.padding(padding),
+                    // consumeWindowInsets: the bottom bar's height is already out of the way, so a screen's imePadding()
+                    // must not count it again (it left a white gap above the keyboard on the Explore form).
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                     enterTransition = {
                         if (betweenTabs()) EnterTransition.None
                         else slideInHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
