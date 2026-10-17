@@ -33,11 +33,12 @@ fun aiServicesFrom(config: AppConfig): Pair<AiServices, HttpClient?> {
     }
     val http = HttpClient(OkHttp) {
         install(HttpTimeout) {
-            requestTimeoutMillis = 28_000
+            requestTimeoutMillis = 50_000
             // generateContent answers in one piece, so the first byte only arrives when the whole answer is ready (the
             // detail text made it several times longer). OkHttp's default read timeout is 10 s: that was the
-            // SocketTimeoutException. A search should finish well under a minute: 28 s per attempt, two attempts at most.
-            socketTimeoutMillis = 28_000
+            // SocketTimeoutException. The chain: 50 s per LLM attempt, two attempts at most (100 s), plus Places, inside
+            // nginx's proxy_read_timeout (120 s) and the app's 120 s search timeout.
+            socketTimeoutMillis = 50_000
             connectTimeoutMillis = 10_000
         }
     }

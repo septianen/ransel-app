@@ -78,10 +78,11 @@ val ApiJson = Json {
 private const val REQUEST_TIMEOUT_MILLIS = 15_000L
 
 /**
- * A search runs an LLM call (up to 45 s on the server, retried once) plus Places lookups, so it needs far more
+ * A search runs an LLM call (up to 50 s on the server, retried once) plus Places lookups, so it needs far more
  * than the 15 s of a normal request. The background batch (`newSearch=false`) takes the same path.
+ * Keep it in step with the server's LLM timeouts and nginx's `proxy_read_timeout` (120 s), and below Android's OkHttp read timeout (150 s).
  */
-private const val RECOMMENDATION_TIMEOUT_MILLIS = 100_000L
+private const val RECOMMENDATION_TIMEOUT_MILLIS = 120_000L
 
 /**
  * HTTP client for the API. [engine] is only passed by tests (MockEngine); otherwise the platform's
