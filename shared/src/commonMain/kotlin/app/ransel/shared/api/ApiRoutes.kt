@@ -69,6 +69,6 @@ object ApiRoutes {
         "/recommendations/feedback/$tripId/$placeId"               // DELETE = undo the last swipe → 204
     /** Signed image proxy, no bearer: `RecommendationItem.photoUrl` is this path plus `?exp=&sig=`, relative to [BASE]. */
     fun placePhoto(placeId: String) = "/places/photo/$placeId"     // GET → image bytes, 404 if no photo
-    /** Bearer; language from `Accept-Language`. For opening a place again from the itinerary. */
+    /** Bearer. Query: `name` (the item title, needed only when the server has no saved text to rebuild from) and `currency` (the trip currency for the cost estimate). For opening a place again from the itinerary. */
     fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended
 }
