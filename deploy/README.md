@@ -31,6 +31,8 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 | `LLM_API_KEY`, `PLACES_API_KEY` (optional until Explore goes live) | Gemini API key (Google AI Studio) and Google Places (New) key. Set the repository *variable* `LLM_MODEL` to a model id your key can call (`curl -H "x-goog-api-key: $KEY" https://generativelanguage.googleapis.com/v1beta/models`). Without them Explore answers 503 `AI_UNAVAILABLE`. Restrict the Places key to the Places API and set a **budget alert** in Google Cloud |
 | `SEED_USERS` (optional) | more accounts: `email\|password\|name;email\|password\|name`. Use letters and digits in passwords (no `\|`, `;` or `$`) |
 
+**Changing a secret or variable does not change the running server.** The values are written to the VPS by the deploy job, so after editing one (a new `LLM_API_KEY`, say) run the *Deploy server* workflow again: Actions -> Deploy server -> Run workflow on `main` (it has `workflow_dispatch`), or push any change under `server/`, `shared/` or `deploy/`.
+
 ### Place photo quota (do this before enabling photos)
 
 Cards show Google place photos through the signed proxy `GET /api/v1/places/photo/{placeId}`. Each uncached photo is a billed Place Photo request (1,000 per month are free). In Google Cloud Console → APIs & Services → Places API (New) → Quotas, cap *Place Photo requests per day* at about 30 (1,000 / 30 days ≈ 33), and keep the budget alert from above. When the cap is hit the proxy answers 404 and the app falls back to the category colour; the counters `placesPhoto` and `placesPhotoQuotaHits` appear in the hourly `ai.metrics` log line.
