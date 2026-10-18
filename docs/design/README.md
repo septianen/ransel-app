@@ -145,6 +145,9 @@ Phase = the roadmap phase in which the screen must be implemented.
 | `screens/UndanganTidakBerlaku.html` | `InvalidInviteScreen` | Undangan tidak berlaku | 4 | `capybara-scanning-qr` |  |
 | `screens/PengeluaranBersama.html` | `SharedExpensesScreen` (Summary tab) | Pengeluaran bersama: Ringkasan | 4 |  |  |
 | `screens/CatatPengeluaranBersama.html` | `AddSharedExpenseScreen` (split equally) | Catat pengeluaran bersama (konten penuh) | 4 |  | PengeluaranBersama |
+| `screens/CatatPengeluaranPembayar.html` | `ExpenseSheet` + `SplitSection` (several payers, equal) | Catat pengeluaran bersama: dibayar beberapa orang, bagi rata | 4 |  | PengeluaranBersama |
+| `screens/CatatPengeluaranPembayarNominal.html` | `ExpenseSheet` + `SplitSection` (several payers, set amounts) | Dibayar beberapa orang: atur nominal, masih kurang | 4 |  | PengeluaranBersama |
+| `WebCatatPengeluaranPembayar` (canvas board) | same, side sheet | Web: dibayar beberapa orang | 4 |  | WebPengeluaranBersama |
 | `screens/CatatPengeluaranNominal.html` | `AddSharedExpenseScreen` (custom, not balanced) | Atur nominal: belum pas | 4 |  | PengeluaranBersama |
 | `screens/CatatPengeluaranNominalPas.html` | `AddSharedExpenseScreen` (custom, balanced) | Atur nominal: pas | 4 |  | PengeluaranBersama |
 | `screens/SaldoTrip.html` | `SharedExpensesScreen` (Balances tab) | Saldo dan pelunasan | 4 |  |  |

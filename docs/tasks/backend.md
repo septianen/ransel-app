@@ -35,6 +35,8 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 - [x] **B4.5 Packing templates.** Seed the three built-in templates (owner_id NULL) in a repeatable seed, list (built-in + own + shared with my trips), create, apply (`skipExisting`).
 - [x] **B4.6 App links.** Serve `/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association` for `https://ransel.mietek.tech/j/*` (values from the frontend agent). *Served from env (`ANDROID_CERT_SHA256`, `IOS_APP_IDS`); 404 until set. Release SHA-256 and Apple team id still missing, see `docs/specs/app-links.md`.*
 
+- [x] **B4.7 Several payers per expense** (contract commit `fc96169`). `expense_payers` (**V7**): an expense paid by two or more members (amounts in the expense currency, each > 0, summing to the amount: 422 `PAYER_TOTAL_MISMATCH`; `NEEDS_AT_LEAST_TWO`, `DUPLICATE_USER`, `NOT_A_MEMBER` under `details.payers`; `paidByUserId` is always the first payer, `MUST_BE_FIRST_PAYER` if a client sends another). REST, sync push/pull and balances carry them (`convertPayers` keeps the converted parts exact; each payer is credited what they paid). No payers = `paidByUserId` paid all, so old rows and clients keep working. Tests: `MultiPayerRoutesTest` (database tests run in CI).
+
 **Done when:** two accounts manage one trip and the split-bill result is correct (unit + API tests with the PRD example numbers).
 
 ## Phase 5 — Explore AI

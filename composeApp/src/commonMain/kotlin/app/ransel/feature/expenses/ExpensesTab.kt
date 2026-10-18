@@ -288,8 +288,10 @@ private fun ExpenseRow(
                 formatTime(time) + " · " + stringResource(expense.category.expenseLabel)
             } else {
                 // Shared trip: who paid and how many people share it ("Dibayar kamu · 3 orang").
-                val payer = if (expense.paidByUserId == myUserId) stringResource(Res.string.shared_you_lower)
-                else members.firstOrNull { it.userId == expense.paidByUserId }?.displayName ?: "?"
+                val you = stringResource(Res.string.shared_you_lower)
+                fun nameOf(userId: String) = if (userId == myUserId) you else members.firstOrNull { it.userId == userId }?.displayName ?: "?"
+                // several payers: "Rina, kamu"; one payer: just that name
+                val payer = if (expense.payers.size > 1) expense.payers.joinToString(", ") { nameOf(it.userId) } else nameOf(expense.paidByUserId)
                 val people = if (expense.splits.isEmpty()) stringResource(Res.string.shared_personal)
                 else pluralStringResource(Res.plurals.shared_people, expense.splits.size, expense.splits.size)
                 stringResource(Res.string.shared_paid_by_line, payer) + " · " + people

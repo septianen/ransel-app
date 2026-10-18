@@ -201,8 +201,9 @@ class InMemoryExpenseRepository(private val store: InMemoryStore) : ExpenseRepos
             val row = ExpenseDto(
                 id = input.id, tripId = tripId, amountMinor = input.amountMinor, currency = input.currency,
                 fxRateToBase = input.fxRateToBase, category = input.category, paymentMethod = input.paymentMethod,
-                note = input.note, spentAt = input.spentAt, paidByUserId = input.paidByUserId ?: LOCAL_USER_ID,
-                splits = input.splits, createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
+                note = input.note, spentAt = input.spentAt,
+                paidByUserId = input.payers.firstOrNull()?.userId ?: input.paidByUserId ?: LOCAL_USER_ID,
+                payers = input.payers, splits = input.splits, createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
             )
             if (existing == null) list + row else list.map { if (it.id == input.id) row else it }
         }

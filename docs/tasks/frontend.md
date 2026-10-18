@@ -89,6 +89,8 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 - [x] **F4.5 Roles in UI.** VIEWER sees everything read-only; owner-only actions hidden for others.
   - Done. Rules from `trip.myRole`: VIEWER sees Itinerary, Packing and Expenses read-only (no add/record buttons, no drag, no edit sheets, no tick, no "Jadwalkan", no ⋮ menu); only the OWNER sees "Edit trip" (and with it delete). The role is now stored per trip locally (DB v3, `trips.myRole`) and filled from the sync pull; trips made on the device are OWNER. Depends on the backend returning `myRole` in the pulled `TripDto` and re-sending a trip when the role changes; until then the Members screen (live from the server) is the source of truth for a changed role.
 
+- [x] **F4.x Several payers + sheet order** (designs `CatatPengeluaranPembayar*`, contract `fc96169`). Expense sheet: date and "Bayar pakai" now come before the note; "Dibayar oleh" chips are multi-select (at least one stays ticked). With two or more payers a block "Berapa yang dibayar masing-masing" appears: equal, or "Atur nominal" with the same short/over check as the split; the list shows every payer. `SplitState.payers`/`toPayers`, Room DB v4 (`expenses.payersJson`, auto migration), tests `MultiPayerStateTest`.
+
 **Done when:** two accounts manage one trip and the split-bill result is correct.
 
 ## Phase 5 — Explore AI

@@ -2,6 +2,7 @@ package app.ransel.data.local
 
 import app.ransel.data.remote.ApiJson
 import app.ransel.shared.dto.ExpenseDto
+import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import kotlinx.serialization.builtins.ListSerializer
 import app.ransel.shared.dto.ItineraryItemDto
@@ -48,6 +49,7 @@ fun ExpenseEntity.toDto() = ExpenseDto(
     id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
     category = enumOr(category, Category.OTHER), paymentMethod = enumOr(paymentMethod, PaymentMethod.CASH),
     note = note, spentAt = spentAt.toInstant(), paidByUserId = paidByUserId,
+    payers = payersJson.toPayers(),
     splits = splitsJson.toSplits(),
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
@@ -82,12 +84,20 @@ fun PackingItemDto.toEntity() = PackingItemEntity(
 fun ExpenseDto.toEntity() = ExpenseEntity(
     id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
     category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
-    paidByUserId = paidByUserId, splitsJson = splits.toSplitsJson(),
+    paidByUserId = paidByUserId, splitsJson = splits.toSplitsJson(), payersJson = payers.toPayersJson(),
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
 )
 
 private val splitsSerializer = ListSerializer(ExpenseSplitDto.serializer())
+private val payersSerializer = ListSerializer(ExpensePayerDto.serializer())
+
+/** Payers are one JSON column too, written and read with their expense; null = one payer. */
+fun List<ExpensePayerDto>.toPayersJson(): String? =
+    takeIf { it.isNotEmpty() }?.let { ApiJson.encodeToString(payersSerializer, it) }
+
+fun String?.toPayers(): List<ExpensePayerDto> =
+    if (isNullOrEmpty()) emptyList() else runCatching { ApiJson.decodeFromString(payersSerializer, this) }.getOrDefault(emptyList())
 
 /** Splits are stored as one JSON column: they are only ever read and written with their expense. */
 fun List<ExpenseSplitDto>.toSplitsJson(): String? =

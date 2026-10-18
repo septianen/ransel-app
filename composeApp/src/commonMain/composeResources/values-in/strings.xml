@@ -563,6 +563,9 @@
     <string name="shared_settled">Lunas</string>
     <string name="shared_paid_by">Dibayar oleh</string>
     <string name="shared_paid_by_line">Dibayar %1$s</string>
+    <string name="shared_paid_by_hint">boleh lebih dari satu</string>
+    <string name="shared_payers_title">Berapa yang dibayar masing-masing</string>
+    <string name="shared_payers_custom_hint">Jumlah yang dibayar semua pembayar harus sama dengan nominal.</string>
     <string name="shared_personal">pribadi</string>
     <string name="shared_your_share">bagianmu %1$s</string>
     <string name="shared_split_title">Dibagi ke</string>

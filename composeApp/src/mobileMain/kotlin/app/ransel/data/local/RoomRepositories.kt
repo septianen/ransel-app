@@ -205,8 +205,10 @@ class RoomExpenseRepository(
                 id = input.id, tripId = tripId, amountMinor = input.amountMinor, currency = input.currency,
                 fxRateToBase = input.fxRateToBase, category = input.category.name,
                 paymentMethod = input.paymentMethod.name, note = input.note?.trim()?.ifEmpty { null },
-                spentAt = input.spentAt.toMillis(), paidByUserId = input.paidByUserId ?: currentUserId(),
-                splitsJson = input.splits.toSplitsJson(),
+                spentAt = input.spentAt.toMillis(),
+                // with several payers the first one is "who paid"
+                paidByUserId = input.payers.firstOrNull()?.userId ?: input.paidByUserId ?: currentUserId(),
+                splitsJson = input.splits.toSplitsJson(), payersJson = input.payers.toPayersJson(),
                 createdAt = created, updatedAt = stamp, deletedAt = null,
             ),
         )

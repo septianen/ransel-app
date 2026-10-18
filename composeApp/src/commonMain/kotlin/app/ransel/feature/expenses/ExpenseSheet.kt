@@ -41,8 +41,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.currency.CurrencySheet
 import app.ransel.feature.currency.currencySymbol
+import app.ransel.shared.domain.convertPayers
 import app.ransel.shared.domain.currencyDecimals
 import app.ransel.shared.domain.splitEqually
+import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.ExpenseDto
@@ -156,6 +158,13 @@ fun ExpenseSheet(
             else -> splitEqually(amountMinor, existing.splits.map { it.userId }, existing.paidByUserId)
                 .map { (id, share) -> ExpenseSplitDto(id, share) }
         }
+        // Same for who paid: keep the old payers, scaled when the amount changed.
+        val keptPayers = when {
+            split != null || existing == null || existing.payers.isEmpty() -> null
+            existing.amountMinor == amountMinor -> existing.payers
+            else -> convertPayers(existing.payers.map { it.userId to it.amountMinor }, existing.amountMinor, amountMinor)
+                .map { (id, paid) -> ExpensePayerDto(id, paid) }
+        }
         val time = existingLocal?.time ?: now().toLocalDateTime(tz).time
         onSave(
             ExpenseInput(
@@ -169,7 +178,8 @@ fun ExpenseSheet(
                 spentAt = LocalDate(date.year, date.month, date.day).let {
                     kotlinx.datetime.LocalDateTime(it, LocalTime(time.hour, time.minute)).toInstant(tz)
                 },
-                paidByUserId = split?.paidBy ?: existing?.paidByUserId,
+                paidByUserId = keptPayers?.firstOrNull()?.userId ?: split?.paidBy ?: existing?.paidByUserId,
+                payers = split?.toPayers(amountMinor, currency) ?: keptPayers.orEmpty(),
                 splits = split?.toSplits(amountMinor, currency) ?: keptSplits.orEmpty(),
             ),
         )
@@ -293,14 +303,7 @@ fun ExpenseSheet(
                 }
             }
 
-            IrisTextField(
-                label = stringResource(Res.string.expense_note),
-                value = note,
-                onValueChange = { note = it },
-            )
-
-            if (split != null) SplitSection(split, amountMinor, currency, myUserId)
-
+            // date and payment method come before the note: they are picked, the note is typed last
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(Res.string.expense_date), style = MaterialTheme.typography.labelLarge)
@@ -330,6 +333,14 @@ fun ExpenseSheet(
                     }
                 }
             }
+
+            IrisTextField(
+                label = stringResource(Res.string.expense_note),
+                value = note,
+                onValueChange = { note = it },
+            )
+
+            if (split != null) SplitSection(split, amountMinor, currency, myUserId)
 
             Button(
                 onClick = ::save,

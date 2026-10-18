@@ -60,6 +60,9 @@ import ransel.composeapp.generated.resources.shared_balances_title
 import ransel.composeapp.generated.resources.shared_balances_total
 import ransel.composeapp.generated.resources.shared_mark_settled
 import ransel.composeapp.generated.resources.shared_paid_by
+import ransel.composeapp.generated.resources.shared_paid_by_hint
+import ransel.composeapp.generated.resources.shared_payers_custom_hint
+import ransel.composeapp.generated.resources.shared_payers_title
 import ransel.composeapp.generated.resources.shared_participants_summary
 import ransel.composeapp.generated.resources.shared_pays_to
 import ransel.composeapp.generated.resources.shared_settle_hint
@@ -326,17 +329,24 @@ fun SplitSection(
     val shares = split.shares(amountMinor, currency)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(Res.string.shared_paid_by), style = MaterialTheme.typography.labelLarge)
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(Res.string.shared_paid_by), style = MaterialTheme.typography.labelLarge)
+                Text(
+                    stringResource(Res.string.shared_paid_by_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 split.members.forEach { m ->
-                    val selected = m.userId == split.paidBy
+                    val selected = m.userId in split.payers
                     Row(
                         Modifier
                             .heightIn(min = 48.dp)
                             .clip(CircleShape)
                             .background(if (selected) scheme.primaryContainer else scheme.surface)
                             .border(BorderStroke(if (selected) 2.dp else 1.dp, if (selected) scheme.primary else scheme.outlineVariant), CircleShape)
-                            .clickable(role = Role.RadioButton) { split.paidBy = m.userId }
+                            .clickable(role = Role.Checkbox) { split.togglePayer(m.userId) }
                             .padding(start = 8.dp, end = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -348,9 +358,11 @@ fun SplitSection(
                             color = if (selected) scheme.onPrimaryContainer else scheme.onSurface,
                             maxLines = 1,
                         )
+                        if (selected) Symbol(Symbols.check, size = 18.dp, tint = scheme.onPrimaryContainer)
                     }
                 }
             }
+            if (split.payers.size > 1) PayerAmounts(split, amountMinor, currency, myUserId)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -419,6 +431,77 @@ fun SplitSection(
                 }
             }
             SplitSummary(split, amountMinor, currency, shares)
+        }
+    }
+}
+
+/** Two or more people paid: how much each paid (equal, or "Atur nominal"), with the same check as the split. */
+@Composable
+private fun PayerAmounts(split: SplitState, amountMinor: Long?, currency: String, myUserId: String?) {
+    val scheme = MaterialTheme.colorScheme
+    val you = stringResource(Res.string.shared_you)
+    val amounts = split.payerAmounts(amountMinor, currency)
+    Column(
+        Modifier.fillMaxWidth().clip(IrisShape.md).background(scheme.surfaceContainerLow).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(stringResource(Res.string.shared_payers_title), style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SplitModeChip(stringResource(Res.string.shared_split_equal), selected = !split.payersCustom) { split.usePayersEqual() }
+            SplitModeChip(stringResource(Res.string.shared_split_custom), selected = split.payersCustom) {
+                split.usePayersCustom(amountMinor, currency)
+            }
+        }
+        split.payers.forEach { id ->
+            val m = split.members.firstOrNull { it.userId == id } ?: return@forEach
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                MemberAvatar(m.displayName, m.userId, size = 32.dp)
+                Text(
+                    split.members.nameOf(m.userId, myUserId, you),
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                if (split.payersCustom) {
+                    OutlinedTextField(
+                        value = split.payerTexts[id].orEmpty(),
+                        onValueChange = { split.payerTexts[id] = sanitizeAmountInput(it, currencyDecimals(currency)) },
+                        modifier = Modifier.width(150.dp),
+                        singleLine = true,
+                        prefix = { Text(currencySymbol(currency)) },
+                        visualTransformation = ThousandsVisualTransformation,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = if (currencyDecimals(currency) == 0) KeyboardType.Number else KeyboardType.Decimal,
+                        ),
+                        shape = IrisShape.md,
+                    )
+                } else {
+                    Text(formatMoney(amounts[id] ?: 0, currency), style = MaterialTheme.typography.titleSmall)
+                }
+            }
+        }
+        val diff = if (amountMinor != null && amountMinor > 0) split.payerDifference(amountMinor, currency) else 0L
+        if (diff != 0L) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    stringResource(
+                        if (diff > 0) Res.string.shared_split_short else Res.string.shared_split_over,
+                        formatMoney(abs(diff), currency),
+                    ),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = scheme.error,
+                )
+                Text(
+                    stringResource(Res.string.shared_payers_custom_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

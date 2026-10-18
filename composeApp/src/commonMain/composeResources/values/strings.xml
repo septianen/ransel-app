@@ -566,6 +566,9 @@
     <string name="shared_settled">Settled</string>
     <string name="shared_paid_by">Paid by</string>
     <string name="shared_paid_by_line">Paid by %1$s</string>
+    <string name="shared_paid_by_hint">more than one is fine</string>
+    <string name="shared_payers_title">What each person paid</string>
+    <string name="shared_payers_custom_hint">What the payers paid must add up to the amount.</string>
     <string name="shared_personal">personal</string>
     <string name="shared_your_share">your share %1$s</string>
     <string name="shared_split_title">Split between</string>
