@@ -378,7 +378,14 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
                 navController.navigate(TripRoute(id, tab.name))
             },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
-            onExplore = { id -> navController.navigate(ExplorePreferencesRoute(id)) },
+            // "Coba": straight to the Explore tab (its hero and trip picker), the same as tapping Jelajah in the bar.
+            onExplore = {
+                navController.navigate(ExploreRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            },
         )
     }
     page<TripListRoute> {

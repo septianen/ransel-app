@@ -67,9 +67,13 @@ import ransel.composeapp.generated.resources.home_prep_items_ready
 import ransel.composeapp.generated.resources.home_explore_body
 import ransel.composeapp.generated.resources.home_explore_cta
 import ransel.composeapp.generated.resources.home_explore_title
-import ransel.composeapp.generated.resources.home_prep_arrange
 import ransel.composeapp.generated.resources.home_prep_title
-import ransel.composeapp.generated.resources.home_prep_unscheduled
+import ransel.composeapp.generated.resources.home_prep_spent_of
+import ransel.composeapp.generated.resources.money_unit_billion
+import ransel.composeapp.generated.resources.money_unit_million
+import ransel.composeapp.generated.resources.money_unit_thousand
+import ransel.composeapp.generated.resources.trips_spent_label
+import app.ransel.ui.format.formatMoneyCompact
 import ransel.composeapp.generated.resources.home_title
 import ransel.composeapp.generated.resources.home_title_empty
 import ransel.composeapp.generated.resources.home_trip_meta_day1
@@ -88,7 +92,7 @@ fun HomeScreen(
     onOpenTrip: (tripId: String, section: TripSection) -> Unit,
     onCreateTrip: () -> Unit,
     modifier: Modifier = Modifier,
-    onExplore: ((tripId: String) -> Unit)? = null,
+    onExplore: (() -> Unit)? = null,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -101,7 +105,7 @@ fun HomeContent(
     onOpenTrip: (tripId: String, section: TripSection) -> Unit,
     onCreateTrip: () -> Unit,
     modifier: Modifier = Modifier,
-    onExplore: ((tripId: String) -> Unit)? = null,
+    onExplore: (() -> Unit)? = null,
 ) {
     when (state) {
         HomeUiState.Loading -> Box(modifier.fillMaxSize())
@@ -153,7 +157,7 @@ private fun HomeTripContent(
     state: HomeUiState.Content,
     onOpenTrip: (String, TripSection) -> Unit,
     modifier: Modifier = Modifier,
-    onExplore: ((String) -> Unit)? = null,
+    onExplore: (() -> Unit)? = null,
 ) {
     val dates = rememberDateFormatter()
     Column(
@@ -166,8 +170,8 @@ private fun HomeTripContent(
         Header(title = stringResource(Res.string.home_title))
         FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, TripSection.ITINERARY) })
         val canExplore = onExplore != null && state.trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
-        TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) }, showUnscheduled = onExplore != null)
-        if (canExplore && onExplore != null) ExploreCallout(state.trip.destination, onTry = { onExplore(state.trip.id) })
+        TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) })
+        if (canExplore && onExplore != null) ExploreCallout(state.trip.destination, onTry = onExplore)
     }
 }
 
@@ -231,9 +235,9 @@ private fun FeaturedTripCard(state: HomeUiState.Content, dates: DateFormatter, o
     }
 }
 
-/** "Persiapan trip": days filled, packing progress and (with Explore) the unscheduled places. */
+/** "Persiapan trip": days filled, packing progress and what was spent against the budget. */
 @Composable
-private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSection) -> Unit, showUnscheduled: Boolean) {
+private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSection) -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -260,8 +264,9 @@ private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSe
                 modifier = Modifier.weight(1f),
                 symbol = Symbols.map,
                 tile = IrisTheme.accents.teal,
-                value = summary.daysFilled,
-                total = summary.daysTotal,
+                valueText = "${summary.daysFilled}",
+                totalText = "/${summary.daysTotal}",
+                fraction = fractionOf(summary.daysFilled.toLong(), summary.daysTotal.toLong()),
                 label = stringResource(Res.string.home_prep_days_filled),
                 onClick = { onOpen(TripSection.ITINERARY) },
             )
@@ -269,37 +274,36 @@ private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSe
                 modifier = Modifier.weight(1f),
                 symbol = Symbols.checklist,
                 tile = IrisTheme.accents.blue,
-                value = summary.packingPacked,
-                total = summary.packingTotal,
+                valueText = "${summary.packingPacked}",
+                totalText = "/${summary.packingTotal}",
+                fraction = fractionOf(summary.packingPacked.toLong(), summary.packingTotal.toLong()),
                 label = stringResource(Res.string.home_prep_items_ready),
                 onClick = { onOpen(TripSection.PACKING) },
             )
-            if (showUnscheduled) {
-                Column(
-                    Modifier.weight(1f).clickable { onOpen(TripSection.ITINERARY) }.padding(horizontal = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
-                    Box(
-                        Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)).background(IrisTheme.accents.magenta),
-                        contentAlignment = Alignment.Center,
-                    ) { Symbol(Symbols.autoAwesome, size = 18.dp, filled = true, tint = IrisTheme.accents.onAccent) }
-                    Spacer6()
-                    Text("${summary.unscheduledCount}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
-                    Text(
-                        stringResource(Res.string.home_prep_unscheduled),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Text(
-                        stringResource(Res.string.home_prep_arrange),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
+            val thousand = stringResource(Res.string.money_unit_thousand)
+            val million = stringResource(Res.string.money_unit_million)
+            val billion = stringResource(Res.string.money_unit_billion)
+            val budget = trip.budgetMinor
+            PrepColumn(
+                modifier = Modifier.weight(1f),
+                symbol = Symbols.payments,
+                tile = IrisTheme.accents.orange,
+                valueText = formatMoneyCompact(summary.spentMinor, trip.baseCurrency, thousand, million, billion),
+                totalText = null,
+                fraction = if (budget != null) fractionOf(summary.spentMinor, budget) else 0f,
+                // "terpakai dari Rp5 jt" with a budget, plain "terpakai" without one
+                label = if (budget != null) {
+                    stringResource(Res.string.home_prep_spent_of, formatMoneyCompact(budget, trip.baseCurrency, thousand, million, billion))
+                } else {
+                    stringResource(Res.string.trips_spent_label)
+                },
+                onClick = { onOpen(TripSection.EXPENSES) },
+            )
         }
     }
 }
+
+private fun fractionOf(value: Long, total: Long): Float = if (total <= 0) 0f else (value.toFloat() / total).coerceIn(0f, 1f)
 
 /** "Bingung mau ke mana di Bali?" with a "Coba" button that opens Explore for this trip. */
 @Composable
@@ -333,8 +337,9 @@ private fun ExploreCallout(destination: String, onTry: () -> Unit) {
 private fun PrepColumn(
     symbol: String,
     tile: Color,
-    value: Int,
-    total: Int,
+    valueText: String,
+    totalText: String?,
+    fraction: Float,
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -349,20 +354,27 @@ private fun PrepColumn(
         ) { Symbol(symbol, size = 18.dp, filled = true, tint = IrisTheme.accents.onAccent) }
         Spacer6()
         Row(verticalAlignment = Alignment.Bottom) {
-            Text("$value", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+            // An amount like "Rp1,25 jt" is longer than a count: one size smaller so it stays on one line.
             Text(
-                "/$total",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 3.dp),
+                valueText,
+                style = if (totalText == null) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                maxLines = 1,
             )
+            if (totalText != null) {
+                Text(
+                    totalText,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 3.dp),
+                )
+            }
         }
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Spacer6()
         Box(
             Modifier.fillMaxWidth().height(4.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh),
         ) {
-            val fraction = if (total <= 0) 0f else (value.toFloat() / total).coerceIn(0f, 1f)
             Box(Modifier.fillMaxWidth(fraction).height(4.dp).clip(CircleShape).background(tile))
         }
     }

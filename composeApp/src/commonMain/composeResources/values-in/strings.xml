@@ -82,6 +82,7 @@
     <string name="home_prep_title">Persiapan trip</string>
     <string name="home_prep_days_filled">hari terisi</string>
     <string name="home_prep_items_ready">barang siap</string>
+    <string name="home_prep_spent_of">terpakai dari %1$s</string>
     <string name="home_prep_unscheduled">belum dijadwalkan</string>
     <string name="home_prep_arrange">Atur jadwal</string>
     <string name="home_trip_meta_day1">%1$s · %2$d aktivitas di hari 1</string>
