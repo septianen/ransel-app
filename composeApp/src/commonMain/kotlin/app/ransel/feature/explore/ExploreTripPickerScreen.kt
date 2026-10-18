@@ -27,6 +27,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -89,8 +91,10 @@ fun ExploreTripPickerScreen(
 private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Unit, onNewTrip: () -> Unit, onOpenSwipe: (String) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val dates = rememberDateFormatter()
+    Box(Modifier.fillMaxSize()) {
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp),
+        // 96 dp at the bottom: the last trip stays reachable above the floating button
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         Row(
@@ -168,25 +172,28 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
                 }
             }
         }
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(IrisShape.lg)
-                .border(2.dp, scheme.outlineVariant, IrisShape.lg)
-                .clickable(role = Role.Button, onClick = onNewTrip)
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(Modifier.size(56.dp).clip(IrisShape.md).background(scheme.primaryContainer), contentAlignment = Alignment.Center) {
-                Symbol(Symbols.add, size = 28.dp, tint = scheme.onPrimaryContainer)
-            }
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(Res.string.explore_picker_new_trip), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(Res.string.explore_picker_new_trip_body), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-            }
-            Symbol(Symbols.chevronRight, tint = scheme.onSurfaceVariant)
-        }
+    }
+    NewTripFab(onNewTrip, Modifier.align(Alignment.BottomEnd).padding(16.dp))
+    }
+}
+
+/** "Trip baru" as a floating button, so it is always in reach however long the list is (design `JelajahLanjut`). */
+@Composable
+private fun NewTripFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier
+            .shadow(8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = .12f), spotColor = Color.Black.copy(alpha = .12f))
+            .heightIn(min = 56.dp)
+            .clip(CircleShape)
+            .background(scheme.primary)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(start = 20.dp, end = 24.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Symbol(Symbols.add, tint = scheme.onPrimary)
+        Text(stringResource(Res.string.explore_picker_new_trip), style = MaterialTheme.typography.titleMedium, color = scheme.onPrimary)
     }
 }
 

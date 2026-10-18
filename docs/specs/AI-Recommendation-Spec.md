@@ -22,7 +22,7 @@ The Explore tab opens the trip picker; the form comes second and always knows it
 
 Shortcuts land directly on step 2a or 2b; both forms end in the same search.
 
-1. **Step 1, trip picker** (`ExploreTripPickerScreen`). Lists the user's ongoing and upcoming trips where they are OWNER or EDITOR, nearest first, each with a status tag and one line of context (for example "5 belum dijadwalkan"). Finished trips and view-only trips are hidden. A dashed "Trip baru" card sits at the end. The header shows the remaining quota ("7 dari 10 pencarian tersisa hari ini").
+1. **Step 1, trip picker** (`ExploreTripPickerScreen`). Lists the user's ongoing and upcoming trips where they are OWNER or EDITOR, nearest first, each with a status tag and one line of context (for example "5 belum dijadwalkan"). Finished trips and view-only trips are hidden. "Trip baru" is a floating action button at the bottom right, always visible however long the list is. The header shows the remaining quota ("7 dari 10 pencarian tersisa hari ini").
 2. **Step 2a, existing trip** (`ExplorePreferencesScreen`, existing). An "Untuk trip" card with a Ganti button back to step 1, then the form (see Form inputs). Button: "Cari rekomendasi".
 3. **Step 2b, new trip** (`ExplorePreferencesScreen`, new). Destination, dates (DateRangePicker), trip name prefilled "Trip ke \<destination>", then the same preferences. Button: "Buat trip dan cari". Tapping it creates the trip through the normal trip repository (default currency, no budget), makes sure it reached the server, then searches. The trip stays even if no place is saved.
 4. **Loading, swipe and result states** are unchanged: loading (`ScooterLoading`), swipe cards, all seen, error, no results, quota reached.
