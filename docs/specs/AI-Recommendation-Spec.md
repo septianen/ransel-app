@@ -33,7 +33,7 @@ Shortcuts that skip step 1:
 - A user with no eligible trip goes straight to step 2b (Home empty, My trips empty, My trips with only finished trips).
 - "Ubah preferensi" from swipe opens step 2a for the same trip, with the last preferences filled in.
 
-An unfinished swipe session shows as a "Lanjutkan" card at the top of step 1 and a magenta dot on the Explore tab. A guest sees the sign-in screen instead of step 1.
+Each trip can have its own unfinished swipe session (a new search for a trip replaces that trip's old one). It shows as a "Lanjutkan" strip inside that trip's row in step 1, so several can be open at once, and the Explore tab has a magenta dot while any is unfinished. A guest sees the sign-in screen instead of step 1.
 
 ## Form inputs
 

@@ -81,7 +81,7 @@ Phase = the roadmap phase in which the screen must be implemented.
 | File | Code name | Board title | Phase | Illustration | Overlay on |
 | --- | --- | --- | --- | --- | --- |
 | `screens/PilihTripJelajah.html` (canvas board) | `ExploreTripPickerScreen` | Jelajah: pilih trip | 5 |  |  |
-| `screens/JelajahLanjut.html` | `ExploreTripPickerScreen` (resume card) | Jelajah: ada sesi belum selesai | 5 |  |  |
+| `screens/JelajahLanjut.html` | `ExploreTripPickerScreen` (resume card) | Jelajah: sesi belum selesai di dalam trip (satu per trip, bisa lebih dari satu) | 5 |  |  |
 | `screens/JelajahTamu.html` | `ExploreTripPickerScreen` (guest) | Jelajah: belum masuk (tamu) | 5 |  |  |
 | `screens/PreferensiAI.html` | `ExplorePreferencesScreen` (existing trip) | Jelajah: cari untuk trip (Bali, harga dari budget, Khas Bali) | 5 |  |  |
 | `PreferensiAITokyo` (canvas board) | `ExplorePreferencesScreen` (existing trip) | Tokyo tanpa budget, Khas Tokyo (Sakura) | 5 |  |  |

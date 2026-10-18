@@ -76,6 +76,7 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.*
 
 /**
@@ -85,13 +86,14 @@ import ransel.composeapp.generated.resources.*
  */
 @Composable
 fun SwipeScreen(
+    tripId: String,
     onClose: () -> Unit,
     onChangePreferences: () -> Unit,
     onOpenItinerary: (tripId: String) -> Unit,
     onHome: () -> Unit,
     onOpenDetail: (placeId: String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SwipeViewModel = koinViewModel(),
+    viewModel: SwipeViewModel = koinViewModel(key = "swipe-$tripId") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }

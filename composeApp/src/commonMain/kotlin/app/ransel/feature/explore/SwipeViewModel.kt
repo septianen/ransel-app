@@ -46,6 +46,7 @@ sealed interface SwipeEvent {
 private const val PREFETCH_AT = 3
 
 class SwipeViewModel(
+    private val tripId: String,
     private val store: ExploreSessionStore,
     private val api: RanselApi,
     private val itinerary: ItineraryRepository,
@@ -60,7 +61,7 @@ class SwipeViewModel(
     private var prefetching = false
 
     init {
-        val saved = store.session.value
+        val saved = store.session(tripId)
         if (saved == null) _state.value = SwipeUiState.Empty
         else {
             session = saved
@@ -77,10 +78,10 @@ class SwipeViewModel(
                     val cards = result.value.groups.flatMap { g -> g.items.map { ExploreCard(g.category, it) } }
                     if (cards.isEmpty()) {
                         _state.value = SwipeUiState.NoResults(s)
-                        store.save(null)
+                        store.clear(tripId)
                     } else {
                         session = s.copy(cards = cards)
-                        store.save(session)
+                        persist()
                         publish()
                     }
                 }
@@ -92,12 +93,16 @@ class SwipeViewModel(
     }
 
     fun retry() {
-        val s = session ?: store.session.value ?: return
+        val s = session ?: store.session(tripId) ?: return
         search(s)
     }
 
     /** "Ubah preferensi" / finished: drop the session so the form starts fresh (keeps what was saved in the trip). */
-    fun discard() = viewModelScope.launch { store.save(null) }
+    fun discard() = viewModelScope.launch { store.clear(tripId) }
+
+    private suspend fun persist() {
+        session?.let { store.save(it) }
+    }
 
     fun like() = swipe(liked = true)
     fun skip() = swipe(liked = false)
@@ -110,7 +115,7 @@ class SwipeViewModel(
         session = s.copy(swipes = s.swipes + ExploreSwipe(item.placeId, liked, itemId))
         publish()
         viewModelScope.launch {
-            store.save(session)
+            persist()
             if (liked && itemId != null) {
                 // Same path as a manual activity: local DB + sync on mobile, POST on web. Unscheduled, source AI.
                 itinerary.save(
@@ -141,7 +146,7 @@ class SwipeViewModel(
         session = s.copy(swipes = s.swipes.dropLast(1))
         publish()
         viewModelScope.launch {
-            store.save(session)
+            persist()
             last.itineraryItemId?.let { itinerary.delete(s.form.tripId, it) }
             api.undoFeedback(s.form.tripId, last.placeId)
         }
@@ -161,7 +166,7 @@ class SwipeViewModel(
                         .filter { it.item.placeId !in known }
                     val current = session ?: s
                     session = current.copy(cards = current.cards + more, exhausted = more.isEmpty())
-                    store.save(session)
+                    persist()
                     publish()
                 }
                 // A failed background batch only means "no more cards"; the user keeps swiping what is there.

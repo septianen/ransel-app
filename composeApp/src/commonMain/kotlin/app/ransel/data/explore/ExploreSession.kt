@@ -13,9 +13,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 
 /** What the user typed in the Explore form (design `PreferensiAI`). The trip supplies destination and dates (display only). */
 @Serializable
@@ -59,32 +62,62 @@ data class ExploreSession(
     val seenIds: List<String> get() = swipes.map { it.placeId }
 }
 
-/** Persists the session in the per-device preferences and tells the tab bar whether to show the dot. */
+/**
+ * Persists the unfinished searches in the per-device preferences: one per trip, so a user can have several at once
+ * (the Explore picker shows each inside its trip), and tells the tab bar whether to show the dot.
+ */
 class ExploreSessionStore(private val preferences: PreferencesRepository) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val _session = MutableStateFlow<ExploreSession?>(null)
-    val session: StateFlow<ExploreSession?> = _session.asStateFlow()
+    private val _sessions = MutableStateFlow<Map<String, ExploreSession>>(emptyMap())
+
+    /** Unfinished searches by trip id. */
+    val sessions: StateFlow<Map<String, ExploreSession>> = _sessions.asStateFlow()
 
     init {
         scope.launch {
-            val raw = runCatching { preferences.getString(KEY) }.getOrNull() ?: return@launch
-            runCatching { ApiJson.decodeFromString(ExploreSession.serializer(), raw) }.getOrNull()
-                ?.let { if (_session.value == null) _session.value = it }
+            val saved = runCatching { preferences.getString(KEY)?.let(::decode) }.getOrNull() ?: legacySession()
+            // whatever was saved while this was loading is newer than what was on disk
+            if (!saved.isNullOrEmpty()) _sessions.update { saved + it }
         }
     }
 
+    fun session(tripId: String?): ExploreSession? = tripId?.let { _sessions.value[it] }
+
     /** The form of the session that was just dropped ("Ubah preferensi"), so the next form starts with the same answers. */
     private var lastForm: ExploreForm? = null
-    val lastTripId: String? get() = lastForm?.tripId
     fun takeLastForm(tripId: String): ExploreForm? = lastForm?.takeIf { it.tripId == tripId }.also { lastForm = null }
 
-    suspend fun save(session: ExploreSession?) {
-        if (session == null) _session.value?.form?.let { lastForm = it }
-        _session.value = session
-        preferences.putString(KEY, session?.let { ApiJson.encodeToString(ExploreSession.serializer(), it) })
+    /** Keeps [session] as the unfinished search of its trip, replacing an earlier one of the same trip. */
+    suspend fun save(session: ExploreSession) {
+        _sessions.update { it + (session.form.tripId to session) }
+        persist()
+    }
+
+    /** Drops the unfinished search of [tripId] (finished, discarded, or changed preferences). */
+    suspend fun clear(tripId: String) {
+        _sessions.value[tripId]?.let { lastForm = it.form }
+        _sessions.update { it - tripId }
+        persist()
+    }
+
+    private suspend fun persist() {
+        val all = _sessions.value
+        preferences.putString(KEY, if (all.isEmpty()) null else ApiJson.encodeToString(SERIALIZER, all))
+    }
+
+    private fun decode(raw: String): Map<String, ExploreSession> = ApiJson.decodeFromString(SERIALIZER, raw)
+
+    /** Before sessions were per trip there was a single one under another key: carry it over once. */
+    private suspend fun legacySession(): Map<String, ExploreSession>? {
+        val raw = runCatching { preferences.getString(LEGACY_KEY) }.getOrNull() ?: return null
+        val old = runCatching { ApiJson.decodeFromString(ExploreSession.serializer(), raw) }.getOrNull()
+        preferences.putString(LEGACY_KEY, null)
+        return old?.let { mapOf(it.form.tripId to it) }
     }
 
     private companion object {
-        const val KEY = "explore_session"
+        const val KEY = "explore_sessions"
+        const val LEGACY_KEY = "explore_session"
+        val SERIALIZER = MapSerializer(String.serializer(), ExploreSession.serializer())
     }
 }

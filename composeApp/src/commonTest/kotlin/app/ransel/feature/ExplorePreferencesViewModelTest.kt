@@ -160,7 +160,7 @@ class ExplorePreferencesViewModelTest {
         val created = store.trips.value.single()
         assertEquals("Trip ke Lombok", created.title)
         assertEquals("Lombok", created.destination)
-        val form = sessions.session.value!!.form
+        val form = sessions.session(created.id)!!.form
         assertEquals(created.id, form.tripId)
         assertEquals(listOf("Snorkeling"), form.extraInterests)
     }

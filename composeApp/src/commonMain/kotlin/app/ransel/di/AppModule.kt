@@ -62,7 +62,7 @@ val commonModule: Module = module {
     single { ExploreSessionStore(get()) }
     viewModelOf(::ExploreTripPickerViewModel)
     viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
-    viewModelOf(::SwipeViewModel)
+    viewModel { params -> SwipeViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> PlaceDetailViewModel(params.get(), get(), get()) }
     viewModel { params -> InviteSheetViewModel(params.get(), get()) }
     viewModel { params -> JoinTripViewModel(params.get(), get(), get(), get(), get(), get()) }

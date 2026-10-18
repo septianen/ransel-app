@@ -63,12 +63,12 @@ fun ExploreTripPickerScreen(
     onPickTrip: (String) -> Unit,
     onNewTrip: () -> Unit,
     onNoTrips: () -> Unit,
-    onOpenSwipe: () -> Unit,
+    onOpenSwipe: (tripId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExploreTripPickerViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val forward = !state.loading && state.signedIn && state.noEligibleTrip && state.resume == null
+    val forward = !state.loading && state.signedIn && state.noEligibleTrip
     LaunchedEffect(forward) { if (forward) onNoTrips() }
     Column(modifier.fillMaxSize().statusBarsPadding()) {
         Text(
@@ -86,14 +86,13 @@ fun ExploreTripPickerScreen(
 }
 
 @Composable
-private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Unit, onNewTrip: () -> Unit, onOpenSwipe: () -> Unit) {
+private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Unit, onNewTrip: () -> Unit, onOpenSwipe: (String) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val dates = rememberDateFormatter()
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        state.resume?.let { ResumeCard(it, onOpenSwipe) }
         Row(
             Modifier.fillMaxWidth().clip(IrisShape.xl).background(scheme.tertiaryContainer).padding(18.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -103,7 +102,7 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    stringResource(if (state.resume != null) Res.string.explore_picker_other_trip else Res.string.explore_picker_title),
+                    stringResource(Res.string.explore_picker_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = scheme.onTertiaryContainer,
@@ -123,12 +122,16 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
                 }
                 state.trips.forEach { row ->
                     val trip = row.trip
-                    Row(
+                    Column(
                         Modifier
                             .fillMaxWidth()
                             .clip(IrisShape.lg)
                             .background(scheme.surface)
-                            .border(1.dp, scheme.outlineVariant, IrisShape.lg)
+                            .border(1.dp, scheme.outlineVariant, IrisShape.lg),
+                    ) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
                             .clickable(role = Role.Button) { onPickTrip(trip.id) }
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -155,6 +158,8 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
                             }
                         }
                         Symbol(Symbols.chevronRight, tint = scheme.onSurfaceVariant)
+                    }
+                    row.resume?.let { ResumeStrip(it, onOpen = { onOpenSwipe(trip.id) }) }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -233,27 +238,21 @@ private fun GuestState(onSignIn: () -> Unit, onSignUp: () -> Unit) {
     }
 }
 
-/** Design `JelajahLanjut`: "Belum selesai · Rekomendasi untuk Bali · 3 dari 12 dilihat · 2 disimpan". */
+/** Design `JelajahLanjut`: inside the trip row, "Belum selesai · 3 dari 12 dilihat · 2 disimpan" and "Lanjutkan". */
 @Composable
-private fun ResumeCard(session: ExploreSession, onOpen: () -> Unit) {
+private fun ResumeStrip(session: ExploreSession, onOpen: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(IrisShape.lg)
             .background(scheme.primaryContainer)
             .clickable(role = Role.Button, onClick = onOpen)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(stringResource(Res.string.explore_resume_label), style = MaterialTheme.typography.labelMedium, color = scheme.onPrimaryContainer)
-            Text(
-                stringResource(Res.string.explore_for, session.form.destination),
-                style = MaterialTheme.typography.titleMedium,
-                color = scheme.onPrimaryContainer,
-            )
             Text(
                 stringResource(Res.string.explore_resume_progress, session.position, session.cards.size, session.saved),
                 style = MaterialTheme.typography.bodySmall,

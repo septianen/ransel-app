@@ -72,7 +72,7 @@ fun ExplorePreferencesScreen(
     tripId: String?,
     onBack: () -> Unit,
     onChangeTrip: () -> Unit,
-    onOpenSwipe: () -> Unit,
+    onOpenSwipe: (tripId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExplorePreferencesViewModel = koinViewModel(key = "explore-prefs-$tripId") { parametersOf(tripId) },
 ) {

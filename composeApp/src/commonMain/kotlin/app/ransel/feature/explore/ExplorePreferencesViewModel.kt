@@ -246,7 +246,7 @@ class ExplorePreferencesViewModel(
      * through the normal trip repository and must reach the server before the search. [defaultName] is the
      * localized "Trip ke <destination>".
      */
-    fun start(defaultName: String, onReady: () -> Unit) {
+    fun start(defaultName: String, onReady: (tripId: String) -> Unit) {
         val s = _state.value
         if (s.starting) return
         if (!s.canSearch) {
@@ -289,7 +289,7 @@ class ExplorePreferencesViewModel(
                 ),
             )
             _state.update { it.copy(starting = false) }
-            onReady()
+            onReady(id)
         }
     }
 

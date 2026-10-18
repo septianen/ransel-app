@@ -35,8 +35,8 @@ import kotlinx.serialization.Serializable
 // Members (Phase 4).
 @Serializable data class MembersRoute(val tripId: String)
 
-/** Swipe through the recommendations of the stored Explore session. */
-@Serializable data object SwipeRoute
+/** Swipe through the recommendations of the unfinished Explore session of [tripId] (a user can have one per trip). */
+@Serializable data class SwipeRoute(val tripId: String)
 
 /**
  * Full-screen detail of a recommended place. From a swipe card the card is read from the Explore session and the
@@ -45,6 +45,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable data class PlaceDetailRoute(
     val placeId: String,
+    /** The trip of the swipe session the card belongs to (null from the itinerary). */
+    val tripId: String? = null,
     val fromItinerary: Boolean = false,
     val name: String? = null,
     val currency: String? = null,

@@ -86,7 +86,7 @@ class SwipeViewModelTest {
     @Test
     fun firstSearchLoadsCardsAndLikeSavesAnUnscheduledAiItem() = runTest {
         val itinerary = InMemoryItineraryRepository(InMemoryStore())
-        val vm = SwipeViewModel(store(ExploreSession(form)), api(response("a", "b", "c", "d", "e")), itinerary)
+        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api(response("a", "b", "c", "d", "e")), itinerary)
         vm.loaded()
         val cards = assertIs<SwipeUiState.Cards>(vm.state.value)
         assertEquals(5, cards.session.cards.size)
@@ -105,7 +105,7 @@ class SwipeViewModelTest {
     @Test
     fun undoRemovesTheSavedItemAndTheFeedback() = runTest {
         val itinerary = InMemoryItineraryRepository(InMemoryStore())
-        val vm = SwipeViewModel(store(ExploreSession(form)), api(response("a", "b", "c", "d", "e")), itinerary)
+        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api(response("a", "b", "c", "d", "e")), itinerary)
         vm.loaded()
         vm.like()
         eventually { itinerary.observe("t1").first().isNotEmpty() }
@@ -119,7 +119,7 @@ class SwipeViewModelTest {
     @Test
     fun skipOnlySendsFeedback() = runTest {
         val itinerary = InMemoryItineraryRepository(InMemoryStore())
-        val vm = SwipeViewModel(store(ExploreSession(form)), api(response("a", "b", "c", "d", "e")), itinerary)
+        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api(response("a", "b", "c", "d", "e")), itinerary)
         vm.loaded()
         vm.skip()
         eventually { requests.any { "feedback" in it.first } }
@@ -130,6 +130,7 @@ class SwipeViewModelTest {
     @Test
     fun backgroundBatchIsRequestedWhenThreeCardsAreLeft() = runTest {
         val vm = SwipeViewModel(
+            "t1",
             store(ExploreSession(form)),
             api(first = response("a", "b", "c", "d"), next = response("e", "f")),
             InMemoryItineraryRepository(InMemoryStore()),
@@ -147,6 +148,7 @@ class SwipeViewModelTest {
     @Test
     fun emptySearchShowsTheNoResultsState() = runTest {
         val vm = SwipeViewModel(
+            "t1",
             store(ExploreSession(form)),
             api(first = """{"data":{"groups":[],"quota":{"used":1,"limit":10,"resetsAt":"2026-10-16T17:00:00Z"}}}"""),
             InMemoryItineraryRepository(InMemoryStore()),
@@ -169,7 +171,7 @@ class SwipeViewModelTest {
             ),
             origin = "http://api.test",
         )
-        val vm = SwipeViewModel(store(ExploreSession(form)), quotaApi, InMemoryItineraryRepository(InMemoryStore()))
+        val vm = SwipeViewModel("t1", store(ExploreSession(form)), quotaApi, InMemoryItineraryRepository(InMemoryStore()))
         vm.loaded()
         val quota = assertIs<SwipeUiState.QuotaExceeded>(vm.state.value).quota
         assertEquals(10, quota?.limit)

@@ -86,7 +86,7 @@ class PlaceDetailViewModel(
     val state: StateFlow<PlaceDetailUiState> = _state.asStateFlow()
 
     init {
-        val card = if (route.fromItinerary) null else store.session.value?.cards?.firstOrNull { it.item.placeId == route.placeId }
+        val card = if (route.fromItinerary) null else store.session(route.tripId)?.cards?.firstOrNull { it.item.placeId == route.placeId }
         if (card != null) _state.value = PlaceDetailUiState(info = card.toDetailInfo()) else load()
     }
 

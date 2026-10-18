@@ -88,7 +88,7 @@ class PlaceDetailViewModelTest {
 
     @Test
     fun fromASwipeCardEverythingIsThereWithoutARequest() = runTest {
-        val vm = PlaceDetailViewModel(PlaceDetailRoute("p1"), store(), api())
+        val vm = PlaceDetailViewModel(PlaceDetailRoute("p1", tripId = "t1"), store(), api())
         val info = assertNotNull(vm.state.value.info)
         assertEquals("Pantai berkarang.", info.about)
         assertEquals("Cocok", info.reason)
@@ -124,7 +124,7 @@ class PlaceDetailViewModelTest {
 
     @Test
     fun aSwipeCardThatIsNoLongerInTheSessionFallsBackToTheServer() = runTest {
-        val vm = PlaceDetailViewModel(PlaceDetailRoute("gone"), store(), api())
+        val vm = PlaceDetailViewModel(PlaceDetailRoute("gone", tripId = "t1"), store(), api())
         eventually { vm.state.value.info != null }
         assertTrue(requests.single().startsWith("/api/v1/places/gone/detail"))
     }

@@ -109,7 +109,7 @@ Fase 1–5 sudah lengkap. Yang tersisa adalah layar pendukung yang muncul dari k
 - Web (≥ 1240): navigation rail 96dp, itinerary di kolom tengah, panel kanan 360dp (Sisa budget, ringkasan Packing, Belum dijadwalkan).
 
 ### Jelajah AI
-- Tab Jelajah selalu membuka layar Jelajah (hero + form, dengan navigasi bawah). Sesi swipe yang belum selesai tampil sebagai kartu "Lanjutkan" di atas, dan ikon Jelajah di navigasi bawah diberi titik magenta (bukan angka).
+- Tab Jelajah selalu membuka layar Jelajah (hero + form, dengan navigasi bawah). Sesi swipe yang belum selesai (satu per trip, jadi bisa lebih dari satu) tampil sebagai strip "Lanjutkan" di dalam baris trip masing-masing, dan ikon Jelajah di navigasi bawah diberi titik magenta (bukan angka).
 - Swipe dibuka layar penuh di atas tab; tombol tutup kembali ke Jelajah. Sesi selesai saat semua kartu dilihat atau user memulai pencarian baru.
 - Destinasi berupa text field biasa (bukan dropdown); Tanggal field terpisah yang membuka DateRangePicker. Keduanya terisi dari trip, dengan keterangan trip tujuan di bawahnya.
 - Kartu swipe digeser horizontal tanpa dimiringkan, dengan outline + label (SIMPAN magenta, LEWATI abu).

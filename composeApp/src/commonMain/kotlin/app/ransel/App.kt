@@ -125,6 +125,7 @@ import coil3.SingletonImageLoader
 import coil3.network.ktor3.KtorNetworkFetcherFactory
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import app.ransel.feature.explore.PlaceDetailScreen
 import app.ransel.feature.explore.SwipeViewModel
 import app.ransel.navigation.PlaceDetailRoute
@@ -219,7 +220,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }
     // An invite link was opened (or `/j/<code>` on the web): show the join screen over whatever is open.
     val exploreStore: ExploreSessionStore = koinInject()
-    val exploreSession by exploreStore.session.collectAsState()
+    val exploreSessions by exploreStore.sessions.collectAsState()
     val inviteLinks: InviteLinks = koinInject()
     val pendingInvite by inviteLinks.pending.collectAsState()
     val currentEntry by navController.currentBackStackEntryAsState()
@@ -301,7 +302,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
                     if (!expanded && selected != null) {
-                        RanselBottomBar(selected = selected, onSelect = ::openTab, exploreHasSession = exploreSession?.finished == false)
+                        RanselBottomBar(selected = selected, onSelect = ::openTab, exploreHasSession = exploreSessions.values.any { !it.finished })
                     }
                 },
             ) { padding ->
@@ -403,7 +404,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
             onNewTrip = { navController.navigate(ExplorePreferencesRoute(null)) },
             // Nothing to pick: go straight to the new-trip form and leave the picker out of the back stack.
             onNoTrips = { navController.navigate(ExplorePreferencesRoute(null)) { popUpTo<ExploreRoute> { inclusive = true } } },
-            onOpenSwipe = { navController.navigate(SwipeRoute) },
+            onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
         )
     }
     page<ExplorePreferencesRoute> { entry ->
@@ -413,17 +414,17 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
             onBack = { navController.popBackStack() },
             // "Ganti": back to the picker, whichever way the form was opened.
             onChangeTrip = { navController.navigate(ExploreRoute) { popUpTo<ExplorePreferencesRoute> { inclusive = true } } },
-            onOpenSwipe = { navController.navigate(SwipeRoute) },
+            onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
         )
     }
-    page<SwipeRoute> {
+    page<SwipeRoute> { entry ->
+        val swipeRoute = entry.toRoute<SwipeRoute>()
         SwipeScreen(
+            tripId = swipeRoute.tripId,
             onClose = { navController.popBackStack() },
             // Back to the form of the same trip, filled in with the last answers.
             onChangePreferences = {
-                val id = exploreStore.session.value?.form?.tripId ?: exploreStore.lastTripId
-                if (id == null) navController.popBackStack()
-                else navController.navigate(ExplorePreferencesRoute(id)) { popUpTo<SwipeRoute> { inclusive = true } }
+                navController.navigate(ExplorePreferencesRoute(swipeRoute.tripId)) { popUpTo<SwipeRoute> { inclusive = true } }
             },
             onOpenItinerary = { id ->
                 navController.navigate(TripRoute(id, TripTab.ITINERARY.name)) { popUpTo<SwipeRoute> { inclusive = true } }
@@ -434,7 +435,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
                     launchSingleTop = true
                 }
             },
-            onOpenDetail = { placeId -> navController.navigate(PlaceDetailRoute(placeId)) },
+            onOpenDetail = { placeId -> navController.navigate(PlaceDetailRoute(placeId, tripId = swipeRoute.tripId)) },
         )
     }
     page<PlaceDetailRoute>(maxContentWidth = null) { entry -> // adapts itself: two columns from 900 dp
@@ -442,9 +443,9 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
         // From a swipe card: Skip / Save act on the swipe screen's own ViewModel, so they change the same session.
         // Without a swipe screen below (or from the itinerary) there are no buttons.
         val swipeEntry = remember(entry) {
-            if (route.fromItinerary) null else runCatching { navController.getBackStackEntry<SwipeRoute>() }.getOrNull()
+            if (route.fromItinerary || route.tripId == null) null else runCatching { navController.getBackStackEntry<SwipeRoute>() }.getOrNull()
         }
-        val swipe: SwipeViewModel? = swipeEntry?.let { koinViewModel<SwipeViewModel>(viewModelStoreOwner = it) }
+        val swipe: SwipeViewModel? = swipeEntry?.let { koinViewModel<SwipeViewModel>(viewModelStoreOwner = it, key = "swipe-${route.tripId}") { parametersOf(route.tripId) } }
         PlaceDetailScreen(
             route = route,
             onBack = { navController.popBackStack() },

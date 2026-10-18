@@ -22,7 +22,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 
 /** One row of the trip picker: the trip and the one-line context under it. */
-data class ExplorePickerTrip(val trip: TripDto, val phase: TripPhase, val summary: TripSummaryDto?)
+/** [resume]: the unfinished search of this trip, shown inside its row ("Lanjutkan"). */
+data class ExplorePickerTrip(val trip: TripDto, val phase: TripPhase, val summary: TripSummaryDto?, val resume: ExploreSession? = null)
 
 data class ExploreTripPickerState(
     val loading: Boolean = true,
@@ -32,8 +33,6 @@ data class ExploreTripPickerState(
     val trips: List<ExplorePickerTrip> = emptyList(),
     /** Signed in but with nothing to pick: the app goes straight to the new-trip form. */
     val noEligibleTrip: Boolean = false,
-    /** An unfinished search: shown as the "Lanjutkan" card. */
-    val resume: ExploreSession? = null,
 )
 
 class ExploreTripPickerViewModel(
@@ -54,13 +53,12 @@ class ExploreTripPickerViewModel(
         }
     }
 
-    val state: StateFlow<ExploreTripPickerState> = combine(eligible, sessionManager.state, store.session) { list, session, resume ->
+    val state: StateFlow<ExploreTripPickerState> = combine(eligible, sessionManager.state, store.sessions) { list, session, sessions ->
         ExploreTripPickerState(
             loading = session is SessionState.Loading,
             signedIn = session is SessionState.SignedIn,
-            trips = list,
+            trips = list.map { row -> row.copy(resume = sessions[row.trip.id]?.takeIf { !it.finished }) },
             noEligibleTrip = list.isEmpty(),
-            resume = resume?.takeIf { !it.finished },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExploreTripPickerState())
 }
