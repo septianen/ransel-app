@@ -120,6 +120,13 @@ object ExpenseSplits : Table("expense_splits") {
     override val primaryKey = PrimaryKey(expenseId, userId)
 }
 
+object ExpensePayers : Table("expense_payers") {
+    val expenseId = javaUUID("expense_id")
+    val userId = javaUUID("user_id")
+    val amountMinor = long("amount_minor")
+    override val primaryKey = PrimaryKey(expenseId, userId)
+}
+
 object RefreshTokens : Table("refresh_tokens") {
     val id = javaUUID("id")
     val userId = javaUUID("user_id")

@@ -1,5 +1,6 @@
 package app.ransel.server.service
 
+import app.ransel.server.db.ExpensePayers
 import app.ransel.server.db.ExpenseSplits
 import app.ransel.server.db.Expenses
 import app.ransel.server.db.Trips
@@ -15,6 +16,7 @@ import app.ransel.shared.domain.isValidCurrency
 import app.ransel.shared.domain.summarizeExpenses
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
+import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ExpenseSummaryDto
 import app.ransel.shared.model.Role
@@ -55,21 +57,23 @@ object ExpenseService {
                 fill(it, body, payer)
             }
             replaceSplits(expenseId, body.splits)
+            replacePayers(expenseId, body.payers)
             load(tripId, expenseId)
         }
     }
 
-    /** Replaces the expense and its splits as a whole. */
+    /** Replaces the expense, its payers and its splits as a whole. */
     fun replace(userId: UUID, tripId: UUID, expenseId: UUID, body: ExpenseInput): ExpenseDto {
         requireRole(tripId, userId, Role.EDITOR)
         val payer = resolvePayer(userId, body)
         return transaction {
             val before = load(tripId, expenseId)
             // Someone who has since left may still be on this expense; editing the note must not fail.
-            val keep = (before.splits.map { it.userId } + before.paidByUserId).map(UUID::fromString).toSet()
+            val keep = (before.splits.map { it.userId } + before.payers.map { it.userId } + before.paidByUserId).map(UUID::fromString).toSet()
             validate(body, payer, tripId, keep)
             Expenses.update({ Expenses.id eq expenseId }) { fill(it, body, payer) }
             replaceSplits(expenseId, body.splits)
+            replacePayers(expenseId, body.payers)
             load(tripId, expenseId)
         }
     }
@@ -96,11 +100,16 @@ object ExpenseService {
         }
     }
 
-    private fun resolvePayer(callerId: UUID, body: ExpenseInput): UUID =
-        body.paidByUserId?.let { raw ->
+    /** With several payers the first one is "who paid" (older clients show only that name). */
+    private fun resolvePayer(callerId: UUID, body: ExpenseInput): UUID {
+        body.payers.firstOrNull()?.let { first ->
+            return runCatching { UUID.fromString(first.userId) }.getOrNull() ?: throw validation("payers" to "INVALID_UUID")
+        }
+        return body.paidByUserId?.let { raw ->
             runCatching { UUID.fromString(raw) }.getOrNull()
                 ?: throw validation("paidByUserId" to "INVALID_UUID")
         } ?: callerId
+    }
 
     private fun loadAll(tripId: UUID): List<ExpenseDto> {
         val rows = Expenses.selectAll()
@@ -111,8 +120,15 @@ object ExpenseService {
         val splits = ExpenseSplits.selectAll()
             .where { ExpenseSplits.expenseId inList rows.map { it[Expenses.id] } }
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) })
-        return rows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.userId }) }
+        val payers = loadPayers(rows.map { it[Expenses.id] })
+        return rows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.userId }, payers[it[Expenses.id]].orEmpty()) }
     }
+
+    /** Payer rows of the given expenses; an expense with one payer has none. */
+    internal fun loadPayers(expenseIds: Collection<UUID>): Map<UUID, List<ExpensePayerDto>> =
+        if (expenseIds.isEmpty()) emptyMap() else ExpensePayers.selectAll()
+            .where { ExpensePayers.expenseId inList expenseIds }
+            .groupBy({ it[ExpensePayers.expenseId] }, { ExpensePayerDto(it[ExpensePayers.userId].toString(), it[ExpensePayers.amountMinor]) })
 
     private fun load(tripId: UUID, expenseId: UUID): ExpenseDto {
         val row = Expenses.selectAll()
@@ -121,7 +137,7 @@ object ExpenseService {
         val splits = ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq expenseId }
             .map { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) }
             .sortedBy { it.userId }
-        return row.toExpenseDto(splits)
+        return row.toExpenseDto(splits, loadPayers(listOf(expenseId))[expenseId].orEmpty())
     }
 
     internal fun replaceSplits(expenseId: UUID, splits: List<ExpenseSplitDto>) {
@@ -131,6 +147,17 @@ object ExpenseService {
                 this[ExpenseSplits.expenseId] = expenseId
                 this[ExpenseSplits.userId] = UUID.fromString(split.userId)
                 this[ExpenseSplits.shareMinor] = split.shareMinor
+            }
+        }
+    }
+
+    internal fun replacePayers(expenseId: UUID, payers: List<ExpensePayerDto>) {
+        ExpensePayers.deleteWhere { ExpensePayers.expenseId eq expenseId }
+        if (payers.isNotEmpty()) {
+            ExpensePayers.batchInsert(payers) { p ->
+                this[ExpensePayers.expenseId] = expenseId
+                this[ExpensePayers.userId] = UUID.fromString(p.userId)
+                this[ExpensePayers.amountMinor] = p.amountMinor
             }
         }
     }
@@ -164,16 +191,41 @@ object ExpenseService {
             if (body.splits.any { it.shareMinor < 0 }) put("splits", "MUST_NOT_BE_NEGATIVE")
             if (body.splits.map { it.userId }.toSet().size != body.splits.size) put("splits", "DUPLICATE_USER")
             if (body.splits.any { runCatching { UUID.fromString(it.userId) }.isFailure }) put("splits", "INVALID_UUID")
+            if (body.payers.isNotEmpty()) {
+                if (body.payers.size < 2) put("payers", "NEEDS_AT_LEAST_TWO")
+                else if (body.payers.any { it.amountMinor <= 0 }) put("payers", "MUST_BE_POSITIVE")
+                else if (body.payers.map { it.userId }.toSet().size != body.payers.size) put("payers", "DUPLICATE_USER")
+                else if (body.payers.any { runCatching { UUID.fromString(it.userId) }.isFailure }) put("payers", "INVALID_UUID")
+            }
         }
         requireValid(problems)
 
-        val participants = (body.splits.map { UUID.fromString(it.userId) } + payer).toSet()
+        val payerIds = body.payers.map { UUID.fromString(it.userId) }
+        // paidByUserId is the first payer: the REST endpoint derives it, sync sends it, both must agree
+        if (payerIds.isNotEmpty() && payerIds.first() != payer) throw validation("paidByUserId" to "MUST_BE_FIRST_PAYER")
+        val participants = (body.splits.map { UUID.fromString(it.userId) } + payerIds + payer).toSet()
         val allowed = TripMembers.select(TripMembers.userId)
             .where { (TripMembers.tripId eq tripId) and (TripMembers.userId inList participants) }
             .map { it[TripMembers.userId] }.toSet() + alreadyOnExpense
         if (!allowed.containsAll(participants)) {
-            val key = if (payer !in allowed) "paidByUserId" else "splits"
+            val key = when {
+                payer !in allowed -> "paidByUserId"
+                payerIds.any { it !in allowed } -> "payers"
+                else -> "splits"
+            }
             throw validation(key to "NOT_A_MEMBER")
+        }
+
+        if (body.payers.isNotEmpty()) {
+            val paid = body.payers.sumOf { it.amountMinor }
+            if (paid != body.amountMinor) {
+                throw ApiException(
+                    HttpStatusCode.UnprocessableEntity,
+                    ErrorCode.PAYER_TOTAL_MISMATCH,
+                    "Payer amounts must add up to the amount",
+                    mapOf("payers" to "SUM_${paid}_AMOUNT_${body.amountMinor}"),
+                )
+            }
         }
 
         if (body.splits.isNotEmpty()) {

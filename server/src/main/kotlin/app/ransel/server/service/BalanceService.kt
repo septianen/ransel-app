@@ -14,6 +14,7 @@ import app.ransel.server.plugins.tripNotFound
 import app.ransel.shared.domain.BalanceExpense
 import app.ransel.shared.domain.BalanceSettlement
 import app.ransel.shared.domain.computeBalances
+import app.ransel.shared.domain.convertPayers
 import app.ransel.shared.domain.convertMinor
 import app.ransel.shared.domain.fewestTransfers
 import app.ransel.shared.dto.BalancesDto
@@ -54,7 +55,8 @@ object BalanceService {
             val splits = if (expenseRows.isEmpty()) emptyMap() else ExpenseSplits.selectAll()
                 .where { ExpenseSplits.expenseId inList expenseRows.map { it[Expenses.id] } }
                 .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) })
-            val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty()) }.map { toBalanceExpense(it, base) }
+            val payers = ExpenseService.loadPayers(expenseRows.map { it[Expenses.id] })
+            val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty(), payers[it[Expenses.id]].orEmpty()) }.map { toBalanceExpense(it, base) }
 
             val settlements = Settlements.selectAll()
                 .where { (Settlements.tripId eq tripId) and Settlements.deletedAt.isNull() }
@@ -130,10 +132,12 @@ object BalanceService {
      */
     private fun toBalanceExpense(e: ExpenseDto, base: String): BalanceExpense {
         val amount = convertMinor(e.amountMinor, e.currency, base, e.fxRateToBase)
-        if (e.splits.isEmpty()) return BalanceExpense(e.paidByUserId, amount, emptyMap())
+        // what each payer paid, in base currency (empty = the one payer paid all)
+        val paid = if (e.payers.isEmpty()) emptyMap() else convertPayers(e.payers.map { it.userId to it.amountMinor }, e.amountMinor, amount)
+        if (e.splits.isEmpty()) return BalanceExpense(e.paidByUserId, amount, emptyMap(), paid)
         val converted = e.splits.associate { it.userId to convertMinor(it.shareMinor, e.currency, base, e.fxRateToBase) }
         val target = if (e.paidByUserId in converted) e.paidByUserId else converted.maxBy { it.value }.key
         val fixed = converted + (target to converted.getValue(target) + (amount - converted.values.sum()))
-        return BalanceExpense(e.paidByUserId, amount, fixed)
+        return BalanceExpense(e.paidByUserId, amount, fixed, paid)
     }
 }

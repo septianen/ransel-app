@@ -156,7 +156,8 @@ class SyncService {
         val splits = if (expenseRows.isEmpty()) emptyMap() else ExpenseSplits.selectAll()
             .where { ExpenseSplits.expenseId inList expenseRows.map { it[Expenses.id] } }
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) })
-        val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.userId }) }
+        val payers = ExpenseService.loadPayers(expenseRows.map { it[Expenses.id] })
+        val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.userId }, payers[it[Expenses.id]].orEmpty()) }
 
         val settlements = if (allTripIds.isEmpty()) emptyList() else Settlements.selectAll()
             .where {
@@ -320,12 +321,13 @@ class SyncService {
         val input = ExpenseInput(
             id = dto.id, amountMinor = dto.amountMinor, currency = dto.currency, fxRateToBase = dto.fxRateToBase,
             category = dto.category, paymentMethod = dto.paymentMethod, note = dto.note, spentAt = dto.spentAt,
-            paidByUserId = dto.paidByUserId, splits = dto.splits,
+            paidByUserId = dto.paidByUserId, payers = dto.payers, splits = dto.splits,
         )
         val existing = Expenses.selectAll().where { Expenses.id eq id }.singleOrNull()
         val keep = if (existing == null) emptySet() else buildSet {
             add(existing[Expenses.paidByUserId])
             ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq id }.forEach { add(it[ExpenseSplits.userId]) }
+            ExpenseService.loadPayers(listOf(id))[id].orEmpty().forEach { add(UUID.fromString(it.userId)) }
         }
         // throws ApiException with the right code (SPLIT_TOTAL_MISMATCH, VALIDATION_FAILED)
         ExpenseService.validate(input, payer, tripId, keep)
@@ -346,6 +348,7 @@ class SyncService {
             }
         }
         ExpenseService.replaceSplits(id, dto.splits)
+        ExpenseService.replacePayers(id, dto.payers)
     }
 
     private fun pushSettlement(userId: UUID, dto: SettlementDto) {

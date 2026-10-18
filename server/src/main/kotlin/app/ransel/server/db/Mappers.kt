@@ -1,6 +1,7 @@
 package app.ransel.server.db
 
 import app.ransel.shared.dto.ExpenseDto
+import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PackingItemDto
@@ -66,7 +67,7 @@ fun ResultRow.toPackingItemDto() = PackingItemDto(
     deletedAt = this[PackingItems.deletedAt]?.toTimestamp(),
 )
 
-fun ResultRow.toExpenseDto(splits: List<ExpenseSplitDto> = emptyList()) = ExpenseDto(
+fun ResultRow.toExpenseDto(splits: List<ExpenseSplitDto> = emptyList(), payers: List<ExpensePayerDto> = emptyList()) = ExpenseDto(
     id = this[Expenses.id].toString(),
     tripId = this[Expenses.tripId].toString(),
     amountMinor = this[Expenses.amountMinor],
@@ -77,6 +78,12 @@ fun ResultRow.toExpenseDto(splits: List<ExpenseSplitDto> = emptyList()) = Expens
     note = this[Expenses.note],
     spentAt = this[Expenses.spentAt].toTimestamp(),
     paidByUserId = this[Expenses.paidByUserId].toString(),
+    // the payer the expense names first, then the biggest amounts: the same order on every read
+    payers = payers.sortedWith(
+        compareByDescending<ExpensePayerDto> { it.userId == this[Expenses.paidByUserId].toString() }
+            .thenByDescending { it.amountMinor }
+            .thenBy { it.userId },
+    ),
     splits = splits,
     createdAt = this[Expenses.createdAt].toTimestamp(),
     updatedAt = this[Expenses.updatedAt].toTimestamp(),
