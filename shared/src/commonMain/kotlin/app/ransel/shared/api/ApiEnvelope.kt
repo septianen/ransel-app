@@ -76,6 +76,7 @@ object ErrorCode {
 
     // expenses
     const val SPLIT_TOTAL_MISMATCH = "SPLIT_TOTAL_MISMATCH" // 422, sum(shares) != amount
+    const val PAYER_TOTAL_MISMATCH = "PAYER_TOTAL_MISMATCH" // 422, sum(payers) != amount
 
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down

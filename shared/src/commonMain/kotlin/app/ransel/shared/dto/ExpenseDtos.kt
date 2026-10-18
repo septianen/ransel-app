@@ -23,12 +23,25 @@ data class ExpenseDto(
     val note: String? = null,
     /** May fall outside the trip dates. */
     val spentAt: Timestamp,
+    /** Who paid. With several [payers] this is the first of them, so older clients still show a name. */
     val paidByUserId: String,
+    /**
+     * Empty = [paidByUserId] paid all of it. Otherwise two or more people paid parts of it (the bill was
+     * paid by several): amounts are in [currency] and sum to amountMinor.
+     */
+    val payers: List<ExpensePayerDto> = emptyList(),
     /** Empty = paid and carried fully by paidByUserId (solo). Shares are in [currency] and sum to amountMinor. */
     val splits: List<ExpenseSplitDto> = emptyList(),
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
     val deletedAt: Timestamp? = null,
+)
+
+/** One person's part of what was paid for an expense, in the expense's currency. */
+@Serializable
+data class ExpensePayerDto(
+    val userId: String,
+    val amountMinor: Long,
 )
 
 @Serializable
@@ -41,7 +54,8 @@ data class ExpenseSplitDto(
  * POST /trips/{id}/expenses (create) and PUT /trips/{id}/expenses/{expenseId} (replace; splits replaced whole).
  * Validation: amountMinor > 0; currency ^[A-Z]{3}$; fxRateToBase > 0 when set;
  * splits empty or sum(shareMinor) == amountMinor (else 422 SPLIT_TOTAL_MISMATCH).
- * paidByUserId null = the calling user.
+ * paidByUserId null = the calling user. payers empty = paidByUserId paid all; otherwise at least two different
+ * members with amount > 0 summing to amountMinor (else 422 PAYER_TOTAL_MISMATCH), and paidByUserId becomes the first.
  */
 @Serializable
 data class ExpenseInput(
@@ -54,6 +68,7 @@ data class ExpenseInput(
     val note: String? = null,
     val spentAt: Timestamp,
     val paidByUserId: String? = null,
+    val payers: List<ExpensePayerDto> = emptyList(),
     val splits: List<ExpenseSplitDto> = emptyList(),
 )
 

@@ -19,6 +19,17 @@ fun splitEqually(amountMinor: Long, participantIds: List<String>, payerId: Strin
     return ids.associateWith { if (it == receiver) base + remainder else base }
 }
 
+/**
+ * What each payer paid when [amountMinor] is turned into [amountBaseMinor] (the trip currency): proportional, the
+ * rounding difference goes to the first payer so the parts always add up to [amountBaseMinor].
+ */
+fun convertPayers(payers: List<Pair<String, Long>>, amountMinor: Long, amountBaseMinor: Long): Map<String, Long> {
+    if (payers.isEmpty() || amountMinor <= 0) return emptyMap()
+    val converted = payers.map { (id, amount) -> id to (amount.toDouble() / amountMinor * amountBaseMinor).toLong() }
+    val remainder = amountBaseMinor - converted.sumOf { it.second }
+    return converted.mapIndexed { i, (id, amount) -> id to if (i == 0) amount + remainder else amount }.toMap()
+}
+
 /** "Atur nominal": positive = still short ("kurang"), negative = over ("lebih"), 0 = Save enabled. */
 fun splitDifference(amountMinor: Long, shares: Collection<Long>): Long = amountMinor - shares.sum()
 
@@ -28,6 +39,8 @@ data class BalanceExpense(
     val amountBaseMinor: Long,
     /** userId → share in base currency. Empty = carried fully by the payer. */
     val sharesBaseMinor: Map<String, Long>,
+    /** userId → what they paid, in base currency, when several people paid. Empty = [paidByUserId] paid all. */
+    val payersBaseMinor: Map<String, Long> = emptyMap(),
 )
 
 data class BalanceSettlement(val fromUserId: String, val toUserId: String, val amountMinor: Long)
@@ -46,7 +59,8 @@ fun computeBalances(
     val share = HashMap<String, Long>()
     val settled = HashMap<String, Long>()
     for (e in expenses) {
-        paid[e.paidByUserId] = (paid[e.paidByUserId] ?: 0) + e.amountBaseMinor
+        val payers = e.payersBaseMinor.ifEmpty { mapOf(e.paidByUserId to e.amountBaseMinor) }
+        for ((user, p) in payers) paid[user] = (paid[user] ?: 0) + p
         val shares = e.sharesBaseMinor.ifEmpty { mapOf(e.paidByUserId to e.amountBaseMinor) }
         for ((user, s) in shares) share[user] = (share[user] ?: 0) + s
     }
