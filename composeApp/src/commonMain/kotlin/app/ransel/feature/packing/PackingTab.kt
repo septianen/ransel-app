@@ -64,7 +64,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.capybara_bedroll_lantern
+import ransel.composeapp.generated.resources.ic_packing_empty
 import ransel.composeapp.generated.resources.packing_add
 import ransel.composeapp.generated.resources.packing_complete
 import ransel.composeapp.generated.resources.packing_departs
@@ -124,7 +124,7 @@ fun PackingTab(
                 // The ⋮ menu is not on screen yet, so an empty list offers templates here (the main reason to use them).
                 secondaryLabel = if (canUseTemplates) stringResource(Res.string.template_apply_title) else null,
                 onSecondary = if (canUseTemplates) ({ templates.load(); sheet = SheetTarget.UseTemplate }) else null,
-                illustration = painterResource(Res.drawable.capybara_bedroll_lantern),
+                illustration = painterResource(Res.drawable.ic_packing_empty),
             )
             else -> {
                 PackingList(

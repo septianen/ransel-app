@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.Ransel" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#131313</item>
+        <item name="android:windowSplashScreenBackground">#131313</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_empty</item>
+    </style>
+</resources>

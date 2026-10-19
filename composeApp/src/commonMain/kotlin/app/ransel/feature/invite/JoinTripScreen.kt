@@ -60,8 +60,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_close
-import ransel.composeapp.generated.resources.capybara_scanning_qr
-import ransel.composeapp.generated.resources.capybara_with_duck
+import ransel.composeapp.generated.resources.ic_data_not_found
+import ransel.composeapp.generated.resources.ic_accept_invitation
 import ransel.composeapp.generated.resources.invalid_invite_expired_body
 import ransel.composeapp.generated.resources.invalid_invite_expired_title
 import ransel.composeapp.generated.resources.invalid_invite_full_body
@@ -107,7 +107,7 @@ fun JoinTripScreen(
             !state.signedIn -> FullScreenState(
                 title = stringResource(Res.string.join_trip_sign_in_title),
                 body = stringResource(Res.string.join_trip_sign_in_body, code),
-                illustration = painterResource(Res.drawable.capybara_with_duck),
+                illustration = painterResource(Res.drawable.ic_accept_invitation),
                 primaryLabel = stringResource(Res.string.join_trip_sign_in),
                 onPrimary = onSignIn,
                 secondaryLabel = stringResource(Res.string.join_trip_later),
@@ -159,7 +159,7 @@ fun JoinTripContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                Image(painterResource(Res.drawable.capybara_with_duck), contentDescription = null, modifier = Modifier.size(200.dp))
+                Image(painterResource(Res.drawable.ic_accept_invitation), contentDescription = null, modifier = Modifier.size(200.dp))
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         stringResource(Res.string.join_trip_title),
@@ -262,7 +262,7 @@ fun InvalidInviteContent(
                 },
                 code,
             ),
-            illustration = painterResource(Res.drawable.capybara_scanning_qr),
+            illustration = painterResource(Res.drawable.ic_data_not_found),
             errorCode = failure.code,
             // "Masukkan kode lain" needs the enter-code screen, which is not designed yet.
             primaryLabel = stringResource(Res.string.invalid_invite_home),

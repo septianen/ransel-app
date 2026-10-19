@@ -28,7 +28,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.capybara_sleeping
+import ransel.composeapp.generated.resources.ic_confuse
 import ransel.composeapp.generated.resources.error_code
 
 /**
@@ -36,7 +36,7 @@ import ransel.composeapp.generated.resources.error_code
  * full-width primary button, optional text button, small error code).
  *
  * [illustration] is decorative (`contentDescription = null`). Pass the capybara that the screen's
- * design uses (see `docs/design/README.md`); the default sleeping capybara fits generic errors.
+ * design uses (see `docs/design/README.md`); the default confused capybara fits generic errors.
  * `null` leaves an empty box of the same size so layouts do not shift.
  */
 @Composable
@@ -44,7 +44,7 @@ fun FullScreenState(
     title: String,
     body: String,
     modifier: Modifier = Modifier,
-    illustration: Painter? = painterResource(Res.drawable.capybara_sleeping),
+    illustration: Painter? = painterResource(Res.drawable.ic_confuse),
     illustrationSize: androidx.compose.ui.unit.Dp = 220.dp,
     errorCode: String? = null,
     primaryLabel: String? = null,

@@ -53,7 +53,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.capybara_reading_map_compass
+import ransel.composeapp.generated.resources.ic_data_not_found
 import ransel.composeapp.generated.resources.money_unit_billion
 import ransel.composeapp.generated.resources.money_unit_million
 import ransel.composeapp.generated.resources.money_unit_thousand
@@ -113,7 +113,7 @@ fun TripListContent(
                     body = stringResource(Res.string.trips_empty_body),
                     primaryLabel = stringResource(Res.string.trips_create),
                     onPrimary = onCreateTrip,
-                    illustration = painterResource(Res.drawable.capybara_reading_map_compass),
+                    illustration = painterResource(Res.drawable.ic_data_not_found),
                 )
             }
             is TripListUiState.Content -> Box(Modifier.weight(1f)) {

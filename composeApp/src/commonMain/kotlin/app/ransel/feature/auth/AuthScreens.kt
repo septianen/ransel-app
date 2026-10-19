@@ -37,7 +37,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.capybara_tired_phone
+import ransel.composeapp.generated.resources.ic_confuse
 import ransel.composeapp.generated.resources.check_email_body
 import ransel.composeapp.generated.resources.check_email_change
 import ransel.composeapp.generated.resources.check_email_open_app
@@ -278,7 +278,7 @@ fun NewPasswordScreen(
             title = stringResource(Res.string.new_password_done_title),
             body = stringResource(Res.string.new_password_done_body),
             modifier = modifier.background(MaterialTheme.colorScheme.surface),
-            illustration = painterResource(Res.drawable.capybara_tired_phone),
+            illustration = painterResource(Res.drawable.ic_confuse),
             primaryLabel = stringResource(Res.string.sign_in_action),
             onPrimary = onDone,
         )
@@ -286,7 +286,7 @@ fun NewPasswordScreen(
             title = stringResource(Res.string.reset_token_invalid_title),
             body = stringResource(Res.string.reset_token_invalid_body),
             modifier = modifier.background(MaterialTheme.colorScheme.surface),
-            illustration = painterResource(Res.drawable.capybara_tired_phone),
+            illustration = painterResource(Res.drawable.ic_confuse),
             primaryLabel = stringResource(Res.string.forgot_send),
             onPrimary = onRequestNewLink,
         )
@@ -332,7 +332,7 @@ fun SessionExpiredScreen(
             FullScreenState(
                 title = stringResource(Res.string.session_expired_title),
                 body = body,
-                illustration = painterResource(Res.drawable.capybara_tired_phone),
+                illustration = painterResource(Res.drawable.ic_confuse),
                 primaryLabel = stringResource(Res.string.session_expired_sign_in),
                 onPrimary = onSignIn,
                 secondaryLabel = stringResource(Res.string.session_expired_offline),

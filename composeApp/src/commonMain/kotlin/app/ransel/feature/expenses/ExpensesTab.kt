@@ -59,7 +59,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.capybara_cash_backpack
+import ransel.composeapp.generated.resources.ic_expenses_empty
 import ransel.composeapp.generated.resources.expenses_by_category
 import ransel.composeapp.generated.resources.expenses_donut_description
 import ransel.composeapp.generated.resources.expenses_before_trip
@@ -102,7 +102,7 @@ fun ExpensesTab(
                 body = stringResource(Res.string.expenses_empty_body, trip.title),
                 primaryLabel = if (canEdit) stringResource(Res.string.expenses_record) else null,
                 onPrimary = if (canEdit) ({ sheet = ExpenseSheetTarget.New }) else null,
-                illustration = painterResource(Res.drawable.capybara_cash_backpack)
+                illustration = painterResource(Res.drawable.ic_expenses_empty)
             )
             else -> {
                 val summary = state.summary!!

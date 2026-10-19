@@ -98,7 +98,7 @@ import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_undo
-import ransel.composeapp.generated.resources.capybara_world_map
+import ransel.composeapp.generated.resources.ic_itinerary_empty
 import ransel.composeapp.generated.resources.itinerary_add_activity
 import ransel.composeapp.generated.resources.place_detail_open
 import ransel.composeapp.generated.resources.itinerary_explore_ai
@@ -583,7 +583,7 @@ private fun EmptyDay(title: String, onAddActivity: (() -> Unit)?, onExplore: (()
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Image(painterResource(Res.drawable.capybara_world_map), contentDescription = null, modifier = Modifier.size(180.dp))
+        Image(painterResource(Res.drawable.ic_itinerary_empty), contentDescription = null, modifier = Modifier.size(180.dp))
         Text(
             title,
             style = MaterialTheme.typography.headlineMedium,

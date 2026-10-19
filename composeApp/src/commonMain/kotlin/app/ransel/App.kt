@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import app.ransel.data.remote.ConnectionMonitor
 import app.ransel.ui.adaptive.rememberIsExpanded
 import app.ransel.ui.components.ConnectionErrorState
+import app.ransel.ui.components.SplashScreen
+import kotlinx.coroutines.delay
 import app.ransel.ui.components.ServerErrorState
 import app.ransel.ui.shell.RanselNavigationRail
 import androidx.compose.runtime.CompositionLocalProvider
@@ -137,6 +139,8 @@ import ransel.composeapp.generated.resources.placeholder_account_title
 import ransel.composeapp.generated.resources.placeholder_body
 import ransel.composeapp.generated.resources.placeholder_explore_title
 
+private const val SPLASH_MIN_MS = 1_200L
+
 /** App shell: theme and language from preferences, first-launch onboarding, then the tabs. */
 @Composable
 fun App() {
@@ -150,6 +154,9 @@ fun App() {
     val preferences by preferencesRepository.observe().collectAsState(initial = AppPreferences(loaded = false))
     val scope = rememberCoroutineScope()
     var openSignInAfterOnboarding by remember { mutableStateOf(false) }
+    // The splash stays at least this long on a cold start so it does not flash by while preferences load.
+    var splashHeld by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) { delay(SPLASH_MIN_MS); splashHeld = false }
 
     // Apply the chosen language before any string is read; `key` rebuilds the UI when it changes.
     remember(preferences.language) { applyAppLanguage(preferences.language.tag) }
@@ -165,7 +172,7 @@ fun App() {
             SystemBarsAppearance(darkTheme = dark)
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 when {
-                    !preferences.loaded -> Unit
+                    !preferences.loaded || splashHeld -> SplashScreen()
                     !preferences.onboardingCompleted -> OnboardingScreen(
                         onFinish = { scope.launch { preferencesRepository.setOnboardingCompleted(true) } },
                         onSignIn = {
@@ -193,7 +200,7 @@ private fun SessionGate(openSignIn: Boolean) {
     val inviteLinks: InviteLinks = koinInject()
     LaunchedEffect(inviteLinks) { initialInviteCode()?.let(inviteLinks::offerCode) } // web: opened /j/<code>
     when {
-        state is SessionState.Loading -> Unit
+        state is SessionState.Loading -> SplashScreen()
         requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
         else -> RanselNavigation(openSignIn = openSignIn)
     }

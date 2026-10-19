@@ -43,9 +43,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.have_account
 import ransel.composeapp.generated.resources.sign_in_action
-import ransel.composeapp.generated.resources.capybara_counting_coins
-import ransel.composeapp.generated.resources.capybara_opening_backpack
-import ransel.composeapp.generated.resources.capybara_world_map
+import ransel.composeapp.generated.resources.ic_expenses_empty
+import ransel.composeapp.generated.resources.ic_packing_empty
+import ransel.composeapp.generated.resources.ic_itinerary_empty
 import ransel.composeapp.generated.resources.onboarding_body_1
 import ransel.composeapp.generated.resources.onboarding_body_2
 import ransel.composeapp.generated.resources.onboarding_body_3
@@ -61,9 +61,9 @@ import ransel.composeapp.generated.resources.onboarding_title_3
 private data class OnboardingPage(val title: StringResource, val body: StringResource, val illustration: DrawableResource)
 
 private val Pages = listOf(
-    OnboardingPage(Res.string.onboarding_title_1, Res.string.onboarding_body_1, Res.drawable.capybara_world_map),
-    OnboardingPage(Res.string.onboarding_title_2, Res.string.onboarding_body_2, Res.drawable.capybara_opening_backpack),
-    OnboardingPage(Res.string.onboarding_title_3, Res.string.onboarding_body_3, Res.drawable.capybara_counting_coins),
+    OnboardingPage(Res.string.onboarding_title_1, Res.string.onboarding_body_1, Res.drawable.ic_itinerary_empty),
+    OnboardingPage(Res.string.onboarding_title_2, Res.string.onboarding_body_2, Res.drawable.ic_packing_empty),
+    OnboardingPage(Res.string.onboarding_title_3, Res.string.onboarding_body_3, Res.drawable.ic_expenses_empty),
 )
 
 /**

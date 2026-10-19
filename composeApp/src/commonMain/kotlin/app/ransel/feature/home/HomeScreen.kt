@@ -54,7 +54,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.capybara_phone
+import ransel.composeapp.generated.resources.ic_data_not_found
 import ransel.composeapp.generated.resources.greeting_afternoon
 import ransel.composeapp.generated.resources.greeting_evening
 import ransel.composeapp.generated.resources.greeting_morning
@@ -117,7 +117,7 @@ fun HomeContent(
                 body = stringResource(Res.string.home_empty_body),
                 primaryLabel = stringResource(Res.string.home_empty_action),
                 onPrimary = onCreateTrip,
-                illustration = painterResource(Res.drawable.capybara_phone),
+                illustration = painterResource(Res.drawable.ic_data_not_found),
             )
         }
         is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier, onExplore)
