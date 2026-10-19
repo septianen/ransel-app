@@ -65,7 +65,7 @@ import app.ransel.ui.components.UndoSnackbar
 import app.ransel.ui.format.formatDurationApprox
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
-import app.ransel.ui.components.ScooterLoading
+import app.ransel.ui.components.CaveCartLoading
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import kotlin.math.abs
@@ -143,7 +143,7 @@ fun SwipeScreen(
                         s.session.form.destination,
                         stringResource(s.session.form.priceLevel.label),
                     ),
-                    illustration = painterResource(Res.drawable.capybara_magnifier_map),
+                    illustration = painterResource(Res.drawable.ic_data_not_found),
                     primaryLabel = stringResource(Res.string.swipe_change_preferences),
                     onPrimary = { viewModel.discard(); onChangePreferences() },
                     secondaryLabel = stringResource(Res.string.swipe_back_home),
@@ -157,7 +157,7 @@ fun SwipeScreen(
                     FullScreenState(
                         title = stringResource(Res.string.swipe_error_title),
                         body = stringResource(Res.string.swipe_error_body),
-                        illustration = painterResource(Res.drawable.capybara_umbrella_rain),
+                        illustration = painterResource(Res.drawable.ic_confuse),
                         errorCode = s.failure.code.takeIf { it != ErrorCode.INTERNAL_ERROR } ?: ErrorCode.AI_UNAVAILABLE,
                         primaryLabel = stringResource(Res.string.state_retry),
                         onPrimary = viewModel::retry,
@@ -170,7 +170,7 @@ fun SwipeScreen(
                 FullScreenState(
                     title = stringResource(Res.string.swipe_quota_title),
                     body = stringResource(Res.string.swipe_quota_body, s.quota?.limit ?: 10),
-                    illustration = painterResource(Res.drawable.capybara_firefly),
+                    illustration = painterResource(Res.drawable.ic_confuse),
                     errorCode = ErrorCode.AI_QUOTA_EXCEEDED,
                     primaryLabel = stringResource(Res.string.swipe_back_home),
                     onPrimary = onHome,
@@ -232,9 +232,9 @@ private fun SwipeHeader(session: ExploreSession?, destination: String, onClose: 
 private fun LoadingContent(onClose: () -> Unit, onTune: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         SwipeHeader(null, "", onClose, onTune)
-        // Design `MemuatRekomendasi`: the capybara rides a scooter while the LLM and Places answer (5-10 s).
+        // Design `MemuatRekomendasi`: the capybara rides a mine cart through a cave while the LLM and Places answer (5-10 s).
         Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp), contentAlignment = Alignment.Center) {
-            ScooterLoading(
+            CaveCartLoading(
                 messages = listOf(
                     stringResource(Res.string.explore_loading_1),
                     stringResource(Res.string.explore_loading_2),
@@ -488,7 +488,7 @@ private fun FinishedContent(session: ExploreSession, onItinerary: () -> Unit, on
     FullScreenState(
         title = stringResource(Res.string.swipe_done_title),
         body = stringResource(Res.string.swipe_done_body, session.saved, session.form.tripTitle),
-        illustration = painterResource(Res.drawable.capybara_pinning_map),
+        illustration = painterResource(Res.drawable.ic_sun_bathing),
         illustrationSize = 160.dp,
         primaryLabel = stringResource(Res.string.swipe_done_itinerary),
         onPrimary = onItinerary,

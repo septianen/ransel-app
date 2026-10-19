@@ -39,7 +39,7 @@ import app.ransel.ui.components.SectionHeader
 import app.ransel.ui.components.TripCover
 import app.ransel.ui.components.TripHeader
 import app.ransel.ui.components.TripTab
-import app.ransel.ui.components.ScooterLoading
+import app.ransel.ui.components.CaveCartLoading
 import app.ransel.ui.components.UndoSnackbar
 import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
@@ -140,8 +140,8 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     LoadingOutlinedButton(onClick = { loading = true }, loading = loading, modifier = Modifier.fillMaxWidth()) { Text("Tandai lunas") }
                     LoadingButton(onClick = {}, loading = false, enabled = false, modifier = Modifier.fillMaxWidth()) { Text("Disabled") }
                 }
-                Section("ScooterLoading") {
-                    ScooterLoading(
+                Section("CaveCartLoading") {
+                    CaveCartLoading(
                         messages = listOf(
                             stringResource(Res.string.explore_loading_1),
                             stringResource(Res.string.explore_loading_2),
