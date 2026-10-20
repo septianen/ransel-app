@@ -21,6 +21,7 @@ import app.ransel.server.plugins.configureRateLimit
 import app.ransel.server.plugins.configureSerialization
 import app.ransel.server.plugins.configureStatusPages
 import app.ransel.server.routes.authRoutes
+import app.ransel.server.routes.creditRoutes
 import app.ransel.server.routes.balanceRoutes
 import app.ransel.server.routes.exploreRoutes
 import app.ransel.server.routes.expenseRoutes
@@ -41,6 +42,7 @@ import app.ransel.server.security.LoggingEmailSender
 import app.ransel.server.security.PasswordHasher
 import app.ransel.server.security.TokenService
 import app.ransel.server.service.AuthService
+import app.ransel.server.service.CreditService
 import app.ransel.server.service.InviteService
 import app.ransel.server.service.PasswordResetService
 import app.ransel.server.service.TripEvents
@@ -97,7 +99,8 @@ fun Application.module(
     val suggestions = ExploreSuggestionService(aiServices.llm, fx ?: ecb ?: NoFxRates, aiMetrics)
     val fxRates = fx ?: ecb ?: NoFxRates
     val placeDetails = PlaceDetailService(aiServices, photoSigner, fxRates, aiMetrics)
-    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails)
+    val credits = CreditService(config)
+    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits)
     if (ecb != null) {
         maintenance.launch {
             while (isActive) {
@@ -153,6 +156,7 @@ fun Application.module(
                 balanceRoutes()
                 packingTemplateRoutes()
                 recommendationRoutes(recommendations)
+                creditRoutes(credits)
                 exploreRoutes(suggestions)
                 placeDetailRoutes(placeDetails)
             }

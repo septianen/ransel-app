@@ -37,6 +37,17 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 
 Cards show Google place photos through the signed proxy `GET /api/v1/places/photo/{placeId}`. Each uncached photo is a billed Place Photo request (1,000 per month are free). In Google Cloud Console → APIs & Services → Places API (New) → Quotas, cap *Place Photo requests per day* at about 30 (1,000 / 30 days ≈ 33), and keep the budget alert from above. When the cap is hit the proxy answers 404 and the app falls back to the category colour; the counters `placesPhoto` and `placesPhotoQuotaHits` appear in the hourly `ai.metrics` log line.
 
+## Explore credits and vouchers
+
+Every user has a wallet (30 credits on first use) plus 3 free credits a day (resets 00:00 WIB). A new search costs 3, the next batch 1. All numbers and the pack list can be changed in the VPS `.env` (`CREDIT_SIGNUP_GRANT`, `CREDIT_DAILY_FREE`, `CREDIT_COST_SEARCH`, `CREDIT_COST_NEXT_BATCH`, `CREDIT_COST_PLACE_DETAIL`, `CREDIT_PACKAGES=id:credits:priceMinor;...`); restart the server container after changing them. Nothing can be bought yet: until a payment provider exists, top up users with a voucher. On the VPS:
+
+```
+./deploy/create-voucher.sh 15            # 15 credits, one use, valid 30 days
+./deploy/create-voucher.sh 40 5 60       # 40 credits, five users, valid 60 days
+```
+
+It prints the code (`ABCD-EFGH-JKLM`); the user enters it under Account > Credits. One user can redeem a code once. To revoke: `UPDATE credit_vouchers SET revoked_at = now() WHERE code = '...'`. Watch the real cost per search in the hourly `ai.metrics` log line before changing the pack prices.
+
 ## Backups
 
 `deploy/backup-db.sh` dumps the database into `backups/` and keeps 14 days. Add to the deploy user's crontab (`crontab -e`):

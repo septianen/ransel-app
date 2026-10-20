@@ -24,6 +24,7 @@ const val JWT_AUTH = "jwt"
 val AuthRateLimit = RateLimitName("auth")
 val PhotoRateLimit = RateLimitName("photo")
 val SuggestionsRateLimit = RateLimitName("suggestions")
+val RedeemRateLimit = RateLimitName("redeem")
 
 fun Application.configureAuth(config: AppConfig, tokens: TokenService) {
     install(Authentication) {
@@ -53,6 +54,10 @@ fun Application.configureRateLimit(config: AppConfig) {
         register(SuggestionsRateLimit) {
             rateLimiter(limit = config.suggestionsRateLimitPerHour, refillPeriod = 1.hours)
             // Per user (the JWT subject), falling back to the client address; the route sits behind authenticate.
+            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
+        }
+        register(RedeemRateLimit) {
+            rateLimiter(limit = 10, refillPeriod = 1.minutes)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
         }
         register(PhotoRateLimit) {

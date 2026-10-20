@@ -23,6 +23,13 @@ services:
       LLM_MODEL: ${LLM_MODEL:-gemini-3.1-flash-lite}
       LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-gemini-3.5-flash}
       PLACES_API_KEY: ${PLACES_API_KEY:-}
+      # Explore credits (defaults live in AppConfig; set in the VPS .env to change prices of the actions)
+      CREDIT_SIGNUP_GRANT: ${CREDIT_SIGNUP_GRANT:-30}
+      CREDIT_DAILY_FREE: ${CREDIT_DAILY_FREE:-3}
+      CREDIT_COST_SEARCH: ${CREDIT_COST_SEARCH:-3}
+      CREDIT_COST_NEXT_BATCH: ${CREDIT_COST_NEXT_BATCH:-1}
+      CREDIT_COST_PLACE_DETAIL: ${CREDIT_COST_PLACE_DETAIL:-0}
+      CREDIT_PACKAGES: ${CREDIT_PACKAGES:-small:15:10000;medium:40:25000;large:100:55000}
       # App/Universal Links verification files (served at /.well-known/); empty = 404
       ANDROID_PACKAGE: ${ANDROID_PACKAGE:-app.ransel}
       ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}

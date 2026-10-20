@@ -14,6 +14,9 @@ import org.jetbrains.exposed.v1.json.jsonb
 import app.ransel.shared.dto.TemplateItem
 import app.ransel.server.ai.CachedDetail
 import app.ransel.server.ai.CachedPlace
+import app.ransel.shared.model.CreditAction
+import app.ransel.shared.model.CreditLedgerKind
+import app.ransel.shared.model.CreditSource
 import app.ransel.shared.model.FeedbackAction
 import kotlinx.serialization.json.Json
 
@@ -193,6 +196,53 @@ object AiUsage : Table("ai_usage") {
     val usageDate = date("usage_date")
     val count = integer("count")
     override val primaryKey = PrimaryKey(userId, usageDate)
+}
+
+object CreditWallets : Table("credit_wallets") {
+    val userId = javaUUID("user_id")
+    val balance = integer("balance")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(userId)
+}
+
+object CreditDaily : Table("credit_daily") {
+    val userId = javaUUID("user_id")
+    val usageDate = date("usage_date")
+    val freeUsed = integer("free_used")
+    override val primaryKey = PrimaryKey(userId, usageDate)
+}
+
+object CreditLedger : Table("credit_ledger") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val kind = enumerationByName<CreditLedgerKind>("kind", 20)
+    val delta = integer("delta")
+    val spendSource = enumerationByName<CreditSource>("source", 20).nullable()
+    val action = enumerationByName<CreditAction>("action", 20).nullable()
+    val ref = text("ref").nullable()
+    val idempotencyKey = text("idempotency_key").nullable()
+    val balanceAfter = integer("balance_after")
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object CreditVouchers : Table("credit_vouchers") {
+    val code = text("code")
+    val credits = integer("credits")
+    val maxUses = integer("max_uses")
+    val usedCount = integer("used_count")
+    val expiresAt = timestamp("expires_at").nullable()
+    val revokedAt = timestamp("revoked_at").nullable()
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(code)
+}
+
+object CreditVoucherRedemptions : Table("credit_voucher_redemptions") {
+    val code = text("code")
+    val userId = javaUUID("user_id")
+    val redeemedAt = timestamp("redeemed_at")
+    override val primaryKey = PrimaryKey(code, userId)
 }
 
 object RecommendationCache : Table("recommendation_cache") {

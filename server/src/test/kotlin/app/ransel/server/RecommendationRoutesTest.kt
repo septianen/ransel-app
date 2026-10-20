@@ -14,6 +14,8 @@ import app.ransel.server.ai.PlacesClient
 import app.ransel.shared.model.Category
 import io.ktor.client.statement.readRawBytes
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -163,9 +165,14 @@ class RecommendationRoutesTest {
             assertTrue(first.str("photoUrl").startsWith("/places/photo/place-Pantai Kuta?exp="), "every card gets a signed photo path")
             assertEquals("Foto Pantai Kuta", first.str("photoAttribution"))
 
+            // a search costs 3 credits and the free daily allowance (3) pays it first
+            val credits = data.getValue("credits").jsonObject
+            assertEquals("30", credits.str("balance"))
+            assertEquals("0", credits.str("dailyFreeLeft"))
+            // the deprecated field stays filled for apps from before credits
             val quota = data.getValue("quota").jsonObject
-            assertEquals("1", quota.str("used"))
-            assertEquals("10", quota.str("limit"))
+            assertEquals("3", quota.str("used"))
+            assertEquals("33", quota.str("limit"))
             assertTrue(quota.str("resetsAt").endsWith("Z"))
         }
     }
@@ -196,7 +203,7 @@ class RecommendationRoutesTest {
             val again = post("/recommendations", request(tripB))
             assertEquals(HttpStatusCode.OK, again.status)
             assertEquals(1, llm.calls.get(), "same destination/interests/budget/style must not call the LLM again")
-            assertEquals("1", again.data().jsonObject.getValue("quota").jsonObject.str("used")) // a search is still a search
+            assertEquals("3", again.data().jsonObject.getValue("quota").jsonObject.str("used")) // a cache hit is still a search
 
             post("/recommendations", request(tripB, notes = "tanpa babi"))
             assertEquals(2, llm.calls.get(), "notes change the answer, so they are part of the cache key")
@@ -229,22 +236,50 @@ class RecommendationRoutesTest {
     }
 
     @Test
-    fun dailyQuotaIsTenAndBackgroundBatchesDoNotCount() {
+    fun noCreditsIs402AndTheCheckHappensBeforeAnyAiCall() {
         val (llm, places) = fakes()
-        apiTest(ai = AiServices(llm, places)) {
+        // 6 credits and no free allowance: exactly two searches
+        apiTest(config = TestDb.config().copy(creditSignupGrant = 6, creditDailyFree = 0), ai = AiServices(llm, places)) {
             val tripId = trip()
-            repeat(10) { assertEquals(HttpStatusCode.OK, post("/recommendations", request(tripId)).status) }
+            repeat(2) { assertEquals(HttpStatusCode.OK, post("/recommendations", request(tripId, notes = "n$it")).status) }
+            val callsBefore = llm.calls.get()
 
-            val blocked = post("/recommendations", request(tripId))
-            assertEquals(HttpStatusCode.TooManyRequests, blocked.status)
-            assertEquals("AI_QUOTA_EXCEEDED", blocked.errorCode())
+            val blocked = post("/recommendations", request(tripId, notes = "n3"))
+            assertEquals(HttpStatusCode.PaymentRequired, blocked.status)
+            assertEquals("INSUFFICIENT_CREDITS", blocked.errorCode())
             val details = blocked.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject
-            assertEquals("10", details.str("used"))
+            assertEquals("3", details.str("cost"))
+            assertEquals("0", details.str("available"))
             assertTrue(details.str("resetsAt").isNotBlank())
+            assertEquals(callsBefore, llm.calls.get(), "a user without credits must not cost an LLM call")
 
-            val background = post("/recommendations", request(tripId, newSearch = false))
-            assertEquals(HttpStatusCode.OK, background.status)
-            assertEquals("10", background.data().jsonObject.getValue("quota").jsonObject.str("used"))
+            // the next batch is cheaper but still needs a credit
+            assertEquals("INSUFFICIENT_CREDITS", post("/recommendations", request(tripId, newSearch = false)).errorCode())
+        }
+    }
+
+    @Test
+    fun parallelSearchesNeverSpendMoreThanTheUserHas() {
+        val (llm, places) = fakes()
+        apiTest(config = TestDb.config().copy(creditSignupGrant = 6, creditDailyFree = 0), ai = AiServices(llm, places)) {
+            val tripId = trip()
+            val statuses = kotlinx.coroutines.coroutineScope {
+                (1..6).map { i -> async { post("/recommendations", request(tripId, notes = "p$i")).status } }.awaitAll()
+            }
+            assertEquals(2, statuses.count { it == HttpStatusCode.OK }, "6 credits pay exactly two searches")
+            assertTrue(statuses.all { it == HttpStatusCode.OK || it == HttpStatusCode.PaymentRequired })
+            assertEquals("0", get("/credits").data().jsonObject.str("balance"))
+        }
+    }
+
+    @Test
+    fun nextBatchCostsOneCredit() {
+        val (llm, places) = fakes()
+        apiTest(config = TestDb.config().copy(creditSignupGrant = 4, creditDailyFree = 0), ai = AiServices(llm, places)) {
+            val tripId = trip()
+            assertEquals("1", post("/recommendations", request(tripId)).data().jsonObject.getValue("credits").jsonObject.str("balance"))
+            assertEquals("0", post("/recommendations", request(tripId, newSearch = false)).data().jsonObject.getValue("credits").jsonObject.str("balance"))
+            assertEquals(HttpStatusCode.PaymentRequired, post("/recommendations", request(tripId, newSearch = false)).status)
         }
     }
 
@@ -259,9 +294,9 @@ class RecommendationRoutesTest {
             assertEquals("AI_UNAVAILABLE", failed.errorCode())
             assertEquals(2, llm.calls.get())
 
-            // third call succeeds and shows nothing was charged
+            // third call succeeds and shows only that one search was charged
             val ok = post("/recommendations", request(tripId))
-            assertEquals("1", ok.data().jsonObject.getValue("quota").jsonObject.str("used"))
+            assertEquals("3", ok.data().jsonObject.getValue("quota").jsonObject.str("used"))
         }
     }
 
@@ -435,7 +470,7 @@ class RecommendationRoutesTest {
     }
 
     @Test
-    fun suggestionsForANewTripAreCachedPerDestinationAndMonthAndNeverCostQuota() {
+    fun suggestionsForANewTripAreCachedPerDestinationAndMonthAndNeverCostCredits() {
         val (llm, places) = fakes()
         apiTest(ai = AiServices(llm, places)) {
             val first = get("/explore/suggestions?destination=Kyoto&month=2026-03")
@@ -451,8 +486,9 @@ class RecommendationRoutesTest {
             assertEquals(2, llm.interestCalls.get(), "the month is part of the key")
 
             val trip = trip()
-            val quota = post("/recommendations", request(trip, newSearch = false)).data().jsonObject.getValue("quota").jsonObject
-            assertEquals("0", quota.str("used"))
+            val credits = get("/credits").data().jsonObject
+            assertEquals("30", credits.str("balance"), "suggestions never spend credits")
+            assertEquals("3", credits.str("dailyFreeLeft"))
         }
     }
 

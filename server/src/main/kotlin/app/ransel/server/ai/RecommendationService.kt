@@ -1,23 +1,22 @@
 package app.ransel.server.ai
 
 import app.ransel.server.AppConfig
-import app.ransel.server.db.AiUsage
 import app.ransel.server.db.RecommendationCache
 import app.ransel.server.db.RecommendationFeedback
 import app.ransel.server.db.Trips
 import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.requireValid
+import app.ransel.server.service.CreditService
 import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.requireRole
 import app.ransel.shared.api.ErrorCode
-import app.ransel.shared.domain.AI_DAILY_QUOTA
 import app.ransel.shared.dto.FeedbackRequest
-import app.ransel.shared.dto.QuotaDto
 import app.ransel.shared.dto.RecommendationGroup
 import app.ransel.shared.dto.RecommendationItem
 import app.ransel.shared.dto.RecommendationRequest
 import app.ransel.shared.dto.RecommendationResponse
 import app.ransel.shared.model.Category
+import app.ransel.shared.model.CreditAction
 import app.ransel.shared.model.FeedbackAction
 import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.Role
@@ -27,12 +26,9 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.daysUntil
-import kotlinx.datetime.plus
 import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinLocalDate
 import kotlinx.datetime.toLocalDateTime
@@ -42,9 +38,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
-import org.jetbrains.exposed.v1.core.plus
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insertIgnore
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
@@ -76,6 +70,7 @@ class RecommendationService(
     private val fx: FxRates = NoFxRates,
     /** Keeps each place's detail text for the itinerary; null = not kept (tests that do not care). */
     private val details: PlaceDetailService? = null,
+    private val credits: CreditService,
 ) {
     private val log = LoggerFactory.getLogger(RecommendationService::class.java)
 
@@ -88,8 +83,14 @@ class RecommendationService(
         val trip = loadTrip(tripId)
         if (todayWib() > trip.endDate) throw validationFailed(mapOf("tripId" to "TRIP_ENDED"))
 
-        // Pre-check, so an exhausted user costs nothing. The counter itself moves only after a successful search.
-        if (body.newSearch) failIfExhausted(currentUsage(userId))
+        // Pre-check, so a user without credits costs nothing. The charge itself happens only after a successful search.
+        val action = if (body.newSearch) CreditAction.SEARCH else CreditAction.NEXT_BATCH
+        try {
+            credits.requireAffordable(userId, action)
+        } catch (e: ApiException) {
+            if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
+            throw e
+        }
 
         val feedback = transaction {
             RecommendationFeedback.selectAll()
@@ -138,12 +139,17 @@ class RecommendationService(
             .take(MAX_CARDS)
         val items = withPhotoCredits(picked, trip.baseCurrency)
 
-        val quota = if (body.newSearch) consume(userId) else currentUsage(userId).let(::toQuota)
+        val state = try {
+            credits.charge(userId, action, tripId.toString())
+        } catch (e: ApiException) {
+            if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
+            throw e
+        }
         log.info(
-            "ai.search cache={} candidates={} returned={} quotaUsed={}/{}",
-            if (cached != null) "hit" else "miss", candidates.size, items.size, quota.used, quota.limit,
+            "ai.search cache={} candidates={} returned={} action={} balance={} freeLeft={}",
+            if (cached != null) "hit" else "miss", candidates.size, items.size, action, state.balance, state.dailyFreeLeft,
         )
-        return RecommendationResponse(groups = group(items), quota = quota)
+        return RecommendationResponse(groups = group(items), quota = credits.legacyQuota(userId), credits = state)
     }
 
     fun saveFeedback(userId: UUID, body: FeedbackRequest) {
@@ -315,53 +321,11 @@ class RecommendationService(
     private fun group(items: List<Pair<Category, RecommendationItem>>): List<RecommendationGroup> =
         items.groupBy({ it.first }, { it.second }).map { (category, list) -> RecommendationGroup(category, list) }
 
-    // ── quota ───────────────────────────────────────────────────────────────
+    // ── time ────────────────────────────────────────────────────────────────
 
     private val wib = TimeZone.of("Asia/Jakarta")
 
     private fun todayWib(): LocalDate = Clock.System.now().toLocalDateTime(wib).date
-
-    private fun resetsAt() = todayWib().plus(1, DateTimeUnit.DAY).atStartOfDayIn(wib)
-
-    private fun currentUsage(userId: UUID): Int = transaction {
-        AiUsage.selectAll()
-            .where { (AiUsage.userId eq userId) and (AiUsage.usageDate eq todayWib().toJavaLocalDate()) }
-            .singleOrNull()?.get(AiUsage.count) ?: 0
-    }
-
-    private fun toQuota(used: Int) = QuotaDto(used = used, limit = AI_DAILY_QUOTA, resetsAt = resetsAt())
-
-    private fun failIfExhausted(used: Int) {
-        if (used >= AI_DAILY_QUOTA) {
-            metrics.quotaRejections.incrementAndGet()
-            throw ApiException(
-                HttpStatusCode.TooManyRequests, ErrorCode.AI_QUOTA_EXCEEDED,
-                "Daily Explore searches used up",
-                mapOf("used" to used.toString(), "limit" to AI_DAILY_QUOTA.toString(), "resetsAt" to resetsAt().toString()),
-            )
-        }
-    }
-
-    /**
-     * Atomic: the increment only happens while count < limit, so two parallel searches cannot overshoot.
-     * First search of the day inserts the row; a lost insert race falls back to the conditional update.
-     */
-    private fun consume(userId: UUID): QuotaDto {
-        val day = todayWib().toJavaLocalDate()
-        val used = transaction {
-            fun bump() = AiUsage.update({
-                (AiUsage.userId eq userId) and (AiUsage.usageDate eq day) and (AiUsage.count less AI_DAILY_QUOTA)
-            }) { it[count] = count + 1 }
-
-            val ok = bump() > 0 ||
-                AiUsage.insertIgnore { it[AiUsage.userId] = userId; it[usageDate] = day; it[count] = 1 }.insertedCount > 0 ||
-                bump() > 0
-            if (!ok) return@transaction null
-            AiUsage.selectAll().where { (AiUsage.userId eq userId) and (AiUsage.usageDate eq day) }.single()[AiUsage.count]
-        }
-        if (used == null) failIfExhausted(AI_DAILY_QUOTA)
-        return toQuota(used ?: AI_DAILY_QUOTA)
-    }
 
     // ── cache ───────────────────────────────────────────────────────────────
 

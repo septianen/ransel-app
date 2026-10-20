@@ -46,7 +46,18 @@ data class AppConfig(
     /** `GET /explore/suggestions` per user per hour (soft limit; it never uses the daily search quota). */
     val suggestionsRateLimitPerHour: Int = 60,
     val aiCacheTtl: Duration = 3.days,
+    /** Explore credits (docs/TRD.md "Quota"). All tunable by env; the app reads them from `GET /credits`. */
+    val creditSignupGrant: Int = 30,
+    /** Free credits per WIB day. Do not accumulate. */
+    val creditDailyFree: Int = 3,
+    val creditCostSearch: Int = 3,
+    val creditCostNextBatch: Int = 1,
+    val creditCostPlaceDetail: Int = 0,
+    /** Top-up packs shown by `GET /credits/packages`. Buying is not possible until a payment provider is connected. */
+    val creditPackages: List<CreditPack> = DEFAULT_CREDIT_PACKS,
 ) {
+    data class CreditPack(val id: String, val credits: Int, val priceMinor: Long, val currency: String = "IDR")
+
     data class SeedUser(val email: String, val password: String, val displayName: String)
 
     companion object {
@@ -61,6 +72,24 @@ data class AppConfig(
                     "SEED_USERS entry ${index + 1} must look like email|password|name"
                 }
                 SeedUser(parts[0], parts[1], parts.getOrNull(2)?.takeIf { it.isNotEmpty() } ?: "Test User")
+            }
+
+        val DEFAULT_CREDIT_PACKS = listOf(
+            CreditPack("small", 15, 10_000),
+            CreditPack("medium", 40, 25_000),
+            CreditPack("large", 100, 55_000),
+        )
+
+        /** `CREDIT_PACKAGES` = `id:credits:priceMinor;id:credits:priceMinor` (currency IDR). */
+        fun parseCreditPacks(raw: String?): List<CreditPack> =
+            raw.orEmpty().split(';').map { it.trim() }.filter { it.isNotEmpty() }.mapIndexed { index, entry ->
+                val parts = entry.split(':').map { it.trim() }
+                val credits = parts.getOrNull(1)?.toIntOrNull()
+                val price = parts.getOrNull(2)?.toLongOrNull()
+                require(parts.size == 3 && parts[0].isNotEmpty() && credits != null && credits > 0 && price != null && price > 0) {
+                    "CREDIT_PACKAGES entry ${index + 1} must look like id:credits:priceMinor"
+                }
+                CreditPack(parts[0], credits, price)
             }
 
         private fun String?.csv() = this?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
@@ -105,6 +134,12 @@ data class AppConfig(
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),
                 iosAppIds = env["IOS_APP_IDS"].csv(),
+                creditSignupGrant = env["CREDIT_SIGNUP_GRANT"]?.toIntOrNull()?.coerceAtLeast(0) ?: 30,
+                creditDailyFree = env["CREDIT_DAILY_FREE"]?.toIntOrNull()?.coerceAtLeast(0) ?: 3,
+                creditCostSearch = env["CREDIT_COST_SEARCH"]?.toIntOrNull()?.coerceAtLeast(0) ?: 3,
+                creditCostNextBatch = env["CREDIT_COST_NEXT_BATCH"]?.toIntOrNull()?.coerceAtLeast(0) ?: 1,
+                creditCostPlaceDetail = env["CREDIT_COST_PLACE_DETAIL"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0,
+                creditPackages = parseCreditPacks(env["CREDIT_PACKAGES"]).ifEmpty { DEFAULT_CREDIT_PACKS },
                 seedUsers = listOfNotNull(
                     env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
                         SeedUser(
