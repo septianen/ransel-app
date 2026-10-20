@@ -641,8 +641,6 @@
     <string name="explore_picker_other_trip">Or search for another trip</string>
     <string name="explore_picker_body">Places you save go into the Unscheduled box of that trip.</string>
     <string name="explore_picker_your_trips">Your trips</string>
-    <string name="explore_quota_left">%1$d of %2$d searches left today</string>
-    <string name="explore_quota_use">Uses 1 of %1$d searches left today.</string>
     <plurals name="explore_picker_in_days">
         <item quantity="one">%1$d day to go</item>
         <item quantity="other">%1$d days to go</item>
@@ -721,8 +719,6 @@
     <string name="swipe_error_body">Our AI is busy or having trouble. Your preferences are saved, so just try again.</string>
     <string name="swipe_none_title">Nothing matched yet</string>
     <string name="swipe_none_body">No place in %1$s fits budget %2$s and these interests. Try adding an interest or loosening the budget.</string>
-    <string name="swipe_quota_title">You have used today\'s searches</string>
-    <string name="swipe_quota_body">You used %1$d of %1$d recommendation searches today. They refill tomorrow at 00:00 WIB. Places you saved stay safe in your itinerary.</string>
     <string name="home_explore_title">Not sure where to go in %1$s?</string>
     <string name="home_explore_body">Pick your favourite places with a swipe.</string>
     <string name="home_explore_cta">Try</string>
@@ -743,4 +739,44 @@
     <string name="place_detail_error">The details could not be loaded.</string>
     <string name="place_detail_save">Save</string>
     <string name="place_detail_skip">Skip</string>
+
+    <!-- Explore credits -->
+    <string name="credits_title">Credits</string>
+    <string name="credits_balance_label">Your credits</string>
+    <string name="credits_unit">credits</string>
+    <string name="credits_free_today">Free today: %1$d of %2$d. Refills at 00:00 WIB.</string>
+    <string name="credits_costs">Cost in credits: new search %1$d, next batch %2$d</string>
+    <string name="credits_voucher_title">Have a voucher code?</string>
+    <string name="credits_voucher_label">Voucher code</string>
+    <string name="credits_voucher_placeholder">ABCD-EFGH-JKLM</string>
+    <string name="credits_voucher_apply">Redeem code</string>
+    <string name="credits_voucher_success">+%1$d credits added</string>
+    <string name="credits_voucher_invalid">This code was not found or is no longer valid.</string>
+    <string name="credits_voucher_expired">This code has expired.</string>
+    <string name="credits_voucher_used">This code was already used or has no uses left.</string>
+    <string name="credits_voucher_rate_limited">Too many attempts. Try again in a minute.</string>
+    <string name="credits_error_connection">No connection. Try again.</string>
+    <string name="credits_error_generic">Something went wrong. Try again.</string>
+    <string name="credits_packages_title">Credit packs</string>
+    <string name="credits_package_credits">%1$d credits</string>
+    <string name="credits_package_per_search">about %1$s per search</string>
+    <string name="credits_packages_soon">Buying is coming soon. For now, top up with a voucher code.</string>
+    <string name="credits_history_title">History</string>
+    <string name="credits_history_empty">Nothing yet.</string>
+    <string name="credits_kind_signup">Welcome credits</string>
+    <string name="credits_kind_voucher">Voucher</string>
+    <string name="credits_kind_topup">Top up</string>
+    <string name="credits_kind_refund">Refund</string>
+    <string name="credits_kind_adjustment">Adjustment</string>
+    <string name="credits_action_search">New search</string>
+    <string name="credits_action_next_batch">More results</string>
+    <string name="credits_action_place_detail">Place details</string>
+    <string name="credits_source_free">free daily</string>
+    <string name="account_credits">Credits</string>
+    <string name="explore_credits_left">%1$d credits left</string>
+    <string name="explore_credits_use">This search uses %1$d credits.</string>
+    <string name="swipe_credits_title">Not enough credits</string>
+    <string name="swipe_credits_body">This needs %1$d credits and you have %2$d. The free daily credits refill at 00:00 WIB, or add credits with a voucher code.</string>
+    <string name="swipe_credits_body_generic">You do not have enough credits for this search. The free daily credits refill at 00:00 WIB, or add credits with a voucher code.</string>
+    <string name="swipe_credits_action">Add credits</string>
 </resources>

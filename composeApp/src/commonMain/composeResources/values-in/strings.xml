@@ -636,8 +636,6 @@
     <string name="explore_picker_other_trip">Atau cari untuk trip lain</string>
     <string name="explore_picker_body">Tempat yang kamu simpan masuk ke kotak Belum dijadwalkan di trip itu.</string>
     <string name="explore_picker_your_trips">Trip kamu</string>
-    <string name="explore_quota_left">%1$d dari %2$d pencarian tersisa hari ini</string>
-    <string name="explore_quota_use">Memakai 1 dari %1$d pencarian tersisa hari ini.</string>
     <plurals name="explore_picker_in_days">
         <item quantity="other">%1$d hari lagi</item>
     </plurals>
@@ -715,8 +713,6 @@
     <string name="swipe_error_body">AI kami sedang sibuk atau terganggu. Preferensimu sudah tersimpan, jadi tinggal coba lagi.</string>
     <string name="swipe_none_title">Belum ketemu yang cocok</string>
     <string name="swipe_none_body">Tidak ada tempat di %1$s yang pas dengan budget %2$s dan minat ini. Coba tambah minat lain atau longgarkan budget.</string>
-    <string name="swipe_quota_title">Jatah hari ini sudah habis</string>
-    <string name="swipe_quota_body">Kamu sudah memakai %1$d dari %1$d pencarian rekomendasi hari ini. Jatahnya terisi lagi besok, 00.00 WIB. Tempat yang sudah disimpan tetap aman di itinerary.</string>
     <string name="home_explore_title">Bingung mau ke mana di %1$s?</string>
     <string name="home_explore_body">Pilih tempat favoritmu dengan swipe.</string>
     <string name="home_explore_cta">Coba</string>
@@ -737,4 +733,44 @@
     <string name="place_detail_error">Detail belum bisa dimuat.</string>
     <string name="place_detail_save">Simpan</string>
     <string name="place_detail_skip">Lewati</string>
+
+    <!-- Kredit Jelajah -->
+    <string name="credits_title">Kredit</string>
+    <string name="credits_balance_label">Kreditmu</string>
+    <string name="credits_unit">kredit</string>
+    <string name="credits_free_today">Jatah gratis hari ini: %1$d dari %2$d. Terisi lagi 00.00 WIB.</string>
+    <string name="credits_costs">Biaya (kredit): pencarian baru %1$d, hasil berikutnya %2$d</string>
+    <string name="credits_voucher_title">Punya kode voucher?</string>
+    <string name="credits_voucher_label">Kode voucher</string>
+    <string name="credits_voucher_placeholder">ABCD-EFGH-JKLM</string>
+    <string name="credits_voucher_apply">Pakai kode</string>
+    <string name="credits_voucher_success">+%1$d kredit ditambahkan</string>
+    <string name="credits_voucher_invalid">Kode tidak ditemukan atau sudah tidak berlaku.</string>
+    <string name="credits_voucher_expired">Kode ini sudah kedaluwarsa.</string>
+    <string name="credits_voucher_used">Kode ini sudah kamu pakai atau kuotanya habis.</string>
+    <string name="credits_voucher_rate_limited">Terlalu banyak percobaan. Coba lagi semenit lagi.</string>
+    <string name="credits_error_connection">Tidak ada koneksi. Coba lagi.</string>
+    <string name="credits_error_generic">Ada yang salah. Coba lagi.</string>
+    <string name="credits_packages_title">Paket kredit</string>
+    <string name="credits_package_credits">%1$d kredit</string>
+    <string name="credits_package_per_search">sekitar %1$s per pencarian</string>
+    <string name="credits_packages_soon">Pembelian segera hadir. Untuk sementara, top up lewat kode voucher.</string>
+    <string name="credits_history_title">Riwayat</string>
+    <string name="credits_history_empty">Belum ada.</string>
+    <string name="credits_kind_signup">Kredit awal</string>
+    <string name="credits_kind_voucher">Voucher</string>
+    <string name="credits_kind_topup">Top up</string>
+    <string name="credits_kind_refund">Pengembalian</string>
+    <string name="credits_kind_adjustment">Penyesuaian</string>
+    <string name="credits_action_search">Pencarian baru</string>
+    <string name="credits_action_next_batch">Hasil berikutnya</string>
+    <string name="credits_action_place_detail">Detail tempat</string>
+    <string name="credits_source_free">jatah gratis</string>
+    <string name="account_credits">Kredit</string>
+    <string name="explore_credits_left">%1$d kredit tersisa</string>
+    <string name="explore_credits_use">Pencarian ini memakai %1$d kredit.</string>
+    <string name="swipe_credits_title">Kreditmu tidak cukup</string>
+    <string name="swipe_credits_body">Ini butuh %1$d kredit dan kamu punya %2$d. Jatah gratis terisi lagi 00.00 WIB, atau tambah kredit dengan kode voucher.</string>
+    <string name="swipe_credits_body_generic">Kreditmu tidak cukup untuk pencarian ini. Jatah gratis terisi lagi 00.00 WIB, atau tambah kredit dengan kode voucher.</string>
+    <string name="swipe_credits_action">Tambah kredit</string>
 </resources>

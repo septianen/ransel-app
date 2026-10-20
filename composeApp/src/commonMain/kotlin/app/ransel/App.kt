@@ -95,6 +95,8 @@ import app.ransel.feature.trip.TripScreen
 import app.ransel.feature.tripform.TripFormScreen
 import app.ransel.feature.trips.TripListScreen
 import app.ransel.navigation.AccountRoute
+import app.ransel.navigation.CreditsRoute
+import app.ransel.feature.credits.CreditsScreen
 import app.ransel.navigation.ActivityFormRoute
 import app.ransel.navigation.ComponentGalleryRoute
 import app.ransel.navigation.CreateTripRoute
@@ -436,6 +438,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
             onOpenItinerary = { id ->
                 navController.navigate(TripRoute(id, TripTab.ITINERARY.name)) { popUpTo<SwipeRoute> { inclusive = true } }
             },
+            onOpenCredits = { navController.navigate(CreditsRoute) },
             onHome = {
                 navController.navigate(HomeRoute) {
                     popUpTo(navController.graph.findStartDestination().id)
@@ -460,9 +463,13 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
             onSave = swipe?.let { vm -> { vm.like(); navController.popBackStack() } },
         )
     }
+    page<CreditsRoute> {
+        CreditsScreen(onBack = { navController.popBackStack() })
+    }
     page<AccountRoute> {
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
+            onOpenCredits = { navController.navigate(CreditsRoute) },
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
             debugContent = if (!isDebugBuild) null else ({

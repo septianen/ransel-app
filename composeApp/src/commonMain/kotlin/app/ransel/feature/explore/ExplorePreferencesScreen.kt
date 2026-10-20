@@ -50,6 +50,7 @@ import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.TripCover
 import app.ransel.ui.components.UndoSnackbar
+import app.ransel.feature.credits.rememberCredits
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.symbols.Symbol
@@ -227,10 +228,11 @@ private fun PreferencesForm(
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
-            Text(
-                if (state.newTrip) stringResource(Res.string.explore_new_trip_footnote)
-                // TODO: the real remaining quota once the API can tell it (see ExploreTripPickerScreen).
-                else stringResource(Res.string.explore_quota_use, EXPLORE_QUOTA_PLACEHOLDER_LEFT),
+            val credits by rememberCredits()
+            val footnote = if (state.newTrip) stringResource(Res.string.explore_new_trip_footnote)
+            else credits?.costs?.search?.takeIf { it > 0 }?.let { stringResource(Res.string.explore_credits_use, it) }
+            if (footnote != null) Text(
+                footnote,
                 Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.bodySmall,
                 color = scheme.onSurfaceVariant,

@@ -1,5 +1,6 @@
 package app.ransel.feature
 
+import app.ransel.data.credit.CreditsStore
 import app.ransel.data.explore.ExploreForm
 import app.ransel.data.explore.ExploreSession
 import app.ransel.data.explore.ExploreSessionStore
@@ -157,24 +158,46 @@ class SwipeViewModelTest {
         assertIs<SwipeUiState.NoResults>(vm.state.value)
     }
 
+    private fun errorApi(status: HttpStatusCode, body: String) =
+        RanselApi(createApiHttpClient(MockEngine { respond(body, status, json) }), origin = "http://api.test")
+
     @Test
-    fun quotaExceededKeepsTheLimitAndResetTime() = runTest {
-        val quotaApi = RanselApi(
-            createApiHttpClient(
-                MockEngine {
-                    respond(
-                        """{"error":{"code":"AI_QUOTA_EXCEEDED","message":"used up",
-                            "details":{"used":"10","limit":"10","resetsAt":"2026-10-16T17:00:00Z"}}}""",
-                        HttpStatusCode.TooManyRequests, json,
-                    )
-                },
-            ),
-            origin = "http://api.test",
+    fun notEnoughCreditsShowsTheCostAndWhatTheUserHas() = runTest {
+        val api = errorApi(
+            HttpStatusCode.PaymentRequired,
+            """{"error":{"code":"INSUFFICIENT_CREDITS","message":"Not enough credits",
+                "details":{"cost":"3","available":"1","resetsAt":"2026-10-16T17:00:00Z"}}}""",
         )
-        val vm = SwipeViewModel("t1", store(ExploreSession(form)), quotaApi, InMemoryItineraryRepository(InMemoryStore()))
+        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api, InMemoryItineraryRepository(InMemoryStore()))
         vm.loaded()
-        val quota = assertIs<SwipeUiState.QuotaExceeded>(vm.state.value).quota
-        assertEquals(10, quota?.limit)
-        assertEquals("2026-10-16T17:00:00Z", quota?.resetsAt.toString())
+        val state = assertIs<SwipeUiState.OutOfCredits>(vm.state.value)
+        assertEquals(3, state.cost)
+        assertEquals(1, state.available)
+    }
+
+    @Test
+    fun anOlderServersQuotaErrorStillShowsTheOutOfCreditsState() = runTest {
+        val api = errorApi(
+            HttpStatusCode.TooManyRequests,
+            """{"error":{"code":"AI_QUOTA_EXCEEDED","message":"used up","details":{"used":"10","limit":"10"}}}""",
+        )
+        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api, InMemoryItineraryRepository(InMemoryStore()))
+        vm.loaded()
+        val state = assertIs<SwipeUiState.OutOfCredits>(vm.state.value)
+        assertNull(state.cost)
+        assertNull(state.available)
+    }
+
+    @Test
+    fun theSearchResponseUpdatesTheSharedBalance() = runTest {
+        val credits = CreditsStore()
+        val withCredits = """{"data":{"groups":[{"category":"FOOD","items":[${place("a")}]}],
+            "quota":{"used":3,"limit":33,"resetsAt":"2026-10-16T17:00:00Z"},
+            "credits":{"balance":27,"dailyFreeLeft":0,"dailyFreeLimit":3,"resetsAt":"2026-10-16T17:00:00Z",
+                "costs":{"search":3,"nextBatch":1,"placeDetail":0}}}}"""
+        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api(withCredits), InMemoryItineraryRepository(InMemoryStore()), credits)
+        vm.loaded()
+        assertEquals(27, credits.state.value?.balance)
+        assertEquals(27, credits.state.value?.available)
     }
 }

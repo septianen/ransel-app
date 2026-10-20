@@ -3,6 +3,7 @@ package app.ransel.feature.account
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.AuthRepository
+import app.ransel.data.credit.CreditsStore
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.auth.SessionState
 import app.ransel.data.repository.AppLanguage
@@ -20,6 +21,7 @@ class AccountViewModel(
     private val session: SessionManager,
     private val auth: AuthRepository,
     val sync: SyncStatus,
+    private val credits: CreditsStore,
 ) : ViewModel() {
     val state: StateFlow<AppPreferences> = preferences.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPreferences(loaded = false))
@@ -31,5 +33,8 @@ class AccountViewModel(
     fun setLanguage(language: AppLanguage) = viewModelScope.launch { preferences.setLanguage(language) }
     fun setConfirmReorder(confirm: Boolean) = viewModelScope.launch { preferences.setSkipReorderConfirmation(!confirm) }
 
-    fun signOut() = viewModelScope.launch { auth.signOut() }
+    fun signOut() = viewModelScope.launch {
+        credits.update(null)
+        auth.signOut()
+    }
 }

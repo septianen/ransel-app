@@ -25,6 +25,11 @@ import app.ransel.shared.dto.RecommendationResponse
 import app.ransel.shared.dto.CreatePackingTemplateRequest
 import app.ransel.shared.dto.PackingTemplateDto
 import app.ransel.shared.dto.CreateInviteRequest
+import app.ransel.shared.dto.CreditLedgerEntryDto
+import app.ransel.shared.dto.CreditPackagesResponse
+import app.ransel.shared.dto.CreditsDto
+import app.ransel.shared.dto.RedeemVoucherRequest
+import app.ransel.shared.dto.RedeemVoucherResponse
 import app.ransel.shared.dto.CreateSettlementRequest
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.InviteDto
@@ -230,6 +235,17 @@ class RanselApi(
             currency?.let { parameter("currency", it) }
         },
     ) { it.body<ApiResponse<PlaceDetailDto>>().data }
+
+    // ── Explore credits ─────────────────────────────────────────────────────
+    suspend fun credits(): ApiResult<CreditsDto> = get(ApiRoutes.CREDITS)
+    suspend fun creditPackages(): ApiResult<CreditPackagesResponse> = get(ApiRoutes.CREDIT_PACKAGES)
+    suspend fun creditLedger(limit: Int = 50): ApiResult<List<CreditLedgerEntryDto>> = call(
+        HttpMethod.Get,
+        ApiRoutes.CREDITS_LEDGER,
+        bodyOf = { parameter("limit", limit) },
+    ) { it.body<ApiResponse<List<CreditLedgerEntryDto>>>().data }
+    suspend fun redeemVoucher(code: String): ApiResult<RedeemVoucherResponse> =
+        send(HttpMethod.Post, ApiRoutes.CREDITS_REDEEM, RedeemVoucherRequest(code))
 
     // ── invites (Phase 4) ───────────────────────────────────────────────────
     suspend fun invites(tripId: String): ApiResult<List<InviteDto>> = get(ApiRoutes.invites(tripId))

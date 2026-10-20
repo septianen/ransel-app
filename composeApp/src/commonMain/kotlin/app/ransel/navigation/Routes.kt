@@ -21,6 +21,9 @@ import kotlinx.serialization.Serializable
 /** Add (`itemId == null`) or edit an activity. [dayDate] is an ISO date preselecting the day. */
 @Serializable data class ActivityFormRoute(val tripId: String, val itemId: String? = null, val dayDate: String? = null)
 
+/** Explore credits: balance, voucher, packs, history (opened from Account and from the out-of-credits state). */
+@Serializable data object CreditsRoute
+
 /** Debug only. */
 @Serializable data object ComponentGalleryRoute
 

@@ -40,6 +40,7 @@ import app.ransel.platform.supportsInAppLanguage
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.feature.currency.RadioMark
 import app.ransel.ui.symbols.Symbol
+import app.ransel.feature.credits.rememberCredits
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.ThemeMode
@@ -50,6 +51,7 @@ import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.account_about
 import ransel.composeapp.generated.resources.account_confirm_reorder
 import ransel.composeapp.generated.resources.account_confirm_reorder_hint
+import ransel.composeapp.generated.resources.account_credits
 import ransel.composeapp.generated.resources.account_default_currency
 import ransel.composeapp.generated.resources.account_language
 import ransel.composeapp.generated.resources.account_section_other
@@ -105,6 +107,7 @@ private const val APP_VERSION = "0.1.0"
 fun AccountScreen(
     modifier: Modifier = Modifier,
     debugContent: (@Composable () -> Unit)? = null,
+    onOpenCredits: () -> Unit = {},
     onSignIn: () -> Unit = {},
     onSignUp: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
@@ -154,6 +157,8 @@ fun AccountScreen(
                             onClick = if (syncing) null else ({ viewModel.sync.syncNow() }),
                         )
                     }
+                    val credits by rememberCredits()
+                    SettingRow(Symbols.autoAwesome, stringResource(Res.string.account_credits), credits?.available?.toString(), onClick = onOpenCredits)
                     SettingRow(Symbols.logout, stringResource(Res.string.account_sign_out), null, onClick = { confirmSignOut = true })
                 } else if (!requiresAccount) {
                     Text(

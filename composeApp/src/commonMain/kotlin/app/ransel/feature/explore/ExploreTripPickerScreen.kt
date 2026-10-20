@@ -37,6 +37,7 @@ import app.ransel.data.explore.ExploreSession
 import app.ransel.feature.trips.TripPhase
 import app.ransel.feature.trips.daysUntilStart
 import app.ransel.ui.components.TripCover
+import app.ransel.feature.credits.rememberCredits
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
@@ -47,11 +48,6 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.*
-
-// TODO: the real remaining quota. The API has no way to read it before a search (spec "API contract"),
-// so the picker and the form show a fixed 10 of 10 until a read endpoint exists.
-internal const val EXPLORE_QUOTA_PLACEHOLDER_LEFT = 10
-internal const val EXPLORE_QUOTA_PLACEHOLDER_LIMIT = 10
 
 /**
  * Explore tab, step 1 (design `PilihTripJelajah`, `JelajahLanjut`, `JelajahTamu`): pick the trip to search for,
@@ -91,6 +87,7 @@ fun ExploreTripPickerScreen(
 private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Unit, onNewTrip: () -> Unit, onOpenSwipe: (String) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val dates = rememberDateFormatter()
+    val credits by rememberCredits()
     Box(Modifier.fillMaxSize()) {
     Column(
         // 96 dp at the bottom: the last trip stays reachable above the floating button
@@ -118,11 +115,13 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(Res.string.explore_picker_your_trips), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(
-                        stringResource(Res.string.explore_quota_left, EXPLORE_QUOTA_PLACEHOLDER_LEFT, EXPLORE_QUOTA_PLACEHOLDER_LIMIT),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                    )
+                    credits?.let {
+                        Text(
+                            stringResource(Res.string.explore_credits_left, it.available),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 state.trips.forEach { row ->
                     val trip = row.trip

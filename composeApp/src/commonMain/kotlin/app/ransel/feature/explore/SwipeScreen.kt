@@ -92,6 +92,7 @@ fun SwipeScreen(
     onOpenItinerary: (tripId: String) -> Unit,
     onHome: () -> Unit,
     onOpenDetail: (placeId: String) -> Unit,
+    onOpenCredits: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SwipeViewModel = koinViewModel(key = "swipe-$tripId") { parametersOf(tripId) },
 ) {
@@ -166,14 +167,17 @@ fun SwipeScreen(
                     )
                 }
             }
-            is SwipeUiState.QuotaExceeded -> StateWithClose(onClose) {
+            is SwipeUiState.OutOfCredits -> StateWithClose(onClose) {
                 FullScreenState(
-                    title = stringResource(Res.string.swipe_quota_title),
-                    body = stringResource(Res.string.swipe_quota_body, s.quota?.limit ?: 10),
+                    title = stringResource(Res.string.swipe_credits_title),
+                    body = if (s.cost != null && s.available != null) stringResource(Res.string.swipe_credits_body, s.cost, s.available)
+                    else stringResource(Res.string.swipe_credits_body_generic),
                     illustration = painterResource(Res.drawable.ic_confuse),
-                    errorCode = ErrorCode.AI_QUOTA_EXCEEDED,
-                    primaryLabel = stringResource(Res.string.swipe_back_home),
-                    onPrimary = onHome,
+                    errorCode = ErrorCode.INSUFFICIENT_CREDITS,
+                    primaryLabel = stringResource(Res.string.swipe_credits_action),
+                    onPrimary = onOpenCredits,
+                    secondaryLabel = stringResource(Res.string.swipe_back_home),
+                    onSecondary = onHome,
                 )
             }
         }
