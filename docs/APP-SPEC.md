@@ -90,7 +90,8 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, and `d
 | settlements | id, trip\_id, from\_user\_id, to\_user\_id, amount\_minor, settled\_at | V3 (4) |
 | recommendation\_cache | query\_hash, destination, response JSONB, model, hit\_count, expires\_at | V4 (5) |
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
-| ai\_usage | user\_id, usage\_date, count (10 per day) | V4 (5) |
+| ai\_usage | user\_id, usage\_date, count (legacy daily quota, replaced by credits) | V4 (5) |
+| credit\_wallets, credit\_daily, credit\_ledger, credit\_vouchers | Explore credits (see TRD "Quota") | V8 (5) |
 
 Design notes:
 
@@ -190,8 +191,8 @@ The user fills in preferences on the Explore screen, the server asks the LLM for
 
 ```mermaid
 flowchart LR
-  P["POST /recommendations<br/>(preferences + tripId)"] --> Q{"Quota left?<br/>ai_usage < 10"}
-  Q -- no --> E429["429 AI_QUOTA_EXCEEDED"]
+  P["POST /recommendations<br/>(preferences + tripId)"] --> Q{"Enough credits?"}
+  Q -- no --> E429["402 INSUFFICIENT_CREDITS"]
   Q -- yes --> C{"recommendation_cache hit?"}
   C -- yes --> F["Filter out liked/skipped placeIds"]
   C -- no --> L["LLM → JSON candidates<br/>(retry once → AI_UNAVAILABLE)"] --> V["Places Text Search (IDs Only)<br/>drop places not found"] --> SC["Save to cache"] --> F
@@ -239,7 +240,7 @@ Similar requests are served from the cache; only new requests cost LLM and Place
 - **Structured output:** the prompt asks for JSON that matches the schema, and the server parses it into an `@Serializable` data class in the `shared` module. DeepSeek V4.1 Flash only guarantees "soft" JSON (it does not enforce the schema), so if parsing fails the server retries once and then returns a clear error (`AI_UNAVAILABLE`).
 - **Grounding:** the LLM only suggests names and reasons. Whether a place exists is checked against the Places API (Google Places or Foursquare). Places that are not found are dropped, so AI-invented places never reach the user.
 - **Cache:** key = hash of destination + interests + budget. Results are kept for a few days in `recommendation_cache`; validated `placeId`s are kept longer.
-- **Rate limit:** a daily limit per user with the Ktor RateLimit plugin (`AI_QUOTA_EXCEEDED`): 10 searches per user per day, resetting at 00:00. Explore requires an account; a guest sees a sign-in screen in the Explore tab instead of the form.
+- **Credits:** every search costs credits (signup grant, 3 free a day, voucher top-up; see TRD "Quota"); without credits the server answers 402 `INSUFFICIENT_CREDITS`. Explore requires an account; a guest sees a sign-in screen in the Explore tab instead of the form.
 
 ### Picking by swipe
 

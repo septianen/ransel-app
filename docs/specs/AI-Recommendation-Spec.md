@@ -12,7 +12,7 @@ Decisions agreed on 16 Oct 2026:
 - Destination and dates always come from the trip. An optional focus area narrows one search.
 - Budget becomes a **price level** (`$` / `$$` / `$$$`) relative to local prices, preselected from the trip budget when there is one.
 - Interests are split into **core interests** (fixed, valid everywhere) and **destination interests** (3–5 chips suggested by AI per destination and month, cached).
-- Explore requires an account; the daily quota stays at 10 searches per user, reset 00:00 WIB. Loading destination interests never uses quota.
+- Explore requires an account; searches cost credits (updated 20 Oct 2026; was a fixed 10 searches a day): signup grant, 3 free credits a day reset 00:00 WIB, new search 3, next batch 1 (TRD "Quota"). Loading destination interests never costs credits.
 
 ## User flow
 
@@ -79,7 +79,7 @@ Destination interests load on their own while the user fills the form; the form 
 | Destination not recognized (typo) or empty list | The box is hidden |
 | Offline | The box is hidden (Explore needs a connection anyway) |
 
-**Quota.** Loading destination interests never counts against the 10 daily searches. It has its own soft limit on the server (60 requests per user per hour) to stop abuse.
+**Quota.** Loading destination interests never costs credits. It has its own soft limit on the server (60 requests per user per hour) to stop abuse.
 
 ## API contract
 
@@ -113,7 +113,7 @@ One new read endpoint feeds the form; the search request loses destination and d
 | 404 | `TRIP_NOT_FOUND` | trip missing or the user is not a member |
 | 403 | `FORBIDDEN` | the user is a VIEWER |
 | 422 | `VALIDATION_FAILED` | `details.tripId = TRIP_ENDED`, `details.interests = EMPTY` (no core and no extra interest), `details.extraInterests = TOO_MANY` |
-| 429 | `AI_QUOTA_EXCEEDED` | 10 searches used today (search only) |
+| 402 | `INSUFFICIENT_CREDITS` | not enough credits for the search or next batch (replaces 429 `AI_QUOTA_EXCEEDED`) |
 | 429 | `RATE_LIMITED` (new) | suggestions soft limit hit |
 | 503 | `AI_UNAVAILABLE` | LLM failed twice; for suggestions the app just hides the box |
 
@@ -132,7 +132,7 @@ The server owns every AI and Places call; the app never sees a key.
 **Search** (`POST /recommendations`)
 
 1. Load the trip, check role (EDITOR or higher) and that it has not ended (today in WIB after `end_date` → 422).
-2. Check the daily quota (unchanged).
+2. Check the user has enough credits (402 `INSUFFICIENT_CREDITS`); charge after the search succeeded.
 3. Cache key = normalized destination + focus area + month + sorted core interests + sorted extra interests + price level + style.
 4. Prompt inputs: destination, focus area when given ("only places in or near Ubud"), trip dates and season, price level as words relative to local prices, core and extra interests, style, notes, liked and skipped places.
 5. Validate every place with Places Text Search (IDs Only, free), biased to the destination or focus area; drop places not found.

@@ -10,7 +10,7 @@ Decisions agreed on 17 Oct 2026:
 
 - Every member votes, including VIEWER. Only the OWNER decides what enters the itinerary.
 - A vote is the same gesture as today's swipe: right = like ("Suka"), left = skip ("Lewati"). Undo is allowed while voting is open.
-- One AI search costs the requester one quota unit (10 per day); votes cost nothing for anyone.
+- One AI search costs the requester its credits (3 per new search, see TRD "Quota"); votes cost nothing for anyone.
 - Voting stays open for **24 hours** from the moment the round is created. The OWNER may decide at any time, also before the 24 hours end or after they end.
 - Notifications (push or email) are **later**. For now members see an in-app banner and a dot.
 - Data lives in new server tables and a server-only API (like members and invites). It needs an additive contract change in `shared/`.
@@ -43,12 +43,12 @@ Not handled in this version: a tie is decided by the OWNER by hand; there is no 
 | Who can decide | OWNER only. |
 | Solo trip | One member: no round; swipe saves directly as today. |
 | Open rounds | At most 3 open (not decided, not expired) rounds per trip; a 4th search returns 409 `ROUND_LIMIT`. |
-| Extra batches | `newSearch = false` batches for the same session append their cards to the same round while it is open, and do not use quota. |
+| Extra batches | `newSearch = false` batches for the same session append their cards to the same round while it is open, and cost the next-batch credits (1) of the requester. |
 | Exclusions | A place that appears in any round of the trip is excluded from later searches for that trip (same effect as the existing liked/skipped exclusion). |
 | Member leaves or is removed | Their votes stop counting (the tally only counts current members). |
 | Member joins mid-round | They can vote on the open round and count in "who has not voted". |
 | Votes visible to | The OWNER sees names and votes live. Members see only their own votes until the window closes, then the counts (not the names). |
-| Quota | 1 per search for the requester. Votes, viewing and deciding use none. |
+| Credits | A new search costs the requester 3 credits. Votes, viewing and deciding cost none. |
 | Detail pages | The detail text (about, tips, hours) is part of each card, so every voter sees the same complete page with no extra request. The round stores a snapshot of each card (including that text) so voting does not depend on the requester's device. |
 
 ## Data model (new migration after the place detail cache one; V1–V5 stay untouched)

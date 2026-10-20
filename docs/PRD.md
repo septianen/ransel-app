@@ -60,7 +60,7 @@ Five phases in order; Phase 1 is already useful for a real trip without any serv
 | 2 — Basic backend | Ktor + PostgreSQL CRUD for the same data (dummy user); web app joins, online-only | Every endpoint works and data is stored in Postgres |
 | 3 — Auth and sync | Sign up / sign in, forgot password, offline-first sync between phone and web | A trip created offline on a phone shows up on the web once online |
 | 4 — Multi-member | Invites, roles, paid by, split bill, balances, settlements, packing templates | Two accounts manage one trip and the split result is correct |
-| 5 — Explore AI | Preference form, swipe cards, Unscheduled, daily quota | Recommendations are real places and can be scheduled into the itinerary |
+| 5 — Explore AI | Preference form, swipe cards, Unscheduled, Explore credits | Recommendations are real places and can be scheduled into the itinerary |
 
 The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what remains is listed under Open questions.
 
@@ -98,7 +98,7 @@ The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what rem
 - The Explore tab holds the preference form: destination (text field), dates (a separate field), budget per person per day (Hemat / Sedang / Bebas, i.e. Budget / Moderate / Flexible), interests (multi-select: nature, food, beach, culture, shopping, adventure, nightlife, photo spots), travel style (Santai / Padat, i.e. Relaxed / Packed), and notes.
 - Results are swipe cards: swipe right to save, left to skip, with Undo. Saved places go to Unscheduled in the related trip.
 - An unfinished session can be resumed from a "Continue" card on the Explore screen.
-- States: loading, all cards seen, error, no results, daily quota reached, and sign-in required (guest).
+- States: loading, all cards seen, error, no results, out of credits, and sign-in required (guest).
 
 ### Account and sync
 
@@ -124,7 +124,7 @@ The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what rem
 
 **Schedule a place.** The place goes to the end of the chosen day, starting when the last activity ends; an empty day starts at 09:00. The duration comes from the AI estimate. The user can change the time.
 
-**Explore session.** The Explore tab always opens the form. An unfinished swipe session shows as a Continue card and a dot on the tab icon. A session ends when all cards have been seen or the user starts a new search. Searches are limited to 10 per user per day; the quota refills at 00:00 (WIB in the design). Explore requires an account: a guest who opens the Explore tab sees a sign-in screen (Masuk / Daftar) instead of the form, and signing in moves the trips already on the device to the account. Every other feature still works without an account. Recommendations are always saved into a trip; a signed-in user with no trip sees a "Buat trip dulu" (create a trip first) screen in the Explore tab.
+**Explore session.** The Explore tab always opens the form. An unfinished swipe session shows as a Continue card and a dot on the tab icon. A session ends when all cards have been seen or the user starts a new search. Searches cost credits: a new user gets 30 credits once, plus 3 free credits a day that refill at 00:00 WIB and do not accumulate; a new search costs 3 credits and the next batch of the same search 1 (numbers are server config). The free credits are used first. When credits run out the app offers to add credits with a voucher code; buying credits comes with a payment provider later. Explore requires an account: a guest who opens the Explore tab sees a sign-in screen (Masuk / Daftar) instead of the form, and signing in moves the trips already on the device to the account. Every other feature still works without an account. Recommendations are always saved into a trip; a signed-in user with no trip sees a "Buat trip dulu" (create a trip first) screen in the Explore tab.
 
 **Split bill.** By default the amount is split equally between the ticked members. With Set amounts, the shares must add up to the amount; the difference is shown as "short" or "over" and Save stays disabled until it matches.
 

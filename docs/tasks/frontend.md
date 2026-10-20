@@ -116,6 +116,10 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 **Done when:** recommendations can be swiped, saved places appear in "Belum dijadwalkan", and they can be scheduled into a day.
 
+## Explore credits (contract `b1060fd`, server B6.1)
+
+- [x] **F6.1 Credits.** `CreditsStore` (last known balance, updated from every search response), `rememberCredits()` (refresh on entering a screen), Account row "Kredit" (signed-in) opening `CreditsScreen` (balance, free credits today, voucher field with the error per `ErrorCode`, the packs from `GET /credits/packages` with "Segera hadir" while `purchasable` is false, history). The Explore picker header shows "n kredit tersisa", the form footnote "Pencarian ini memakai n kredit"; the placeholders `EXPLORE_QUOTA_PLACEHOLDER_*` are gone. `SwipeViewModel`: 402 `INSUFFICIENT_CREDITS` (and the old 429 `AI_QUOTA_EXCEEDED`) become `OutOfCredits(cost, available)` with an "Tambah kredit" button to the Credits screen. Tests: `CreditsViewModelTest`, credit cases in `SwipeViewModelTest`. **No design exists** for `CreditsScreen`, the voucher field and the out-of-credits wording: built from the Account and Members patterns, to be reviewed by the owner. Compiles for Android and wasmJs; iOS not compiled here. Not checked on a device or against a running server.
+
 ## Integration checkpoints with the backend agent
 
 | When | Check together |

@@ -84,7 +84,9 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | settlements | id, trip\_id, from\_user\_id, to\_user\_id, amount\_minor, settled\_at | V3 (4) |
 | recommendation\_cache | query\_hash, destination, response JSONB, model, hit\_count, expires\_at | V4 (5) |
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
-| ai\_usage | user\_id, usage\_date, count (10 per day) | V4 (5) |
+| ai\_usage | user\_id, usage\_date, count (legacy daily quota, replaced by credits) | V4 (5) |
+| credit\_wallets, credit\_daily, credit\_ledger | wallet balance per user (created with the signup grant), free credits used per WIB day, append-only ledger (SPEND/SIGNUP\_GRANT/VOUCHER/TOPUP/...) | V8 (5) |
+| credit\_vouchers, credit\_voucher\_redemptions | top-up codes, one redemption per user per code | V8 (5) |
 
 Enums:
 
@@ -135,6 +137,10 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET ★ | /trips/{id}/settlements | List settlements | 4 |
 | GET, POST ★ | /packing-templates | Built-in + user templates / save a template | 4 |
 | POST ★ | /trips/{id}/packing/apply-template | Use a template (option to skip items already there) | 4 |
+| GET ★ | /credits | Balance, free credits left today, cost per action | 5 |
+| GET ★ | /credits/ledger | Credit history, newest first | 5 |
+| GET ★ | /credits/packages | Top-up packs and prices (`purchasable` is false until a payment provider exists) | 5 |
+| POST ★ | /credits/redeem | Redeem a voucher code | 5 |
 | GET | /explore/suggestions | Destination interests + suggested price level for the Explore form (no quota) | 5 |
 | POST | /recommendations | AI recommendations from preferences | 5 |
 | POST ★ | /recommendations/feedback | LIKE / SKIP per place | 5 |
@@ -220,7 +226,7 @@ The result is sent to `PUT /trips/{id}/days/{date}/order`. Undo simply resends t
 The server receives the preferences, asks the LLM for candidate places as JSON, validates every place against the Places API, then sends 10–15 cards to the app.
 
 1. The app sends `POST /recommendations` with `tripId` (destination and dates come from the trip), optional focus area, price level (LOW/MEDIUM/HIGH, relative to local prices), core and destination interests, style (SANTAI/PADAT), notes, and the `placeId`s already liked or skipped. The form is fed by `GET /explore/suggestions` (destination interests cached per destination + month for 30 days, no quota).
-2. The server checks the user's quota (429 `AI_QUOTA_EXCEEDED` when used up), then checks `recommendation_cache` with a key hashed from destination + focus area + month + interests + price level + style.
+2. The server checks the user can pay (402 `INSUFFICIENT_CREDITS` when not, before any LLM call), then checks `recommendation_cache` with a key hashed from destination + focus area + month + interests + price level + style.
 3. Cache miss: call the LLM with a prompt asking for JSON that matches the schema; parse into a `@Serializable` data class in `shared`; on a parse failure retry once → `AI_UNAVAILABLE`.
 4. Validate every name with Places Text Search (IDs Only, free); places that are not found are dropped. Details (photo, rating) are fetched lazily for the top 2–3 cards only.
 5. An empty result after validation → an empty response; the app shows the "No good match yet" state naming the preferences that caused it.
@@ -231,7 +237,7 @@ The swipe session (remaining cards, position, number saved) is stored locally in
 
 **Cost** (prices as of October 2026, subject to change; the LLM was DeepSeek V4.1 Flash at about $0.003 per request of 15 places when this was written, now Gemini Flash: check the current Gemini price). The Places API is what needs watching: Text Search IDs Only is free, Place Details Essentials $5 per 1,000 (10,000 free per month); Pro $17 and Enterprise $20 per 1,000 (1,000 free), where `rating` and `priceLevel` live: the app never asks for them (no rating on cards; the price filter uses the LLM cost estimate). Strategy: validate with IDs Only, fetch details lazily, keep the field mask minimal, cache `placeId`s, and set a Google Cloud budget alert from day one.
 
-**Quota:** 10 searches per user per day, enforced with Ktor RateLimit and counted in ai\_usage; the count resets at 00:00. When it runs out the server returns 429 AI\_QUOTA\_EXCEEDED and the app shows the quota screen ("10 dari 10 pencarian"). The recommendation endpoints sit behind JWT auth like the rest of the API (401 without a token); guests never call them, because the Explore tab shows a sign-in screen until the user has an account.
+**Credits** (replace the fixed 10 searches a day): each user has a wallet (30 credits, created on first use, so existing users get it too) and a free daily allowance (3 credits, resets at 00:00 WIB, no carry-over). A charge takes the free allowance first, then the wallet (`planCreditSpend` in `shared`). A new search costs 3, the next batch (`newSearch=false`) 1, suggestions and cached place detail 0; the price of a place-detail rebuild is a config key, 0 for now. All numbers come from server config (`CREDIT_*`) and reach the app through `GET /credits`. The server checks before the LLM call and charges after the search succeeded, so a failed search costs nothing; a cache hit still costs credits. Every wallet change locks the user's wallet row (`SELECT ... FOR UPDATE`) and writes a `credit_ledger` row, so parallel searches never overdraw. Without credits the server returns 402 `INSUFFICIENT_CREDITS` (`details`: cost, available, resetsAt) and the app shows the out-of-credits screen. Top-up in stage 1 is a voucher code (`POST /credits/redeem`, made with `deploy/create-voucher.sh`); a payment provider later calls the same `addCredits` with an idempotency key. `RecommendationResponse.quota` stays filled for old apps. The recommendation endpoints sit behind JWT auth like the rest of the API (401 without a token); guests never call them, because the Explore tab shows a sign-in screen until the user has an account.
 
 ## Client
 
