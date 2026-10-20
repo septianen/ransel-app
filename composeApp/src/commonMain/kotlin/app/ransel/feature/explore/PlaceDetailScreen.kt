@@ -436,24 +436,24 @@ private fun LoadingSkeleton() {
 @Composable
 private fun SaveButton(onSave: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier.heightIn(min = 56.dp).clip(CircleShape).background(IrisTheme.accents.magenta).clickable(role = Role.Button, onClick = onSave).padding(horizontal = 24.dp),
+        modifier.heightIn(min = 56.dp).clip(CircleShape).background(IrisTheme.accents.magenta).clickable(role = Role.Button, onClick = onSave).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         Symbol(Symbols.favorite, size = 24.dp, filled = true, tint = IrisTheme.accents.onAccent)
-        Text(stringResource(Res.string.place_detail_save), style = MaterialTheme.typography.titleMedium, color = IrisTheme.accents.onAccent, fontWeight = FontWeight.Bold)
+        Text(stringResource(Res.string.place_detail_save), maxLines = 1, style = MaterialTheme.typography.titleMedium, color = IrisTheme.accents.onAccent, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun SkipButton(onSkip: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier.heightIn(min = 56.dp).clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(role = Role.Button, onClick = onSkip).padding(horizontal = 24.dp),
+        modifier.heightIn(min = 56.dp).clip(CircleShape).border(1.dp, MaterialTheme.colorScheme.outline, CircleShape).clickable(role = Role.Button, onClick = onSkip).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         Symbol(Symbols.close, size = 24.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(stringResource(Res.string.place_detail_skip), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(Res.string.place_detail_skip), maxLines = 1, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -467,7 +467,7 @@ private fun ActionBar(onSkip: () -> Unit, onSave: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SkipButton(onSkip, Modifier.width(112.dp))
+            SkipButton(onSkip, Modifier.weight(1f))
             SaveButton(onSave, Modifier.weight(1f))
         }
     }
