@@ -202,7 +202,11 @@ object ExpenseService {
 
         val payerIds = body.payers.map { UUID.fromString(it.userId) }
         // paidByUserId is the first payer: the REST endpoint derives it, sync sends it, both must agree
-        if (payerIds.isNotEmpty() && payerIds.first() != payer) throw validation("paidByUserId" to "MUST_BE_FIRST_PAYER")
+        // The REST endpoint takes the first payer as `payer` whatever paidByUserId says, so compare the sent value too.
+        val sentPaidBy = body.paidByUserId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+        if (payerIds.isNotEmpty() && (payerIds.first() != payer || (sentPaidBy != null && sentPaidBy != payerIds.first()))) {
+            throw validation("paidByUserId" to "MUST_BE_FIRST_PAYER")
+        }
         val participants = (body.splits.map { UUID.fromString(it.userId) } + payerIds + payer).toSet()
         val allowed = TripMembers.select(TripMembers.userId)
             .where { (TripMembers.tripId eq tripId) and (TripMembers.userId inList participants) }
