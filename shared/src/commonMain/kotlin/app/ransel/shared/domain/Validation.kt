@@ -48,5 +48,5 @@ fun generateInviteCode(tripTitle: String, random: Random = Random.Default): Stri
 /** Public invite link. The host is the web app's domain (owner decision 2026-10-15). */
 fun inviteUrl(code: String) = "https://ransel.mietek.tech/j/$code"
 
-/** Daily Explore quota (TRD "Quota"). */
+/** Legacy fixed daily Explore quota. Credits replaced it; kept for the `quota` compatibility field. */
 const val AI_DAILY_QUOTA = 10

@@ -21,7 +21,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * POST /recommendations. Destination and dates come from the trip (spec: docs/specs/AI-Recommendation-Spec.md).
- * 429 AI_QUOTA_EXCEEDED when the 10 daily searches are used up; 404 TRIP_NOT_FOUND; 403 FORBIDDEN for a VIEWER;
+ * 402 INSUFFICIENT_CREDITS when the search (or next batch) costs more than the user has; 404 TRIP_NOT_FOUND; 403 FORBIDDEN for a VIEWER;
  * 422 VALIDATION_FAILED with details.tripId = TRIP_ENDED, details.interests = EMPTY (no core and no extra interest)
  * or details.extraInterests = TOO_MANY.
  */
@@ -62,7 +62,10 @@ data class ExploreSuggestionsResponse(
 data class RecommendationResponse(
     /** Empty = "Belum ada yang cocok" state. */
     val groups: List<RecommendationGroup>,
+    /** Deprecated: kept for app versions from before credits. used = credits spent today, limit = used + available. */
     val quota: QuotaDto,
+    /** Balance after this request. Null from servers that predate credits. */
+    val credits: CreditsDto? = null,
 )
 
 @Serializable

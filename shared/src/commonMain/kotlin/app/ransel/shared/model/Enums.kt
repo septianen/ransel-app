@@ -63,3 +63,15 @@ enum class Interest { NATURE, FOOD, CULTURE, SHOPPING, ADVENTURE, NIGHTLIFE, PHO
 /** Explore form travel style. SANTAI = 2–3 places a day, PADAT = 4–6. */
 @Serializable
 enum class TravelStyle { SANTAI, PADAT }
+
+/** What an Explore credit was spent on (`CreditLedgerEntryDto.action`). */
+@Serializable
+enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL }
+
+/** Why a ledger row exists. SPEND is negative; every other kind adds credits. */
+@Serializable
+enum class CreditLedgerKind { SIGNUP_GRANT, SPEND, VOUCHER, TOPUP, REFUND, ADJUSTMENT }
+
+/** Where spent credits came from: the free daily allowance first, then the wallet. */
+@Serializable
+enum class CreditSource { FREE_DAILY, WALLET }

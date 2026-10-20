@@ -71,4 +71,10 @@ object ApiRoutes {
     fun placePhoto(placeId: String) = "/places/photo/$placeId"     // GET → image bytes, 404 if no photo
     /** Bearer. Query: `name` (the item title, needed only when the server has no saved text to rebuild from) and `currency` (the trip currency for the cost estimate). For opening a place again from the itinerary. */
     fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended
+
+    // Explore credits (replaces the fixed daily quota)
+    const val CREDITS = "/credits"                                 // GET → CreditsDto (creates the wallet with the signup grant on first call)
+    const val CREDITS_LEDGER = "/credits/ledger"                   // GET ?limit= (default 50, max 200), newest first → List<CreditLedgerEntryDto>
+    const val CREDITS_REDEEM = "/credits/redeem"                   // POST RedeemVoucherRequest → RedeemVoucherResponse
+    const val CREDIT_PACKAGES = "/credits/packages"                // GET → CreditPackagesResponse
 }

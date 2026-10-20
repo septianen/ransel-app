@@ -80,5 +80,11 @@ object ErrorCode {
 
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down
-    const val AI_QUOTA_EXCEEDED = "AI_QUOTA_EXCEEDED"      // 429, 10 searches per user per day
+    const val AI_QUOTA_EXCEEDED = "AI_QUOTA_EXCEEDED"      // 429, legacy fixed daily quota; replaced by INSUFFICIENT_CREDITS, kept for old servers/clients
+
+    // Explore credits
+    const val INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS" // 402, details: cost, available, resetsAt
+    const val VOUCHER_INVALID = "VOUCHER_INVALID"          // 404, unknown or revoked code
+    const val VOUCHER_EXPIRED = "VOUCHER_EXPIRED"          // 422, past expiresAt
+    const val VOUCHER_USED = "VOUCHER_USED"                // 409, redeemed by this user already, or no uses left
 }
