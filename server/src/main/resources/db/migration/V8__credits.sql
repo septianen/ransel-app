@@ -30,7 +30,8 @@ CREATE TABLE credit_ledger (
     ref              TEXT,
     idempotency_key  TEXT        UNIQUE,
     balance_after    INTEGER     NOT NULL,
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- clock_timestamp(), not now(): the signup grant and the first charge can share one transaction, and the history is ordered by this
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     CHECK ((kind = 'SPEND') = (delta < 0))
 );
 
