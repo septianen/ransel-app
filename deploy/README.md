@@ -91,11 +91,25 @@ Gotchas from the first setup:
 
 ### Publishing the web build
 
-No workflow deploys the web app yet. By hand, from the repo root:
+The *Deploy web* workflow (`.github/workflows/deploy-web.yml`) publishes it on every push to `main` that touches
+`composeApp/`, `shared/`, `gradle/`, a `*.gradle.kts` file, `gradle.properties` or the workflow itself; run it by hand with
+Actions -> Deploy web -> Run workflow (or `gh workflow run deploy-web.yml --ref main`). It builds
+`:composeApp:wasmJsBrowserDistribution`, rsyncs the result into `/opt/ransel/web.new` (seeded with a copy of the live
+folder, so only changed files travel) and then swaps it in with two `mv`s, so visitors never get a half-uploaded app. It
+uses the same SSH secrets as *Deploy server* (`DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `DEPLOY_HOST`, `DEPLOY_PORT`,
+`DEPLOY_USER`) and the `DEPLOY_PATH` variable; no new secrets are needed.
+
+Permissions: the deploy user must be able to create, rename and delete folders **in `/opt/ransel` itself** (not only
+inside `web/`), because the swap renames `web`. The `chown -R sen:sen /opt/ransel` from the top of this file covers that;
+if `/opt/ransel/web` was created by root, run `sudo chown -R sen:sen /opt/ransel/web` once. Files are uploaded as
+755/644 so nginx (`www-data`) can read them. If you set `DEPLOY_PATH` to something else, the `root` in
+`deploy/nginx/ransel.mietek.tech.conf` must point at `$DEPLOY_PATH/web` too.
+
+Fallback by hand, from the repo root (not atomic: fine when nobody is using the site):
 
 ```
 ./gradlew :composeApp:wasmJsBrowserDistribution
-rsync -a --delete composeApp/build/dist/wasmJs/productionExecutable/ <vps>:/opt/ransel/web/
+rsync -a --delete -e "ssh -p 2212" composeApp/build/dist/wasmJs/productionExecutable/ <user>@<vps>:/opt/ransel/web/
 ```
 
 `index.html` points the app at `https://ranselapi.mietek.tech` when it is served from `ransel.mietek.tech` (the API's
