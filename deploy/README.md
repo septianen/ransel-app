@@ -31,11 +31,26 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 | `LLM_API_KEY`, `PLACES_API_KEY` (optional until Explore goes live) | Gemini API key (Google AI Studio) and Google Places (New) key. Set the repository *variable* `LLM_MODEL` to a model id your key can call (`curl -H "x-goog-api-key: $KEY" https://generativelanguage.googleapis.com/v1beta/models`). Without them Explore answers 503 `AI_UNAVAILABLE`. Restrict the Places key to the Places API and set a **budget alert** in Google Cloud |
 | `SEED_USERS` (optional) | more accounts: `email\|password\|name;email\|password\|name`. Use letters and digits in passwords (no `\|`, `;` or `$`) |
 
+| `FCM_SERVICE_ACCOUNT_JSON` (secret), `FCM_PROJECT_ID` (variable), optional until push goes live | Firebase service-account key and project id for push notifications. Store the key as **base64 on one line** (`base64 -i key.json \| tr -d '\n'`) so `.env` and the secret survive the quotes in JSON. Without them pushes are only logged; the in-app inbox works either way. See "Push notifications" below |
+
 **Changing a secret or variable does not change the running server.** The values are written to the VPS by the deploy job, so after editing one (a new `LLM_API_KEY`, say) run the *Deploy server* workflow again: Actions -> Deploy server -> Run workflow on `main` (it has `workflow_dispatch`), or push any change under `server/`, `shared/` or `deploy/`.
 
 ### Place photo quota (do this before enabling photos)
 
 Cards show Google place photos through the signed proxy `GET /api/v1/places/photo/{placeId}`. Each uncached photo is a billed Place Photo request (1,000 per month are free). In Google Cloud Console → APIs & Services → Places API (New) → Quotas, cap *Place Photo requests per day* at about 30 (1,000 / 30 days ≈ 33), and keep the budget alert from above. When the cap is hit the proxy answers 404 and the app falls back to the category colour; the counters `placesPhoto` and `placesPhotoQuotaHits` appear in the hourly `ai.metrics` log line.
+
+## Push notifications (Firebase)
+
+Nothing exists yet; the server and the Android app are ready and stay quiet until these steps are done.
+
+1. https://console.firebase.google.com -> Add project ("ransel"). Analytics can stay off.
+2. Project settings -> Your apps -> Add Android app, package `app.ransel`. Add the SHA-1/SHA-256 of the debug key (`./gradlew :composeApp:signingReport`) and, later, of the release / Play App Signing key.
+3. Download `google-services.json` into `composeApp/` (it is git-ignored; one file per environment). Build again: `./gradlew :composeApp:assembleDebug`. Without the file the app builds but `PushRegistrar.available` is false.
+4. Project settings -> Service accounts -> Generate new private key. Put `base64 -i key.json | tr -d '\n'` in the GitHub secret `FCM_SERVICE_ACCOUNT_JSON` and the project id in the repository variable `FCM_PROJECT_ID`, then run the *Deploy server* workflow again. The server log then says `push.sent` instead of `push.logged`.
+5. Android 13+ asks for the notification permission once, after the first sign-in. If it is refused the inbox still works.
+6. iOS (later, on a Mac): add the iOS app (bundle id `app.ransel`) in Firebase, upload an APNs auth key (Apple Developer -> Keys) under Cloud Messaging, add the Firebase iOS SDK and the Push Notifications capability to the Xcode project, and replace `NoPushRegistrar` in `Platform.ios.kt`.
+
+Reminders run on the server every minute and use WIB for every trip: the packing reminder at 18:00 the day before departure (`NOTIFY_PACKING_HOUR`), the activity reminder 30 minutes before it starts (`NOTIFY_ACTIVITY_LEAD_MINUTES`). A trip in WITA/WIT gets them 1-2 hours off until trips have a timezone.
 
 ## Explore credits and vouchers
 

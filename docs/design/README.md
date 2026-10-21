@@ -162,7 +162,7 @@ Phase = the roadmap phase in which the screen must be implemented.
 
 ## Not designed yet
 
-Build these from existing patterns; ask the product owner before inventing new layouts: enter invite code, activity detail/edit (reuse *Tambah aktivitas* form), notifications, edit profile, language sheet (reuse *Sheet tema* pattern), search trips, all transactions list, Explore credits (Credits screen with balance, voucher field, packs and history; the out-of-credits state of `SwipeScreen`), dark theme for Itinerary/Packing/Explore/sheets/dialogs (apply the IRIS dark tokens; see *GelapBeranda*, *GelapPengeluaran*, *GelapSwipe* for the pattern).
+Build these from existing patterns; ask the product owner before inventing new layouts: enter invite code, activity detail/edit (reuse *Tambah aktivitas* form), notifications, edit profile, language sheet (reuse *Sheet tema* pattern), search trips, all transactions list, notification inbox (bell on Home, empty state) and notification settings (three switches, permission status), Explore credits (Credits screen with balance, voucher field, packs and history; the out-of-credits state of `SwipeScreen`), dark theme for Itinerary/Packing/Explore/sheets/dialogs (apply the IRIS dark tokens; see *GelapBeranda*, *GelapPengeluaran*, *GelapSwipe* for the pattern).
 
 ## Design decisions
 

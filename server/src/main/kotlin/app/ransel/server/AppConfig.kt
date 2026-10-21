@@ -101,6 +101,16 @@ data class AppConfig(
                 CreditPack(parts[0], credits, price)
             }
 
+        /**
+         * The service-account JSON, either as is or base64-encoded (a safe single line for a `.env` file and a
+         * GitHub secret). Blank stays blank.
+         */
+        fun serviceAccountJson(raw: String?): String {
+            val value = raw.orEmpty().trim()
+            if (value.isEmpty() || value.startsWith("{")) return value
+            return String(java.util.Base64.getMimeDecoder().decode(value)).trim()
+        }
+
         private fun String?.csv() = this?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
 
         /**
@@ -150,7 +160,7 @@ data class AppConfig(
                 creditCostPlaceDetail = env["CREDIT_COST_PLACE_DETAIL"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0,
                 creditPackages = parseCreditPacks(env["CREDIT_PACKAGES"]).ifEmpty { DEFAULT_CREDIT_PACKS },
                 fcmProjectId = env["FCM_PROJECT_ID"].orEmpty().trim(),
-                fcmServiceAccountJson = env["FCM_SERVICE_ACCOUNT_JSON"].orEmpty().trim(),
+                fcmServiceAccountJson = serviceAccountJson(env["FCM_SERVICE_ACCOUNT_JSON"]),
                 notifyPackingHour = env["NOTIFY_PACKING_HOUR"]?.toIntOrNull()?.coerceIn(0, 23) ?: 18,
                 notifyActivityLeadMinutes = env["NOTIFY_ACTIVITY_LEAD_MINUTES"]?.toIntOrNull()?.coerceIn(1, 240) ?: 30,
                 seedUsers = listOfNotNull(

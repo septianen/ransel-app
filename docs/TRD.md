@@ -86,6 +86,9 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
 | credit\_wallets, credit\_daily, credit\_ledger | wallet balance per user (created with the signup grant), free credits used per WIB day, append-only ledger (SPEND/SIGNUP\_GRANT/VOUCHER/TOPUP/...) | V8 (5) |
 | credit\_vouchers, credit\_voucher\_redemptions | top-up codes, one redemption per user per code | V8 (5) |
+| devices | push token per phone (platform, locale, disabled\_at) | V10 |
+| notifications | inbox: type, params, trip, dedupe\_key (unique per user), read\_at, push\_state (outbox) | V10 |
+| notification\_settings | three switches per user (missing row = all on) | V10 |
 
 Enums:
 
@@ -136,6 +139,10 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET ★ | /trips/{id}/settlements | List settlements | 4 |
 | GET, POST ★ | /packing-templates | Built-in + user templates / save a template | 4 |
 | POST ★ | /trips/{id}/packing/apply-template | Use a template (option to skip items already there) | 4 |
+| POST, DELETE ★ | /devices | Register / refresh this phone's push token; remove it on sign-out | 5 |
+| GET ★ | /notifications | Inbox page + unread count | 5 |
+| POST ★ | /notifications/read | Mark some or all read | 5 |
+| GET, PATCH ★ | /notification-settings | The three switches | 5 |
 | GET ★ | /credits | Balance, free credits left today, cost per action | 5 |
 | GET ★ | /credits/ledger | Credit history, newest first | 5 |
 | GET ★ | /credits/packages | Top-up packs and prices (`purchasable` is false until a payment provider exists) | 5 |
@@ -209,6 +216,10 @@ The result is sent to `PUT /trips/{id}/days/{date}/order`. Undo simply resends t
 **Invites.** Code = a prefix from the trip name + 4 random characters without look-alike letters (e.g. `BALI-7K2Q`). Accept checks in order: revoked → `INVITE_REVOKED`, past `expires_at` → `INVITE_EXPIRED`, `used_count ≥ max_uses` → `INVITE_FULL`; if it passes, create `trip_members` and increment `used_count` in one transaction.
 
 **Authorization per trip.** Every trip route calls one function `requireRole(tripId, minRole)`: VIEWER to read, EDITOR to change content, OWNER for members, invites, and deleting the trip. The owner cannot `leave` before `transfer-ownership` (`OWNER_CANNOT_LEAVE`). Removing a member does not delete their `expenses` or `expense_splits`.
+
+## Notifications
+
+An event writes the inbox row **inside the transaction that caused it** (invite accepted, role change, expense or settlement created through REST or through `/sync`), so a rolled-back change leaves nothing behind. A background loop (every 5 s) sends the pushes of rows still `PENDING` (an outbox): it renders the text per device language (`PushText`), calls FCM HTTP v1 (`FcmPushSender`, no Firebase SDK: a signed JWT is exchanged for an access token), disables a device on `UNREGISTERED`, retries temporary failures three times and then gives up (the inbox row stays). `UNIQUE (user_id, dedupe_key)` makes every event idempotent: expenses use `expense:<id>` and only a **new** expense notifies, never an edit or a sync retry. Settings are checked when the row is written. `ReminderScheduler` ticks every minute: packing at 18:00 WIB the day before the trip starts (if items are unpacked), activities in the 30 minutes before their start (WIB; trips have no timezone yet); the windows are "from now until X", so a missed tick still fires once. Read notifications older than 90 days and long-disabled devices are purged hourly. Without `FCM_*` env the sender only logs; the inbox is unaffected.
 
 ## Auth and security
 

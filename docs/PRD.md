@@ -107,6 +107,14 @@ The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what rem
 - Account: profile, sync status, default currency, theme (system/light/dark), language, packing and activity reminders, sign out.
 - Session expired: ask to sign in again, or continue offline.
 
+### Notifications
+
+- Signed-in users get an in-app inbox (the bell on Home) and push notifications (Android first; iOS comes with the Xcode project). Guests have neither.
+- Events: a friend joins your trip (owner and editors are told), you are removed or your role changes, a shared expense that includes you is recorded, a payment to or from you is marked, and (when voting exists) a request to vote and its result.
+- Reminders from the server: the evening before departure (18:00 WIB) if packing items are not ticked yet, and 30 minutes before a scheduled activity. Every trip uses WIB for now.
+- Three switches in Account: trip activity, expenses and settlements, reminders. A switch that is off means no inbox entry and no push for that kind. The person who caused an event is never notified about it.
+- The inbox stores what happened, not the sentence, so it is shown in the app language; the push text follows the language the phone reported.
+
 ### Members and cost splitting (Phase 4)
 
 - The owner invites by code or link with the Editor or Viewer role; invites can be revoked.
@@ -160,5 +168,5 @@ The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what rem
 
 - [ ] Target numbers for the success metrics.
 - [ ] Ownership transfer flow before the owner leaves a trip.
-- [ ] Screens not designed yet: enter invite code, activity detail/edit, notifications, edit profile, language sheet, search trips, all transactions.
+- [ ] Screens not designed yet: enter invite code, activity detail/edit, notification inbox and settings screens, edit profile, language sheet, search trips, all transactions.
 - [ ] Dark theme for Itinerary, Packing, Explore, sheets, and dialogs (the pattern exists, the screens do not).

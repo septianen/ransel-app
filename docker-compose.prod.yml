@@ -23,6 +23,9 @@ services:
       LLM_MODEL: ${LLM_MODEL:-gemini-3.1-flash-lite}
       LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-gemini-3.5-flash}
       PLACES_API_KEY: ${PLACES_API_KEY:-}
+      # Push (FCM). Blank = pushes are only logged; the inbox works either way.
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
+      FCM_SERVICE_ACCOUNT_JSON: ${FCM_SERVICE_ACCOUNT_JSON:-}
       # Explore credits (defaults live in AppConfig; set in the VPS .env to change prices of the actions)
       CREDIT_SIGNUP_GRANT: ${CREDIT_SIGNUP_GRANT:-30}
       CREDIT_DAILY_FREE: ${CREDIT_DAILY_FREE:-3}

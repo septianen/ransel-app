@@ -12,7 +12,7 @@ Decisions agreed on 17 Oct 2026:
 - A vote is the same gesture as today's swipe: right = like ("Suka"), left = skip ("Lewati"). Undo is allowed while voting is open.
 - One AI search costs the requester its credits (3 per new search, see TRD "Quota"); votes cost nothing for anyone.
 - Voting stays open for **24 hours** from the moment the round is created. The OWNER may decide at any time, also before the 24 hours end or after they end.
-- Notifications (push or email) are **later**. For now members see an in-app banner and a dot.
+- Notifications: the push/inbox system exists now (TRD "Notifications"; `VOTE_REQUESTED` and `VOTE_RESULT` types are reserved). Sending them is part of building voting. Email stays out of scope; the in-app banner and dot stay as designed.
 - Data lives in new server tables and a server-only API (like members and invites). It needs an additive contract change in `shared/`.
 
 This spec changes the product behaviour "Explore always saves into a trip" for multi-member trips, so the PRD ("Explore AI") must be updated when this is approved.
@@ -117,5 +117,5 @@ Explore preferences screen gets one note line for multi-member trips (see `Prefe
 
 - Names versus counts for members after closing (this spec shows counts only; change if you want names).
 - Whether VIEWER should also see the owner's final choice (this spec: yes, everyone sees it).
-- Notifications (push or email) are intentionally out of scope; they depend on the email/push provider decision.
+- Email notifications are out of scope (no email provider chosen). Push and the inbox are covered by TRD "Notifications".
 - The 3 open rounds and 7 day expiry numbers are proposals.
