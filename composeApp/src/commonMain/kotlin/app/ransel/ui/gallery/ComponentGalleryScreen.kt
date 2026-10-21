@@ -30,6 +30,7 @@ import app.ransel.ui.components.BudgetProgress
 import app.ransel.ui.components.CategoryIcon
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.LoadingOutlinedButton
 import app.ransel.ui.components.MoneyText
@@ -125,6 +126,9 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 }
                 Section("BudgetProgress") {
                     BudgetProgress(3_250_000, 5_000_000, "IDR")
+                }
+                Section("IconFab") {
+                    IconFab(Symbols.add, label = "Tambah", onClick = {})
                 }
                 Section("SectionHeader") {
                     SectionHeader("Belum dijadwalkan", actionLabel = "Lihat semua", onAction = {})

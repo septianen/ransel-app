@@ -85,6 +85,7 @@ import app.ransel.ui.format.formatTime
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.format.durationMinutes
 import app.ransel.ui.symbols.Symbol
+import app.ransel.ui.components.IconFab
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
@@ -277,15 +278,19 @@ private fun ItineraryContent(
                         from = from,
                         onFinish = ::finishDrag,
                         onEdit = onEditActivity,
-                        onAddActivity = onAddActivity,
                         canEdit = canEdit,
                         onExplore = onExplore,
                         emptyTitle = stringResource(Res.string.itinerary_empty_title, state.selectedIndex + 1),
                     )
                 }
             }
-            if (canEdit && items.isNotEmpty() && !drag.isDragging) {
-                AddActivityFab(onAddActivity, Modifier.align(Alignment.BottomEnd).padding(16.dp))
+            if (canEdit && !drag.isDragging) {
+                IconFab(
+                    Symbols.add,
+                    label = stringResource(Res.string.itinerary_add_activity),
+                    onClick = onAddActivity,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                )
             }
         }
     }
@@ -398,7 +403,6 @@ private fun DaySection(
     from: Int,
     onFinish: () -> Unit,
     onEdit: (String) -> Unit,
-    onAddActivity: () -> Unit,
     canEdit: Boolean,
     onExplore: (() -> Unit)?,
     emptyTitle: String,
@@ -448,7 +452,7 @@ private fun DaySection(
     ) {
         Text(heading, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 12.dp))
         if (items.isEmpty()) {
-            EmptyDay(title = emptyTitle, onAddActivity = if (canEdit) onAddActivity else null, onExplore = onExplore)
+            EmptyDay(title = emptyTitle, onExplore = onExplore)
             return@Column
         }
         items.forEachIndexed { index, item ->
@@ -577,7 +581,7 @@ private fun TimelineRow(
 }
 
 @Composable
-private fun EmptyDay(title: String, onAddActivity: (() -> Unit)?, onExplore: (() -> Unit)?) {
+private fun EmptyDay(title: String, onExplore: (() -> Unit)?) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -594,16 +598,6 @@ private fun EmptyDay(title: String, onAddActivity: (() -> Unit)?, onExplore: (()
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (onAddActivity != null) {
-            Button(onClick = onAddActivity, modifier = Modifier.heightIn(min = 48.dp)) {
-                Symbol(Symbols.add, tint = MaterialTheme.colorScheme.onPrimary)
-                Text(
-                    stringResource(Res.string.itinerary_add_activity),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-        }
         if (onExplore != null) {
             androidx.compose.material3.TextButton(onClick = onExplore, modifier = Modifier.heightIn(min = 48.dp)) {
                 Symbol(Symbols.autoAwesome, filled = true, tint = MaterialTheme.colorScheme.tertiary)
@@ -614,28 +608,6 @@ private fun EmptyDay(title: String, onAddActivity: (() -> Unit)?, onExplore: (()
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun AddActivityFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .shadow(8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = .12f), spotColor = Color.Black.copy(alpha = .12f))
-            .height(56.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .clickable(onClick = onClick)
-            .padding(start = 20.dp, end = 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Symbol(Symbols.add, tint = MaterialTheme.colorScheme.onPrimary)
-        Text(
-            stringResource(Res.string.itinerary_add_activity),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimary,
-        )
     }
 }
 

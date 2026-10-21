@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.TripCover
 import app.ransel.ui.format.DateFormatter
 import app.ransel.ui.format.formatMoney
@@ -120,7 +121,12 @@ fun TripListContent(
                 PullToRefresh(refreshing, onRefresh, Modifier.fillMaxSize()) {
                     TripGroups(state, onOpenTrip, onCreateTrip)
                 }
-                CreateTripFab(onCreateTrip, Modifier.align(Alignment.BottomEnd).padding(16.dp))
+                IconFab(
+                    Symbols.add,
+                    label = stringResource(Res.string.trips_create),
+                    onClick = onCreateTrip,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                )
             }
         }
     }
@@ -403,27 +409,5 @@ private fun NoUpcomingCard(last: TripCardData, onCreateTrip: () -> Unit) {
         Button(onClick = onCreateTrip, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(Res.string.trips_create), style = MaterialTheme.typography.titleMedium)
         }
-    }
-}
-
-@Composable
-private fun CreateTripFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .shadow(8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = .12f), spotColor = Color.Black.copy(alpha = .12f))
-            .height(56.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .clickable(onClick = onClick)
-            .padding(start = 20.dp, end = 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Symbol(Symbols.add, tint = MaterialTheme.colorScheme.onPrimary)
-        Text(
-            stringResource(Res.string.trips_create),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimary,
-        )
     }
 }

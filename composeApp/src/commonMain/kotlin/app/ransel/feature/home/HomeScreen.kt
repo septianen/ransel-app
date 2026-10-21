@@ -358,7 +358,7 @@ private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSe
 
 private fun fractionOf(value: Long, total: Long): Float = if (total <= 0) 0f else (value.toFloat() / total).coerceIn(0f, 1f)
 
-/** "Bingung mau ke mana di Bali?" with a "Coba" button that opens Explore for this trip. */
+/** "Bingung mau ke mana di Bali?" with a "Coba" button that opens Explore on a new trip. */
 @Composable
 private fun ExploreCallout(destination: String, onTry: () -> Unit) {
     Row(
@@ -382,7 +382,13 @@ private fun ExploreCallout(destination: String, onTry: () -> Unit) {
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
         }
-        androidx.compose.material3.Button(onClick = onTry) { Text(stringResource(Res.string.home_explore_cta)) }
+        androidx.compose.material3.Button(
+            onClick = onTry,
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = MaterialTheme.colorScheme.onTertiary,
+            ),
+        ) { Text(stringResource(Res.string.home_explore_cta)) }
     }
 }
 

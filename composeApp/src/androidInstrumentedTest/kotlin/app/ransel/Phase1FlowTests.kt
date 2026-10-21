@@ -7,6 +7,7 @@ import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToLog
@@ -190,7 +191,7 @@ class Phase1FlowTests {
         rule.setContent {
             IrisTheme { ExpensesTab(trip = trip, viewModel = ExpensesViewModel(trip, expenses)) }
         }
-        rule.onNodeWithText("Record expense").performClick()
+        rule.onNodeWithContentDescription("Record expense").performClick()
         rule.waitUntil(5_000) { rule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty() }
         rule.onAllNodes(hasSetTextAction()).onFirst().performTextInput("85000")
         waitUntilEnabled("Save")

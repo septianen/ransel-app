@@ -42,6 +42,7 @@ import app.ransel.ui.category.tileColor
 import app.ransel.ui.clickableSemantics
 import app.ransel.ui.components.BudgetProgress
 import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.MoneyText
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.formatMoneyCompact
@@ -100,8 +101,6 @@ fun ExpensesTab(
             state.isEmpty -> FullScreenState(
                 title = stringResource(Res.string.expenses_empty_title),
                 body = stringResource(Res.string.expenses_empty_body, trip.title),
-                primaryLabel = if (canEdit) stringResource(Res.string.expenses_record) else null,
-                onPrimary = if (canEdit) ({ sheet = ExpenseSheetTarget.New }) else null,
                 illustration = painterResource(Res.drawable.ic_expenses_empty)
             )
             else -> {
@@ -165,13 +164,15 @@ fun ExpensesTab(
                         }
                     }
                 }
-                if (canEdit) {
-                    RecordFab(
-                        onClick = { sheet = ExpenseSheetTarget.New },
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                    )
-                }
             }
+        }
+        if (canEdit && !state.loading) {
+            IconFab(
+                Symbols.add,
+                label = stringResource(Res.string.expenses_record),
+                onClick = { sheet = ExpenseSheetTarget.New },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            )
         }
     }
 
@@ -315,27 +316,5 @@ private fun ExpenseRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-    }
-}
-
-@Composable
-private fun RecordFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .shadow(8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = .12f), spotColor = Color.Black.copy(alpha = .12f))
-            .height(56.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .clickableSemantics(null, onClick)
-            .padding(start = 20.dp, end = 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Symbol(Symbols.receiptLong, tint = MaterialTheme.colorScheme.onPrimary)
-        Text(
-            stringResource(Res.string.expenses_record),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimary,
-        )
     }
 }

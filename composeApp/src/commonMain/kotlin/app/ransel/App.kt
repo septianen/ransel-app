@@ -429,13 +429,14 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
             },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
             onOpenNotifications = { navController.navigate(NotificationsRoute) },
-            // "Coba": straight to the Explore tab (its hero and trip picker), the same as tapping Jelajah in the bar.
+            // "Coba": switch to the Explore tab, then open its preferences step on a new trip ("Trip baru").
             onExplore = {
                 navController.navigate(ExploreRoute) {
                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                     launchSingleTop = true
                     restoreState = true
                 }
+                navController.navigate(ExplorePreferencesRoute(null))
             },
         )
     }

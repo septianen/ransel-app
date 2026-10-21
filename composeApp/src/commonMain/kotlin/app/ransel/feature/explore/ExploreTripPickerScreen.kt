@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.ransel.ui.components.IconFab
 import app.ransel.data.explore.ExploreSession
 import app.ransel.feature.trips.TripPhase
 import app.ransel.feature.trips.daysUntilStart
@@ -172,27 +173,13 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
             }
         }
     }
-    NewTripFab(onNewTrip, Modifier.align(Alignment.BottomEnd).padding(16.dp))
-    }
-}
-
-/** "Trip baru" as a floating button, so it is always in reach however long the list is (design `JelajahLanjut`). */
-@Composable
-private fun NewTripFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        modifier
-            .shadow(8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = .12f), spotColor = Color.Black.copy(alpha = .12f))
-            .heightIn(min = 56.dp)
-            .clip(CircleShape)
-            .background(scheme.primary)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(start = 20.dp, end = 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Symbol(Symbols.add, tint = scheme.onPrimary)
-        Text(stringResource(Res.string.explore_picker_new_trip), style = MaterialTheme.typography.titleMedium, color = scheme.onPrimary)
+    // "Trip baru" as a floating button, so it is always in reach however long the list is (design `JelajahLanjut`).
+    IconFab(
+        Symbols.autoAwesome,
+        label = stringResource(Res.string.explore_picker_new_trip),
+        onClick = onNewTrip,
+        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+    )
     }
 }
 

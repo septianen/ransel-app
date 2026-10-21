@@ -54,6 +54,7 @@ import app.ransel.shared.dto.TripDto
 import app.ransel.ui.category.label
 import app.ransel.ui.clickableSemantics
 import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.PackingCategoryIcon
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
@@ -119,8 +120,6 @@ fun PackingTab(
             state.total == 0 -> FullScreenState(
                 title = stringResource(Res.string.packing_empty_title),
                 body = stringResource(Res.string.packing_empty_body, trip.title),
-                primaryLabel = if (canEdit) stringResource(Res.string.packing_add) else null,
-                onPrimary = if (canEdit) ({ sheet = SheetTarget.Add }) else null,
                 // The ⋮ menu is not on screen yet, so an empty list offers templates here (the main reason to use them).
                 secondaryLabel = if (canUseTemplates) stringResource(Res.string.template_apply_title) else null,
                 onSecondary = if (canUseTemplates) ({ templates.load(); sheet = SheetTarget.UseTemplate }) else null,
@@ -138,13 +137,15 @@ fun PackingTab(
                     onUseTemplate = if (canUseTemplates) ({ templates.load(); sheet = SheetTarget.UseTemplate }) else null,
                     onSaveTemplate = if (canUseTemplates) ({ sheet = SheetTarget.SaveTemplate }) else null,
                 )
-                if (canEdit) {
-                    AddFab(
-                        onClick = { sheet = SheetTarget.Add },
-                        modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                    )
-                }
             }
+        }
+        if (canEdit && !state.loading) {
+            IconFab(
+                Symbols.add,
+                label = stringResource(Res.string.packing_add),
+                onClick = { sheet = SheetTarget.Add },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            )
         }
     }
 
@@ -440,28 +441,6 @@ private fun PackingRow(item: PackingItemDto, onToggle: () -> Unit, onLongPress: 
             "×${item.quantity}",
             style = MaterialTheme.typography.titleSmall,
             color = if (packed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
-
-@Composable
-private fun AddFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .shadow(8.dp, CircleShape, ambientColor = Color.Black.copy(alpha = .12f), spotColor = Color.Black.copy(alpha = .12f))
-            .height(56.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
-            .clickableSemantics(null, onClick)
-            .padding(start = 20.dp, end = 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Symbol(Symbols.add, tint = MaterialTheme.colorScheme.onPrimary)
-        Text(
-            stringResource(Res.string.packing_add),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
