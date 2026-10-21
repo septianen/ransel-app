@@ -62,10 +62,8 @@ data class ExploreSuggestionsResponse(
 data class RecommendationResponse(
     /** Empty = "Belum ada yang cocok" state. */
     val groups: List<RecommendationGroup>,
-    /** Deprecated: kept for app versions from before credits. used = credits spent today, limit = used + available. */
-    val quota: QuotaDto,
-    /** Balance after this request. Null from servers that predate credits. */
-    val credits: CreditsDto? = null,
+    /** Balance after this request. */
+    val credits: CreditsDto,
 )
 
 @Serializable
@@ -136,14 +134,6 @@ data class PlaceDetailDto(
     val bestTime: String? = null,
     val estimatedCostMinor: Long? = null,
     val costCurrency: String? = null,
-)
-
-@Serializable
-data class QuotaDto(
-    val used: Int,
-    val limit: Int,
-    /** Next 00:00 WIB. */
-    val resetsAt: Timestamp,
 )
 
 /** POST /recommendations/feedback → 204. Upsert on (tripId, user, placeId). */

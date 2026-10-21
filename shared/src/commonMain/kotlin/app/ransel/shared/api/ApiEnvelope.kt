@@ -80,7 +80,6 @@ object ErrorCode {
 
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down
-    const val AI_QUOTA_EXCEEDED = "AI_QUOTA_EXCEEDED"      // 429, legacy fixed daily quota; replaced by INSUFFICIENT_CREDITS, kept for old servers/clients
 
     // Explore credits
     const val INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS" // 402, details: cost, available, resetsAt
