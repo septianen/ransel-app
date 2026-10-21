@@ -67,6 +67,12 @@ fun notificationLine(n: NotificationDto): NotificationLine {
                 if (left != null && left > 0) stringResource(Res.string.notification_vote_closing, left) else stringResource(Res.string.notification_vote_closing_soon),
                 p["remaining"]?.toIntOrNull()?.let { stringResource(Res.string.notification_vote_closing_body, it, trip) } ?: trip,
             )
+        } else if (p["recipientRole"] == "OWNER" && actor != null && p["placeCount"]?.toIntOrNull() != null) {
+            // The owner decides: a proposal for them, not a request for their picks.
+            NotificationLine(
+                stringResource(Res.string.notification_vote_owner_open, actor, p["placeCount"]!!.toInt()),
+                stringResource(Res.string.notification_vote_owner_open_body, trip),
+            )
         } else {
             val count = p["placeCount"]?.toIntOrNull()
             val left = p["closesAt"]?.let { runCatching { Instant.parse(it) }.getOrNull() }?.let { hoursLeft(Clock.System.now(), it) }

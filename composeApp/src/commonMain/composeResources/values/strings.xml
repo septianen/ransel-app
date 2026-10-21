@@ -905,4 +905,10 @@
     <string name="notification_vote_decided">%1$s chose %2$d places</string>
     <string name="notification_vote_decided_body">In Unscheduled · %1$s</string>
     <string name="notification_vote_decided_none">%1$s closed voting without choosing</string>
+    <string name="vote_banner_owner_request">%1$s suggested %2$d places</string>
+    <string name="vote_banner_owner_request_body">Vote too, then decide · %1$d h left</string>
+    <string name="vote_banner_own_request">Continue your picks</string>
+    <string name="vote_banner_own_request_body">%1$d of %2$d places picked · %3$d h left</string>
+    <string name="notification_vote_owner_open">%1$s suggested %2$d places</string>
+    <string name="notification_vote_owner_open_body">Vote too, then decide what goes into the itinerary · %1$s</string>
 </resources>

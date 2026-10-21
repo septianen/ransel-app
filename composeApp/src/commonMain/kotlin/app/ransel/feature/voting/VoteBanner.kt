@@ -51,13 +51,26 @@ fun VoteBanner(
     isOwner: Boolean,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The signed-in user: the one who searched is asked to continue, not "asked for their picks" by themselves. */
+    myUserId: String? = null,
     now: Instant = Clock.System.now(),
 ) {
     val scheme = MaterialTheme.colorScheme
     val state = roundState(now, round.closesAt, round.decidedAt)
     val hours = hoursLeft(now, round.closesAt)
     val needsVote = round.needsMyVote(now)
+    val mine = myUserId != null && round.createdByUserId == myUserId
     val (title, body, action) = when {
+        needsVote && mine -> Triple(
+            stringResource(Res.string.vote_banner_own_request),
+            stringResource(Res.string.vote_banner_own_request_body, round.myVoteCount, round.placeCount, hours),
+            stringResource(Res.string.vote_banner_pick),
+        )
+        needsVote && isOwner -> Triple(
+            stringResource(Res.string.vote_banner_owner_request, round.createdByName, round.placeCount),
+            stringResource(Res.string.vote_banner_owner_request_body, hours),
+            stringResource(Res.string.vote_banner_pick),
+        )
         needsVote -> Triple(
             stringResource(Res.string.vote_banner_request, round.createdByName),
             stringResource(Res.string.vote_banner_request_body, round.placeCount, destination, hours),
@@ -123,6 +136,8 @@ private fun VoteBannerPreview() = IrisPreview {
     )
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         VoteBanner(round, "Bali", isOwner = false, onOpen = {}, now = now)
+        VoteBanner(round.copy(createdByName = "Dinda"), "Bali", isOwner = true, onOpen = {}, now = now)
+        VoteBanner(round.copy(myVoteCount = 4), "Bali", isOwner = true, onOpen = {}, myUserId = "u", now = now)
         VoteBanner(round.copy(myVoteCount = 12), "Bali", isOwner = false, onOpen = {}, now = now)
         VoteBanner(round.copy(closesAt = now - 1.hours), "Bali", isOwner = true, onOpen = {}, now = now)
         VoteBanner(round.copy(decidedAt = now, chosenCount = 3), "Bali", isOwner = false, onOpen = {}, now = now)

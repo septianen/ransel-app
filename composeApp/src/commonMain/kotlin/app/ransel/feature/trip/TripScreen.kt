@@ -93,6 +93,7 @@ fun TripScreen(
                     round = bannerRound,
                     destination = current.destination,
                     isOwner = isOwner,
+                    myUserId = session.user?.id,
                     onOpen = { onOpenRound(bannerRound.id, isOwner && !bannerRound.needsMyVote()) },
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
                 )
