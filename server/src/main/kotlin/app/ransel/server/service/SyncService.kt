@@ -349,6 +349,8 @@ class SyncService {
         }
         ExpenseService.replaceSplits(id, dto.splits)
         ExpenseService.replacePayers(id, dto.payers)
+        // Only a new expense notifies; the same row sent again (a retry) or edited does not.
+        if (existing == null) Notify.emit { expenseAdded(tripId, id, userId) }
     }
 
     private fun pushSettlement(userId: UUID, dto: SettlementDto) {
@@ -380,6 +382,7 @@ class SyncService {
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
+            Notify.emit { settlementMarked(tripId, id, userId) }
         } else {
             if (existing[Settlements.tripId] != tripId) throw conflict("Settlement belongs to another trip")
             requireNewer(dto.updatedAt, existing[Settlements.updatedAt])

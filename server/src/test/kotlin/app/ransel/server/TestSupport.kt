@@ -49,6 +49,14 @@ object TestDb {
         }
     }
 
+    /** First column of every row, as strings (to look at what a test left in the database). */
+    fun column(sql: String): List<String> {
+        val c = config()
+        return DriverManager.getConnection(c.databaseUrl, c.databaseUser, c.databasePassword).use { conn ->
+            conn.createStatement().use { st -> st.executeQuery(sql).use { rs -> buildList { while (rs.next()) add(rs.getString(1)) } } }
+        }
+    }
+
     fun expireResetTokens() {
         val c = config()
         DriverManager.getConnection(c.databaseUrl, c.databaseUser, c.databasePassword).use { conn ->
@@ -146,12 +154,13 @@ fun apiTest(
     config: AppConfig = TestDb.config(),
     ai: app.ransel.server.ai.AiServices? = null,
     fx: app.ransel.server.ai.FxRates? = null,
+    push: app.ransel.server.push.PushSender? = null,
     block: suspend Api.() -> Unit,
 ) {
     TestDb.reset()
     TestEmails.sent.clear()
     testApplication {
-        application { module(config, TestEmails, ai, fx) }
+        application { module(config, TestEmails, ai, fx, push) }
         val client = createClient { install(ContentNegotiation) { json(TestJson) } }
         runBlocking {
             val api = Api(client)

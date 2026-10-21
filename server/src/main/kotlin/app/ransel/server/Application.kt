@@ -49,6 +49,13 @@ import app.ransel.server.service.TripEvents
 import app.ransel.server.service.SyncService
 import app.ransel.shared.api.ApiRoutes
 import com.zaxxer.hikari.HikariDataSource
+import app.ransel.server.push.FcmPushSender
+import app.ransel.server.push.LoggingPushSender
+import app.ransel.server.push.PushSender
+import app.ransel.server.routes.notificationRoutes
+import app.ransel.server.service.NotificationService
+import app.ransel.server.service.Notify
+import app.ransel.server.service.ReminderScheduler
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.server.application.Application
@@ -78,6 +85,8 @@ fun Application.module(
     ai: AiServices? = null,
     /** Null = ECB rates when the real AI clients are used, none in tests. */
     fx: FxRates? = null,
+    /** Null = FCM when it is configured, otherwise pushes are only logged. */
+    push: PushSender? = null,
 ) {
     val pool = DatabaseFactory.connect(config)
     TemplateSeed.run()
@@ -122,7 +131,29 @@ fun Application.module(
             runCatching { recommendations.purgeExpiredCache() }
             runCatching { suggestions.purgeExpired() }
             runCatching { placeDetails.purgeExpired() }
+            runCatching { Notify.service?.purge() }
             recommendations.metrics.logSummary()
+        }
+    }
+
+    val pushHttp = if (push == null && config.fcmServiceAccountJson.isNotBlank()) HttpClient(OkHttp) else null
+    monitor.subscribe(ApplicationStopped) { pushHttp?.close() }
+    val pushSender = push ?: pushHttp?.let { FcmPushSender(it, config.fcmProjectId, config.fcmServiceAccountJson) } ?: LoggingPushSender()
+    val notifications = NotificationService(config, pushSender)
+    Notify.service = notifications
+    monitor.subscribe(ApplicationStopped) { Notify.service = null }
+    val reminders = ReminderScheduler(config, notifications)
+    maintenance.launch {
+        // The outbox: pushes of notifications that already committed.
+        while (isActive) {
+            runCatching { notifications.dispatchPending() }.onFailure { environment.log.warn("push dispatch failed: {}", it.javaClass.simpleName) }
+            delay(config.pushDispatchIntervalMillis)
+        }
+    }
+    maintenance.launch {
+        while (isActive) {
+            runCatching { reminders.tick() }.onFailure { environment.log.warn("reminder tick failed: {}", it.javaClass.simpleName) }
+            delay(60_000)
         }
     }
 
@@ -157,6 +188,7 @@ fun Application.module(
                 packingTemplateRoutes()
                 recommendationRoutes(recommendations)
                 creditRoutes(credits)
+                notificationRoutes(notifications)
                 exploreRoutes(suggestions)
                 placeDetailRoutes(placeDetails)
             }

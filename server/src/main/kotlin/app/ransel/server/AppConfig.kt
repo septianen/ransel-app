@@ -55,6 +55,15 @@ data class AppConfig(
     val creditCostPlaceDetail: Int = 0,
     /** Top-up packs shown by `GET /credits/packages`. Buying is not possible until a payment provider is connected. */
     val creditPackages: List<CreditPack> = DEFAULT_CREDIT_PACKS,
+    /** Push (FCM HTTP v1). Blank service account = pushes are only logged; the inbox works either way. */
+    val fcmProjectId: String = "",
+    val fcmServiceAccountJson: String = "",
+    /** How often the outbox of pending pushes is sent. */
+    val pushDispatchIntervalMillis: Long = 5_000,
+    /** Packing reminder: the evening before the trip starts, at this hour (WIB). */
+    val notifyPackingHour: Int = 18,
+    /** Activity reminder: this many minutes before it starts (WIB). */
+    val notifyActivityLeadMinutes: Int = 30,
 ) {
     data class CreditPack(val id: String, val credits: Int, val priceMinor: Long, val currency: String = "IDR")
 
@@ -140,6 +149,10 @@ data class AppConfig(
                 creditCostNextBatch = env["CREDIT_COST_NEXT_BATCH"]?.toIntOrNull()?.coerceAtLeast(0) ?: 1,
                 creditCostPlaceDetail = env["CREDIT_COST_PLACE_DETAIL"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0,
                 creditPackages = parseCreditPacks(env["CREDIT_PACKAGES"]).ifEmpty { DEFAULT_CREDIT_PACKS },
+                fcmProjectId = env["FCM_PROJECT_ID"].orEmpty().trim(),
+                fcmServiceAccountJson = env["FCM_SERVICE_ACCOUNT_JSON"].orEmpty().trim(),
+                notifyPackingHour = env["NOTIFY_PACKING_HOUR"]?.toIntOrNull()?.coerceIn(0, 23) ?: 18,
+                notifyActivityLeadMinutes = env["NOTIFY_ACTIVITY_LEAD_MINUTES"]?.toIntOrNull()?.coerceIn(1, 240) ?: 30,
                 seedUsers = listOfNotNull(
                     env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
                         SeedUser(

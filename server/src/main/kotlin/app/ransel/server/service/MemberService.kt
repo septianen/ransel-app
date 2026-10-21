@@ -38,6 +38,7 @@ object MemberService {
             val current = roleOf(tripId, targetId) ?: throw notFound("Member")
             if (current == Role.OWNER) throw validationFailed(mapOf("userId" to "OWNER_ROLE_IS_FIXED"))
             TripMembers.update({ (TripMembers.tripId eq tripId) and (TripMembers.userId eq targetId) }) { it[role] = newRole }
+            if (current != newRole) Notify.emit { roleChanged(tripId, targetId, newRole) }
             members(tripId, includeEmail = true).single { it.userId == targetId.toString() }
         }
     }
@@ -48,6 +49,7 @@ object MemberService {
             val current = roleOf(tripId, targetId) ?: throw notFound("Member")
             if (current == Role.OWNER) throw ownerCannotLeave()
             TripMembers.deleteWhere { (TripMembers.tripId eq tripId) and (TripMembers.userId eq targetId) }
+            Notify.emit { memberRemoved(tripId, targetId) }
         }
     }
 

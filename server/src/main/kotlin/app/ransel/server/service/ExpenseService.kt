@@ -58,6 +58,7 @@ object ExpenseService {
             }
             replaceSplits(expenseId, body.splits)
             replacePayers(expenseId, body.payers)
+            Notify.emit { expenseAdded(tripId, expenseId, userId) }
             load(tripId, expenseId)
         }
     }

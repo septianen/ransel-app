@@ -17,7 +17,9 @@ import app.ransel.server.ai.CachedPlace
 import app.ransel.shared.model.CreditAction
 import app.ransel.shared.model.CreditLedgerKind
 import app.ransel.shared.model.CreditSource
+import app.ransel.shared.model.DevicePlatform
 import app.ransel.shared.model.FeedbackAction
+import app.ransel.shared.model.NotificationType
 import kotlinx.serialization.json.Json
 
 /*
@@ -236,6 +238,41 @@ object CreditVoucherRedemptions : Table("credit_voucher_redemptions") {
     val userId = javaUUID("user_id")
     val redeemedAt = timestamp("redeemed_at")
     override val primaryKey = PrimaryKey(code, userId)
+}
+
+object Devices : Table("devices") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val platform = enumerationByName<DevicePlatform>("platform", 10)
+    val pushToken = text("push_token")
+    val locale = text("locale")
+    val appVersion = text("app_version").nullable()
+    val createdAt = timestamp("created_at")
+    val lastSeenAt = timestamp("last_seen_at")
+    val disabledAt = timestamp("disabled_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object Notifications : Table("notifications") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val type = enumerationByName<NotificationType>("type", 24)
+    val tripId = javaUUID("trip_id").nullable()
+    val params = jsonb<Map<String, String>>("params", Json)
+    val dedupeKey = text("dedupe_key")
+    val createdAt = timestamp("created_at")
+    val readAt = timestamp("read_at").nullable()
+    val pushState = text("push_state")
+    val pushAttempts = short("push_attempts")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object NotificationSettings : Table("notification_settings") {
+    val userId = javaUUID("user_id")
+    val tripActivity = bool("trip_activity")
+    val expenses = bool("expenses")
+    val reminders = bool("reminders")
+    override val primaryKey = PrimaryKey(userId)
 }
 
 object RecommendationCache : Table("recommendation_cache") {

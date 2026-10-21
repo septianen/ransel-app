@@ -110,6 +110,7 @@ object BalanceService {
                 it[amountMinor] = body.amountMinor
                 body.settledAt?.let { at -> it[settledAt] = at.toJavaInstant() }
             }
+            Notify.emit { settlementMarked(tripId, id, userId) }
             Settlements.selectAll().where { Settlements.id eq id }.single().toSettlementDto()
         }
     }
