@@ -77,4 +77,10 @@ object ApiRoutes {
     const val CREDITS_LEDGER = "/credits/ledger"                   // GET ?limit= (default 50, max 200), newest first → List<CreditLedgerEntryDto>
     const val CREDITS_REDEEM = "/credits/redeem"                   // POST RedeemVoucherRequest → RedeemVoucherResponse
     const val CREDIT_PACKAGES = "/credits/packages"                // GET → CreditPackagesResponse
+
+    // Notifications
+    const val DEVICES = "/devices"                                 // POST RegisterDeviceRequest → 204 (upsert by token); DELETE ?token= → 204 (sign out)
+    const val NOTIFICATIONS = "/notifications"                     // GET ?limit= (default 30, max 100) &before=<id> → NotificationsDto
+    const val NOTIFICATIONS_READ = "/notifications/read"           // POST MarkReadRequest → 204
+    const val NOTIFICATION_SETTINGS = "/notification-settings"     // GET → NotificationSettingsDto, PATCH UpdateNotificationSettingsRequest → NotificationSettingsDto
 }

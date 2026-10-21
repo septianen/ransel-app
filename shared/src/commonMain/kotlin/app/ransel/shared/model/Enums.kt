@@ -75,3 +75,18 @@ enum class CreditLedgerKind { SIGNUP_GRANT, SPEND, VOUCHER, TOPUP, REFUND, ADJUS
 /** Where spent credits came from: the free daily allowance first, then the wallet. */
 @Serializable
 enum class CreditSource { FREE_DAILY, WALLET }
+
+/**
+ * What a notification is about. The inbox stores the type plus `params`, never rendered text, so the app shows it in
+ * its own language. VOTE_* are reserved for the voting feature (docs/specs/voting-spec.md) and are not sent yet.
+ */
+@Serializable
+enum class NotificationType {
+    MEMBER_JOINED, MEMBER_REMOVED, ROLE_CHANGED,
+    EXPENSE_ADDED, SETTLEMENT_MARKED,
+    VOTE_REQUESTED, VOTE_RESULT,
+    PACKING_REMINDER, ACTIVITY_REMINDER,
+}
+
+@Serializable
+enum class DevicePlatform { ANDROID, IOS }
