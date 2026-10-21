@@ -65,6 +65,7 @@ object ErrorCode {
     const val INVALID_CREDENTIALS = "INVALID_CREDENTIALS"  // 401 on /auth/login
     const val EMAIL_ALREADY_REGISTERED = "EMAIL_ALREADY_REGISTERED" // 409 on /auth/register
     const val RESET_TOKEN_INVALID = "RESET_TOKEN_INVALID"  // 400 on /auth/password/reset (expired, used, unknown)
+    const val ACCOUNT_DISABLED = "ACCOUNT_DISABLED"        // 403 on /auth/login (right password) and /auth/refresh: an admin deactivated the account
 
     // trips & members
     const val TRIP_NOT_FOUND = "TRIP_NOT_FOUND"            // 404 (also when the user is not a member, to avoid leaking existence)

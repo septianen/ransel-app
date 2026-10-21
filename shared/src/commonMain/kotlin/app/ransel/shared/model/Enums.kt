@@ -72,9 +72,21 @@ enum class TravelStyle { SANTAI, PADAT }
 @Serializable
 enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL }
 
-/** Why a ledger row exists. SPEND is negative; every other kind adds credits. */
+/** Why a ledger row exists. SPEND is negative; ADJUSTMENT (an admin's correction) may be either sign; every other kind adds credits. */
 @Serializable
 enum class CreditLedgerKind { SIGNUP_GRANT, SPEND, VOUCHER, TOPUP, REFUND, ADJUSTMENT }
+
+/** Admin credit adjustment: add to or subtract from the wallet. */
+@Serializable
+enum class CreditDirection { ADD, SUBTRACT }
+
+/** Account state as the admin app sees it. DELETED = the user deleted their account (soft delete). */
+@Serializable
+enum class UserStatus { ACTIVE, DISABLED, DELETED }
+
+/** What an admin did; one audit row each. Later stages add SETTINGS_UPDATE and CONTENT_PUBLISH. */
+@Serializable
+enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT }
 
 /** Where spent credits came from: the free daily allowance first, then the wallet. */
 @Serializable

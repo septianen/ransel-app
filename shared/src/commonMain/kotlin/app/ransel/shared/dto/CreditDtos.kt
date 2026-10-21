@@ -36,7 +36,7 @@ data class CreditCostsDto(
     val placeDetail: Int,
 )
 
-/** GET /credits/ledger, newest first. [delta] is negative for a spend. */
+/** GET /credits/ledger, newest first. [delta] is negative for a spend, and for an ADJUSTMENT that took credits away ("Penyesuaian admin"). */
 @Serializable
 data class CreditLedgerEntryDto(
     val id: String,
@@ -46,9 +46,13 @@ data class CreditLedgerEntryDto(
     val source: CreditSource? = null,
     /** Only for a SPEND. */
     val action: CreditAction? = null,
-    /** Trip id for a spend, voucher code for a VOUCHER. */
+    /** Trip id for a spend, voucher code for a VOUCHER, admin user id for an ADJUSTMENT. */
     val ref: String? = null,
     val createdAt: Timestamp,
+    /** The admin's reason for an ADJUSTMENT. Admin responses only; null in GET /credits/ledger. */
+    val note: String? = null,
+    /** Wallet balance after this row. Admin responses only; null in GET /credits/ledger. */
+    val balanceAfter: Int? = null,
 )
 
 /**
