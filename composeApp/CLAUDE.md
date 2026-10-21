@@ -23,7 +23,7 @@ Room 3 notes: package `androidx.room3`, KSP only, DAO functions are `suspend` or
 ## Building screens
 
 1. Open the screen file listed in `docs/design/README.md` (HTML, inline styles, 1 px = 1 dp) and the related PRD section. Name the composable, ViewModel, UiState and route after the English **Code name** column (`Masuk.html` → `SignInScreen`, `SignInViewModel`, `SignInUiState`), never after the Indonesian file name.
-2. Map every hex to a token (`docs/design/iris/tokens.md`) and use `MaterialTheme.colorScheme` / `IrisTheme.accents` / `MaterialTheme.typography`. No hex in screens. Theme lives in `ui/theme/` (`IrisTheme`, `IrisColors`, `IrisType`), already written.
+2. Map every hex to a token (`docs/design/iris/tokens.md`) and use `MaterialTheme.colorScheme` / `IrisTheme.accents` / `MaterialTheme.typography`. No hex in screens. Theme lives in `ui/theme/` (`IrisTheme`, `IrisColors`, `IrisType`) in the `iris` module (shared with `adminApp`, same packages), together with `ui/symbols` and `ui/preview` and the fonts.
 3. Use the built-in M3 components where the design shows them: `DatePickerDialog`, full-screen `DateRangePicker`, 24-hour `TimePicker` in an `AlertDialog`, `ModalBottomSheet`, `AlertDialog`, `NavigationBar` (phone) / `NavigationRail` (≥ 1240 dp web).
 4. Icons: Material Symbols **Rounded** with the same names as the design (`class="ic"`, `fill` = filled).
 5. Strings: Indonesian copy from the design goes to `values-in/strings.xml`; write the English in `values/strings.xml`. Category labels: two sets over one enum (see `docs/specs/itinerary-spec.md`).
@@ -73,6 +73,12 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - Explore AI (Phase 5): `ExploreTripPickerViewModel` (step 1, trip list), `ExplorePreferencesViewModel` (step 2, existing or new trip, suggestions with 8 s timeout), `SwipeViewModel` (cards, save/skip/undo, prefetch), both over `ExploreSessionStore` (unfinished session as JSON in the preferences, also drives the tab dot). The backend (B5.x) must be live for real recommendations; tests use a MockEngine.
 - Place detail (`feature/explore/PlaceDetail*`): from a swipe card it reads the card from `ExploreSessionStore` (no request); from the itinerary it calls `RanselApi.placeDetail` (`ItineraryTab` provides `LocalOpenPlaceDetail`; only signed-in users). Skip/Save in the detail call the swipe screen's ViewModel via `navController.getBackStackEntry<SwipeRoute>()`. Place photos use `rememberPlacePhotoRequest` (stable cache key per place).
 - Point a debug build at the deployed API with `-Pransel.apiOrigin=https://ranselapi.mietek.tech`.
+
+## Admin app (Phase 6)
+
+- `adminApp/` is Karung, the admin web app (wasmJs only, `./gradlew :adminApp:wasmJsBrowserDevelopmentRun`, http://localhost:8082). It uses `iris` for the theme, plain presenters (`ui/Presenter.kt`) instead of Koin ViewModels, hash routes (`#/users/<id>`), and keeps the refresh token in sessionStorage. Run the server with `ADMIN_EMAILS=<your email>` and `ADMIN_APP_ORIGIN=http://localhost:8082`.
+- Icons: the bundled Material Symbols subset lacks some design icons (`dashboard`, `group`, `toll`, `devices`, `download`, `menu`, ...); Karung uses the nearest existing symbol until the subset is extended.
+- Traveller app (F9.7): `SessionManager` ends the session locally on 403 `ACCOUNT_DISABLED` at refresh (no `SessionHooks.onSignedOut`, local data stays) and sign-in shows "Akun dinonaktifkan".
 
 ## Rules
 

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <base href="/">
+    <title>Karung · Admin RANSEL</title>
+    <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #F3F3F3; }</style>
+    <script>
+        // Karung and the API live on different hosts in production; locally the app finds the API on localhost:8080.
+        if (location.hostname === 'karung.mietek.tech') window.RANSEL_API_ORIGIN = 'https://ranselapi.mietek.tech';
+    </script>
+    <script src="adminApp.js"></script>
+</head>
+<body></body>
+</html>

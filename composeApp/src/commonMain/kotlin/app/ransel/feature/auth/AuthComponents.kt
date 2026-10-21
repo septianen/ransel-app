@@ -46,6 +46,7 @@ import app.ransel.ui.symbols.Symbols
 import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back
+import ransel.composeapp.generated.resources.auth_error_account_disabled
 import ransel.composeapp.generated.resources.auth_error_connection
 import ransel.composeapp.generated.resources.auth_error_email_taken
 import ransel.composeapp.generated.resources.auth_error_generic
@@ -208,6 +209,7 @@ fun AuthProblemText(problem: AuthProblem?, modifier: Modifier = Modifier) {
     if (problem == null) return
     val text = when (problem) {
         AuthProblem.INVALID_CREDENTIALS -> stringResource(Res.string.auth_error_invalid_credentials)
+        AuthProblem.ACCOUNT_DISABLED -> stringResource(Res.string.auth_error_account_disabled)
         AuthProblem.EMAIL_TAKEN -> stringResource(Res.string.auth_error_email_taken)
         AuthProblem.RATE_LIMITED -> stringResource(Res.string.auth_error_rate_limited)
         AuthProblem.CONNECTION -> stringResource(Res.string.auth_error_connection)

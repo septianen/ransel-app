@@ -23,6 +23,10 @@ class SessionManager(
     private val _state = MutableStateFlow<SessionState>(SessionState.Loading)
     val state: StateFlow<SessionState> = _state
 
+    /** An admin deactivated the account: the session ended on its own and sign-in should say why (read once). */
+    private val _accountDisabled = MutableStateFlow(false)
+    val accountDisabled: StateFlow<Boolean> = _accountDisabled
+
     private var current: StoredSession? = null
     private val refreshLock = Mutex()
 
@@ -65,6 +69,10 @@ class SessionManager(
                 // Only a rejected refresh token ends the session; being offline just fails this request.
                 if (!result.error.isConnection) {
                     val code = result.error.code
+                    if (code == ErrorCode.ACCOUNT_DISABLED) {
+                        endDisabled()
+                        return@withLock false
+                    }
                     if (code == ErrorCode.TOKEN_EXPIRED || code == ErrorCode.UNAUTHORIZED || result.error.status == 401) {
                         markExpired()
                     }
@@ -72,6 +80,23 @@ class SessionManager(
                 false
             }
         }
+    }
+
+    /**
+     * 403 ACCOUNT_DISABLED on refresh: sign out on this device only. Local data stays (no [SessionHooks.onSignedOut]),
+     * and the server already revoked the refresh tokens, so there is no logout call.
+     */
+    private suspend fun endDisabled() {
+        current = null
+        runCatching { store.clear() }
+        _accountDisabled.value = true
+        _state.value = SessionState.SignedOut
+    }
+
+    fun takeAccountDisabled(): Boolean {
+        val disabled = _accountDisabled.value
+        _accountDisabled.value = false
+        return disabled
     }
 
     private fun markExpired() {

@@ -17,10 +17,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** What can be wrong on an auth form; the screen maps it to copy (the app switches on codes, not messages). */
-enum class AuthProblem { INVALID_CREDENTIALS, EMAIL_TAKEN, RATE_LIMITED, CONNECTION, RESET_TOKEN_INVALID, GENERIC }
+enum class AuthProblem { INVALID_CREDENTIALS, ACCOUNT_DISABLED, EMAIL_TAKEN, RATE_LIMITED, CONNECTION, RESET_TOKEN_INVALID, GENERIC }
 
 private fun problemOf(code: String): AuthProblem = when (code) {
     ErrorCode.INVALID_CREDENTIALS -> AuthProblem.INVALID_CREDENTIALS
+    ErrorCode.ACCOUNT_DISABLED -> AuthProblem.ACCOUNT_DISABLED
     ErrorCode.EMAIL_ALREADY_REGISTERED -> AuthProblem.EMAIL_TAKEN
     ErrorCode.RATE_LIMITED -> AuthProblem.RATE_LIMITED
     ErrorCode.NETWORK_TIMEOUT, ErrorCode.NETWORK_UNAVAILABLE -> AuthProblem.CONNECTION
@@ -40,7 +41,10 @@ data class SignInUiState(
 )
 
 class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
-    private val _state = MutableStateFlow(SignInUiState())
+    // Arrived here because an admin deactivated the account while it was signed in: say so once.
+    private val _state = MutableStateFlow(
+        SignInUiState(problem = if (auth.takeAccountDisabled()) AuthProblem.ACCOUNT_DISABLED else null),
+    )
     val state: StateFlow<SignInUiState> = _state.asStateFlow()
 
     fun setEmail(value: String) = _state.update { it.copy(email = value, emailError = false, problem = null) }

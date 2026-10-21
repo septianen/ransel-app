@@ -438,6 +438,7 @@
     <string name="auth_error_email_taken">This email is already registered. Sign in instead.</string>
     <string name="auth_error_rate_limited">Too many attempts. Try again in a minute.</string>
     <string name="auth_error_generic">Something went wrong. Try again.</string>
+    <string name="auth_error_account_disabled">Account deactivated. Data on this device stays safe.</string>
     <string name="auth_error_connection">Cannot reach the server. Check your connection.</string>
     <string name="field_error_email">Enter a valid email.</string>
     <string name="field_error_name">Enter your name.</string>
@@ -767,7 +768,7 @@
     <string name="credits_kind_voucher">Voucher</string>
     <string name="credits_kind_topup">Top up</string>
     <string name="credits_kind_refund">Refund</string>
-    <string name="credits_kind_adjustment">Adjustment</string>
+    <string name="credits_kind_adjustment">Admin adjustment</string>
     <string name="credits_action_search">New search</string>
     <string name="credits_action_next_batch">More results</string>
     <string name="credits_action_place_detail">Place details</string>

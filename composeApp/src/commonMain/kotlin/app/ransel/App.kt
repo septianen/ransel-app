@@ -268,6 +268,9 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     val sessionManager: SessionManager = koinInject()
     val sessionState by sessionManager.state.collectAsState()
     LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }
+    // Mobile: an admin deactivated the account. The session ended locally (data stays); sign-in says why.
+    val accountDisabled by sessionManager.accountDisabled.collectAsState()
+    LaunchedEffect(accountDisabled) { if (accountDisabled) navController.navigate(SignInRoute) { launchSingleTop = true } }
     // An invite link was opened (or `/j/<code>` on the web): show the join screen over whatever is open.
     val exploreStore: ExploreSessionStore = koinInject()
     val exploreSessions by exploreStore.sessions.collectAsState()

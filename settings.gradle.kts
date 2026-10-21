@@ -33,5 +33,7 @@ plugins {
 }
 
 include(":shared")
+include(":iris")
 include(":composeApp")
 include(":server")
+include(":adminApp")

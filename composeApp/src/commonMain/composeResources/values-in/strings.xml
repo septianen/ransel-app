@@ -438,6 +438,7 @@
     <string name="auth_error_email_taken">Email ini sudah terdaftar. Coba masuk saja.</string>
     <string name="auth_error_rate_limited">Terlalu banyak percobaan. Coba lagi satu menit lagi.</string>
     <string name="auth_error_generic">Ada yang salah. Coba lagi.</string>
+    <string name="auth_error_account_disabled">Akun dinonaktifkan. Data di perangkat ini tetap aman.</string>
     <string name="auth_error_connection">Tidak bisa terhubung ke server. Periksa koneksimu.</string>
     <string name="field_error_email">Masukkan email yang valid.</string>
     <string name="field_error_name">Masukkan namamu.</string>
@@ -761,7 +762,7 @@
     <string name="credits_kind_voucher">Voucher</string>
     <string name="credits_kind_topup">Top up</string>
     <string name="credits_kind_refund">Pengembalian</string>
-    <string name="credits_kind_adjustment">Penyesuaian</string>
+    <string name="credits_kind_adjustment">Penyesuaian admin</string>
     <string name="credits_action_search">Pencarian baru</string>
     <string name="credits_action_next_batch">Hasil berikutnya</string>
     <string name="credits_action_place_detail">Detail tempat</string>
