@@ -22,6 +22,8 @@ import kotlinx.serialization.Serializable
 /**
  * POST /recommendations. Destination and dates come from the trip (spec: docs/specs/AI-Recommendation-Spec.md).
  * 402 INSUFFICIENT_CREDITS when the search (or next batch) costs more than the user has; 404 TRIP_NOT_FOUND; 403 FORBIDDEN for a VIEWER;
+ * 409 ROUND_LIMIT when a multi-member trip already has 3 open rounds; 404 ROUND_NOT_FOUND / 409 VOTING_CLOSED for a next
+ * batch whose [RecommendationRequest.roundId] is unknown or no longer open;
  * 422 VALIDATION_FAILED with details.tripId = TRIP_ENDED, details.interests = EMPTY (no core and no extra interest)
  * or details.extraInterests = TOO_MANY.
  */
@@ -40,6 +42,11 @@ data class RecommendationRequest(
     val excludePlaceIds: List<String> = emptyList(),
     /** false for the background "next batch" request (does not count against the quota). */
     val newSearch: Boolean = true,
+    /**
+     * Next batch of a voting round: the cards are appended to this round while it is open (only with `newSearch = false`).
+     * Null on a new search; ignored on a solo trip.
+     */
+    val roundId: String? = null,
 )
 
 /**
@@ -64,6 +71,11 @@ data class RecommendationResponse(
     val groups: List<RecommendationGroup>,
     /** Balance after this request. */
     val credits: CreditsDto,
+    /**
+     * Set when the trip has two or more members: these cards are a voting round (`RoundDto`). Swipes then go to
+     * PUT .../votes instead of creating itinerary items and feedback. Null on a solo trip (swipe saves as before).
+     */
+    val roundId: String? = null,
 )
 
 @Serializable

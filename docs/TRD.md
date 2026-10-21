@@ -151,6 +151,10 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST | /recommendations | AI recommendations from preferences | 5 |
 | POST ★ | /recommendations/feedback | LIKE / SKIP per place | 5 |
 | DELETE ★ | /recommendations/feedback/{tripId}/{placeId} | Undo the last swipe | 5 |
+| GET ★ | /trips/{id}/rounds | Open and recent voting rounds (banner, trip-list dot); any member | 5 |
+| GET ★ | /trips/{id}/rounds/{roundId} | One round: cards, my votes; OWNER also tally with names and voters, members counts after closing | 5 |
+| PUT ★ | /trips/{id}/rounds/{roundId}/votes/{placeId} | Vote LIKE / SKIP (idempotent); DELETE = undo; 409 `VOTING_CLOSED` | 5 |
+| POST ★ | /trips/{id}/rounds/{roundId}/decide | OWNER picks the places that enter the itinerary and closes the round | 5 |
 | GET | /places/photo/{placeId}?exp=&sig= | Signed place-photo proxy (no bearer; 404 if no photo) | 5 |
 | GET | /places/{placeId}/detail | Saved detail text of a place (about, tips, hours estimate) to open it again from the itinerary; rebuilt by one small LLM call when expired | 5 |
 
@@ -158,7 +162,7 @@ The exact request and response classes for every row are in the `shared` module 
 
 **Response format.** Success or failure is read from the HTTP status code. Success: `{"data": …}` (lists add `meta` for paging); failure: `{"error": {"code", "message", "details"}}`. 201 for create, 204 for delete, 400/422 for validation, 401 for tokens, 403 for no permission, 404, 409 for conflicts, 429 for quota, 500 without a stack trace.
 
-**Error codes** are fixed constants for app logic and are shown small on the state screens: `NETWORK_TIMEOUT` (client), `INTERNAL_ERROR`, `TOKEN_EXPIRED`, `TRIP_NOT_FOUND`, `INVITE_EXPIRED`, `INVITE_REVOKED`, `INVITE_FULL`, `AI_UNAVAILABLE`, `RATE_LIMITED`, `SPLIT_TOTAL_MISMATCH`, `OWNER_CANNOT_LEAVE`.
+**Error codes** are fixed constants for app logic and are shown small on the state screens: `NETWORK_TIMEOUT` (client), `INTERNAL_ERROR`, `TOKEN_EXPIRED`, `TRIP_NOT_FOUND`, `INVITE_EXPIRED`, `INVITE_REVOKED`, `INVITE_FULL`, `AI_UNAVAILABLE`, `RATE_LIMITED`, `SPLIT_TOTAL_MISMATCH`, `OWNER_CANNOT_LEAVE`, and for voting `ROUND_NOT_FOUND`, `VOTING_CLOSED`, `ROUND_ALREADY_DECIDED`, `ROUND_LIMIT`.
 
 Conventions: camelCase fields, ISO 8601 dates, UTC times, money in the smallest unit. The `ApiResponse<T>` and `ApiError` wrappers live in `shared`; the server wraps responses with `call.respondData(...)` and StatusPages; the client maps them to `sealed interface ApiResult<T> { Success, Failure }`.
 

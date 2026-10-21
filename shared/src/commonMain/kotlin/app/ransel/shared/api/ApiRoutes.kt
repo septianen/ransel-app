@@ -72,6 +72,15 @@ object ApiRoutes {
     /** Bearer. Query: `name` (the item title, needed only when the server has no saved text to rebuild from) and `currency` (the trip currency for the cost estimate). For opening a place again from the itinerary. */
     fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended
 
+    // Itinerary voting (docs/specs/voting-spec.md). Any member reads and votes; only the OWNER decides.
+    fun rounds(tripId: String) = "/trips/$tripId/rounds"           // GET → List<RoundSummaryDto> (open and recent, newest first)
+    fun round(tripId: String, roundId: String) =
+        "/trips/$tripId/rounds/$roundId"                           // GET → RoundDto, 404 ROUND_NOT_FOUND
+    fun roundVote(tripId: String, roundId: String, placeId: String) =
+        "/trips/$tripId/rounds/$roundId/votes/$placeId"            // PUT VoteRequest → 204, DELETE = undo → 204; 409 VOTING_CLOSED
+    fun roundDecide(tripId: String, roundId: String) =
+        "/trips/$tripId/rounds/$roundId/decide"                    // POST DecideRequest → 204 (OWNER); 409 ROUND_ALREADY_DECIDED
+
     // Explore credits (replaces the fixed daily quota)
     const val CREDITS = "/credits"                                 // GET → CreditsDto (creates the wallet with the signup grant on first call)
     const val CREDITS_LEDGER = "/credits/ledger"                   // GET ?limit= (default 50, max 200), newest first → List<CreditLedgerEntryDto>

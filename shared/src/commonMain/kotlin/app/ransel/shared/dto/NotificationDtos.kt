@@ -17,6 +17,11 @@ import kotlinx.serialization.Serializable
  *   SETTLEMENT_MARKED   tripTitle, actorName, amountMinor, currency (in the trip's base currency)
  *   PACKING_REMINDER    tripTitle, date (trip start), remaining (items not packed yet)
  *   ACTIVITY_REMINDER   tripTitle, title (activity), time (HH:mm), date
+ *   VOTE_REQUESTED      tripTitle, roundId, stage (VoteStage.OPEN | CLOSING; missing = OPEN), actorName (who searched),
+ *                       placeCount, closesAt (ISO timestamp), remaining (CLOSING only: cards you have not voted on)
+ *   VOTE_RESULT         tripTitle, roundId, stage (VoteStage.READY | DECIDED; missing = DECIDED);
+ *                       READY (to the OWNER): voted, members (members who finished / current members);
+ *                       DECIDED (to the others): actorName (the owner), chosenCount
  * Unknown keys must be ignored; a missing key means "do not show that part".
  */
 
@@ -56,7 +61,7 @@ data class MarkReadRequest(val ids: List<String>? = null)
 /** Which kinds of notification the user wants. All on by default. */
 @Serializable
 data class NotificationSettingsDto(
-    /** Members joining, being removed, role changes (and voting). */
+    /** Members joining, being removed, role changes, and voting requests and results. */
     val tripActivity: Boolean = true,
     /** Shared expenses and settlements. */
     val expenses: Boolean = true,

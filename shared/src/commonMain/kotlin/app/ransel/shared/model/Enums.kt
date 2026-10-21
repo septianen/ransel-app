@@ -46,6 +46,10 @@ enum class ItemSource { MANUAL, AI }
 @Serializable
 enum class FeedbackAction { LIKE, SKIP }
 
+/** suggestion_votes.vote: one member's vote on one card of a suggestion round (docs/specs/voting-spec.md). */
+@Serializable
+enum class Vote { LIKE, SKIP }
+
 /**
  * Explore form: price of the places, relative to local prices (a cheap ramen stall in Tokyo is LOW in Tokyo).
  * UI: `$` Murah, `$$` Sedang, `$$$` Mewah. Maps to Google Places priceLevel: LOW = 0–1, MEDIUM = 2, HIGH = 3–4.
@@ -78,7 +82,8 @@ enum class CreditSource { FREE_DAILY, WALLET }
 
 /**
  * What a notification is about. The inbox stores the type plus `params`, never rendered text, so the app shows it in
- * its own language. VOTE_* are reserved for the voting feature (docs/specs/voting-spec.md) and are not sent yet.
+ * its own language. VOTE_REQUESTED and VOTE_RESULT each cover two events, told apart by the `stage` param
+ * (`VoteStage` in domain/Voting.kt), so voting needed no new enum value.
  */
 @Serializable
 enum class NotificationType {

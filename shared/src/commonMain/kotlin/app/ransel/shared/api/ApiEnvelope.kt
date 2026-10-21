@@ -81,6 +81,12 @@ object ErrorCode {
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down
 
+    // Itinerary voting
+    const val ROUND_NOT_FOUND = "ROUND_NOT_FOUND"          // 404, unknown or expired round, or a place that is not in it
+    const val VOTING_CLOSED = "VOTING_CLOSED"              // 409, vote/undo/next batch after closesAt or after the decision
+    const val ROUND_ALREADY_DECIDED = "ROUND_ALREADY_DECIDED" // 409 on decide
+    const val ROUND_LIMIT = "ROUND_LIMIT"                  // 409 on a new search: the trip already has 3 open rounds
+
     // Explore credits
     const val INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS" // 402, details: cost, available, resetsAt
     const val VOUCHER_INVALID = "VOUCHER_INVALID"          // 404, unknown or revoked code
