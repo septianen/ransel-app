@@ -149,7 +149,7 @@ class RecommendationService(
             "ai.search cache={} candidates={} returned={} action={} balance={} freeLeft={}",
             if (cached != null) "hit" else "miss", candidates.size, items.size, action, state.balance, state.dailyFreeLeft,
         )
-        return RecommendationResponse(groups = group(items), quota = credits.legacyQuota(userId), credits = state)
+        return RecommendationResponse(groups = group(items), credits = state)
     }
 
     fun saveFeedback(userId: UUID, body: FeedbackRequest) {

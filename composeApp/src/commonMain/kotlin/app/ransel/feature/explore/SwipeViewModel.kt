@@ -194,8 +194,7 @@ class SwipeViewModel(
     }
 }
 
-/** 402 `INSUFFICIENT_CREDITS` (an older server sent 429 `AI_QUOTA_EXCEEDED`). */
-private val ApiFailure.isOutOfCredits get() = code == ErrorCode.INSUFFICIENT_CREDITS || code == ErrorCode.AI_QUOTA_EXCEEDED
+private val ApiFailure.isOutOfCredits get() = code == ErrorCode.INSUFFICIENT_CREDITS
 
 /** The 402 carries `cost` and `available` in `details`. */
 private fun ApiFailure.toOutOfCredits() = SwipeUiState.OutOfCredits(

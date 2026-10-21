@@ -56,9 +56,12 @@ class SwipeViewModelTest {
     private fun place(id: String) =
         """{"placeId":"$id","name":"Place $id","reason":"because","suggestedDurationMin":90,"lat":-8.5,"lng":115.2}"""
 
+    private val creditsJson =
+        """"credits":{"balance":27,"dailyFreeLeft":0,"dailyFreeLimit":3,"resetsAt":"2026-10-16T17:00:00Z",
+            "costs":{"search":3,"nextBatch":1,"placeDetail":0}}"""
+
     private fun response(vararg ids: String) =
-        """{"data":{"groups":[{"category":"FOOD","items":[${ids.joinToString(",") { place(it) }}]}],
-            "quota":{"used":1,"limit":10,"resetsAt":"2026-10-16T17:00:00Z"}}}"""
+        """{"data":{"groups":[{"category":"FOOD","items":[${ids.joinToString(",") { place(it) }}]}],$creditsJson}}"""
 
     private fun api(first: String, next: String = response()) = RanselApi(
         createApiHttpClient(
@@ -151,7 +154,7 @@ class SwipeViewModelTest {
         val vm = SwipeViewModel(
             "t1",
             store(ExploreSession(form)),
-            api(first = """{"data":{"groups":[],"quota":{"used":1,"limit":10,"resetsAt":"2026-10-16T17:00:00Z"}}}"""),
+            api(first = """{"data":{"groups":[],$creditsJson}}"""),
             InMemoryItineraryRepository(InMemoryStore()),
         )
         vm.loaded()
@@ -176,26 +179,9 @@ class SwipeViewModelTest {
     }
 
     @Test
-    fun anOlderServersQuotaErrorStillShowsTheOutOfCreditsState() = runTest {
-        val api = errorApi(
-            HttpStatusCode.TooManyRequests,
-            """{"error":{"code":"AI_QUOTA_EXCEEDED","message":"used up","details":{"used":"10","limit":"10"}}}""",
-        )
-        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api, InMemoryItineraryRepository(InMemoryStore()))
-        vm.loaded()
-        val state = assertIs<SwipeUiState.OutOfCredits>(vm.state.value)
-        assertNull(state.cost)
-        assertNull(state.available)
-    }
-
-    @Test
     fun theSearchResponseUpdatesTheSharedBalance() = runTest {
         val credits = CreditsStore()
-        val withCredits = """{"data":{"groups":[{"category":"FOOD","items":[${place("a")}]}],
-            "quota":{"used":3,"limit":33,"resetsAt":"2026-10-16T17:00:00Z"},
-            "credits":{"balance":27,"dailyFreeLeft":0,"dailyFreeLimit":3,"resetsAt":"2026-10-16T17:00:00Z",
-                "costs":{"search":3,"nextBatch":1,"placeDetail":0}}}}"""
-        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api(withCredits), InMemoryItineraryRepository(InMemoryStore()), credits)
+        val vm = SwipeViewModel("t1", store(ExploreSession(form)), api(response("a")), InMemoryItineraryRepository(InMemoryStore()), credits)
         vm.loaded()
         assertEquals(27, credits.state.value?.balance)
         assertEquals(27, credits.state.value?.available)

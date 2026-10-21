@@ -113,7 +113,7 @@ One new read endpoint feeds the form; the search request loses destination and d
 | 404 | `TRIP_NOT_FOUND` | trip missing or the user is not a member |
 | 403 | `FORBIDDEN` | the user is a VIEWER |
 | 422 | `VALIDATION_FAILED` | `details.tripId = TRIP_ENDED`, `details.interests = EMPTY` (no core and no extra interest), `details.extraInterests = TOO_MANY` |
-| 402 | `INSUFFICIENT_CREDITS` | not enough credits for the search or next batch (replaces 429 `AI_QUOTA_EXCEEDED`) |
+| 402 | `INSUFFICIENT_CREDITS` | not enough credits for the search or next batch |
 | 429 | `RATE_LIMITED` (new) | suggestions soft limit hit |
 | 503 | `AI_UNAVAILABLE` | LLM failed twice; for suggestions the app just hides the box |
 

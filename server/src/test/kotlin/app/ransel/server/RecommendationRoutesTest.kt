@@ -169,11 +169,8 @@ class RecommendationRoutesTest {
             val credits = data.getValue("credits").jsonObject
             assertEquals("30", credits.str("balance"))
             assertEquals("0", credits.str("dailyFreeLeft"))
-            // the deprecated field stays filled for apps from before credits
-            val quota = data.getValue("quota").jsonObject
-            assertEquals("3", quota.str("used"))
-            assertEquals("33", quota.str("limit"))
-            assertTrue(quota.str("resetsAt").endsWith("Z"))
+            assertTrue(credits.str("resetsAt").endsWith("Z"))
+            assertEquals(listOf("3", "1", "0"), credits.getValue("costs").jsonObject.let { c -> listOf("search", "nextBatch", "placeDetail").map { c.str(it) } })
         }
     }
 
@@ -203,7 +200,8 @@ class RecommendationRoutesTest {
             val again = post("/recommendations", request(tripB))
             assertEquals(HttpStatusCode.OK, again.status)
             assertEquals(1, llm.calls.get(), "same destination/interests/budget/style must not call the LLM again")
-            assertEquals("3", again.data().jsonObject.getValue("quota").jsonObject.str("used")) // a cache hit is still a search
+            // a cache hit is still a search: the second user paid 3 credits from the free daily allowance
+            assertEquals("0", again.data().jsonObject.getValue("credits").jsonObject.str("dailyFreeLeft"))
 
             post("/recommendations", request(tripB, notes = "tanpa babi"))
             assertEquals(2, llm.calls.get(), "notes change the answer, so they are part of the cache key")
@@ -294,9 +292,10 @@ class RecommendationRoutesTest {
             assertEquals("AI_UNAVAILABLE", failed.errorCode())
             assertEquals(2, llm.calls.get())
 
-            // third call succeeds and shows only that one search was charged
+            // the third call succeeds and only that one search was charged
             val ok = post("/recommendations", request(tripId))
-            assertEquals("3", ok.data().jsonObject.getValue("quota").jsonObject.str("used"))
+            assertEquals("0", ok.data().jsonObject.getValue("credits").jsonObject.str("dailyFreeLeft"))
+            assertEquals("30", ok.data().jsonObject.getValue("credits").jsonObject.str("balance"))
         }
     }
 

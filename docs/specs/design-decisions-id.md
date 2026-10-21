@@ -137,10 +137,10 @@ Fase 1–5 sudah lengkap. Yang tersisa adalah layar pendukung yang muncul dari k
 
 - Semua kebutuhan tabel dari desain sudah masuk ke `db/migration` V1–V4 (belum ada database yang dibuat, jadi tidak perlu V5): kolom `category`, `duration_min` di itinerary; `payment_method` di expenses; `owner_id` nullable + `shared_trip_id` di packing_templates; `default_currency` di users; tabel `password_reset_tokens`, `settlements`, `ai_usage`. `trip_invites.used_count` sudah ada sejak awal di V3.
 - Endpoint `PUT /trips/{id}/days/{date}/order` untuk urutan hasil seret; `POST /trips/{id}/settlements` untuk "Tandai lunas".
-- Kode error lain: AI_UNAVAILABLE, AI_QUOTA_EXCEEDED, SPLIT_TOTAL_MISMATCH, OWNER_CANNOT_LEAVE.
+- Kode error lain: AI_UNAVAILABLE, INSUFFICIENT_CREDITS, SPLIT_TOTAL_MISMATCH, OWNER_CANNOT_LEAVE.
 - Kode error undangan: INVITE_EXPIRED, INVITE_REVOKED, INVITE_FULL.
 - Endpoint alihkan kepemilikan trip (OWNER → anggota lain) sebelum pemilik boleh keluar.
-- Kuota pencarian AI: **10 per user per hari**, reset 00.00 (`AI_QUOTA_EXCEEDED` / 429). Layar kuota habis sudah memakai "10 dari 10".
+- Pencarian AI memakai kredit (bukan lagi kuota 10 per hari): lihat TRD "Quota". Kode error kredit habis: `INSUFFICIENT_CREDITS` / 402.
 - Database lokal: Room 3 (`androidx.room3`) hanya di Android dan iOS. Web online-only (tanpa database lokal, wajib masuk), mulai di Fase 2.
 
 ## Data contoh

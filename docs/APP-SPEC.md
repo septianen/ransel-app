@@ -90,7 +90,6 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, and `d
 | settlements | id, trip\_id, from\_user\_id, to\_user\_id, amount\_minor, settled\_at | V3 (4) |
 | recommendation\_cache | query\_hash, destination, response JSONB, model, hit\_count, expires\_at | V4 (5) |
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
-| ai\_usage | user\_id, usage\_date, count (legacy daily quota, replaced by credits) | V4 (5) |
 | credit\_wallets, credit\_daily, credit\_ledger, credit\_vouchers | Explore credits (see TRD "Quota") | V8 (5) |
 
 Design notes:
@@ -181,7 +180,7 @@ Example error:
 Supporting rules:
 
 - Fields use camelCase, dates are ISO 8601 (`2026-11-20`), times are UTC (`...Z`), money is in the smallest unit (`budgetMinor`).
-- The error `code` is a fixed constant for app logic (`TRIP_NOT_FOUND`, `TOKEN_EXPIRED`, `INVITE_EXPIRED`, `AI_QUOTA_EXCEEDED`, …); `message` is only for display and may change.
+- The error `code` is a fixed constant for app logic (`TRIP_NOT_FOUND`, `TOKEN_EXPIRED`, `INVITE_EXPIRED`, `INSUFFICIENT_CREDITS`, …); `message` is only for display and may change.
 - The wrappers live in `shared`: `ApiResponse<T>(data: T, meta: PageMeta? = null)` and `ApiError(code, message, details)`. The server wraps through a `call.respondData(...)` helper; every error is built in one place through StatusPages.
 - In the app, Ktor Client maps responses to `sealed interface ApiResult<T> { Success, Failure }` so ViewModels never touch raw status codes.
 

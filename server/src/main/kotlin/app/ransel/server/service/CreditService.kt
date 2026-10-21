@@ -15,7 +15,6 @@ import app.ransel.shared.dto.CreditLedgerEntryDto
 import app.ransel.shared.dto.CreditPackageDto
 import app.ransel.shared.dto.CreditPackagesResponse
 import app.ransel.shared.dto.CreditsDto
-import app.ransel.shared.dto.QuotaDto
 import app.ransel.shared.dto.RedeemVoucherResponse
 import app.ransel.shared.model.CreditAction
 import app.ransel.shared.model.CreditLedgerKind
@@ -159,16 +158,6 @@ class CreditService(private val config: AppConfig) {
             val granted = voucher[CreditVouchers.credits]
             RedeemVoucherResponse(granted, addCredits(userId, granted, CreditLedgerKind.VOUCHER, "voucher:$code:$userId", code))
         }
-    }
-
-    /** Legacy `quota` field for app versions from before credits: used = credits spent today, limit = used + available. */
-    fun legacyQuota(userId: UUID): QuotaDto = transaction {
-        val now = snapshot(userId)
-        val midnight = todayWib().atStartOfDayIn(wib).toJavaInstant()
-        val spent = CreditLedger.selectAll()
-            .where { (CreditLedger.userId eq userId) and (CreditLedger.kind eq CreditLedgerKind.SPEND) and (CreditLedger.createdAt greaterEq midnight) }
-            .sumOf { -it[CreditLedger.delta] }
-        QuotaDto(used = spent, limit = spent + now.available, resetsAt = resetsAt())
     }
 
     // ── internals ───────────────────────────────────────────────────────────

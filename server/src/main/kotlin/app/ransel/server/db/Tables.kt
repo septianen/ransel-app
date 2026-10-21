@@ -191,13 +191,6 @@ object PackingTemplates : Table("packing_templates") {
     override val primaryKey = PrimaryKey(id)
 }
 
-object AiUsage : Table("ai_usage") {
-    val userId = javaUUID("user_id")
-    val usageDate = date("usage_date")
-    val count = integer("count")
-    override val primaryKey = PrimaryKey(userId, usageDate)
-}
-
 object CreditWallets : Table("credit_wallets") {
     val userId = javaUUID("user_id")
     val balance = integer("balance")
