@@ -1,6 +1,8 @@
 package app.ransel.feature.explore
 
 import androidx.compose.foundation.background
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,12 +77,17 @@ fun PlaceDetailScreen(
     onSkip: (() -> Unit)?,
     onSave: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    viewModel: PlaceDetailViewModel = koinViewModel(key = "place-detail-${route.placeId}-${route.fromItinerary}") { parametersOf(route) },
+    /** Vote mode (design `DetailTempatVoting`): the card from the vote screen and the strip above the buttons. */
+    voteInfo: PlaceDetailInfo? = null,
+    voteStrip: String? = null,
+    viewModel: PlaceDetailViewModel = koinViewModel(key = "place-detail-${route.placeId}-${route.fromItinerary}-${route.roundId}") { parametersOf(route) },
 ) {
-    val state by viewModel.state.collectAsState()
+    val loaded by viewModel.state.collectAsState()
+    val state = if (voteInfo != null) PlaceDetailUiState(info = voteInfo) else loaded
     val uriHandler = LocalUriHandler.current
     PlaceDetailContent(
         state = state,
+        voteStrip = voteStrip,
         fallbackName = route.name,
         onBack = onBack,
         onSkip = onSkip,
@@ -101,15 +108,35 @@ fun PlaceDetailContent(
     onRetry: () -> Unit,
     onOpenMaps: (PlaceDetailInfo) -> Unit,
     modifier: Modifier = Modifier,
+    /** Set in vote mode: shown above the buttons, and Save reads "Suka". */
+    voteStrip: String? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
-    BoxWithConstraints(modifier.fillMaxSize().background(scheme.surface)) {
-        val wide = maxWidth >= WIDE
-        if (wide) {
-            WideLayout(state, fallbackName, onBack, onSkip, onSave, onRetry, onOpenMaps)
-        } else {
-            NarrowLayout(state, fallbackName, onBack, onSkip, onSave, onRetry, onOpenMaps)
+    CompositionLocalProvider(LocalVoteStrip provides voteStrip) {
+        BoxWithConstraints(modifier.fillMaxSize().background(scheme.surface)) {
+            val wide = maxWidth >= WIDE
+            if (wide) {
+                WideLayout(state, fallbackName, onBack, onSkip, onSave, onRetry, onOpenMaps)
+            } else {
+                NarrowLayout(state, fallbackName, onBack, onSkip, onSave, onRetry, onOpenMaps)
+            }
         }
+    }
+}
+
+/** Vote mode: the strip text ("Voting untuk Bali · dari Rina · sisa 23 jam"); null = Explore or itinerary. */
+private val LocalVoteStrip = staticCompositionLocalOf<String?> { null }
+
+@Composable
+private fun VoteStrip(text: String) {
+    Row(
+        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.secondaryContainer).padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Design: how_to_vote; not in the app's icon subset.
+        Symbol(Symbols.favorite, size = 16.dp, filled = true, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -172,6 +199,7 @@ private fun WideLayout(
             Column(Modifier.width(380.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 if (onSkip != null && onSave != null) {
                     SideCard {
+                        LocalVoteStrip.current?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant) }
                         SaveButton(onSave, Modifier.fillMaxWidth())
                         SkipButton(onSkip, Modifier.fillMaxWidth())
                     }
@@ -441,7 +469,7 @@ private fun SaveButton(onSave: () -> Unit, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
         Symbol(Symbols.favorite, size = 24.dp, filled = true, tint = IrisTheme.accents.onAccent)
-        Text(stringResource(Res.string.place_detail_save), maxLines = 1, style = MaterialTheme.typography.titleMedium, color = IrisTheme.accents.onAccent, fontWeight = FontWeight.Bold)
+        Text(stringResource(if (LocalVoteStrip.current != null) Res.string.place_detail_like else Res.string.place_detail_save), maxLines = 1, style = MaterialTheme.typography.titleMedium, color = IrisTheme.accents.onAccent, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -461,7 +489,7 @@ private fun SkipButton(onSkip: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 private fun ActionBar(onSkip: () -> Unit, onSave: () -> Unit) {
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        LocalVoteStrip.current?.let { VoteStrip(it) } ?: HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Row(
             Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),

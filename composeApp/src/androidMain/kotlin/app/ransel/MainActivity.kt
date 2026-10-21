@@ -46,9 +46,11 @@ class MainActivity : ComponentActivity() {
         offerNotification(intent)
     }
 
-    /** A notification was tapped: its data (type, tripId, notificationId) arrives as intent extras. */
+    /** A notification was tapped: its data (type, tripId, notificationId, and roundId + stage for voting) arrives as intent extras. */
     private fun offerNotification(intent: Intent?) {
-        if (intent?.getStringExtra("type") != null) intent.getStringExtra("tripId")?.let(notificationTarget::offer)
+        if (intent?.getStringExtra("type") == null) return
+        val tripId = intent.getStringExtra("tripId") ?: return
+        notificationTarget.offer(tripId, intent.getStringExtra("roundId"), intent.getStringExtra("stage"))
     }
 
     private fun offerInvite(intent: Intent?) {

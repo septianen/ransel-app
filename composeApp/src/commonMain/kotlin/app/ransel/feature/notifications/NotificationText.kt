@@ -2,7 +2,11 @@ package app.ransel.feature.notifications
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import app.ransel.shared.domain.VoteStage
+import app.ransel.shared.domain.hoursLeft
 import app.ransel.shared.dto.NotificationDto
+import kotlin.time.Clock
+import kotlin.time.Instant
 import app.ransel.shared.model.NotificationType
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.symbols.Symbols
@@ -57,15 +61,47 @@ fun notificationLine(n: NotificationDto): NotificationLine {
             stringResource(Res.string.notification_activity_reminder, p["title"].orEmpty()),
             stringResource(Res.string.notification_activity_reminder_body, p["time"].orEmpty().replace(':', '.'), trip),
         )
-        NotificationType.VOTE_REQUESTED -> NotificationLine(stringResource(Res.string.notification_vote_requested), trip)
-        NotificationType.VOTE_RESULT -> NotificationLine(stringResource(Res.string.notification_vote_result), trip)
+        NotificationType.VOTE_REQUESTED -> if (p["stage"] == VoteStage.CLOSING) {
+            val left = p["closesAt"]?.let { runCatching { Instant.parse(it) }.getOrNull() }?.let { hoursLeft(Clock.System.now(), it) }
+            NotificationLine(
+                if (left != null && left > 0) stringResource(Res.string.notification_vote_closing, left) else stringResource(Res.string.notification_vote_closing_soon),
+                p["remaining"]?.toIntOrNull()?.let { stringResource(Res.string.notification_vote_closing_body, it, trip) } ?: trip,
+            )
+        } else {
+            val count = p["placeCount"]?.toIntOrNull()
+            val left = p["closesAt"]?.let { runCatching { Instant.parse(it) }.getOrNull() }?.let { hoursLeft(Clock.System.now(), it) }
+            NotificationLine(
+                actor?.let { stringResource(Res.string.notification_vote_open, it) } ?: stringResource(Res.string.notification_vote_open_someone),
+                if (count != null && left != null && left > 0) stringResource(Res.string.notification_vote_open_body, count, left, trip) else trip,
+            )
+        }
+        NotificationType.VOTE_RESULT -> if (p["stage"] == VoteStage.READY) {
+            val voted = p["voted"]?.toIntOrNull()
+            val members = p["members"]?.toIntOrNull()
+            NotificationLine(
+                stringResource(Res.string.notification_vote_ready),
+                if (voted != null && members != null) stringResource(Res.string.notification_vote_ready_body, voted, members, trip) else trip,
+            )
+        } else {
+            val chosen = p["chosenCount"]?.toIntOrNull()
+            when {
+                chosen == 0 && actor != null -> NotificationLine(stringResource(Res.string.notification_vote_decided_none, actor), trip)
+                chosen != null && actor != null -> NotificationLine(
+                    stringResource(Res.string.notification_vote_decided, actor, chosen),
+                    stringResource(Res.string.notification_vote_decided_body, trip),
+                )
+                else -> NotificationLine(stringResource(Res.string.notification_vote_result), trip)
+            }
+        }
     }
 }
 
 /** Tile colour and icon per type (accent tiles with a white icon, like the category tiles). */
 @Composable
-fun notificationTile(type: NotificationType): Pair<Color, String> {
+fun notificationTile(type: NotificationType, params: Map<String, String> = emptyMap()): Pair<Color, String> {
     val accents = IrisTheme.accents
+    // The design uses how_to_vote and timer for voting; they are not in the app's icon subset.
+    val stage = params["stage"]
     return when (type) {
         NotificationType.MEMBER_JOINED -> accents.blue to Symbols.personAdd
         NotificationType.MEMBER_REMOVED -> accents.red to Symbols.personRemove
@@ -74,6 +110,7 @@ fun notificationTile(type: NotificationType): Pair<Color, String> {
         NotificationType.SETTLEMENT_MARKED -> accents.green to Symbols.checkCircle
         NotificationType.PACKING_REMINDER -> accents.orange to Symbols.luggage
         NotificationType.ACTIVITY_REMINDER -> accents.orange to Symbols.schedule
-        NotificationType.VOTE_REQUESTED, NotificationType.VOTE_RESULT -> accents.magenta to Symbols.favorite
+        NotificationType.VOTE_REQUESTED -> accents.magenta to (if (stage == VoteStage.CLOSING) Symbols.schedule else Symbols.favorite)
+        NotificationType.VOTE_RESULT -> accents.magenta to (if (stage == VoteStage.READY) Symbols.doneAll else Symbols.checkCircle)
     }
 }

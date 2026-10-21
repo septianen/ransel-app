@@ -112,6 +112,17 @@ import app.ransel.navigation.ExploreRoute
 import app.ransel.navigation.HomeRoute
 import app.ransel.navigation.JoinTripRoute
 import app.ransel.navigation.SwipeRoute
+import app.ransel.navigation.VoteRoute
+import ransel.composeapp.generated.resources.place_detail_vote_strip
+import app.ransel.feature.voting.VoteMode
+import app.ransel.feature.voting.VoteScreen
+import app.ransel.feature.voting.VoteViewModel
+import app.ransel.feature.voting.voteViewModelKey
+import app.ransel.feature.explore.toDetailInfo
+import app.ransel.data.explore.ExploreCard
+import app.ransel.shared.domain.hoursLeft
+import app.ransel.shared.model.Vote
+import kotlin.time.Clock
 import app.ransel.feature.explore.ExplorePreferencesScreen
 import app.ransel.feature.explore.ExploreTripPickerScreen
 import app.ransel.feature.explore.SwipeScreen
@@ -279,8 +290,12 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     LaunchedEffect(tappedTrip, sessionState) {
         val tripId = tappedTrip ?: return@LaunchedEffect
         if (sessionState is SessionState.SignedIn) {
+            val round = notificationTarget.roundId.value
+            val showResult = notificationTarget.showResult.value
             notificationTarget.clear()
+            // A voting notification opens its round on top of the trip, so back goes to the trip.
             navController.navigate(TripRoute(tripId)) { launchSingleTop = true }
+            if (round != null) navController.navigate(VoteRoute(tripId, round, showResult)) { launchSingleTop = true }
         }
     }
     LaunchedEffect(sessionState) {
@@ -488,6 +503,27 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
                 }
             },
             onOpenDetail = { placeId -> navController.navigate(PlaceDetailRoute(placeId, tripId = swipeRoute.tripId)) },
+            // The search became a voting round: the vote screen replaces the swipe screen.
+            onOpenRound = { tripId, roundId ->
+                navController.navigate(VoteRoute(tripId, roundId)) { popUpTo<SwipeRoute> { inclusive = true } }
+            },
+        )
+    }
+    page<VoteRoute> { entry ->
+        val route = entry.toRoute<VoteRoute>()
+        VoteScreen(
+            tripId = route.tripId,
+            roundId = route.roundId,
+            showResult = route.showResult,
+            onClose = { navController.popBackStack() },
+            onOpenItinerary = {
+                navController.navigate(TripRoute(route.tripId, TripTab.ITINERARY.name)) {
+                    popUpTo<VoteRoute> { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
+            onOpenMembers = { navController.navigate(MembersRoute(route.tripId)) },
+            onOpenDetail = { placeId -> navController.navigate(PlaceDetailRoute(placeId, tripId = route.tripId, roundId = route.roundId)) },
         )
     }
     page<PlaceDetailRoute>(maxContentWidth = null) { entry -> // adapts itself: two columns from 900 dp
@@ -497,12 +533,36 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
         val swipeEntry = remember(entry) {
             if (route.fromItinerary || route.tripId == null) null else runCatching { navController.getBackStackEntry<SwipeRoute>() }.getOrNull()
         }
-        val swipe: SwipeViewModel? = swipeEntry?.let { koinViewModel<SwipeViewModel>(viewModelStoreOwner = it, key = "swipe-${route.tripId}") { parametersOf(route.tripId) } }
+        val swipe: SwipeViewModel? = swipeEntry?.takeIf { route.roundId == null }
+            ?.let { koinViewModel<SwipeViewModel>(viewModelStoreOwner = it, key = "swipe-${route.tripId}") { parametersOf(route.tripId) } }
+        // From a voting card: the card and the Lewati / Suka votes belong to the vote screen's ViewModel.
+        val voteEntry = remember(entry) {
+            if (route.roundId == null) null else runCatching { navController.getBackStackEntry<VoteRoute>() }.getOrNull()
+        }
+        val vote: VoteViewModel? = voteEntry?.let {
+            koinViewModel<VoteViewModel>(viewModelStoreOwner = it, key = voteViewModelKey(route.roundId!!)) { parametersOf(route.tripId, route.roundId, false) }
+        }
+        val voteState = vote?.state?.collectAsState()?.value
+        val votePlace = voteState?.round?.places?.firstOrNull { it.item.placeId == route.placeId }
+        // Only the card on top of the deck can be voted from here; any other card is read-only.
+        val canVote = vote != null && voteState?.mode == VoteMode.VOTING &&
+            voteState.round?.places?.getOrNull(voteState.cursor ?: -1)?.item?.placeId == route.placeId
         PlaceDetailScreen(
             route = route,
             onBack = { navController.popBackStack() },
-            onSkip = swipe?.let { vm -> { vm.skip(); navController.popBackStack() } },
-            onSave = swipe?.let { vm -> { vm.like(); navController.popBackStack() } },
+            onSkip = if (vote != null) { if (canVote) ({ vote.voteFromDetail(route.placeId, Vote.SKIP); navController.popBackStack() }) else null }
+                else swipe?.let { vm -> { vm.skip(); navController.popBackStack() } },
+            onSave = if (vote != null) { if (canVote) ({ vote.voteFromDetail(route.placeId, Vote.LIKE); navController.popBackStack() }) else null }
+                else swipe?.let { vm -> { vm.like(); navController.popBackStack() } },
+            voteInfo = votePlace?.let { ExploreCard(it.category, it.item).toDetailInfo() },
+            voteStrip = voteState?.round?.takeIf { votePlace != null }?.let { round ->
+                stringResource(
+                    Res.string.place_detail_vote_strip,
+                    voteState.destination.ifBlank { voteState.tripTitle },
+                    round.createdByName,
+                    hoursLeft(Clock.System.now(), round.closesAt),
+                )
+            },
         )
     }
     page<CreditsRoute> {
@@ -512,6 +572,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
         NotificationsScreen(
             onBack = { navController.popBackStack() },
             onOpenTrip = { navController.navigate(TripRoute(it)) },
+            onOpenRound = { tripId, roundId, showResult -> navController.navigate(VoteRoute(tripId, roundId, showResult)) },
             onOpenSettings = { navController.navigate(NotificationSettingsRoute) },
         )
     }
@@ -566,6 +627,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onOpenPlaceDetail = { placeId, name, currency ->
                 navController.navigate(PlaceDetailRoute(placeId, fromItinerary = true, name = name, currency = currency))
             },
+            onOpenRound = { roundId, showResult -> navController.navigate(VoteRoute(route.tripId, roundId, showResult)) },
         )
     }
     page<JoinTripRoute> { entry ->

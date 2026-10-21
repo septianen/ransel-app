@@ -38,7 +38,7 @@ data class PlaceDetailInfo(
     val costCurrency: String? = null,
 )
 
-internal fun ExploreCard.toDetailInfo() = PlaceDetailInfo(
+fun ExploreCard.toDetailInfo() = PlaceDetailInfo(
     placeId = item.placeId,
     name = item.name,
     category = category,
@@ -86,8 +86,11 @@ class PlaceDetailViewModel(
     val state: StateFlow<PlaceDetailUiState> = _state.asStateFlow()
 
     init {
-        val card = if (route.fromItinerary) null else store.session(route.tripId)?.cards?.firstOrNull { it.item.placeId == route.placeId }
-        if (card != null) _state.value = PlaceDetailUiState(info = card.toDetailInfo()) else load()
+        // A voting card is handed over by the vote screen; nothing to load here.
+        if (route.roundId == null) {
+            val card = if (route.fromItinerary) null else store.session(route.tripId)?.cards?.firstOrNull { it.item.placeId == route.placeId }
+            if (card != null) _state.value = PlaceDetailUiState(info = card.toDetailInfo()) else load()
+        }
     }
 
     fun retry() = load()

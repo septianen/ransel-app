@@ -70,6 +70,8 @@ data class ExplorePreferencesState(
     val notes: String = "",
     /** Creating the trip / saving the session. */
     val starting: Boolean = false,
+    /** Members of the existing trip; 2+ means the search becomes a voting round (docs/specs/voting-spec.md). */
+    val memberCount: Int = 1,
     val showErrors: Boolean = false,
 ) {
     val days: Int get() = startDate.daysUntil(endDate) + 1
@@ -131,6 +133,10 @@ class ExplorePreferencesViewModel(
             queries.filterNotNull().collectLatest { loadSuggestions(it) }
         }
         if (tripId != null) viewModelScope.launch { loadTrip(tripId) }
+        if (tripId != null) viewModelScope.launch {
+            val members = api.members(tripId)
+            if (members is ApiResult.Success) _state.update { it.copy(memberCount = members.value.size) }
+        }
     }
 
     private suspend fun loadTrip(id: String) {

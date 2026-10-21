@@ -42,6 +42,12 @@ import androidx.compose.ui.unit.dp
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.TripCover
+import ransel.composeapp.generated.resources.trip_list_voting_chip
+import ransel.composeapp.generated.resources.trip_list_voting_dot
+import app.ransel.ui.theme.IrisTheme
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.offset
 import app.ransel.ui.format.DateFormatter
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.formatMoneyCompact
@@ -228,7 +234,10 @@ private fun OngoingCard(card: TripCardData, state: TripListUiState.Content, date
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TripCover(trip.id, Modifier.size(48.dp))
+            Box {
+                TripCover(trip.id, Modifier.size(48.dp))
+                if (card.votingHoursLeft != null) VotingDot(Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(
                     trip.title,
@@ -284,7 +293,10 @@ private fun UpcomingCard(card: TripCardData, state: TripListUiState.Content, dat
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        TripCover(trip.id, Modifier.size(64.dp))
+        Box {
+            TripCover(trip.id, Modifier.size(64.dp))
+            if (card.votingHoursLeft != null) VotingDot(Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp))
+        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(trip.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
@@ -320,7 +332,9 @@ private fun UpcomingCard(card: TripCardData, state: TripListUiState.Content, dat
                         color = if (soon) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                     )
                 }
-                Text(
+                if (card.votingHoursLeft != null) {
+                    VotingChip(card.votingHoursLeft)
+                } else Text(
                     if (card.summary.activityCount == 0) {
                         stringResource(Res.string.trips_itinerary_empty)
                     } else {
@@ -409,5 +423,43 @@ private fun NoUpcomingCard(last: TripCardData, onCreateTrip: () -> Unit) {
         Button(onClick = onCreateTrip, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(Res.string.trips_create), style = MaterialTheme.typography.titleMedium)
         }
+    }
+}
+
+/** Magenta dot on the cover: a voting round waits for this user's picks (design `DaftarTripVoting`). */
+@Composable
+private fun VotingDot(modifier: Modifier = Modifier) {
+    val label = stringResource(Res.string.trip_list_voting_dot)
+    Box(
+        modifier
+            .size(14.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(2.dp)
+            .clip(CircleShape)
+            .background(IrisTheme.accents.magenta)
+            .semantics { contentDescription = label },
+    )
+}
+
+@Composable
+private fun VotingChip(hoursLeft: Int) {
+    Row(
+        Modifier
+            .height(24.dp)
+            .clip(IrisShape.xs)
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Symbol(Symbols.favorite, size = 14.dp, filled = true, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+        Text(
+            stringResource(Res.string.trip_list_voting_chip, hoursLeft),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            maxLines = 1,
+        )
     }
 }

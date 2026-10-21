@@ -215,6 +215,16 @@ private fun PreferencesForm(
             singleLine = false,
         )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (!state.newTrip && state.memberCount >= 2) {
+                // Design `PreferensiAIGrup`: on a shared trip the results are voted on (design icon how_to_vote is not in the subset).
+                Row(
+                    Modifier.fillMaxWidth().clip(IrisShape.md).background(scheme.secondaryContainer).padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Symbol(Symbols.favorite, size = 18.dp, filled = true, tint = scheme.onSecondaryContainer)
+                    Text(stringResource(Res.string.explore_group_note, state.memberCount), style = MaterialTheme.typography.bodyMedium, color = scheme.onSecondaryContainer)
+                }
+            }
             LoadingButton(
                 onClick = onSearch,
                 loading = state.starting,

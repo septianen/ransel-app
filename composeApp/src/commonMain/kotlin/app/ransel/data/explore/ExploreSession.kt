@@ -55,6 +55,11 @@ data class ExploreSession(
     val swipes: List<ExploreSwipe> = emptyList(),
     /** No more batches to fetch (the background request came back empty). */
     val exhausted: Boolean = false,
+    /**
+     * Set when the search became a voting round (a trip with 2+ members): the cards live on the server and are swiped
+     * on the vote screen; the session only keeps the form so the next batch can be asked for the same round.
+     */
+    val roundId: String? = null,
 ) {
     val position: Int get() = swipes.size
     val saved: Int get() = swipes.count { it.liked }

@@ -44,6 +44,11 @@ import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.UpdateMeRequest
 import app.ransel.shared.dto.UpdateMemberRoleRequest
 import app.ransel.shared.model.Role
+import app.ransel.shared.model.Vote
+import app.ransel.shared.dto.DecideRequest
+import app.ransel.shared.dto.RoundDto
+import app.ransel.shared.dto.RoundSummaryDto
+import app.ransel.shared.dto.VoteRequest
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.http.HttpHeaders
@@ -240,6 +245,16 @@ class RanselApi(
             currency?.let { parameter("currency", it) }
         },
     ) { it.body<ApiResponse<PlaceDetailDto>>().data }
+
+    // ── itinerary voting ────────────────────────────────────────────────────
+    suspend fun rounds(tripId: String): ApiResult<List<RoundSummaryDto>> = get(ApiRoutes.rounds(tripId))
+    suspend fun round(tripId: String, roundId: String): ApiResult<RoundDto> = get(ApiRoutes.round(tripId, roundId))
+    suspend fun vote(tripId: String, roundId: String, placeId: String, vote: Vote): ApiResult<Unit> =
+        call(HttpMethod.Put, ApiRoutes.roundVote(tripId, roundId, placeId), bodyOf = { contentType(ContentType.Application.Json); setBody(VoteRequest(vote)) }) { }
+    suspend fun undoVote(tripId: String, roundId: String, placeId: String): ApiResult<Unit> =
+        delete(ApiRoutes.roundVote(tripId, roundId, placeId))
+    suspend fun decideRound(tripId: String, roundId: String, placeIds: List<String>): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.roundDecide(tripId, roundId), bodyOf = { contentType(ContentType.Application.Json); setBody(DecideRequest(placeIds)) }) { }
 
     // ── Explore credits ─────────────────────────────────────────────────────
     suspend fun credits(): ApiResult<CreditsDto> = get(ApiRoutes.CREDITS)

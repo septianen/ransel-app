@@ -7,6 +7,8 @@ import app.ransel.feature.itinerary.ActivityFormViewModel
 import app.ransel.feature.itinerary.ItineraryViewModel
 import app.ransel.data.credit.CreditsStore
 import app.ransel.data.notification.NotificationTarget
+import app.ransel.data.voting.VotingStore
+import app.ransel.feature.voting.VoteViewModel
 import app.ransel.data.notification.NotificationsStore
 import app.ransel.data.notification.PushRegistration
 import app.ransel.data.invite.InviteLinks
@@ -78,6 +80,8 @@ val commonModule: Module = module {
     viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
     viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get()) }
     viewModel { params -> PlaceDetailViewModel(params.get(), get(), get()) }
+    single { VotingStore() }
+    viewModel { params -> VoteViewModel(params[0], params[1], params[2], get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> InviteSheetViewModel(params.get(), get()) }
     viewModel { params -> JoinTripViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> MembersViewModel(params.get(), get(), get(), get()) }

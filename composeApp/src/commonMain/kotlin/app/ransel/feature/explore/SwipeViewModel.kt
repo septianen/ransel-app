@@ -42,6 +42,8 @@ sealed interface SwipeUiState {
 sealed interface SwipeEvent {
     /** [title] was saved to "Belum dijadwalkan". */
     data class Saved(val title: String) : SwipeEvent
+    /** The search became a voting round: the vote screen takes over (docs/specs/voting-spec.md). */
+    data class OpenRound(val tripId: String, val roundId: String) : SwipeEvent
 }
 
 private const val PREFETCH_AT = 3
@@ -65,6 +67,7 @@ class SwipeViewModel(
     init {
         val saved = store.session(tripId)
         if (saved == null) _state.value = SwipeUiState.Empty
+        else if (saved.roundId != null) events.trySend(SwipeEvent.OpenRound(tripId, saved.roundId))
         else {
             session = saved
             if (saved.cards.isEmpty()) search(saved) else publish()
@@ -79,7 +82,13 @@ class SwipeViewModel(
                 is ApiResult.Success -> {
                     result.value.credits?.let(credits::update)
                     val cards = result.value.groups.flatMap { g -> g.items.map { ExploreCard(g.category, it) } }
-                    if (cards.isEmpty()) {
+                    val roundId = result.value.roundId
+                    if (roundId != null) {
+                        // Votes go to the server; the session keeps the form (and cards) for the next batch of this round.
+                        session = s.copy(cards = cards, roundId = roundId)
+                        persist()
+                        events.send(SwipeEvent.OpenRound(s.form.tripId, roundId))
+                    } else if (cards.isEmpty()) {
                         _state.value = SwipeUiState.NoResults(s)
                         store.clear(tripId)
                     } else {
@@ -202,9 +211,9 @@ private fun ApiFailure.toOutOfCredits() = SwipeUiState.OutOfCredits(
     available = details?.get("available")?.toIntOrNull(),
 )
 
-private fun app.ransel.data.explore.ExploreForm.toRequest(newSearch: Boolean, exclude: List<String>) =
+internal fun app.ransel.data.explore.ExploreForm.toRequest(newSearch: Boolean, exclude: List<String>, roundId: String? = null) =
     RecommendationRequest(
         tripId = tripId, focusArea = focusArea.trim().ifEmpty { null }, priceLevel = priceLevel,
         interests = interests, extraInterests = extraInterests, style = style, notes = notes.trim().ifEmpty { null },
-        excludePlaceIds = exclude, newSearch = newSearch,
+        excludePlaceIds = exclude, newSearch = newSearch, roundId = roundId,
     )

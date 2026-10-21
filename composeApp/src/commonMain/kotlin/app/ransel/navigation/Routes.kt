@@ -57,7 +57,15 @@ import kotlinx.serialization.Serializable
     val fromItinerary: Boolean = false,
     val name: String? = null,
     val currency: String? = null,
+    /** Opened from a card of this voting round: the card comes from the vote screen and the buttons read Lewati / Suka. */
+    val roundId: String? = null,
 )
+
+/**
+ * One voting round of a trip (docs/specs/voting-spec.md): vote, wait, or (OWNER) the result. [showResult] opens the
+ * OWNER on the result even when they still have cards to vote on.
+ */
+@Serializable data class VoteRoute(val tripId: String, val roundId: String, val showResult: Boolean = false)
 
 /** Invite link or code opened: preview and join, or the invalid-invite state. */
 @Serializable data class JoinTripRoute(val code: String)

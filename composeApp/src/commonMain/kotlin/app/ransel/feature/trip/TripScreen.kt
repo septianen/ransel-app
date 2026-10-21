@@ -28,6 +28,13 @@ import app.ransel.ui.components.TripHeader
 import app.ransel.ui.components.TripTab
 import app.ransel.ui.format.rememberDateFormatter
 import org.koin.compose.koinInject
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.LaunchedEffect
+import app.ransel.data.remote.RanselApi
+import app.ransel.data.voting.VotingStore
+import app.ransel.data.voting.bannerRound
+import app.ransel.data.voting.needsMyVote
+import app.ransel.feature.voting.VoteBanner
 
 /**
  * Trip detail: shared header + the three tabs. Full screen over the bottom tabs (the designs show
@@ -44,6 +51,8 @@ fun TripScreen(
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
+    /** Opens a voting round from the banner; [showResult] = the OWNER goes to the result. */
+    onOpenRound: ((roundId: String, showResult: Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
 ) {
@@ -58,6 +67,12 @@ fun TripScreen(
     // Members live on the server: only signed-in users see the button (guests have no one to share with).
     val session: SessionManager = koinInject()
     val signedIn = session.state.collectAsState().value is SessionState.SignedIn
+    // Voting rounds are server data too (docs/specs/voting-spec.md): the banner shows for signed-in users only.
+    val voting: VotingStore = koinInject()
+    val api: RanselApi = koinInject()
+    val rounds by voting.rounds.collectAsState()
+    LaunchedEffect(tripId, signedIn) { if (signedIn) voting.refresh(api, tripId) }
+    val bannerRound = if (signedIn) rounds[tripId]?.bannerRound() else null
 
     @Composable
     fun Main(modifier: Modifier) {
@@ -72,6 +87,16 @@ fun TripScreen(
                 onMembers = if (signedIn) onMembers else null,
             )
             if (offline) app.ransel.ui.components.OfflineBanner()
+            if (bannerRound != null && current != null && onOpenRound != null) {
+                val isOwner = current.myRole == app.ransel.shared.model.Role.OWNER
+                VoteBanner(
+                    round = bannerRound,
+                    destination = current.destination,
+                    isOwner = isOwner,
+                    onOpen = { onOpenRound(bannerRound.id, isOwner && !bannerRound.needsMyVote()) },
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+                )
+            }
             Box(Modifier.weight(1f).navigationBarsPadding()) {
                 if (current != null) {
                     when (tab) {

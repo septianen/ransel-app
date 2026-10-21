@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.ransel.shared.domain.VoteStage
 import app.ransel.shared.dto.NotificationDto
 import app.ransel.shared.dto.NotificationsDto
 import app.ransel.shared.model.NotificationType
@@ -59,6 +60,8 @@ fun NotificationsScreen(
     onBack: () -> Unit,
     onOpenTrip: (tripId: String) -> Unit,
     onOpenSettings: () -> Unit,
+    /** A voting notification opens its round; [showResult] for the OWNER's "ready to decide". */
+    onOpenRound: (tripId: String, roundId: String, showResult: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NotificationsViewModel = koinViewModel(),
 ) {
@@ -71,8 +74,15 @@ fun NotificationsScreen(
         onSettings = onOpenSettings,
         onOpen = { n ->
             viewModel.markRead(n)
-            // Someone who was removed can no longer open the trip.
-            if (n.type != NotificationType.MEMBER_REMOVED) n.tripId?.let(onOpenTrip)
+            val roundId = n.params["roundId"]
+            val tripId = n.tripId
+            when {
+                // Someone who was removed can no longer open the trip.
+                n.type == NotificationType.MEMBER_REMOVED -> Unit
+                // The vote screen sorts out where the round stands (open, closed, decided, expired).
+                tripId != null && roundId != null -> onOpenRound(tripId, roundId, n.params["stage"] == VoteStage.READY)
+                tripId != null -> onOpenTrip(tripId)
+            }
         },
         modifier = modifier.statusBarsPadding(),
     )
@@ -160,7 +170,7 @@ private fun SectionLabel(text: String) {
 private fun NotificationRow(n: NotificationDto, unread: Boolean, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val line = notificationLine(n)
-    val (color, symbol) = notificationTile(n.type)
+    val (color, symbol) = notificationTile(n.type, n.params)
     Row(
         Modifier
             .fillMaxWidth()

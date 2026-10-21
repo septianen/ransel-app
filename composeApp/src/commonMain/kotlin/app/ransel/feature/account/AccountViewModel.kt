@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.AuthRepository
 import app.ransel.data.credit.CreditsStore
 import app.ransel.data.notification.NotificationsStore
+import app.ransel.data.voting.VotingStore
 import app.ransel.data.notification.PushRegistration
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.auth.SessionState
@@ -26,6 +27,7 @@ class AccountViewModel(
     private val credits: CreditsStore,
     private val push: PushRegistration,
     private val notifications: NotificationsStore,
+    private val voting: VotingStore,
 ) : ViewModel() {
     val state: StateFlow<AppPreferences> = preferences.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPreferences(loaded = false))
@@ -41,6 +43,7 @@ class AccountViewModel(
         runCatching { push.unregister() } // before the token is dropped, so this phone stops getting this user's push
         credits.update(null)
         notifications.clear()
+        voting.clear()
         auth.signOut()
     }
 }

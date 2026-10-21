@@ -93,6 +93,7 @@ fun SwipeScreen(
     onHome: () -> Unit,
     onOpenDetail: (placeId: String) -> Unit,
     onOpenCredits: () -> Unit,
+    onOpenRound: (tripId: String, roundId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SwipeViewModel = koinViewModel(key = "swipe-$tripId") { parametersOf(tripId) },
 ) {
@@ -103,6 +104,7 @@ fun SwipeScreen(
         // collectLatest: showSnackbar suspends until the snackbar is gone, so a plain collect would make the
         // next one wait. A new event cancels the previous showSnackbar (which dismisses it) and shows at once.
         viewModel.eventFlow.collectLatest { event ->
+            if (event is SwipeEvent.OpenRound) onOpenRound(event.tripId, event.roundId)
             if (event is SwipeEvent.Saved) {
                 val result = snackbar.showSnackbar(
                     message = getString(Res.string.swipe_saved, event.title),
@@ -201,7 +203,7 @@ private fun StateWithClose(onClose: () -> Unit, content: @Composable () -> Unit)
 }
 
 @Composable
-private fun IconBox(symbol: String, description: String?, onClick: () -> Unit) {
+internal fun IconBox(symbol: String, description: String?, onClick: () -> Unit) {
     Box(
         Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -261,7 +263,44 @@ private fun CardsContent(
     onUndo: () -> Unit,
     onOpenDetail: (placeId: String) -> Unit,
 ) {
-    val card = session.cards.getOrNull(session.position)
+    Column(Modifier.fillMaxSize()) {
+        SwipeHeader(session, session.form.destination, onClose, onTune)
+        SwipeDeck(
+            card = session.cards.getOrNull(session.position),
+            nextCard = session.cards.getOrNull(session.position + 1),
+            progress = stringResource(Res.string.swipe_progress, minOf(session.position + 1, session.cards.size), session.cards.size),
+            countLabel = stringResource(Res.string.swipe_saved_count, session.saved),
+            canUndo = session.swipes.isNotEmpty(),
+            likeDescription = stringResource(Res.string.swipe_save),
+            likeLabel = stringResource(Res.string.swipe_label_save),
+            onLike = onLike,
+            onSkip = onSkip,
+            onUndo = onUndo,
+            onOpenDetail = onOpenDetail,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/**
+ * The card deck with its counters and the ✕ / undo / ♥ buttons, shared by Explore (save) and voting (like).
+ * [card] null shows a spinner on the top card (the next batch is on its way).
+ */
+@Composable
+internal fun SwipeDeck(
+    card: ExploreCard?,
+    nextCard: ExploreCard?,
+    progress: String,
+    countLabel: String,
+    canUndo: Boolean,
+    likeDescription: String,
+    likeLabel: String,
+    onLike: () -> Unit,
+    onSkip: () -> Unit,
+    onUndo: () -> Unit,
+    onOpenDetail: (placeId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val openDetailLabel = stringResource(Res.string.place_detail_open)
     val scope = rememberCoroutineScope()
     val dx = remember(card?.item?.placeId) { Animatable(0f) }
@@ -276,17 +315,15 @@ private fun CardsContent(
 
     // Warm the cache with the next card's photo only (Google photos are billed per request).
     val platformContext = LocalPlatformContext.current
-    val nextCard = session.cards.getOrNull(session.position + 1)
     val nextPhoto = nextCard?.let { placePhotoRequest(platformContext, it.item.photoUrl, it.item.placeId) }
     LaunchedEffect(nextPhoto) {
         if (nextPhoto != null) SingletonImageLoader.get(platformContext).enqueue(nextPhoto)
     }
 
-    Column(Modifier.fillMaxSize()) {
-        SwipeHeader(session, session.form.destination, onClose, onTune)
+    Column(modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                stringResource(Res.string.swipe_progress, minOf(session.position + 1, session.cards.size), session.cards.size),
+                progress,
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -297,7 +334,7 @@ private fun CardsContent(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Symbol(Symbols.favorite, size = 14.dp, filled = true, tint = IrisTheme.accents.onAccent)
-                Text(stringResource(Res.string.swipe_saved_count, session.saved), style = MaterialTheme.typography.labelMedium, color = IrisTheme.accents.onAccent)
+                Text(countLabel, style = MaterialTheme.typography.labelMedium, color = IrisTheme.accents.onAccent)
             }
         }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(16.dp)) {
@@ -310,7 +347,7 @@ private fun CardsContent(
                     CircularProgressIndicator()
                 }
             } else {
-                val progress = (dx.value / (width * 0.4f)).coerceIn(-1f, 1f)
+                val drag = (dx.value / (width * 0.4f)).coerceIn(-1f, 1f)
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -334,7 +371,7 @@ private fun CardsContent(
                             }
                         },
                 ) {
-                    RecommendationCard(card, progress, onInfo = { onOpenDetail(card.item.placeId) })
+                    RecommendationCard(card, drag, onInfo = { onOpenDetail(card.item.placeId) }, likeLabel = likeLabel)
                 }
             }
         }
@@ -344,14 +381,14 @@ private fun CardsContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             RoundAction(Symbols.close, stringResource(Res.string.swipe_skip), MaterialTheme.colorScheme.error, 64, enabled = card != null) { fling(false) }
-            RoundAction(Symbols.undo, stringResource(Res.string.action_undo), MaterialTheme.colorScheme.onSurfaceVariant, 48, enabled = session.swipes.isNotEmpty(), onClick = onUndo)
-            RoundAction(Symbols.favorite, stringResource(Res.string.swipe_save), IrisTheme.accents.magenta, 64, filled = true, enabled = card != null) { fling(true) }
+            RoundAction(Symbols.undo, stringResource(Res.string.action_undo), MaterialTheme.colorScheme.onSurfaceVariant, 48, enabled = canUndo, onClick = onUndo)
+            RoundAction(Symbols.favorite, likeDescription, IrisTheme.accents.magenta, 64, filled = true, enabled = card != null) { fling(true) }
         }
     }
 }
 
 @Composable
-private fun RoundAction(
+internal fun RoundAction(
     symbol: String,
     description: String,
     tint: Color,
@@ -382,7 +419,7 @@ private fun RoundAction(
  * [onInfo] is the visible info button (the whole card is tappable too); it is the way to the detail with a mouse or keyboard.
  */
 @Composable
-private fun RecommendationCard(card: ExploreCard, drag: Float, onInfo: () -> Unit) {
+internal fun RecommendationCard(card: ExploreCard, drag: Float, onInfo: () -> Unit, likeLabel: String = stringResource(Res.string.swipe_label_save)) {
     val item = card.item
     val scheme = MaterialTheme.colorScheme
     val outline = when {
@@ -454,7 +491,7 @@ private fun RecommendationCard(card: ExploreCard, drag: Float, onInfo: () -> Uni
                 ) {
                     Symbol(if (right) Symbols.favorite else Symbols.close, size = 20.dp, filled = true, tint = outline)
                     Text(
-                        stringResource(if (right) Res.string.swipe_label_save else Res.string.swipe_label_skip),
+                        if (right) likeLabel else stringResource(Res.string.swipe_label_skip),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
                         color = outline,
                     )

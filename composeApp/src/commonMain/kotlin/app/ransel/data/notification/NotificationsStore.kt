@@ -2,6 +2,7 @@ package app.ransel.data.notification
 
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
+import app.ransel.shared.domain.VoteStage
 import app.ransel.shared.dto.NotificationsDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,16 +48,28 @@ class NotificationsStore {
     }
 }
 
-/** A trip the user tapped a notification for. Held until the navigation graph has opened it. */
+/**
+ * A trip the user tapped a notification for, and the voting round when it was about one. Held until the navigation
+ * graph has opened it.
+ */
 class NotificationTarget {
     private val _tripId = MutableStateFlow<String?>(null)
     val tripId: StateFlow<String?> = _tripId.asStateFlow()
+    private val _roundId = MutableStateFlow<String?>(null)
+    val roundId: StateFlow<String?> = _roundId.asStateFlow()
+    private val _showResult = MutableStateFlow(false)
+    /** The OWNER's "ready to decide" opens the result. */
+    val showResult: StateFlow<Boolean> = _showResult.asStateFlow()
 
-    fun offer(tripId: String) {
+    fun offer(tripId: String, roundId: String? = null, stage: String? = null) {
+        _roundId.value = roundId?.takeIf { it.isNotBlank() }
+        _showResult.value = stage == VoteStage.READY
         _tripId.value = tripId.takeIf { it.isNotBlank() }
     }
 
     fun clear() {
         _tripId.value = null
+        _roundId.value = null
+        _showResult.value = false
     }
 }
