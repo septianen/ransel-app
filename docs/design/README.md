@@ -118,7 +118,7 @@ Phase = the roadmap phase in which the screen must be implemented.
 | --- | --- | --- | --- | --- | --- |
 | `screens/Notifikasi.html` | `NotificationsScreen` | Notifikasi: kotak masuk (Baru / Sebelumnya, tandai semua dibaca) | 5 |  |  |
 | `screens/GelapNotifikasi.html` | `NotificationsScreen` (dark) | Tema gelap: Notifikasi | 5 |  |  |
-| `screens/KosongNotifikasi.html` | `NotificationsScreen` (empty) | Kosong: Notifikasi | 5 | `ic_sun_bathing` |  |
+| `screens/KosongNotifikasi.html` | `NotificationsScreen` (empty) | Kosong: Notifikasi | 5 | `ic_sun_bathing_water` |  |
 | `screens/BerandaNotifikasiBaru.html` | `HomeScreen` (unread badge) | Beranda: lonceng dengan jumlah belum dibaca | 5 |  |  |
 | `screens/PengaturanNotifikasi.html` | `NotificationSettingsScreen` | Pengaturan notifikasi: tiga saklar | 5 |  |  |
 | `screens/PengaturanNotifikasiMati.html` | `NotificationSettingsScreen` (system permission off) | Pengaturan notifikasi: izin ponsel mati | 5 |  |  |
