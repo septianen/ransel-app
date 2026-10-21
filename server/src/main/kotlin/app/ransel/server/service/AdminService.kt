@@ -42,6 +42,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -148,7 +149,7 @@ class AdminService(
         val row = transaction { account(id) }
         val wallet = credits.credits(id)
         return transaction {
-            val trips = (TripMembers innerJoin Trips).selectAll()
+            val trips = TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id).selectAll()
                 .where { (TripMembers.userId eq id) and Trips.deletedAt.isNull() }
                 .orderBy(Trips.startDate to SortOrder.DESC)
                 .map { t ->
@@ -363,7 +364,7 @@ class AdminService(
             .orderBy(Devices.lastSeenAt to SortOrder.ASC)
             .associate { it[Devices.userId] to it[Devices.platform] } // ascending, so the newest device wins
         val tripCount = TripMembers.userId.count()
-        val trips = (TripMembers innerJoin Trips).select(TripMembers.userId, tripCount)
+        val trips = TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id).select(TripMembers.userId, tripCount)
             .where { (TripMembers.userId inList ids) and Trips.deletedAt.isNull() }
             .groupBy(TripMembers.userId)
             .associate { it[TripMembers.userId] to it[tripCount].toInt() }
