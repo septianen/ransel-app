@@ -41,6 +41,9 @@ class AuthRepository(
     suspend fun resetPassword(token: String, newPassword: String): ApiResult<Unit> =
         api.resetPassword(token, newPassword)
 
+    /** True once after [SessionManager] ended the session because the account was deactivated (403 ACCOUNT_DISABLED). */
+    fun takeAccountDisabled(): Boolean = session.takeAccountDisabled()
+
     suspend fun signOut() {
         // Hook first: it still needs the token to send what is pending before the data is wiped.
         hooks.onSignedOut()
