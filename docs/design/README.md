@@ -109,6 +109,10 @@ Phase = the roadmap phase in which the screen must be implemented.
 | `screens/VotingMenunggu.html` | `SwipeScreen` (voted all) | Voting: suaramu sudah masuk | 5 |  | Voting |
 | `screens/VotingHasil.html` | `VoteResultScreen` (owner) | Voting: hasil, siapa belum voting, masukkan ke itinerary | 5 |  | Itinerary |
 | `screens/VotingDitutup.html` | `VoteResultScreen` (member, closed) | Voting: ditutup, pilihan owner | 5 |  | Itinerary |
+| `screens/VotingDitutupMenunggu.html` | `VoteResultScreen` (member, closed, not decided) | Voting: ditutup, menunggu owner | 5 |  | Itinerary |
+| `screens/DetailTempatVoting.html` | `PlaceDetailScreen` (vote mode) | Detail tempat: mode voting, Lewati/Suka | 5 |  | Voting |
+| `screens/DaftarTripVoting.html` | `TripListScreen` (open round) | Trip saya: ada voting (titik magenta) | 5 |  |  |
+| `screens/PreferensiAIGrup.html` | `ExplorePreferencesScreen` (multi-member trip) | Jelajah: trip dengan beberapa anggota (hasil jadi voting) | 5 |  |  |
 | `WebDetailTempat`, `WebGelapDetailTempat` (canvas boards) | `PlaceDetailScreen` (wide window) | Web: detail tempat, terang dan gelap | 5 |  | WebSwipe |
 | `WebVoting`, `WebVotingBanner`, `WebVotingMenunggu`, `WebVotingHasil`, `WebVotingDitutup` (canvas boards) | `SwipeScreen` (vote mode), `VoteBanner`, `VoteResultScreen` (wide window) | Web: voting | 5 |  | WebDetailTrip |
 
@@ -117,6 +121,7 @@ Phase = the roadmap phase in which the screen must be implemented.
 | File | Code name | Board title | Phase | Illustration | Overlay on |
 | --- | --- | --- | --- | --- | --- |
 | `screens/Notifikasi.html` | `NotificationsScreen` | Notifikasi: kotak masuk (Baru / Sebelumnya, tandai semua dibaca) | 5 |  |  |
+| `screens/NotifikasiVoting.html` | `NotificationsScreen` (voting rows) | Notifikasi: voting (minta pilihan, tinggal 3 jam, saatnya memutuskan, hasil) | 5 |  |  |
 | `screens/GelapNotifikasi.html` | `NotificationsScreen` (dark) | Tema gelap: Notifikasi | 5 |  |  |
 | `screens/KosongNotifikasi.html` | `NotificationsScreen` (empty) | Kosong: Notifikasi | 5 | `ic_sun_bathing_water` |  |
 | `screens/BerandaNotifikasiBaru.html` | `HomeScreen` (unread badge) | Beranda: lonceng dengan jumlah belum dibaca | 5 |  |  |

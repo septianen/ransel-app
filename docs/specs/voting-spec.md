@@ -12,7 +12,7 @@ Decisions agreed on 17 Oct 2026:
 - A vote is the same gesture as today's swipe: right = like ("Suka"), left = skip ("Lewati"). Undo is allowed while voting is open.
 - One AI search costs the requester its credits (3 per new search, see TRD "Quota"); votes cost nothing for anyone.
 - Voting stays open for **24 hours** from the moment the round is created. The OWNER may decide at any time, also before the 24 hours end or after they end.
-- Notifications: the push/inbox system exists now (TRD "Notifications"; `VOTE_REQUESTED` and `VOTE_RESULT` types are reserved). Sending them is part of building voting. Email stays out of scope; the in-app banner and dot stay as designed.
+- Notifications: the push/inbox system exists now (TRD "Notifications"; `VOTE_REQUESTED` and `VOTE_RESULT` types are reserved). Sending them is part of building voting; see "Notifications" below. Email stays out of scope; the in-app banner and dot stay as designed.
 - Data lives in new server tables and a server-only API (like members and invites). It needs an additive contract change in `shared/`.
 
 This spec changes the product behaviour "Explore always saves into a trip" for multi-member trips, so the PRD ("Explore AI") must be updated when this is approved.
@@ -51,6 +51,35 @@ Not handled in this version: a tie is decided by the OWNER by hand; there is no 
 | Credits | A new search costs the requester 3 credits. Votes, viewing and deciding cost none. |
 | Detail pages | The detail text (about, tips, hours) is part of each card, so every voter sees the same complete page with no extra request. The round stores a snapshot of each card (including that text) so voting does not depend on the requester's device. |
 
+## Notifications
+
+Voting uses the existing inbox + push (TRD "Notifications"). Four events, carried by the two reserved types; a `stage` param tells them apart, so `NotificationType` does not change (an unknown enum value would break older app versions). The banner on trip screens and the dot on the trip list are drawn from `GET /trips/{id}/rounds`, not from notifications, and stay even when notifications are off.
+
+| Event | Type + `stage` | Who gets it | When | Inbox / push text (ID; EN in `values/`) | Tap opens |
+| --- | --- | --- | --- | --- | --- |
+| Round created | `VOTE_REQUESTED` `OPEN` | Every current member except the requester | Inside the transaction that creates the round (the first batch only; extra batches never notify) | "Rina meminta pilihanmu" · "12 tempat · sisa 23 jam · Bali 4 hari" | `SwipeScreen` (vote mode) |
+| Voting closes soon | `VOTE_REQUESTED` `CLOSING` | Every current member (requester too) who still has cards without a vote | 3 hours before `closesAt`, if the round is not decided | "Voting tinggal 3 jam" · "5 tempat belum kamu pilih · Bali 4 hari" | `SwipeScreen` (vote mode), on the first card without a vote |
+| Ready to decide | `VOTE_RESULT` `READY` | The OWNER | As soon as every current member has voted on every card, or at `closesAt`, whichever comes first; not if already decided | "Voting selesai, saatnya memutuskan" · "4 dari 4 anggota sudah memilih · Lombok" | `VoteResultScreen` (owner) |
+| Owner decided | `VOTE_RESULT` `DECIDED` | Every current member except the OWNER | Inside the `decide` transaction | "Rina memilih 3 tempat" · "Sudah ada di Belum dijadwalkan · Bali 4 hari"; with 0 places: "Rina menutup voting tanpa memilih tempat" | `VoteResultScreen` (member, closed) |
+
+`params` (strings, like the other types; add them to the KDoc in `NotificationDtos.kt`):
+
+- `VOTE_REQUESTED`: `tripTitle`, `roundId`, `stage` (`OPEN` or `CLOSING`), `actorName` (requester), `placeCount`, `closesAt` (ISO timestamp; the app computes "sisa n jam" when it renders), `remaining` (`CLOSING` only: cards this user has not voted on).
+- `VOTE_RESULT`: `tripTitle`, `roundId`, `stage` (`READY` or `DECIDED`); `READY` adds `voted` and `members` (members who finished / current members); `DECIDED` adds `actorName` (owner) and `chosenCount`.
+- A missing `stage` is read as `OPEN` / `DECIDED`, so the app never shows an empty line.
+
+Rules:
+
+- **Dedupe keys** (one per user, `UNIQUE (user_id, dedupe_key)`): `vote-open:<roundId>`, `vote-closing:<roundId>`, `vote-ready:<roundId>`, `vote-decided:<roundId>`. Undoing and re-doing votes never sends anything twice.
+- **Never notify yourself**: the requester gets no `OPEN`; the owner gets no `DECIDED`. The owner does get `READY`, also for a round they started.
+- **Settings**: all four follow the "Aktivitas trip" switch (`tripActivity`). Its description becomes "Teman bergabung, permintaan dan hasil voting, peranmu berubah, atau kamu dikeluarkan." (see `PengaturanNotifikasi.html`).
+- **Timing jobs**: `CLOSING` and the `READY` at `closesAt` run in `ReminderScheduler`'s minute tick with "from now until X" windows, like the other reminders, so a missed tick still fires once. A round that becomes fully voted early sends `READY` from the vote request that completed it, inside its transaction. New env: `NOTIFY_VOTE_CLOSING_HOURS` (default 3).
+- **Members who join mid-round** get no `OPEN` (they see the banner) but do get `CLOSING`. Removed members get nothing more, and their old voting notifications open nothing (same as other trip notifications after removal).
+- **Read state**: opening a round (any of its screens) marks that round's voting notifications read (`POST /notifications/read` with their ids), so the bell does not keep nagging after the user has acted.
+- **Stale taps**: a notification of an expired round (the API returns 404 `ROUND_NOT_FOUND`) opens the trip's itinerary with the snackbar "Voting ini sudah berakhir". A tap after `closesAt` on a `VOTE_REQUESTED` opens the closed screen (`VotingDitutupMenunggu` or `VotingDitutup`), not the swipe screen.
+- **Push text** goes through `PushText` (ID and EN), the same sentences as the inbox lines above. The current `VOTE_*` placeholders in `PushText` are replaced.
+- **Icons in the inbox**: magenta tile (`#D92D7B`) with `how_to_vote`; `CLOSING` uses `timer`; `DECIDED` uses `check_circle` (see `NotifikasiVoting.html`). The app currently maps both types to `favorite`; change it.
+
 ## Data model (new migration after the place detail cache one; V1–V5 stay untouched)
 
 `suggestion_rounds`: `id uuid pk`, `trip_id`, `created_by`, `created_at`, `closes_at` (created + 24 h), `decided_at null`, `decided_by null`, `expires_at` (created + 7 d).
@@ -85,28 +114,37 @@ Contract rules: land in its own commit with a line in `shared/CONTRACT_CHANGES.m
 | `VotingMenunggu.html` | `SwipeScreen` (voted all) | "Suaramu sudah masuk", own summary, counts hidden until closed |
 | `VotingHasil.html` | `VoteResultScreen` (owner) | Places by likes with voters, who has not voted, select and "Masukkan ke itinerary" |
 | `VotingDitutup.html` | `VoteResultScreen` (member, closed) | Voting closed, counts, what the owner chose |
+| `VotingDitutupMenunggu.html` | `VoteResultScreen` (member, closed, not decided) | Voting closed, counts with "Kamu suka", waiting for the owner |
+| `DetailTempatVoting.html` | `PlaceDetailScreen` (vote mode) | Magenta strip "Voting untuk Bali · dari Rina · sisa 23 jam", Lewati / Suka |
+| `DaftarTripVoting.html` | `TripListScreen` (open round) | Magenta dot on the cover and chip "Voting · sisa 23 jam" |
+| `PreferensiAIGrup.html` | `ExplorePreferencesScreen` (multi-member trip) | Intro copy for groups and the note "Hasil dikirim ke 4 anggota trip, owner yang memutuskan." |
+| `NotifikasiVoting.html` | `NotificationsScreen` (voting rows) | The four voting notifications: request, closing soon, ready to decide, decided |
+| `PengaturanNotifikasi.html` (updated) | `NotificationSettingsScreen` | "Aktivitas trip" description now mentions voting |
 
 Web boards (canvas only): `WebDetailTempat`, `WebGelapDetailTempat`, `WebVoting`, `WebVotingBanner`, `WebVotingMenunggu`, `WebVotingHasil`, `WebVotingDitutup`.
 
-Explore preferences screen gets one note line for multi-member trips (see `PreferensiAI.html` area): "Hasil dikirim ke <n> anggota trip, owner yang memutuskan."
+Explore preferences screen gets one note line for multi-member trips (see `PreferensiAIGrup.html`): "Hasil dikirim ke <n> anggota trip, owner yang memutuskan."
 
 ## Tasks
 
 **Contract (`shared`, own commit)**
 
 - [ ] `Vote` enum, `VotingDtos.kt` (`RoundSummaryDto`, `RoundDto`, `RoundPlaceDto`, `VoteRequest`, `DecideRequest`, `TallyDto`), routes, error codes, `RecommendationResponse.roundId`, `RecommendationRequest.roundId`.
+- [ ] `NotificationDtos.kt` KDoc: `VOTE_REQUESTED` / `VOTE_RESULT` params and `stage` values; drop "not sent yet" from the `NotificationType` KDoc.
 - [ ] Unit tests for any shared helper (for example `votesNeeded`/time left) in `shared/src/commonTest`.
 
 **Backend**
 
 - [ ] Migration and Exposed tables; `RoundService` (create from a search, list, get with role-aware tally, vote, undo, decide, expiry job).
 - [ ] `RecommendationService`: create or append to a round when the trip has two or more members; exclude round places from new searches.
+- [ ] Notifications: `OPEN` on round creation and `DECIDED` on decide (same transaction), `READY` when the last vote completes the round, `CLOSING` and `READY` at `closesAt` in `ReminderScheduler`, `NOTIFY_VOTE_CLOSING_HOURS`, `PushText` sentences (ID/EN). Tests: dedupe per stage, no self-notification, `tripActivity` off sends nothing, decided rounds get no `CLOSING`/`READY`.
 - [ ] Tests: solo trip unchanged, vote after 24 h → 409, non-owner decide → 403, ex-member votes do not count, members never see names, round limit.
 
 **Frontend**
 
 - [ ] Vote mode in `SwipeViewModel`/`SwipeScreen` (same gestures, calls `PUT votes`, no itinerary item).
 - [ ] `VoteBanner`, dot on the trip list, `VoteResultScreen`, waiting and closed states, strings (Indonesian first) and previews.
+- [ ] Notifications: inbox lines per `stage` in `NotificationText.kt`, tiles (`how_to_vote` / `timer` / `check_circle`), tap routing (vote mode, result, closed, stale → itinerary + snackbar), mark the round's notifications read on open, settings description string.
 - [ ] Owner decide action creates the itinerary items through the existing repository, then calls `decide`.
 
 **Docs**
@@ -119,3 +157,4 @@ Explore preferences screen gets one note line for multi-member trips (see `Prefe
 - Whether VIEWER should also see the owner's final choice (this spec: yes, everyone sees it).
 - Email notifications are out of scope (no email provider chosen). Push and the inbox are covered by TRD "Notifications".
 - The 3 open rounds and 7 day expiry numbers are proposals.
+- The "closes soon" reminder at 3 hours before closing is a proposal (server config).
