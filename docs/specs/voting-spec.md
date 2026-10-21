@@ -1,6 +1,6 @@
 # Itinerary Voting Spec — RANSEL
 
-Oct 17, 2026 · @SEN · Status: **proposal, waiting for the product owner's OK before any code**
+Oct 17, 2026 · @SEN · Status: **approved 21 Oct 2026; built** (contract `330f4f0`, server `26c846e`, app: see `docs/tasks/frontend.md` F8.1). The numbers under "Open items" ship as proposed and are server config.
 
 ## Summary
 
@@ -129,27 +129,28 @@ Explore preferences screen gets one note line for multi-member trips (see `Prefe
 
 **Contract (`shared`, own commit)**
 
-- [ ] `Vote` enum, `VotingDtos.kt` (`RoundSummaryDto`, `RoundDto`, `RoundPlaceDto`, `VoteRequest`, `DecideRequest`, `TallyDto`), routes, error codes, `RecommendationResponse.roundId`, `RecommendationRequest.roundId`.
-- [ ] `NotificationDtos.kt` KDoc: `VOTE_REQUESTED` / `VOTE_RESULT` params and `stage` values; drop "not sent yet" from the `NotificationType` KDoc.
-- [ ] Unit tests for any shared helper (for example `votesNeeded`/time left) in `shared/src/commonTest`.
+- [x] `Vote` enum, `VotingDtos.kt` (`RoundSummaryDto`, `RoundDto`, `RoundPlaceDto`, `VoteRequest`, `DecideRequest`, `TallyDto`), routes, error codes, `RecommendationResponse.roundId`, `RecommendationRequest.roundId`.
+- [x] `NotificationDtos.kt` KDoc: `VOTE_REQUESTED` / `VOTE_RESULT` params and `stage` values; drop "not sent yet" from the `NotificationType` KDoc.
+- [x] Unit tests for any shared helper (for example `votesNeeded`/time left) in `shared/src/commonTest`.
 
 **Backend**
 
-- [ ] Migration and Exposed tables; `RoundService` (create from a search, list, get with role-aware tally, vote, undo, decide, expiry job).
-- [ ] `RecommendationService`: create or append to a round when the trip has two or more members; exclude round places from new searches.
-- [ ] Notifications: `OPEN` on round creation and `DECIDED` on decide (same transaction), `READY` when the last vote completes the round, `CLOSING` and `READY` at `closesAt` in `ReminderScheduler`, `NOTIFY_VOTE_CLOSING_HOURS`, `PushText` sentences (ID/EN). Tests: dedupe per stage, no self-notification, `tripActivity` off sends nothing, decided rounds get no `CLOSING`/`READY`.
-- [ ] Tests: solo trip unchanged, vote after 24 h → 409, non-owner decide → 403, ex-member votes do not count, members never see names, round limit.
+- [x] Migration and Exposed tables; `RoundService` (create from a search, list, get with role-aware tally, vote, undo, decide, expiry job).
+- [x] `RecommendationService`: create or append to a round when the trip has two or more members; exclude round places from new searches.
+- [x] Notifications: `OPEN` on round creation and `DECIDED` on decide (same transaction), `READY` when the last vote completes the round, `CLOSING` and `READY` at `closesAt` in `ReminderScheduler`, `NOTIFY_VOTE_CLOSING_HOURS`, `PushText` sentences (ID/EN). Tests: dedupe per stage, no self-notification, `tripActivity` off sends nothing, decided rounds get no `CLOSING`/`READY`.
+- [x] Tests: solo trip unchanged, vote after 24 h → 409, non-owner decide → 403, ex-member votes do not count, members never see names, round limit.
 
 **Frontend**
 
-- [ ] Vote mode in `SwipeViewModel`/`SwipeScreen` (same gestures, calls `PUT votes`, no itinerary item).
-- [ ] `VoteBanner`, dot on the trip list, `VoteResultScreen`, waiting and closed states, strings (Indonesian first) and previews.
-- [ ] Notifications: inbox lines per `stage` in `NotificationText.kt`, tiles (`how_to_vote` / `timer` / `check_circle`), tap routing (vote mode, result, closed, stale → itinerary + snackbar), mark the round's notifications read on open, settings description string.
-- [ ] Owner decide action creates the itinerary items through the existing repository, then calls `decide`.
+- [x] Vote mode in `SwipeViewModel`/`SwipeScreen` (same gestures, calls `PUT votes`, no itinerary item).
+- [x] `VoteBanner`, dot on the trip list, `VoteResultScreen`, waiting and closed states, strings (Indonesian first) and previews.
+- [x] Notifications: inbox lines per `stage` in `NotificationText.kt`, tiles (`how_to_vote` / `timer` / `check_circle`), tap routing (vote mode, result, closed, stale → itinerary + snackbar), mark the round's notifications read on open, settings description string.
+- [x] Owner decide action creates the itinerary items through the existing repository, then calls `decide`.
 
 **Docs**
 
-- [ ] On approval: PRD "Explore AI" paragraph, TRD "API" rows and data model, `docs/design/README.md` rows, task lists.
+- [x] TRD "API" rows, `docs/design/README.md` rows, task lists.
+- [ ] PRD "Explore AI" paragraph (owner's living document; this export is not edited by the agents).
 
 ## Open items for the product owner
 
