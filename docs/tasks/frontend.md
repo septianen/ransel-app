@@ -130,6 +130,21 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 
 - [x] **F8.1 Voting.** `VoteRoute` + `VoteViewModel`/`VoteScreen` (designs `Voting`, `VotingMenunggu`, `VotingHasil`, `VotingDitutupMenunggu`, `VotingDitutup`): swipe to vote with undo and "Ubah pilihanku", the OWNER's result (likes, who voted, preselects places more than half liked) and decide (creates the AI items in "Belum dijadwalkan" through the repository, skipping places already there, then `decide`), the closed states, the expired state. A search on a 2+ member trip returns `roundId`: `SwipeViewModel` hands over to the vote screen and keeps the form in the session so the requester's next batch goes to the same round. `VoteBanner` on the trip screens, magenta dot + chip on My trips (`VotingStore`, server data, cleared on sign-out), group note on the Explore form, place detail in vote mode (`PlaceDetailRoute.roundId`, Lewati / Suka), voting rows in the inbox per `stage`, taps (inbox and push) open the round, opening a round marks its notifications read. Tests: `VoteViewModelTest`. Deviations to review: the icon subset has no `how_to_vote`, `timer`, `check_box`, `hourglass_top`, `groups`, so voting uses `favorite`, `schedule`, `done_all`, Material checkboxes and `group_add`; the banner shows on every trip tab (not only Itinerary). *Not seen on a device against a live server yet* (no Docker here for the API). iOS does not compile here because of an older `Dispatchers.IO` import in `RanselDatabase.kt`, not this change.
 
+## Phase 6 — Admin app `adminApp/` (Karung; spec `docs/specs/admin-spec.md`)
+
+Design: Claude Design canvas "Karung" (code names in `docs/design/README.md` "Admin app"). Web only (Wasm), online only, IRIS theme shared with `composeApp` (move the theme to a place both modules can use, or depend on it; do not copy the tokens). Copy is Indonesian first like the apps.
+
+- [ ] **F9.1 Module and shell (A).** New Gradle module `adminApp` (wasmJs only), Ktor client against `ApiRoutes.BASE`, sign-in with the normal account (reuse the `shared` auth DTOs), 403 → "Bukan akun admin" page, `AdminSidebar` with the environment badge from `GET /admin/me`, responsive (sidebar stacks on a phone).
+- [ ] **F9.2 Users (A).** `UsersScreen` (search, filters, paging, CSV export), `UserDetailScreen` (profile, trips metadata, activity, credit history, devices, actions with confirmation dialogs). "Kirim email reset kata sandi" hidden until the server flag says email works.
+- [ ] **F9.3 Adjust credits (A).** `AdjustCreditsDialog`: Tambah/Kurangi, amount with presets, required reason, live "Saldo setelahnya", client-side block above the balance plus handling of `EXCEEDS_BALANCE`, a new `requestId` per dialog opening (retries reuse it).
+- [ ] **F9.4 Monitoring (B).** `OverviewScreen`, `ExploreAiScreen`, `SystemScreen` health and errors (charts with the existing chart approach; numbers formatted for `id`).
+- [ ] **F9.5 Settings (C).** Settings section of `SystemScreen`: each value shows whether it comes from env or an override, "Kembalikan bawaan" clears the override.
+- [ ] **F9.6 Content editors (D).** `ContentStringsScreen`, `ContentErrorsScreen` (all `ErrorCode` values, phone preview), `ContentCategoriesScreen`, `ContentInterestsScreen`, publish. Export the list of server-editable string keys for B9.9.
+- [ ] **F9.7 Traveller app changes (A).** In `composeApp`: label negative `ADJUSTMENT` rows in the credit history ("Penyesuaian admin" / "Admin adjustment"); handle 403 `ACCOUNT_DISABLED` on sign-in and refresh ("Akun dinonaktifkan", sign out locally, keep local data).
+- [ ] **F9.8 Remote content in the apps (E, later).** Not now: the apps read `GET /content` with the bundled strings as fallback. Starts after the owner says so.
+
+**Done when (Phase 6):** same check as backend Phase 6, done from the Karung UI.
+
 ## Integration checkpoints with the backend agent
 
 | When | Check together |

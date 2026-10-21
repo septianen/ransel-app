@@ -52,7 +52,7 @@ Main scenarios:
 
 ## Scope per phase
 
-Five phases in order; Phase 1 is already useful for a real trip without any server, and multi-member and AI features are deliberately last.
+Six phases in order; Phase 1 is already useful for a real trip without any server, and multi-member and AI features are deliberately last.
 
 | Phase | Scope | Done when |
 | --- | --- | --- |
@@ -61,8 +61,9 @@ Five phases in order; Phase 1 is already useful for a real trip without any serv
 | 3 — Auth and sync | Sign up / sign in, forgot password, offline-first sync between phone and web | A trip created offline on a phone shows up on the web once online |
 | 4 — Multi-member | Invites, roles, paid by, split bill, balances, settlements, packing templates | Two accounts manage one trip and the split result is correct |
 | 5 — Explore AI | Preference form, swipe cards, Unscheduled, Explore credits | Recommendations are real places and can be scheduled into the itinerary |
+| 6 — Admin (Karung) | Internal admin web app: users, credit adjustments, monitoring, settings, remote content (admin side) | An admin can find a user, adjust their credits and see it in their credit history |
 
-The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what remains is listed under Open questions.
+The UI for Phases 1–5 is designed in the "RANSEL — IRIS" canvas and the admin app in the "Karung" canvas; what remains is listed under Open questions.
 
 ## Functional requirements
 
@@ -122,6 +123,18 @@ The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what rem
 - The owner can change roles and remove members; members can leave a trip.
 - Every trip screen (Itinerary, Packing, Expenses) has a members button in the header.
 
+### Admin (Karung, Phase 6)
+
+Full rules: `docs/specs/admin-spec.md`.
+
+- A web app for admins only, at `karung.mietek.tech`. Admins are the accounts listed in the server's `ADMIN_EMAILS`; they sign in with their normal RANSEL account.
+- Users: search and filter users, see a profile with trip metadata (never trip content), credit history, devices and recent activity.
+- Adjust credits: add or subtract wallet credits for one user with a required reason; the balance never goes below 0 and the free daily allowance is not touched. The user sees the row as "Penyesuaian admin" in their credit history.
+- Other actions: sign a user out of every device, deactivate or reactivate an account, send a password reset email (once an email provider exists). Every admin action is written to an audit log.
+- Monitoring: active users, new trips, Explore searches, credits used, AI cost against the monthly budget, errors per code, server health.
+- Settings: credit numbers (signup grant, daily free credits, cost per action) and AI budget settings can be changed without a deploy; the server config values stay the defaults.
+- Remote content: app strings, error messages, category looks and destination interests are edited and published in Karung; the apps start reading them in a later step.
+
 ### Common states
 
 - Connection error, server error, coming soon, and empty use one pattern with a capybara illustration and the error code from the API.
@@ -132,7 +145,7 @@ The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what rem
 
 **Schedule a place.** The place goes to the end of the chosen day, starting when the last activity ends; an empty day starts at 09:00. The duration comes from the AI estimate. The user can change the time.
 
-**Explore session.** The Explore tab always opens the form. An unfinished swipe session shows as a Continue card and a dot on the tab icon. A session ends when all cards have been seen or the user starts a new search. Searches cost credits: a new user gets 30 credits once, plus 3 free credits a day that refill at 00:00 WIB and do not accumulate; a new search costs 3 credits and the next batch of the same search 1 (numbers are server config). The free credits are used first. When credits run out the app offers to add credits with a voucher code; buying credits comes with a payment provider later. Explore requires an account: a guest who opens the Explore tab sees a sign-in screen (Masuk / Daftar) instead of the form, and signing in moves the trips already on the device to the account. Every other feature still works without an account. Recommendations are always saved into a trip; a signed-in user with no trip sees a "Buat trip dulu" (create a trip first) screen in the Explore tab.
+**Explore session.** The Explore tab always opens the form. An unfinished swipe session shows as a Continue card and a dot on the tab icon. A session ends when all cards have been seen or the user starts a new search. Searches cost credits: a new user gets 30 credits once, plus 3 free credits a day that refill at 00:00 WIB and do not accumulate; a new search costs 3 credits and the next batch of the same search 1 (numbers are server config; an admin can change them in Karung). The free credits are used first. When credits run out the app offers to add credits with a voucher code; buying credits comes with a payment provider later. Explore requires an account: a guest who opens the Explore tab sees a sign-in screen (Masuk / Daftar) instead of the form, and signing in moves the trips already on the device to the account. Every other feature still works without an account. Recommendations are always saved into a trip; a signed-in user with no trip sees a "Buat trip dulu" (create a trip first) screen in the Explore tab.
 
 **Split bill.** By default the amount is split equally between the ticked members. With Set amounts, the shares must add up to the amount; the difference is shown as "short" or "over" and Save stays disabled until it matches.
 

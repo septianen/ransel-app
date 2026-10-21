@@ -177,6 +177,24 @@ Phase = the roadmap phase in which the screen must be implemented.
 | `screens/StateServerError.html` | `ErrorState` (server) | State: error server | all | `capybara-tent` |  |
 | `screens/StateComingSoon.html` | `ComingSoonState` | State: segera hadir | all | `capybara-compass-map` |  |
 
+### Admin app (Karung, Phase 6)
+
+Canvas **Karung** (https://claude.ai/artifact/GJbx3VCHbQUVPgkHzmnHbu), not exported to `screens/`: open the canvas. Web pages at 1440 wide, IRIS tokens, sidebar layout. Rules: `../specs/admin-spec.md`.
+
+| Board file | Code name | Board title | Stage |
+| --- | --- | --- | --- |
+| `Main` | `OverviewScreen` | Ringkasan | B |
+| `Pengguna` | `UsersScreen` | Pengguna | A |
+| `PenggunaDetail` | `UserDetailScreen` | Pengguna: detail | A |
+| `PenggunaAturKredit` | `AdjustCreditsDialog` | Pengguna: atur kredit | A |
+| `JelajahAI` | `ExploreAiScreen` | Jelajah AI | B |
+| `Sistem` | `SystemScreen` | Sistem & error | B, C |
+| `KontenTeks` | `ContentStringsScreen` | Konten: teks dan wording | D |
+| `KontenError` | `ContentErrorsScreen` | Konten: pesan error | D |
+| `KontenKategori` | `ContentCategoriesScreen` | Konten: kategori | D |
+| `KontenMinatKhas` | `ContentInterestsScreen` | Konten: minat khas | D |
+| `Sidebar` | `AdminSidebar` | Komponen: sidebar | A |
+
 ## Not designed yet
 
 Build these from existing patterns; ask the product owner before inventing new layouts: enter invite code, activity detail/edit (reuse *Tambah aktivitas* form), notifications, edit profile, language sheet (reuse *Sheet tema* pattern), search trips, all transactions list, Explore credits (Credits screen with balance, voucher field, packs and history; the out-of-credits state of `SwipeScreen`), dark theme for Itinerary/Packing/Explore/sheets/dialogs (apply the IRIS dark tokens; see *GelapBeranda*, *GelapPengeluaran*, *GelapSwipe* for the pattern).

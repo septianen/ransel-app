@@ -89,6 +89,8 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | devices | push token per phone (platform, locale, disabled\_at) | V10 |
 | notifications | inbox: type, params, trip, dedupe\_key (unique per user), read\_at, push\_state (outbox) | V10 |
 | notification\_settings | three switches per user (missing row = all on) | V10 |
+| app\_settings, admin\_audit\_log | admin overrides of config values (key, JSON value, updated\_by); append-only log of admin actions | planned (6) |
+| ai\_search\_log, error\_counts | one row per Explore search (parameters, source, latency, credits, estimated cost); errors per hour, code and route | planned (6) |
 
 Enums:
 
@@ -157,6 +159,8 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST ★ | /trips/{id}/rounds/{roundId}/decide | OWNER picks the places that enter the itinerary and closes the round | 5 |
 | GET | /places/photo/{placeId}?exp=&sig= | Signed place-photo proxy (no bearer; 404 if no photo) | 5 |
 | GET | /places/{placeId}/detail | Saved detail text of a place (about, tips, hours estimate) to open it again from the itinerary; rebuilt by one small LLM call when expired | 5 |
+| GET, POST ★ | /admin/... | Admin app (Karung): users, credit adjustments, audit log, overview, Explore AI, system, settings, content. Admin token only; full list in `docs/specs/admin-spec.md` "API" | 6 |
+| GET ★ | /content?version= | Published remote content for the apps (apps call it in a later step) | 6 |
 
 The exact request and response classes for every row are in the `shared` module (`api/ApiRoutes.kt`, `dto/`), which is the contract between the app and the server.
 
@@ -233,6 +237,8 @@ An event writes the inbox row **inside the transaction that caused it** (invite 
 - **Forgot password.** `forgot` always answers 204 (it never reveals whether the email exists) and sends a link with a single-use token valid for 30 minutes. `reset` replaces the hash, marks the token used, and revokes every refresh token of the user so other devices are signed out.
 - **Session expired.** When refresh fails (`TOKEN_EXPIRED`), the app shows the Session expired screen; local data stays.
 - **Authorization** is always checked on the server per trip (`requireRole`), never only in the UI.
+- **Admins** are the accounts whose email is in `ADMIN_EMAILS` (server env). Their access token carries an `admin` claim, set on sign-in and checked again on every refresh; every `/admin` route requires it. Admin actions go to `admin_audit_log`. Details: `docs/specs/admin-spec.md`.
+- **Email.** Password reset emails are sent from `no-reply@mietek.tech` (provider still open; until then the server logs the link).
 - **Secrets.** The LLM and Places API keys live only on the server (environment variables), never in the client or the repository.
 
 ## AI feature (Explore)
@@ -251,7 +257,7 @@ The swipe session (remaining cards, position, number saved) is stored locally in
 
 **Cost** (prices as of October 2026, subject to change; the LLM was DeepSeek V4.1 Flash at about $0.003 per request of 15 places when this was written, now Gemini Flash: check the current Gemini price). The Places API is what needs watching: Text Search IDs Only is free, Place Details Essentials $5 per 1,000 (10,000 free per month); Pro $17 and Enterprise $20 per 1,000 (1,000 free), where `rating` and `priceLevel` live: the app never asks for them (no rating on cards; the price filter uses the LLM cost estimate). Strategy: validate with IDs Only, fetch details lazily, keep the field mask minimal, cache `placeId`s, and set a Google Cloud budget alert from day one.
 
-**Credits** (replace the fixed 10 searches a day): each user has a wallet (30 credits, created on first use, so existing users get it too) and a free daily allowance (3 credits, resets at 00:00 WIB, no carry-over). A charge takes the free allowance first, then the wallet (`planCreditSpend` in `shared`). A new search costs 3, the next batch (`newSearch=false`) 1, suggestions and cached place detail 0; the price of a place-detail rebuild is a config key, 0 for now. All numbers come from server config (`CREDIT_*`) and reach the app through `GET /credits`. The server checks before the LLM call and charges after the search succeeded, so a failed search costs nothing; a cache hit still costs credits. Every wallet change locks the user's wallet row (`SELECT ... FOR UPDATE`) and writes a `credit_ledger` row, so parallel searches never overdraw. Without credits the server returns 402 `INSUFFICIENT_CREDITS` (`details`: cost, available, resetsAt) and the app shows the out-of-credits screen. Top-up in stage 1 is a voucher code (`POST /credits/redeem`, made with `deploy/create-voucher.sh`); a payment provider later calls the same `addCredits` with an idempotency key. The recommendation endpoints sit behind JWT auth like the rest of the API (401 without a token); guests never call them, because the Explore tab shows a sign-in screen until the user has an account.
+**Credits** (replace the fixed 10 searches a day): each user has a wallet (30 credits, created on first use, so existing users get it too) and a free daily allowance (3 credits, resets at 00:00 WIB, no carry-over). A charge takes the free allowance first, then the wallet (`planCreditSpend` in `shared`). A new search costs 3, the next batch (`newSearch=false`) 1, suggestions and cached place detail 0; the price of a place-detail rebuild is a config key, 0 for now. The numbers come from server config (`CREDIT_*`) as defaults; an admin can override each one in Karung (stored in `app_settings`, see `docs/specs/admin-spec.md` "Credit settings"), and the effective values reach the app through `GET /credits`. An admin can also add or subtract wallet credits for one user (`ADJUSTMENT` ledger rows, either sign, never below 0). The server checks before the LLM call and charges after the search succeeded, so a failed search costs nothing; a cache hit still costs credits. Every wallet change locks the user's wallet row (`SELECT ... FOR UPDATE`) and writes a `credit_ledger` row, so parallel searches never overdraw. Without credits the server returns 402 `INSUFFICIENT_CREDITS` (`details`: cost, available, resetsAt) and the app shows the out-of-credits screen. Top-up in stage 1 is a voucher code (`POST /credits/redeem`, made with `deploy/create-voucher.sh`); a payment provider later calls the same `addCredits` with an idempotency key. The recommendation endpoints sit behind JWT auth like the rest of the API (401 without a token); guests never call them, because the Explore tab shows a sign-in screen until the user has an account.
 
 ## Client
 

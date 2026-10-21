@@ -35,7 +35,7 @@ Library versions change quickly; check the latest stable versions in the JetBrai
 
 ## Roadmap
 
-Five phases, each ending with an app that can be used. Phase 1 is already useful for a real trip without any server.
+Six phases, each ending with an app that can be used. Phase 1 is already useful for a real trip without any server.
 
 ### Phase 1 — Offline app (solo)
 
@@ -69,6 +69,13 @@ Five phases, each ending with an app that can be used. Phase 1 is already useful
 - Done when: recommendations are relevant, the places are real (validated), and they can be scheduled into the itinerary.
 
 Phase 5 design details are in the **AI recommendations** section.
+
+### Phase 6 — Admin (Karung)
+
+- Features: an internal admin web app (`adminApp/`, Compose for Web) at `karung.mietek.tech`: users, credit adjustments, audit log, monitoring, settings overrides, remote content (admin side first).
+- Learning: role-based access with a token claim, audit logging, storing operational metrics, config overrides without a deploy.
+- Done when: an admin can find a user, adjust their credits, and the change shows in the user's credit history and the audit log.
+- Spec: `docs/specs/admin-spec.md`; design: Claude Design canvas "Karung".
 
 ## Data model
 
@@ -283,7 +290,7 @@ Sources: [Google Maps Platform pricing](https://developers.google.com/maps/billi
 
 ## Project folder structure
 
-One Gradle repository with three modules: `composeApp` (UI for every platform), `server` (Ktor), and `shared` (code used by both). The official template at kmp.jetbrains.com can generate this structure if the Server option is ticked.
+One Gradle repository with three modules: `composeApp` (UI for every platform), `server` (Ktor), and `shared` (code used by both). Phase 6 adds `adminApp` (the admin web app, Wasm only). The official template at kmp.jetbrains.com can generate this structure if the Server option is ticked.
 
 ```text
 ransel/
@@ -307,6 +314,7 @@ ransel/
 │       ├── iosMain/
 │       └── wasmJsMain/
 ├── iosApp/                      # wrapper Xcode project
+├── adminApp/                    # admin web app "Karung" (phase 6, wasmJsMain only)
 ├── server/
 │   └── src/main/kotlin/
 │       ├── Application.kt
