@@ -118,11 +118,11 @@ Phase = the roadmap phase in which the screen must be implemented.
 | --- | --- | --- | --- | --- | --- |
 | `screens/Notifikasi.html` | `NotificationsScreen` | Notifikasi: kotak masuk (Baru / Sebelumnya, tandai semua dibaca) | 5 |  |  |
 | `screens/GelapNotifikasi.html` | `NotificationsScreen` (dark) | Tema gelap: Notifikasi | 5 |  |  |
-| `screens/KosongNotifikasi.html` | `NotificationsScreen` (empty) | Kosong: Notifikasi | 5 | `capybara-dreaming` |  |
+| `screens/KosongNotifikasi.html` | `NotificationsScreen` (empty) | Kosong: Notifikasi | 5 | `ic_sun_bathing` |  |
 | `screens/BerandaNotifikasiBaru.html` | `HomeScreen` (unread badge) | Beranda: lonceng dengan jumlah belum dibaca | 5 |  |  |
 | `screens/PengaturanNotifikasi.html` | `NotificationSettingsScreen` | Pengaturan notifikasi: tiga saklar | 5 |  |  |
 | `screens/PengaturanNotifikasiMati.html` | `NotificationSettingsScreen` (system permission off) | Pengaturan notifikasi: izin ponsel mati | 5 |  |  |
-| `screens/IzinNotifikasi.html` | `NotificationPermissionSheet` | Izin notifikasi: penjelasan sebelum dialog sistem | 5 | `capybara-running-phone` | Main |
+| `screens/IzinNotifikasi.html` | `NotificationPermissionSheet` | Izin notifikasi: penjelasan sebelum dialog sistem | 5 |  | Main |
 
 ### Onboarding, account, sync
 
