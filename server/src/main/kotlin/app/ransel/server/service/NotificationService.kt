@@ -276,6 +276,9 @@ class NotificationService(private val config: AppConfig, private val push: PushS
                     put("type", n.type.name)
                     put("notificationId", n.id.toString())
                     n.tripId?.let { put("tripId", it.toString()) }
+                    // Voting: the app opens the round itself, and the owner's "ready" opens the result.
+                    n.params["roundId"]?.let { put("roundId", it) }
+                    n.params["stage"]?.let { put("stage", it) }
                 }
                 when (push.send(device.token, PushMessage(title, body, data))) {
                     PushResult.OK -> delivered = true
