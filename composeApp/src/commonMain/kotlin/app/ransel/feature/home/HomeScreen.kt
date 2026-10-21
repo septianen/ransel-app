@@ -1,6 +1,12 @@
 package app.ransel.feature.home
 
 import androidx.compose.foundation.background
+import org.koin.compose.koinInject
+import app.ransel.data.notification.NotificationsStore
+import app.ransel.data.auth.SessionState
+import app.ransel.data.auth.SessionManager
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,6 +81,8 @@ import ransel.composeapp.generated.resources.money_unit_thousand
 import ransel.composeapp.generated.resources.trips_spent_label
 import app.ransel.ui.format.formatMoneyCompact
 import ransel.composeapp.generated.resources.home_title
+import ransel.composeapp.generated.resources.notification_bell
+import ransel.composeapp.generated.resources.notifications_unread_badge
 import ransel.composeapp.generated.resources.home_title_empty
 import ransel.composeapp.generated.resources.home_trip_meta_day1
 import ransel.composeapp.generated.resources.trip_cover_description
@@ -93,10 +101,15 @@ fun HomeScreen(
     onCreateTrip: () -> Unit,
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
+    onOpenNotifications: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    HomeContent(state, onOpenTrip, onCreateTrip, modifier, onExplore)
+    // The bell is only for signed-in users; its badge is the unread count of the inbox.
+    val session: SessionManager = koinInject()
+    val signedIn = session.state.collectAsState().value is SessionState.SignedIn
+    val inbox by koinInject<NotificationsStore>().inbox.collectAsState()
+    HomeContent(state, onOpenTrip, onCreateTrip, modifier, onExplore, unreadCount = if (signedIn) (inbox?.unreadCount ?: 0) else null, onOpenNotifications = onOpenNotifications)
 }
 
 @Composable
@@ -106,11 +119,15 @@ fun HomeContent(
     onCreateTrip: () -> Unit,
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
+    /** Null = no bell (a guest has no notifications). */
+    unreadCount: Int? = null,
+    onOpenNotifications: () -> Unit = {},
 ) {
+    val bell: (@Composable () -> Unit)? = unreadCount?.let { count -> { NotificationBell(count, onOpenNotifications) } }
     when (state) {
         HomeUiState.Loading -> Box(modifier.fillMaxSize())
         HomeUiState.Empty -> Column(modifier.fillMaxSize()) {
-            Header(title = stringResource(Res.string.home_title_empty), modifier = Modifier.padding(16.dp, 20.dp, 16.dp, 0.dp))
+            Header(title = stringResource(Res.string.home_title_empty), modifier = Modifier.padding(16.dp, 20.dp, 16.dp, 0.dp), bell = bell)
             FullScreenState(
                 modifier = Modifier.weight(1f),
                 title = stringResource(Res.string.home_empty_title),
@@ -120,24 +137,59 @@ fun HomeContent(
                 illustration = painterResource(Res.drawable.ic_data_not_found),
             )
         }
-        is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier, onExplore)
+        is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier, onExplore, bell)
     }
 }
 
 @Composable
-private fun Header(title: String, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth()) {
-        Text(
-            greeting(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+private fun Header(title: String, modifier: Modifier = Modifier, bell: (@Composable () -> Unit)? = null) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                greeting(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        bell?.invoke()
+    }
+}
+
+/** The bell (design `BerandaNotifikasiBaru`): outlined without news, filled with a `secondary` badge when something is unread. */
+@Composable
+private fun NotificationBell(unread: Int, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val description = if (unread > 0) stringResource(Res.string.notifications_unread_badge, unread) else stringResource(Res.string.notification_bell)
+    Box(
+        Modifier
+            .size(48.dp)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = description, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier.size(44.dp).clip(CircleShape).border(1.dp, scheme.outlineVariant, CircleShape).background(scheme.surface),
+            contentAlignment = Alignment.Center,
+        ) { Symbol(Symbols.notifications, size = 22.dp, filled = unread > 0, contentDescription = description) }
+        if (unread > 0) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
+                    .clip(CircleShape)
+                    .background(scheme.secondary)
+                    .border(2.dp, scheme.surface, CircleShape)
+                    .padding(horizontal = 5.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(if (unread > 9) "9+" else unread.toString(), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = scheme.onSecondary)
+            }
+        }
     }
 }
 
@@ -158,6 +210,7 @@ private fun HomeTripContent(
     onOpenTrip: (String, TripSection) -> Unit,
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
+    bell: (@Composable () -> Unit)? = null,
 ) {
     val dates = rememberDateFormatter()
     Column(
@@ -167,7 +220,7 @@ private fun HomeTripContent(
             .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Header(title = stringResource(Res.string.home_title))
+        Header(title = stringResource(Res.string.home_title), bell = bell)
         FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, TripSection.ITINERARY) })
         val canExplore = onExplore != null && state.trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
         TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) })

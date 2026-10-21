@@ -18,8 +18,17 @@ interface PushRegistrar {
 
     fun hasPermission(): Boolean
 
-    /** Asks the user once for the permission to show notifications (Android 13+); a no-op elsewhere. */
+    /** Asks for the permission to show notifications (Android 13+: the system dialog); a no-op elsewhere. */
     fun requestPermission()
+
+    /** True once: the explanation sheet should be shown (push is available, permission missing, not explained before). */
+    fun shouldExplainPermission(): Boolean
+
+    /** The explanation sheet was shown and answered ("Nanti saja" or "Ya"): do not show it again. */
+    fun explanationDismissed()
+
+    /** Opens the phone's notification settings for this app. */
+    fun openSystemSettings()
 
     /** "id" or "en": the device language, for the push text. */
     fun deviceLanguage(): String
@@ -32,5 +41,8 @@ object NoPushRegistrar : PushRegistrar {
     override suspend fun token(): String? = null
     override fun hasPermission() = false
     override fun requestPermission() = Unit
+    override fun shouldExplainPermission() = false
+    override fun explanationDismissed() = Unit
+    override fun openSystemSettings() = Unit
     override fun deviceLanguage() = "id"
 }

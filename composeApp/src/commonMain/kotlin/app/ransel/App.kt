@@ -96,6 +96,12 @@ import app.ransel.feature.tripform.TripFormScreen
 import app.ransel.feature.trips.TripListScreen
 import app.ransel.navigation.AccountRoute
 import app.ransel.navigation.CreditsRoute
+import app.ransel.navigation.NotificationSettingsRoute
+import app.ransel.navigation.NotificationsRoute
+import app.ransel.feature.notifications.NotificationPermissionSheet
+import app.ransel.feature.notifications.NotificationSettingsScreen
+import app.ransel.feature.notifications.NotificationsScreen
+import app.ransel.data.notification.PushRegistrar
 import app.ransel.feature.credits.CreditsScreen
 import app.ransel.navigation.ActivityFormRoute
 import app.ransel.navigation.ComponentGalleryRoute
@@ -209,16 +215,26 @@ private fun SessionGate(openSignIn: Boolean) {
     val pushRegistration: PushRegistration = koinInject()
     val notificationsStore: NotificationsStore = koinInject()
     val api: RanselApi = koinInject()
+    val registrar: PushRegistrar = koinInject()
+    var explainPermission by remember { mutableStateOf(false) }
     LaunchedEffect(state is SessionState.SignedIn) {
         if (state is SessionState.SignedIn) {
             runCatching { pushRegistration.register() }
             notificationsStore.refresh(api)
+            // Android 13+: explain once, then the system dialog.
+            explainPermission = registrar.shouldExplainPermission()
         }
     }
     when {
         state is SessionState.Loading -> SplashScreen()
         requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
         else -> RanselNavigation(openSignIn = openSignIn)
+    }
+    if (explainPermission) {
+        NotificationPermissionSheet(
+            onAllow = { explainPermission = false; registrar.explanationDismissed(); registrar.requestPermission() },
+            onLater = { explainPermission = false; registrar.explanationDismissed() },
+        )
     }
 }
 
@@ -412,6 +428,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
                 navController.navigate(TripRoute(id, tab.name))
             },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
+            onOpenNotifications = { navController.navigate(NotificationsRoute) },
             // "Coba": straight to the Explore tab (its hero and trip picker), the same as tapping Jelajah in the bar.
             onExplore = {
                 navController.navigate(ExploreRoute) {
@@ -490,10 +507,21 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
     page<CreditsRoute> {
         CreditsScreen(onBack = { navController.popBackStack() })
     }
+    page<NotificationsRoute> {
+        NotificationsScreen(
+            onBack = { navController.popBackStack() },
+            onOpenTrip = { navController.navigate(TripRoute(it)) },
+            onOpenSettings = { navController.navigate(NotificationSettingsRoute) },
+        )
+    }
+    page<NotificationSettingsRoute> {
+        NotificationSettingsScreen(onBack = { navController.popBackStack() })
+    }
     page<AccountRoute> {
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenCredits = { navController.navigate(CreditsRoute) },
+            onOpenNotifications = { navController.navigate(NotificationSettingsRoute) },
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
             debugContent = if (!isDebugBuild) null else ({

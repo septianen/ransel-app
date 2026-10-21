@@ -52,6 +52,7 @@ import ransel.composeapp.generated.resources.account_about
 import ransel.composeapp.generated.resources.account_confirm_reorder
 import ransel.composeapp.generated.resources.account_confirm_reorder_hint
 import ransel.composeapp.generated.resources.account_credits
+import ransel.composeapp.generated.resources.account_notifications
 import ransel.composeapp.generated.resources.account_default_currency
 import ransel.composeapp.generated.resources.account_language
 import ransel.composeapp.generated.resources.account_section_other
@@ -108,6 +109,7 @@ fun AccountScreen(
     modifier: Modifier = Modifier,
     debugContent: (@Composable () -> Unit)? = null,
     onOpenCredits: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
     onSignIn: () -> Unit = {},
     onSignUp: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
@@ -158,6 +160,7 @@ fun AccountScreen(
                         )
                     }
                     val credits by rememberCredits()
+                    SettingRow(Symbols.notifications, stringResource(Res.string.account_notifications), null, onClick = onOpenNotifications)
                     SettingRow(Symbols.autoAwesome, stringResource(Res.string.account_credits), credits?.available?.toString(), onClick = onOpenCredits)
                     SettingRow(Symbols.logout, stringResource(Res.string.account_sign_out), null, onClick = { confirmSignOut = true })
                 } else if (!requiresAccount) {

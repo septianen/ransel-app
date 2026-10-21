@@ -23,6 +23,20 @@ class NotificationsStore {
     suspend fun refresh(api: RanselApi): ApiResult<NotificationsDto> =
         api.notifications().also { if (it is ApiResult.Success) _inbox.value = it.value }
 
+    /** Marks one notification read on the server, then the local copy. */
+    suspend fun markRead(api: RanselApi, id: String) {
+        val before = _inbox.value?.items?.firstOrNull { it.id == id }
+        if (before?.readAt != null) return
+        if (api.markNotificationsRead(listOf(id)) is ApiResult.Success) {
+            _inbox.value = _inbox.value?.let { current ->
+                current.copy(
+                    items = current.items.map { if (it.id == id) it.copy(readAt = kotlin.time.Clock.System.now()) else it },
+                    unreadCount = (current.unreadCount - 1).coerceAtLeast(0),
+                )
+            }
+        }
+    }
+
     /** Marks everything read on the server, then the local copy. */
     suspend fun markAllRead(api: RanselApi) {
         if (api.markNotificationsRead(null) is ApiResult.Success) {

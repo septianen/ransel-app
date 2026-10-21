@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.first
 
 /**
  * Tells the server which phone belongs to the signed-in user, so it can send push. Called after sign-in, at app
- * start while signed in, and when Firebase hands out a new token; [unregister] runs before sign-out so the next
+ * start while signed in, and when Firebase hands out a new token (the permission is asked separately, from the explanation sheet); [unregister] runs before sign-out so the next
  * person on this phone does not get the previous user's notifications.
  */
 class PushRegistration(
@@ -22,7 +22,6 @@ class PushRegistration(
     suspend fun register() {
         val platform = registrar.platform ?: return
         if (!registrar.available) return
-        registrar.requestPermission()
         val token = registrar.token() ?: return
         send(platform, token)
     }

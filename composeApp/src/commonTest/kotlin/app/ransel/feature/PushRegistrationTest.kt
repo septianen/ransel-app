@@ -32,6 +32,9 @@ class PushRegistrationTest {
 
     private class FakeRegistrar(override val available: Boolean = true, val token: String? = "fcm-token") : PushRegistrar {
         var asked = 0
+        override fun shouldExplainPermission() = false
+        override fun explanationDismissed() = Unit
+        override fun openSystemSettings() = Unit
         override val platform = DevicePlatform.ANDROID
         override val appVersion = "0.1.0"
         override suspend fun token() = token
@@ -41,12 +44,12 @@ class PushRegistrationTest {
     }
 
     @Test
-    fun registersTheTokenWithTheAppLanguageAndAsksForPermission() = runTest {
+    fun registersTheTokenWithTheAppLanguageWithoutAskingForPermission() = runTest {
         val prefs = InMemoryPreferencesRepository().also { it.setLanguage(AppLanguage.ENGLISH) }
         val registrar = FakeRegistrar()
         PushRegistration(registrar, api(), prefs).register()
 
-        assertEquals(1, registrar.asked)
+        assertEquals(0, registrar.asked, "the permission is asked from the explanation sheet, not here")
         val (method, path, body) = calls.single()
         assertEquals("POST", method)
         assertEquals("/api/v1/devices", path)

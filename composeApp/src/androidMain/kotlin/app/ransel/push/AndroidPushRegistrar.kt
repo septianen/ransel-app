@@ -2,6 +2,8 @@ package app.ransel.push
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
@@ -36,14 +38,24 @@ class AndroidPushRegistrar(private val context: Context) : PushRegistrar {
         Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-    /** Android 13+ only, and only once per install: the system stops showing the dialog after repeated refusals anyway. */
+    /** Android 13+: the system dialog (the system stops showing it after repeated refusals). Older versions need none. */
     override fun requestPermission() {
         if (hasPermission()) return
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_ASKED, false)) return
-        val ask = permissionRequest ?: return // no screen to show the dialog on right now; try again next time
-        prefs.edit().putBoolean(KEY_ASKED, true).apply()
-        ask()
+        permissionRequest?.invoke() // no screen to show the dialog on right now: nothing happens
+    }
+
+    override fun shouldExplainPermission(): Boolean =
+        available && !hasPermission() && !context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_EXPLAINED, false)
+
+    override fun explanationDismissed() {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_EXPLAINED, true).apply()
+    }
+
+    override fun openSystemSettings() {
+        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(intent) }
     }
 
     override fun deviceLanguage(): String =
@@ -51,7 +63,7 @@ class AndroidPushRegistrar(private val context: Context) : PushRegistrar {
 
     companion object {
         private const val PREFS = "ransel_push"
-        private const val KEY_ASKED = "permission_asked"
+        private const val KEY_EXPLAINED = "permission_explained"
 
         /** Set by MainActivity while it is on screen: shows the system permission dialog. */
         @Volatile

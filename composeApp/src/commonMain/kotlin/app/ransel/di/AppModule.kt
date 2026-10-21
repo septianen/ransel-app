@@ -11,6 +11,8 @@ import app.ransel.data.notification.NotificationsStore
 import app.ransel.data.notification.PushRegistration
 import app.ransel.data.invite.InviteLinks
 import app.ransel.feature.credits.CreditsViewModel
+import app.ransel.feature.notifications.NotificationSettingsViewModel
+import app.ransel.feature.notifications.NotificationsViewModel
 import app.ransel.data.explore.ExploreSessionStore
 import app.ransel.feature.explore.ExplorePreferencesViewModel
 import app.ransel.feature.explore.ExploreTripPickerViewModel
@@ -69,6 +71,8 @@ val commonModule: Module = module {
     single { NotificationsStore() }
     single { NotificationTarget() }
     viewModelOf(::CreditsViewModel)
+    viewModelOf(::NotificationsViewModel)
+    viewModelOf(::NotificationSettingsViewModel)
     single { ExploreSessionStore(get()) }
     viewModelOf(::ExploreTripPickerViewModel)
     viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
