@@ -100,12 +100,15 @@ class RoundService(private val config: AppConfig, private val photoSigner: Photo
             insertCards(roundId, cards, startAt = 0)
             val title = tripTitle(tripId)
             val name = displayName(creator)
+            val owner = ownerOf(tripId)
             Notify.emit {
-                notify(currentMembers(tripId).filter { it != creator }, NotificationType.VOTE_REQUESTED, tripId, "vote-open:$roundId") {
-                    mapOf(
-                        "tripTitle" to title, "roundId" to roundId.toString(), "stage" to VoteStage.OPEN, "actorName" to name,
-                        "placeCount" to cards.size.toString(), "closesAt" to closesAt.toString(),
-                    )
+                notify(currentMembers(tripId).filter { it != creator }, NotificationType.VOTE_REQUESTED, tripId, "vote-open:$roundId") { user ->
+                    buildMap {
+                        put("tripTitle", title); put("roundId", roundId.toString()); put("stage", VoteStage.OPEN); put("actorName", name)
+                        put("placeCount", cards.size.toString()); put("closesAt", closesAt.toString())
+                        // The owner decides: they are told about a proposal, not asked for their picks.
+                        if (user == owner) put("recipientRole", Role.OWNER.name)
+                    }
                 }
             }
         }
@@ -313,8 +316,7 @@ class RoundService(private val config: AppConfig, private val photoSigner: Photo
     private fun readyToDecide(round: ResultRow, skip: UUID? = null) {
         val roundId = round[SuggestionRounds.id]
         val tripId = round[SuggestionRounds.tripId]
-        val owner = TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and (TripMembers.role eq Role.OWNER) }
-            .singleOrNull()?.get(TripMembers.userId) ?: return
+        val owner = ownerOf(tripId) ?: return
         if (owner == skip) return
         val members = currentMembers(tripId)
         val placeCount = places(roundId).size
@@ -377,6 +379,10 @@ class RoundService(private val config: AppConfig, private val photoSigner: Photo
     /** The stored photo path was signed when the round was made; sign it again so it never runs out while the round lives. */
     private fun withFreshPhoto(item: RecommendationItem): RecommendationItem =
         if (item.photoUrl == null) item else item.copy(photoUrl = photoSigner.signedPath(item.placeId))
+
+    private fun ownerOf(tripId: UUID): UUID? =
+        TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and (TripMembers.role eq Role.OWNER) }
+            .singleOrNull()?.get(TripMembers.userId)
 
     private fun currentMembers(tripId: UUID): List<UUID> =
         TripMembers.selectAll().where { TripMembers.tripId eq tripId }.map { it[TripMembers.userId] }

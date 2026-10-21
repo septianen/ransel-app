@@ -118,6 +118,9 @@ class VotingRoutesTest {
         assertEquals(roundId, request["roundId"])
         assertEquals("Dinda", request["actorName"])
         assertEquals("3", request["placeCount"])
+        assertEquals("OWNER", request["recipientRole"], "the owner is told about a proposal, not asked for picks")
+        use(g.viewer)
+        assertNull(inbox().single { it.str("type") == "VOTE_REQUESTED" }.params()["recipientRole"])
         use(g.editor)
         assertTrue(inbox().none { it.str("type") == "VOTE_REQUESTED" })
 

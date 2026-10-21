@@ -57,6 +57,10 @@ object PushText {
                         left != null -> "$left tempat belum kamu pilih di $trip."
                         else -> "Pilih tempatmu di $trip."
                     }
+                } else if (params["recipientRole"] == "OWNER") {
+                    val n = params["placeCount"]
+                    (if (en) "$actor suggested ${n ?: "some"} places" else "$actor mengusulkan ${n ?: "beberapa"} tempat") to
+                        (if (en) "Vote too, then decide what goes into $trip." else "Ikut pilih, lalu putuskan mana yang masuk itinerary $trip.")
                 } else {
                     val n = params["placeCount"]
                     (if (en) "$actor wants your picks" else "$actor meminta pilihanmu") to when {
