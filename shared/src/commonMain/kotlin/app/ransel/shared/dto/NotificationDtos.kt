@@ -18,7 +18,8 @@ import kotlinx.serialization.Serializable
  *   PACKING_REMINDER    tripTitle, date (trip start), remaining (items not packed yet)
  *   ACTIVITY_REMINDER   tripTitle, title (activity), time (HH:mm), date
  *   VOTE_REQUESTED      tripTitle, roundId, stage (VoteStage.OPEN | CLOSING; missing = OPEN), actorName (who searched),
- *                       placeCount, closesAt (ISO timestamp), remaining (CLOSING only: cards you have not voted on)
+ *                       placeCount, closesAt (ISO timestamp), remaining (CLOSING only: cards you have not voted on),
+ *                       recipientRole ("OWNER" when the recipient is the one who decides; absent for everyone else)
  *   VOTE_RESULT         tripTitle, roundId, stage (VoteStage.READY | DECIDED; missing = DECIDED);
  *                       READY (to the OWNER): voted, members (members who finished / current members);
  *                       DECIDED (to the others): actorName (the owner), chosenCount
