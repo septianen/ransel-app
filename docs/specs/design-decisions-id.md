@@ -11,7 +11,7 @@ Fase 1–5 sudah lengkap. Yang tersisa adalah layar pendukung yang muncul dari k
 - [ ] **Alihkan kepemilikan** — pemilik memilih anggota yang jadi pemilik baru sebelum bisa keluar dari trip.
 - [ ] **Masukkan kode undangan** — sheet/field kode dari tombol "Masukkan kode lain" di Undangan tidak berlaku (juga bisa dari Trip saya).
 - [ ] **Detail / edit aktivitas** — tap item itinerary; kemungkinan cukup memakai form Tambah aktivitas dengan tombol Hapus.
-- [ ] **Notifikasi** — tujuan tombol lonceng di Beranda.
+- [x] ~~Notifikasi~~ — didesain 21 Okt 2026: kotak masuk, kosong, gelap, lonceng dengan jumlah, pengaturan, izin ponsel mati, dan sheet izin (lihat "Notifikasi" di bawah).
 - [ ] **Ubah profil** dan **sheet Bahasa** — dari halaman Akun.
 - [ ] **Cari trip** dan **Lihat semua transaksi** — tujuan tombol cari di Trip saya dan link di Pengeluaran.
 - [x] ~~Tempat disimpan tanpa trip~~ — dibuang. Jelajah selalu terikat ke satu trip; diganti layar "Jelajah: belum ada trip".
@@ -117,6 +117,17 @@ Fase 1–5 sudah lengkap. Yang tersisa adalah layar pendukung yang muncul dari k
 - Kuota 10 pencarian per user per hari, terisi lagi 00.00.
 - Jelajah selalu terikat ke satu trip (tidak ada "tempat disimpan tanpa trip"). User yang sudah masuk tapi belum punya trip melihat layar "Buat trip dulu".
 - Web: tidak ada opsi "Pakai tanpa akun dulu" di layar Masuk dan tidak ada banner offline; kalau koneksi putus tampil state error koneksi.
+
+### Notifikasi
+- Lonceng di Beranda membuka kotak masuk **Notifikasi**; bila ada yang belum dibaca, lonceng terisi dan memakai badge `secondary` #D92D7B berisi jumlah (maksimal "9+"). Tanpa yang belum dibaca, lonceng tetap garis.
+- Kotak masuk: bagian **Baru** (belum dibaca: titik `primary`, judul tebal, latar `surface-container-low`) dan **Sebelumnya**. Tombol teks "Tandai semua dibaca" di header. Satu ketukan membuka trip-nya; membuka layar menandai satu notifikasi dibaca, bukan semuanya.
+- Isi baris disusun dari jenis + parameter (bukan teks dari server), jadi ikut bahasa app. Tile kategori bold dengan ikon putih: anggota biru (`person_add`), pengeluaran teal (`payments`), lunas hijau (`check_circle`), pengingat oranye (`alarm`, `luggage`), peran ungu (`manage_accounts`), dikeluarkan merah (`person_remove`), voting magenta (`how_to_vote`, belum dikirim).
+- Contoh teks (ID): "Dinda bergabung ke trip" · "Raka mencatat Rp300.000 / Bagianmu Rp100.000" · "Maya menandai Rp50.000 lunas" · "Sebentar lagi: Pantai Kuta / Pukul 10.00" · "Packing untuk Bali 4 hari / 4 barang belum siap. Berangkat besok." · "Perananmu jadi Editor" · "Kamu dikeluarkan dari trip".
+- Kosong: `capybara-dreaming`, "Semuanya tenang", tombol teks "Atur notifikasi". Disimpan 90 hari setelah dibaca (catatan kecil di dasar daftar).
+- Pengaturan (dari Akun → "Notifikasi dan pengingat"): tiga saklar, bukan dua. **Aktivitas trip**, **Pengeluaran dan pelunasan**, **Pengingat** (packing 18.00 malam sebelum berangkat dan 30 menit sebelum aktivitas, WIB). Dua saklar pengingat lama di Akun (H-1 19.00 dan 30 menit) dihapus. Orang tidak pernah dikabari tentang hal yang ia lakukan sendiri.
+- Izin ponsel mati: banner kuning "Notifikasi dimatikan di ponsel" + tombol "Buka pengaturan ponsel"; saklar Pengingat tampil mati karena pengingat hanya lewat pop-up; kotak masuk tetap terisi.
+- Izin Android 13+: sheet penjelasan "Mau dikabari soal trip-mu?" sebelum dialog sistem, sekali saja setelah masuk pertama; "Nanti saja" menutup tanpa dialog dan menanyakan lagi hanya dari Pengaturan notifikasi.
+- Push iOS menunggu proyek Xcode; tampilannya sama.
 
 ### Akun dan sinkronisasi
 - Masuk tanpa ilustrasi, dengan opsi "Pakai tanpa akun dulu" (offline-first). Daftar dan Kata sandi baru menampilkan syarat kata sandi yang tercentang langsung.

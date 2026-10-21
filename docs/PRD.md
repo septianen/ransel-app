@@ -168,5 +168,5 @@ The UI for all five phases is designed in the "RANSEL — IRIS" canvas; what rem
 
 - [ ] Target numbers for the success metrics.
 - [ ] Ownership transfer flow before the owner leaves a trip.
-- [ ] Screens not designed yet: enter invite code, activity detail/edit, notification inbox and settings screens, edit profile, language sheet, search trips, all transactions.
+- [ ] Screens not designed yet: enter invite code, activity detail/edit, edit profile, language sheet, search trips, all transactions.
 - [ ] Dark theme for Itinerary, Packing, Explore, sheets, and dialogs (the pattern exists, the screens do not).
