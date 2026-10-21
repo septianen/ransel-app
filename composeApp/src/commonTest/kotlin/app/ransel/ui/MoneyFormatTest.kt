@@ -29,6 +29,9 @@ class SanitizeAmountTest {
         assertEquals("12,5", app.ransel.ui.format.sanitizeAmountInput("12.5", 2))
     @kotlin.test.Test fun fractionIsLimited() =
         assertEquals("12,34", app.ransel.ui.format.sanitizeAmountInput("12,349", 2))
-    @kotlin.test.Test fun secondSeparatorIsDropped() =
-        assertEquals("1234,5", app.ransel.ui.format.sanitizeAmountInput("1,234,5", 2))
+    @kotlin.test.Test fun secondSeparatorIsDropped() {
+        // Typing a second "," or "." must not change the number: only the first separator counts.
+        assertEquals("12,5", app.ransel.ui.format.sanitizeAmountInput("12,5,", 2))
+        assertEquals("1,23", app.ransel.ui.format.sanitizeAmountInput("1,234,5", 2))
+    }
 }
