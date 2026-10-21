@@ -21,9 +21,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.Font
-import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.material_symbols_rounded
-import ransel.composeapp.generated.resources.material_symbols_rounded_fill
+import app.ransel.iris.generated.resources.Res
+import app.ransel.iris.generated.resources.material_symbols_rounded
+import app.ransel.iris.generated.resources.material_symbols_rounded_fill
 
 /**
  * Material Symbols Rounded glyph (weight 500, same as the design). [symbol] is a constant from [Symbols].

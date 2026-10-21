@@ -7,16 +7,16 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.Font
-import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.plus_jakarta_sans_bold
-import ransel.composeapp.generated.resources.plus_jakarta_sans_extrabold
-import ransel.composeapp.generated.resources.plus_jakarta_sans_regular
-import ransel.composeapp.generated.resources.plus_jakarta_sans_semibold
+import app.ransel.iris.generated.resources.Res
+import app.ransel.iris.generated.resources.plus_jakarta_sans_bold
+import app.ransel.iris.generated.resources.plus_jakarta_sans_extrabold
+import app.ransel.iris.generated.resources.plus_jakarta_sans_regular
+import app.ransel.iris.generated.resources.plus_jakarta_sans_semibold
 
 /*
  * IRIS type scale (docs/design/iris/tokens.md). Font: Plus Jakarta Sans (OFL), weights
- * 400/600/700/800 as TTF in composeApp/src/commonMain/composeResources/font/ with the file
- * names below. Adjust the generated `Res` package if the project name differs.
+ * 400/600/700/800 as TTF in iris/src/commonMain/composeResources/font/ with the file
+ * names below (module `iris`, shared by composeApp and adminApp).
  *
  * Screen titles in the designs use 22/28 weight 800 (headlineMedium with ExtraBold).
  * No text smaller than 12 sp.
