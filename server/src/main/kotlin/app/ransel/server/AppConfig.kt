@@ -72,6 +72,12 @@ data class AppConfig(
     val maxOpenRounds: Int = 3,
     /** Voting: the "closes soon" reminder goes out this many hours before a round closes. */
     val notifyVoteClosingHours: Int = 3,
+    /** Admin app "Karung": these accounts (lower-case emails) may call `/admin/...`. Empty = nobody. */
+    val adminEmails: Set<String> = emptySet(),
+    /** `production`, `staging` or `development`; shown in Karung so an admin knows which data they change. */
+    val appEnv: String = "development",
+    /** Karung's "send password reset" stays off until an email provider is connected. */
+    val adminPasswordResetEnabled: Boolean = false,
 ) {
     data class CreditPack(val id: String, val credits: Int, val priceMinor: Long, val currency: String = "IDR")
 
@@ -145,8 +151,10 @@ data class AppConfig(
                 databaseUrl = env["DATABASE_URL"] ?: "jdbc:postgresql://localhost:5432/ransel",
                 databaseUser = env["DATABASE_USER"] ?: "ransel",
                 databasePassword = env["DATABASE_PASSWORD"] ?: "ransel",
-                corsOrigins = env["CORS_ORIGINS"]?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
-                    ?: listOf("http://localhost:8080", "http://localhost:8081"),
+                corsOrigins = (
+                    env["CORS_ORIGINS"]?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+                        ?: listOf("http://localhost:8080", "http://localhost:8081")
+                    ) + env["ADMIN_APP_ORIGIN"].csv(),
                 jwtSecret = secret,
                 jwtIssuer = env["JWT_ISSUER"] ?: "ransel",
                 appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.mietek.tech").trimEnd('/'),
@@ -175,6 +183,9 @@ data class AppConfig(
                 roundExpiryDays = env["ROUND_EXPIRY_DAYS"]?.toIntOrNull()?.coerceIn(1, 60) ?: 7,
                 maxOpenRounds = env["MAX_OPEN_ROUNDS"]?.toIntOrNull()?.coerceIn(1, 20) ?: 3,
                 notifyVoteClosingHours = env["NOTIFY_VOTE_CLOSING_HOURS"]?.toIntOrNull()?.coerceIn(1, 23) ?: 3,
+                adminEmails = env["ADMIN_EMAILS"].csv().map { it.lowercase() }.toSet(),
+                appEnv = env["APP_ENV"]?.takeIf { it.isNotBlank() } ?: "development",
+                adminPasswordResetEnabled = env["ADMIN_PASSWORD_RESET_ENABLED"]?.lowercase() == "true",
                 seedUsers = listOfNotNull(
                     env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
                         SeedUser(

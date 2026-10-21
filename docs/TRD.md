@@ -89,7 +89,8 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | devices | push token per phone (platform, locale, disabled\_at) | V10 |
 | notifications | inbox: type, params, trip, dedupe\_key (unique per user), read\_at, push\_state (outbox) | V10 |
 | notification\_settings | three switches per user (missing row = all on) | V10 |
-| app\_settings, admin\_audit\_log | admin overrides of config values (key, JSON value, updated\_by); append-only log of admin actions | planned (6) |
+| admin\_audit\_log; users.disabled\_at; credit\_ledger.note | append-only log of admin actions; account deactivated by an admin; the admin's reason for an ADJUSTMENT (which may now be negative) | V12 (6) |
+| app\_settings | admin overrides of config values (key, JSON value, updated\_by) | planned (6) |
 | ai\_search\_log, error\_counts | one row per Explore search (parameters, source, latency, credits, estimated cost); errors per hour, code and route | planned (6) |
 
 Enums:
@@ -166,7 +167,7 @@ The exact request and response classes for every row are in the `shared` module 
 
 **Response format.** Success or failure is read from the HTTP status code. Success: `{"data": …}` (lists add `meta` for paging); failure: `{"error": {"code", "message", "details"}}`. 201 for create, 204 for delete, 400/422 for validation, 401 for tokens, 403 for no permission, 404, 409 for conflicts, 429 for quota, 500 without a stack trace.
 
-**Error codes** are fixed constants for app logic and are shown small on the state screens: `NETWORK_TIMEOUT` (client), `INTERNAL_ERROR`, `TOKEN_EXPIRED`, `TRIP_NOT_FOUND`, `INVITE_EXPIRED`, `INVITE_REVOKED`, `INVITE_FULL`, `AI_UNAVAILABLE`, `RATE_LIMITED`, `SPLIT_TOTAL_MISMATCH`, `OWNER_CANNOT_LEAVE`, and for voting `ROUND_NOT_FOUND`, `VOTING_CLOSED`, `ROUND_ALREADY_DECIDED`, `ROUND_LIMIT`.
+**Error codes** are fixed constants for app logic and are shown small on the state screens: `NETWORK_TIMEOUT` (client), `INTERNAL_ERROR`, `TOKEN_EXPIRED`, `TRIP_NOT_FOUND`, `INVITE_EXPIRED`, `INVITE_REVOKED`, `INVITE_FULL`, `AI_UNAVAILABLE`, `RATE_LIMITED`, `SPLIT_TOTAL_MISMATCH`, `OWNER_CANNOT_LEAVE`, for voting `ROUND_NOT_FOUND`, `VOTING_CLOSED`, `ROUND_ALREADY_DECIDED`, `ROUND_LIMIT`, and `ACCOUNT_DISABLED` (403, an admin deactivated the account).
 
 Conventions: camelCase fields, ISO 8601 dates, UTC times, money in the smallest unit. The `ApiResponse<T>` and `ApiError` wrappers live in `shared`; the server wraps responses with `call.respondData(...)` and StatusPages; the client maps them to `sealed interface ApiResult<T> { Success, Failure }`.
 
@@ -237,7 +238,7 @@ An event writes the inbox row **inside the transaction that caused it** (invite 
 - **Forgot password.** `forgot` always answers 204 (it never reveals whether the email exists) and sends a link with a single-use token valid for 30 minutes. `reset` replaces the hash, marks the token used, and revokes every refresh token of the user so other devices are signed out.
 - **Session expired.** When refresh fails (`TOKEN_EXPIRED`), the app shows the Session expired screen; local data stays.
 - **Authorization** is always checked on the server per trip (`requireRole`), never only in the UI.
-- **Admins** are the accounts whose email is in `ADMIN_EMAILS` (server env). Their access token carries an `admin` claim, set on sign-in and checked again on every refresh; every `/admin` route requires it. Admin actions go to `admin_audit_log`. Details: `docs/specs/admin-spec.md`.
+- **Admins** are the accounts whose email is in `ADMIN_EMAILS` (server env). Every `/admin` request looks the account up and checks its email against the list (no token claim), and the account must be active. Admin actions go to `admin_audit_log`. Details: `docs/specs/admin-spec.md`.
 - **Email.** Password reset emails are sent from `no-reply@mietek.tech` (provider still open; until then the server logs the link).
 - **Secrets.** The LLM and Places API keys live only on the server (environment variables), never in the client or the repository.
 

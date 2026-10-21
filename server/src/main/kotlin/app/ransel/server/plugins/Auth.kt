@@ -25,6 +25,7 @@ val AuthRateLimit = RateLimitName("auth")
 val PhotoRateLimit = RateLimitName("photo")
 val SuggestionsRateLimit = RateLimitName("suggestions")
 val RedeemRateLimit = RateLimitName("redeem")
+val AdminRateLimit = RateLimitName("admin")
 
 fun Application.configureAuth(config: AppConfig, tokens: TokenService) {
     install(Authentication) {
@@ -58,6 +59,11 @@ fun Application.configureRateLimit(config: AppConfig) {
         }
         register(RedeemRateLimit) {
             rateLimiter(limit = 10, refillPeriod = 1.minutes)
+            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
+        }
+        // Per admin: Karung is a handful of people; this only stops a runaway script.
+        register(AdminRateLimit) {
+            rateLimiter(limit = 60, refillPeriod = 1.minutes)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
         }
         register(PhotoRateLimit) {

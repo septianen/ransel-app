@@ -8,6 +8,7 @@ import app.ransel.server.db.CreditVouchers
 import app.ransel.server.db.CreditWallets
 import app.ransel.server.db.toTimestamp
 import app.ransel.server.plugins.ApiException
+import app.ransel.server.plugins.validationFailed
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.domain.planCreditSpend
 import app.ransel.shared.dto.CreditCostsDto
@@ -17,6 +18,7 @@ import app.ransel.shared.dto.CreditPackagesResponse
 import app.ransel.shared.dto.CreditsDto
 import app.ransel.shared.dto.RedeemVoucherResponse
 import app.ransel.shared.model.CreditAction
+import app.ransel.shared.model.CreditDirection
 import app.ransel.shared.model.CreditLedgerKind
 import app.ransel.shared.model.CreditSource
 import io.ktor.http.HttpStatusCode
@@ -83,6 +85,52 @@ class CreditService(private val config: AppConfig) {
                     createdAt = it[CreditLedger.createdAt].toTimestamp(),
                 )
             }
+    }
+
+    /** Admin view of the history: paged, with the admin's reason and the balance after each row. Returns rows + total. */
+    fun ledgerPage(userId: UUID, page: Int, pageSize: Int): Pair<List<CreditLedgerEntryDto>, Int> = transaction {
+        val where = CreditLedger.userId eq userId
+        val total = CreditLedger.selectAll().where { where }.count().toInt()
+        val rows = CreditLedger.selectAll().where { where }
+            .orderBy(CreditLedger.createdAt to SortOrder.DESC, CreditLedger.id to SortOrder.DESC)
+            .limit(pageSize).offset(((page - 1) * pageSize).toLong())
+            .map {
+                CreditLedgerEntryDto(
+                    id = it[CreditLedger.id].toString(),
+                    kind = it[CreditLedger.kind],
+                    delta = it[CreditLedger.delta],
+                    source = it[CreditLedger.spendSource],
+                    action = it[CreditLedger.action],
+                    ref = it[CreditLedger.ref],
+                    createdAt = it[CreditLedger.createdAt].toTimestamp(),
+                    note = it[CreditLedger.note],
+                    balanceAfter = it[CreditLedger.balanceAfter],
+                )
+            }
+        rows to total
+    }
+
+    /**
+     * An admin adds or takes away wallet credits (never the free allowance). Must run inside the caller's transaction so
+     * the audit row commits with it. The same [requestId] twice changes nothing; a subtraction above the balance is 422.
+     * [onWritten] gets the balance before and after, and runs only when the ledger row was written.
+     */
+    fun adjust(
+        userId: UUID, direction: CreditDirection, amount: Int, reason: String, requestId: UUID, adminId: UUID,
+        onWritten: (before: Int, after: Int) -> Unit,
+    ): CreditsDto {
+        val balance = lockedBalance(userId)
+        val key = "admin:$requestId"
+        val replay = CreditLedger.selectAll().where { CreditLedger.idempotencyKey eq key }.any()
+        if (!replay) {
+            if (direction == CreditDirection.SUBTRACT && amount > balance) throw validationFailed(mapOf("amount" to "EXCEEDS_BALANCE"))
+            val delta = if (direction == CreditDirection.ADD) amount else -amount
+            if (ledger(userId, CreditLedgerKind.ADJUSTMENT, delta, balance + delta, null, null, adminId.toString(), key, reason)) {
+                CreditWallets.update({ CreditWallets.userId eq userId }) { it[CreditWallets.balance] = CreditWallets.balance + delta }
+                onWritten(balance, balance + delta)
+            }
+        }
+        return snapshot(userId)
     }
 
     /** Throws 402 when the user cannot pay [action] now. Used before the expensive work; costs nothing itself. */
@@ -191,7 +239,7 @@ class CreditService(private val config: AppConfig) {
     /** False when [idempotencyKey] already exists (nothing written). */
     private fun ledger(
         userId: UUID, kind: CreditLedgerKind, delta: Int, balanceAfter: Int,
-        source: CreditSource?, action: CreditAction?, ref: String?, idempotencyKey: String?,
+        source: CreditSource?, action: CreditAction?, ref: String?, idempotencyKey: String?, note: String? = null,
     ): Boolean = CreditLedger.insertIgnore {
         it[id] = UUID.randomUUID()
         it[CreditLedger.userId] = userId
@@ -202,6 +250,7 @@ class CreditService(private val config: AppConfig) {
         it[CreditLedger.ref] = ref
         it[CreditLedger.idempotencyKey] = idempotencyKey
         it[CreditLedger.balanceAfter] = balanceAfter
+        it[CreditLedger.note] = note
     }.insertedCount > 0
 
     private fun insufficient(cost: Int, now: CreditsDto) = ApiException(

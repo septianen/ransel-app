@@ -63,6 +63,10 @@ Every user has a wallet (30 credits on first use) plus 3 free credits a day (res
 
 It prints the code (`ABCD-EFGH-JKLM`); the user enters it under Account > Credits. One user can redeem a code once. To revoke: `UPDATE credit_vouchers SET revoked_at = now() WHERE code = '...'`. Watch the real cost per search in the hourly `ai.metrics` log line before changing the pack prices.
 
+## Admin app (Karung)
+
+Admins are the accounts in `ADMIN_EMAILS` (comma separated, case-insensitive) in the VPS `.env`; the server checks the list on every `/admin` request, so removing an email locks that person out at once (restart the server container after editing `.env`). Set `ADMIN_APP_ORIGIN=https://karung.mietek.tech` so the browser may call the API. `APP_ENV` (`production` / `staging`) is shown as a badge in Karung. Leave `ADMIN_PASSWORD_RESET_ENABLED` unset until an email provider is connected. Every admin action is in the `admin_audit_log` table. The nginx block for `karung.mietek.tech` comes with the `adminApp` build (task B9.10).
+
 ## Backups
 
 `deploy/backup-db.sh` dumps the database into `backups/` and keeps 14 days. Add to the deploy user's crontab (`crontab -e`):

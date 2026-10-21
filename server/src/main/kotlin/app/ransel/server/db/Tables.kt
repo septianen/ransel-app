@@ -23,6 +23,8 @@ import app.ransel.shared.model.NotificationType
 import app.ransel.shared.dto.RecommendationItem
 import app.ransel.shared.model.Vote
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import app.ransel.shared.model.AdminAction
 
 /*
  * Exposed mappings of the Flyway schema (V1..V3). Flyway owns the DDL; these objects only describe it.
@@ -38,6 +40,8 @@ object Users : Table("users") {
     val defaultCurrency = char("default_currency", 3)
     val createdAt = timestamp("created_at")
     val deletedAt = timestamp("deleted_at").nullable()
+    /** Set by an admin: sign-in and refresh answer 403 ACCOUNT_DISABLED. */
+    val disabledAt = timestamp("disabled_at").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -220,6 +224,22 @@ object CreditLedger : Table("credit_ledger") {
     val ref = text("ref").nullable()
     val idempotencyKey = text("idempotency_key").nullable()
     val balanceAfter = integer("balance_after")
+    /** The admin's reason for an ADJUSTMENT. */
+    val note = text("note").nullable()
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** Append-only; no foreign keys so it outlives the accounts it mentions (V12). */
+object AdminAuditLog : Table("admin_audit_log") {
+    val id = javaUUID("id")
+    val adminId = javaUUID("admin_id")
+    val adminEmail = text("admin_email")
+    val action = enumerationByName<AdminAction>("action", 32)
+    val targetType = text("target_type")
+    val targetId = text("target_id").nullable()
+    val before = jsonb<JsonElement>("before", Json).nullable()
+    val after = jsonb<JsonElement>("after", Json).nullable()
     val createdAt = timestamp("created_at")
     override val primaryKey = PrimaryKey(id)
 }

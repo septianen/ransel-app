@@ -1,6 +1,6 @@
 # Admin App Spec ("Karung") — RANSEL
 
-Oct 21, 2026 · @SEN · Status: **approved 21 Oct 2026; not built yet** (tasks: `docs/tasks/backend.md` and `docs/tasks/frontend.md`, "Phase 6 — Admin"). Design: Claude Design canvas "Karung" (https://claude.ai/artifact/GJbx3VCHbQUVPgkHzmnHbu, version 24).
+Oct 21, 2026 · @SEN · Status: **approved 21 Oct 2026; stage A built on the server** (contract `56e9993`) (tasks: `docs/tasks/backend.md` and `docs/tasks/frontend.md`, "Phase 6 — Admin"). Design: Claude Design canvas "Karung" (https://claude.ai/artifact/GJbx3VCHbQUVPgkHzmnHbu, version 24).
 
 ## Summary
 
@@ -20,7 +20,7 @@ Also agreed on 21 Oct 2026 (the former open items):
 
 | Topic | Decision |
 | --- | --- |
-| Who is an admin | `ADMIN_EMAILS` env var (comma separated) on the server. An admin signs in with their normal RANSEL account; the server adds an `admin` claim to the access token only for those emails (checked again on every refresh). No UI grants admin, so a bug in Karung cannot create admins. |
+| Who is an admin | `ADMIN_EMAILS` env var (comma separated, case-insensitive) on the server. An admin signs in with their normal RANSEL account; every `/admin` request looks the account up and checks its email against the list (no token claim, so removing an email works at once). The account must be active. No UI grants admin, so a bug in Karung cannot create admins. |
 | Where Karung runs | Its own subdomain `karung.mietek.tech` behind the host's nginx, same Docker Compose. A separate origin from the traveller web app, so their sessions never mix. |
 | Code module and owner | New module `adminApp/` (Compose for Web, Wasm) with the IRIS theme, owned by the **frontend** agent. It reads `shared/` like `composeApp/`. |
 | Phase | "Phase 6 — Admin", after Phase 5, built in the stages under "Rollout". Stage A starts now. |
@@ -38,7 +38,7 @@ Code names follow `docs/design/README.md` (English names in code, design file na
 | --- | --- | --- | --- |
 | `Main` (Ringkasan) | `OverviewScreen` | B | Daily/7-day active users, new trips, AI searches today, credits used today, AI cost vs monthly budget, active users chart, top destinations, errors of the last 24 h, cost per service |
 | `Pengguna` | `UsersScreen` | A | Searchable, filterable, paged user table; CSV export |
-| `PenggunaDetail` | `UserDetailScreen` | A | Profile, trips (metadata only), recent activity, credit history, devices, actions |
+| `PenggunaDetail` | `UserDetailScreen` | A (recent activity: B) | Profile, trips (metadata only), credit history, devices, actions; the recent activity list needs the stage B logs |
 | `PenggunaAturKredit` | `AdjustCreditsDialog` | A | Add or subtract credits (rules below) |
 | `JelajahAI` | `ExploreAiScreen` | B | Searches, cache rate, saved cards, latency, users out of credits, credits used, daily cost, user choices, recent searches |
 | `Sistem` | `SystemScreen` | B (health, errors), C (settings) | Health, errors per code, settings including credit settings |
@@ -89,7 +89,7 @@ The TRD "Quota" paragraph ("All numbers come from server config") must be update
 | --- | --- | --- |
 | Sign out of all devices | Revokes all of the user's refresh tokens; their apps get `TOKEN_EXPIRED` at the next refresh | Nothing new |
 | Send password reset email | Same flow as `POST /auth/password/forgot`, started by an admin; rate limited to 3 per user per hour | Email provider (still open) |
-| Deactivate / reactivate account | New `users.disabled_at`. Deactivating revokes refresh tokens; sign-in and refresh then return 403 `ACCOUNT_DISABLED`; data is kept. Reactivating clears the field. | New error code, app handling (show "Akun dinonaktifkan" on the sign-in screen) |
+| Deactivate / reactivate account | New `users.disabled_at`. Deactivating revokes refresh tokens; sign-in (with the right password) and refresh then return 403 `ACCOUNT_DISABLED`; an access token already issued keeps working until it expires (15 minutes); data is kept. An admin cannot deactivate their own account. Reactivating clears the field. | New error code, app handling (show "Akun dinonaktifkan" on the sign-in screen) |
 
 Every action asks for confirmation in Karung and writes an audit row.
 
@@ -129,7 +129,7 @@ All under `/admin`, bearer token with the admin claim (403 `FORBIDDEN` otherwise
 | GET | /admin/me | Admin profile and environment (production/staging) | A |
 | GET | /admin/users?query=&status=&platform=&joinedFrom=&joinedTo=&noCredits=&page= | User list | A |
 | GET | /admin/users/export.csv (same filters) | CSV export (audited) | A |
-| GET | /admin/users/{id} | Profile, counts, devices, trips metadata, recent activity | A |
+| GET | /admin/users/{id} | Profile, counts, devices, trips metadata (recent activity comes with stage B) | A |
 | GET | /admin/users/{id}/credits/ledger?page= | Credit history with reasons | A |
 | POST | /admin/users/{id}/credits | Adjust credits `{requestId, direction, amount, reason}` → `CreditsDto` | A |
 | POST | /admin/users/{id}/sign-out-all | Revoke refresh tokens | A |
@@ -145,7 +145,7 @@ All under `/admin`, bearer token with the admin claim (403 `FORBIDDEN` otherwise
 | POST | /admin/content/publish | Publish all drafts | D |
 | GET | /content?version= | Published content for the apps (public, cached) | D (apps later) |
 
-Admin endpoints are rate limited per admin (60 requests a minute) and never cached by nginx. CORS allows only the Karung origin for `/admin`.
+Admin endpoints are rate limited per admin (60 requests a minute) and never cached by nginx. `ADMIN_APP_ORIGIN` is added to the CORS origins; CORS is not the security boundary (bearer tokens, no cookies), the per-request admin check is.
 
 ## Contract changes (`shared/`, all additive)
 

@@ -20,6 +20,7 @@ import app.ransel.server.plugins.configureCors
 import app.ransel.server.plugins.configureRateLimit
 import app.ransel.server.plugins.configureSerialization
 import app.ransel.server.plugins.configureStatusPages
+import app.ransel.server.routes.adminRoutes
 import app.ransel.server.routes.authRoutes
 import app.ransel.server.routes.creditRoutes
 import app.ransel.server.routes.balanceRoutes
@@ -42,6 +43,7 @@ import app.ransel.server.security.EmailSender
 import app.ransel.server.security.LoggingEmailSender
 import app.ransel.server.security.PasswordHasher
 import app.ransel.server.security.TokenService
+import app.ransel.server.service.AdminService
 import app.ransel.server.service.AuthService
 import app.ransel.server.service.CreditService
 import app.ransel.server.service.InviteService
@@ -166,6 +168,7 @@ fun Application.module(
     val auth = AuthService(config, hasher, tokens)
     config.seedUsers.forEach(auth::seed)
     val passwordReset = PasswordResetService(config, hasher, tokens, emailSender, this)
+    val admin = AdminService(config, credits, passwordReset)
 
     configureCallLogging()
     configureCors(config.corsOrigins)
@@ -196,6 +199,7 @@ fun Application.module(
                 notificationRoutes(notifications)
                 exploreRoutes(suggestions)
                 placeDetailRoutes(placeDetails)
+                adminRoutes(admin)
             }
         }
     }

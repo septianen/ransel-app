@@ -120,10 +120,14 @@ class AuthService(
         }
     }
 
-    /** Must run inside a transaction. */
+    /**
+     * Must run inside a transaction. Login reaches it only after the password matched, so ACCOUNT_DISABLED never tells a
+     * stranger that the email exists; a refresh of a disabled account fails too and its rollback keeps the old token.
+     */
     private fun startSession(userId: UUID, deviceName: String?): AuthSessionDto {
         val user = Users.selectAll().where { (Users.id eq userId) and Users.deletedAt.isNull() }.singleOrNull()
             ?: throw tokenExpired()
+        if (user[Users.disabledAt] != null) throw accountDisabled()
         val refresh = tokens.newOpaqueToken()
         RefreshTokens.insert {
             it[tokenHash] = TokenService.sha256(refresh)
@@ -148,6 +152,9 @@ class AuthService(
 
     private fun invalidCredentials() =
         ApiException(HttpStatusCode.Unauthorized, ErrorCode.INVALID_CREDENTIALS, "Wrong email or password")
+
+    private fun accountDisabled() =
+        ApiException(HttpStatusCode.Forbidden, ErrorCode.ACCOUNT_DISABLED, "This account has been deactivated")
 
     private fun tokenExpired() =
         ApiException(HttpStatusCode.Unauthorized, ErrorCode.TOKEN_EXPIRED, "Session expired, sign in again")
