@@ -64,6 +64,14 @@ data class AppConfig(
     val notifyPackingHour: Int = 18,
     /** Activity reminder: this many minutes before it starts (WIB). */
     val notifyActivityLeadMinutes: Int = 30,
+    /** Voting: how long a round is open for votes. */
+    val votingHours: Int = 24,
+    /** Voting: a round nobody decided disappears this many days after it was created. */
+    val roundExpiryDays: Int = 7,
+    /** Voting: open (not decided, not expired) rounds a trip may have; one more search is 409 ROUND_LIMIT. */
+    val maxOpenRounds: Int = 3,
+    /** Voting: the "closes soon" reminder goes out this many hours before a round closes. */
+    val notifyVoteClosingHours: Int = 3,
 ) {
     data class CreditPack(val id: String, val credits: Int, val priceMinor: Long, val currency: String = "IDR")
 
@@ -163,6 +171,10 @@ data class AppConfig(
                 fcmServiceAccountJson = serviceAccountJson(env["FCM_SERVICE_ACCOUNT_JSON"]),
                 notifyPackingHour = env["NOTIFY_PACKING_HOUR"]?.toIntOrNull()?.coerceIn(0, 23) ?: 18,
                 notifyActivityLeadMinutes = env["NOTIFY_ACTIVITY_LEAD_MINUTES"]?.toIntOrNull()?.coerceIn(1, 240) ?: 30,
+                votingHours = env["VOTING_HOURS"]?.toIntOrNull()?.coerceIn(1, 168) ?: 24,
+                roundExpiryDays = env["ROUND_EXPIRY_DAYS"]?.toIntOrNull()?.coerceIn(1, 60) ?: 7,
+                maxOpenRounds = env["MAX_OPEN_ROUNDS"]?.toIntOrNull()?.coerceIn(1, 20) ?: 3,
+                notifyVoteClosingHours = env["NOTIFY_VOTE_CLOSING_HOURS"]?.toIntOrNull()?.coerceIn(1, 23) ?: 3,
                 seedUsers = listOfNotNull(
                     env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
                         SeedUser(

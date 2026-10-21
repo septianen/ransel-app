@@ -7,6 +7,7 @@ import app.ransel.server.db.Trips
 import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.requireValid
 import app.ransel.server.service.CreditService
+import app.ransel.server.service.RoundService
 import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.requireRole
 import app.ransel.shared.api.ErrorCode
@@ -71,6 +72,8 @@ class RecommendationService(
     /** Keeps each place's detail text for the itinerary; null = not kept (tests that do not care). */
     private val details: PlaceDetailService? = null,
     private val credits: CreditService,
+    /** Voting rounds for trips with 2+ members; null = every trip behaves like a solo trip (tests that do not care). */
+    private val rounds: RoundService? = null,
 ) {
     private val log = LoggerFactory.getLogger(RecommendationService::class.java)
 
@@ -82,6 +85,14 @@ class RecommendationService(
         requireRole(tripId, userId, Role.EDITOR)
         val trip = loadTrip(tripId)
         if (todayWib() > trip.endDate) throw validationFailed(mapOf("tripId" to "TRIP_ENDED"))
+
+        // A trip with 2+ members turns the search into a voting round (docs/specs/voting-spec.md).
+        val requestedRound = body.roundId?.let { runCatching { UUID.fromString(it) }.getOrNull() ?: throw validationFailed(mapOf("roundId" to "INVALID_UUID")) }
+        val voting = rounds != null && rounds.memberCount(tripId) >= 2
+        if (voting) {
+            if (body.newSearch) rounds!!.requireRoomForNewRound(tripId)
+            else if (requestedRound != null) rounds!!.requireAppendable(tripId, requestedRound, userId)
+        }
 
         // Pre-check, so a user without credits costs nothing. The charge itself happens only after a successful search.
         val action = if (body.newSearch) CreditAction.SEARCH else CreditAction.NEXT_BATCH
@@ -98,7 +109,8 @@ class RecommendationService(
                 .orderBy(RecommendationFeedback.createdAt to SortOrder.DESC)
                 .toList()
         }
-        val seen = feedback.map { it[RecommendationFeedback.placeId] }.toSet() + body.excludePlaceIds
+        val seen = feedback.map { it[RecommendationFeedback.placeId] }.toSet() + body.excludePlaceIds +
+            (rounds?.placeIdsInRounds(tripId) ?: emptySet())
 
         metrics.searches.incrementAndGet()
         val key = cacheKey(body, trip)
@@ -145,11 +157,17 @@ class RecommendationService(
             if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
             throw e
         }
+        val roundId = when {
+            !voting || rounds == null -> null
+            body.newSearch -> if (items.isEmpty()) null else rounds.create(tripId, userId, items)
+            requestedRound != null -> requestedRound.also { rounds.append(it, items) }
+            else -> null // an older app's next batch without a round: it saves directly, like a solo trip
+        }
         log.info(
-            "ai.search cache={} candidates={} returned={} action={} balance={} freeLeft={}",
-            if (cached != null) "hit" else "miss", candidates.size, items.size, action, state.balance, state.dailyFreeLeft,
+            "ai.search cache={} candidates={} returned={} action={} balance={} freeLeft={} round={}",
+            if (cached != null) "hit" else "miss", candidates.size, items.size, action, state.balance, state.dailyFreeLeft, roundId != null,
         )
-        return RecommendationResponse(groups = group(items), credits = state)
+        return RecommendationResponse(groups = group(items), credits = state, roundId = roundId?.toString())
     }
 
     fun saveFeedback(userId: UUID, body: FeedbackRequest) {

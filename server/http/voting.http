@@ -1,0 +1,34 @@
+# Itinerary voting (docs/specs/voting-spec.md). A search on a trip with 2+ members returns a roundId.
+
+### Open and recent rounds of a trip (any member)
+GET {{host}}/trips/{{tripId}}/rounds
+Authorization: Bearer {{token}}
+
+### One round. OWNER: tally with likedBy + voters. Members: tally (counts only) after closesAt. 404 ROUND_NOT_FOUND
+GET {{host}}/trips/{{tripId}}/rounds/{{roundId}}
+Authorization: Bearer {{token}}
+
+### Vote (any member, idempotent). 409 VOTING_CLOSED after closesAt or once decided
+PUT {{host}}/trips/{{tripId}}/rounds/{{roundId}}/votes/{{placeId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "vote": "LIKE" }
+
+### Undo a vote
+DELETE {{host}}/trips/{{tripId}}/rounds/{{roundId}}/votes/{{placeId}}
+Authorization: Bearer {{token}}
+
+### Decide (OWNER). Create the itinerary items first (normal path), then this. 409 ROUND_ALREADY_DECIDED
+POST {{host}}/trips/{{tripId}}/rounds/{{roundId}}/decide
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "placeIds": ["{{placeId}}"] }
+
+### Next batch for the same round (only the one who searched, while open)
+POST {{host}}/recommendations
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "tripId": "{{tripId}}", "priceLevel": "MEDIUM", "interests": ["NATURE"], "style": "SANTAI", "newSearch": false, "roundId": "{{roundId}}" }

@@ -34,6 +34,7 @@ import app.ransel.server.routes.packingTemplateRoutes
 import app.ransel.server.routes.placeDetailRoutes
 import app.ransel.server.routes.placePhotoRoutes
 import app.ransel.server.routes.recommendationRoutes
+import app.ransel.server.routes.votingRoutes
 import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
 import app.ransel.server.routes.wellKnownRoutes
@@ -56,6 +57,7 @@ import app.ransel.server.routes.notificationRoutes
 import app.ransel.server.service.NotificationService
 import app.ransel.server.service.Notify
 import app.ransel.server.service.ReminderScheduler
+import app.ransel.server.service.RoundService
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.server.application.Application
@@ -109,7 +111,8 @@ fun Application.module(
     val fxRates = fx ?: ecb ?: NoFxRates
     val placeDetails = PlaceDetailService(aiServices, photoSigner, fxRates, aiMetrics)
     val credits = CreditService(config)
-    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits)
+    val rounds = RoundService(config, photoSigner)
+    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits, rounds)
     if (ecb != null) {
         maintenance.launch {
             while (isActive) {
@@ -153,6 +156,7 @@ fun Application.module(
     maintenance.launch {
         while (isActive) {
             runCatching { reminders.tick() }.onFailure { environment.log.warn("reminder tick failed: {}", it.javaClass.simpleName) }
+            runCatching { rounds.tick() }.onFailure { environment.log.warn("voting tick failed: {}", it.javaClass.simpleName) }
             delay(60_000)
         }
     }
@@ -187,6 +191,7 @@ fun Application.module(
                 balanceRoutes()
                 packingTemplateRoutes()
                 recommendationRoutes(recommendations)
+                votingRoutes(rounds)
                 creditRoutes(credits)
                 notificationRoutes(notifications)
                 exploreRoutes(suggestions)

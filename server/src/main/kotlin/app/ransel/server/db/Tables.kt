@@ -20,6 +20,8 @@ import app.ransel.shared.model.CreditSource
 import app.ransel.shared.model.DevicePlatform
 import app.ransel.shared.model.FeedbackAction
 import app.ransel.shared.model.NotificationType
+import app.ransel.shared.dto.RecommendationItem
+import app.ransel.shared.model.Vote
 import kotlinx.serialization.json.Json
 
 /*
@@ -318,4 +320,37 @@ object RecommendationFeedback : Table("recommendation_feedback") {
     val action = enumerationByName<FeedbackAction>("action", 8)
     val createdAt = timestamp("created_at")
     override val primaryKey = PrimaryKey(tripId, userId, placeId)
+}
+
+/** V11: itinerary voting (docs/specs/voting-spec.md). */
+object SuggestionRounds : Table("suggestion_rounds") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val createdBy = javaUUID("created_by")
+    val createdAt = timestamp("created_at")
+    val closesAt = timestamp("closes_at")
+    val expiresAt = timestamp("expires_at")
+    val decidedAt = timestamp("decided_at").nullable()
+    val decidedBy = javaUUID("decided_by").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object SuggestionRoundPlaces : Table("suggestion_round_places") {
+    val roundId = javaUUID("round_id")
+    val placeId = text("place_id")
+    val category = enumerationByName<Category>("category", 16)
+    val sortOrder = integer("sort_order")
+    val snapshot = jsonb<RecommendationItem>("snapshot", Json { ignoreUnknownKeys = true })
+    val chosen = bool("chosen")
+    override val primaryKey = PrimaryKey(roundId, placeId)
+}
+
+object SuggestionVotes : Table("suggestion_votes") {
+    val roundId = javaUUID("round_id")
+    val placeId = text("place_id")
+    val userId = javaUUID("user_id")
+    val vote = enumerationByName<Vote>("vote", 8)
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(roundId, placeId, userId)
 }

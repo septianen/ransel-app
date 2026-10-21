@@ -1,5 +1,6 @@
 package app.ransel.server.push
 
+import app.ransel.shared.domain.VoteStage
 import app.ransel.shared.model.NotificationType
 
 /**
@@ -47,12 +48,47 @@ object PushText {
                 (if (en) "Coming up: $title" else "Sebentar lagi: $title") to
                     (if (en) "At $time in $trip." else "Pukul $time di $trip.")
             }
-            NotificationType.VOTE_REQUESTED ->
-                (if (en) "Your vote is needed in $trip" else "Suaramu dibutuhkan di $trip") to
-                    (if (en) "Pick the places you like." else "Pilih tempat yang kamu suka.")
-            NotificationType.VOTE_RESULT ->
-                (if (en) "Voting result for $trip" else "Hasil voting untuk $trip") to
-                    (if (en) "The owner chose the places." else "Owner sudah memilih tempatnya.")
+            NotificationType.VOTE_REQUESTED -> {
+                if (params["stage"] == VoteStage.CLOSING) {
+                    val left = params["remaining"]
+                    (if (en) "Voting closes in a few hours" else "Voting segera ditutup") to when {
+                        en && left != null -> "You have not picked $left places in $trip yet."
+                        en -> "Pick your places in $trip."
+                        left != null -> "$left tempat belum kamu pilih di $trip."
+                        else -> "Pilih tempatmu di $trip."
+                    }
+                } else {
+                    val n = params["placeCount"]
+                    (if (en) "$actor wants your picks" else "$actor meminta pilihanmu") to when {
+                        en && n != null -> "$n places for $trip. Swipe the ones you like."
+                        en -> "Places for $trip. Swipe the ones you like."
+                        n != null -> "$n tempat untuk $trip. Geser kanan yang kamu suka."
+                        else -> "Tempat untuk $trip. Geser kanan yang kamu suka."
+                    }
+                }
+            }
+            NotificationType.VOTE_RESULT -> {
+                if (params["stage"] == VoteStage.READY) {
+                    val voted = params["voted"]
+                    val members = params["members"]
+                    (if (en) "Voting is done, time to decide" else "Voting selesai, saatnya memutuskan") to when {
+                        en && voted != null && members != null -> "$voted of $members members picked places for $trip."
+                        en -> "Choose which places go into $trip."
+                        voted != null && members != null -> "$voted dari $members anggota sudah memilih untuk $trip."
+                        else -> "Pilih tempat yang masuk itinerary $trip."
+                    }
+                } else {
+                    val chosen = params["chosenCount"]?.toIntOrNull()
+                    when {
+                        chosen == 0 -> (if (en) "Voting closed in $trip" else "Voting ditutup di $trip") to
+                            (if (en) "$actor closed it without choosing places." else "$actor menutup voting tanpa memilih tempat.")
+                        chosen != null -> (if (en) "$actor chose $chosen places" else "$actor memilih $chosen tempat") to
+                            (if (en) "They are in Unscheduled in $trip." else "Sudah ada di Belum dijadwalkan di $trip.")
+                        else -> (if (en) "Voting result for $trip" else "Hasil voting untuk $trip") to
+                            (if (en) "The owner chose the places." else "Owner sudah memilih tempatnya.")
+                    }
+                }
+            }
         }
     }
 
