@@ -63,7 +63,13 @@ class FcmPushSender(
                 put("token", token)
                 put("notification", buildJsonObject { put("title", message.title); put("body", message.body) })
                 put("data", buildJsonObject { message.data.forEach { (k, v) -> put(k, v) } })
-                put("android", buildJsonObject { put("priority", "HIGH") })
+                put("android", buildJsonObject {
+                    put("priority", "HIGH")
+                    // The channel the app created, so reminders can be muted apart from joins and expenses.
+                    put("notification", buildJsonObject {
+                        put("channel_id", if (message.data["type"]?.endsWith("REMINDER") == true) "reminders" else "trip_activity")
+                    })
+                })
             })
         }
         val response = try {

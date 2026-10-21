@@ -108,6 +108,8 @@ kotlin {
             }
         }
         androidMain.dependencies {
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.messaging)
             implementation(libs.androidx.activity.compose)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
@@ -166,4 +168,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+// Push (FCM) needs the Firebase project's google-services.json, which is per environment and not in git.
+// Without it the app still builds and runs; PushRegistrar just reports that push is not available.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }

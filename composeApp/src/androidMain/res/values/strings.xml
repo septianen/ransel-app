@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">RANSEL</string>
+    <string name="notification_channel_trip_activity">Trip activity</string>
+    <string name="notification_channel_reminders">Reminders</string>
 </resources>

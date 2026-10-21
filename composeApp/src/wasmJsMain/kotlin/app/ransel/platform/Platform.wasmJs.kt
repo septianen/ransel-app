@@ -25,6 +25,7 @@ import org.koin.dsl.module
 
 /** Web is online-only: repositories call the API directly (docs/TRD.md "Architecture"); no database. */
 actual val platformModule: Module = module {
+    single<app.ransel.data.notification.PushRegistrar> { app.ransel.data.notification.NoPushRegistrar }
     single { DataInvalidation() }
     single { WebConnectionMonitor(get()) }
     single<ConnectionMonitor> { get<WebConnectionMonitor>() }

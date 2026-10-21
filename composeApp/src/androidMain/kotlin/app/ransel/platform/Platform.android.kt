@@ -35,6 +35,7 @@ actual val platformModule: Module = module {
         }
     }
     single<TokenStore> { KeystoreTokenStore(androidContext()) }
+    single<app.ransel.data.notification.PushRegistrar> { app.ransel.push.AndroidPushRegistrar(androidContext()) }
     single<RanselDatabase> {
         val context = androidContext()
         Room.databaseBuilder<RanselDatabase>(

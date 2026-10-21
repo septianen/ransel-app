@@ -6,6 +6,9 @@ import app.ransel.feature.home.HomeViewModel
 import app.ransel.feature.itinerary.ActivityFormViewModel
 import app.ransel.feature.itinerary.ItineraryViewModel
 import app.ransel.data.credit.CreditsStore
+import app.ransel.data.notification.NotificationTarget
+import app.ransel.data.notification.NotificationsStore
+import app.ransel.data.notification.PushRegistration
 import app.ransel.data.invite.InviteLinks
 import app.ransel.feature.credits.CreditsViewModel
 import app.ransel.data.explore.ExploreSessionStore
@@ -62,6 +65,9 @@ val commonModule: Module = module {
     viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get()) }
     single { InviteLinks() }
     single { CreditsStore() }
+    single { PushRegistration(get(), get(), get()) }
+    single { NotificationsStore() }
+    single { NotificationTarget() }
     viewModelOf(::CreditsViewModel)
     single { ExploreSessionStore(get()) }
     viewModelOf(::ExploreTripPickerViewModel)

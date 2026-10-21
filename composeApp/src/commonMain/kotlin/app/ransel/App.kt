@@ -113,6 +113,10 @@ import app.ransel.data.explore.ExploreSessionStore
 import app.ransel.navigation.MembersRoute
 import app.ransel.feature.invite.JoinTripScreen
 import app.ransel.data.invite.InviteLinks
+import app.ransel.data.notification.NotificationTarget
+import app.ransel.data.notification.NotificationsStore
+import app.ransel.data.notification.PushRegistration
+import app.ransel.data.remote.RanselApi
 import app.ransel.feature.members.MembersScreen
 import app.ransel.navigation.TripListRoute
 import app.ransel.navigation.TripRoute
@@ -201,6 +205,16 @@ private fun SessionGate(openSignIn: Boolean) {
     LaunchedEffect(session) { session.restore() }
     val inviteLinks: InviteLinks = koinInject()
     LaunchedEffect(inviteLinks) { initialInviteCode()?.let(inviteLinks::offerCode) } // web: opened /j/<code>
+    // Signed in: tell the server which phone this is (push) and fetch the unread count.
+    val pushRegistration: PushRegistration = koinInject()
+    val notificationsStore: NotificationsStore = koinInject()
+    val api: RanselApi = koinInject()
+    LaunchedEffect(state is SessionState.SignedIn) {
+        if (state is SessionState.SignedIn) {
+            runCatching { pushRegistration.register() }
+            notificationsStore.refresh(api)
+        }
+    }
     when {
         state is SessionState.Loading -> SplashScreen()
         requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
@@ -242,6 +256,16 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
             NewPasswordRoute::class, SessionExpiredRoute::class,
         ).any { here.hasRoute(it) }
         if (!onJoin && !onAuth) navController.navigate(JoinTripRoute(code)) { launchSingleTop = true }
+    }
+    // A notification was tapped: open its trip once we are signed in.
+    val notificationTarget: NotificationTarget = koinInject()
+    val tappedTrip by notificationTarget.tripId.collectAsState()
+    LaunchedEffect(tappedTrip, sessionState) {
+        val tripId = tappedTrip ?: return@LaunchedEffect
+        if (sessionState is SessionState.SignedIn) {
+            notificationTarget.clear()
+            navController.navigate(TripRoute(tripId)) { launchSingleTop = true }
+        }
     }
     LaunchedEffect(sessionState) {
         // Signed in from an auth screen (sign in / sign up): leave the auth flow, back to Home.

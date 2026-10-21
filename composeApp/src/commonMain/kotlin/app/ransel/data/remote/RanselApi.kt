@@ -28,6 +28,11 @@ import app.ransel.shared.dto.CreateInviteRequest
 import app.ransel.shared.dto.CreditLedgerEntryDto
 import app.ransel.shared.dto.CreditPackagesResponse
 import app.ransel.shared.dto.CreditsDto
+import app.ransel.shared.dto.MarkReadRequest
+import app.ransel.shared.dto.NotificationSettingsDto
+import app.ransel.shared.dto.NotificationsDto
+import app.ransel.shared.dto.RegisterDeviceRequest
+import app.ransel.shared.dto.UpdateNotificationSettingsRequest
 import app.ransel.shared.dto.RedeemVoucherRequest
 import app.ransel.shared.dto.RedeemVoucherResponse
 import app.ransel.shared.dto.CreateSettlementRequest
@@ -246,6 +251,23 @@ class RanselApi(
     ) { it.body<ApiResponse<List<CreditLedgerEntryDto>>>().data }
     suspend fun redeemVoucher(code: String): ApiResult<RedeemVoucherResponse> =
         send(HttpMethod.Post, ApiRoutes.CREDITS_REDEEM, RedeemVoucherRequest(code))
+
+    // ── notifications ───────────────────────────────────────────────────────
+    suspend fun registerDevice(request: RegisterDeviceRequest): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.DEVICES, bodyOf = { contentType(ContentType.Application.Json); setBody(request) }) { }
+    suspend fun unregisterDevice(token: String): ApiResult<Unit> =
+        call(HttpMethod.Delete, ApiRoutes.DEVICES, bodyOf = { parameter("token", token) }) { }
+    suspend fun notifications(limit: Int = 30, before: String? = null): ApiResult<NotificationsDto> = call(
+        HttpMethod.Get,
+        ApiRoutes.NOTIFICATIONS,
+        bodyOf = { parameter("limit", limit); before?.let { parameter("before", it) } },
+    ) { it.body<ApiResponse<NotificationsDto>>().data }
+    /** Null [ids] marks everything read. */
+    suspend fun markNotificationsRead(ids: List<String>?): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.NOTIFICATIONS_READ, bodyOf = { contentType(ContentType.Application.Json); setBody(MarkReadRequest(ids)) }) { }
+    suspend fun notificationSettings(): ApiResult<NotificationSettingsDto> = get(ApiRoutes.NOTIFICATION_SETTINGS)
+    suspend fun updateNotificationSettings(request: UpdateNotificationSettingsRequest): ApiResult<NotificationSettingsDto> =
+        send(HttpMethod.Patch, ApiRoutes.NOTIFICATION_SETTINGS, request)
 
     // ── invites (Phase 4) ───────────────────────────────────────────────────
     suspend fun invites(tripId: String): ApiResult<List<InviteDto>> = get(ApiRoutes.invites(tripId))

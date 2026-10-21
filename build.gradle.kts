@@ -8,4 +8,5 @@ plugins {
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.room3) apply false
+    alias(libs.plugins.google.services) apply false
 }

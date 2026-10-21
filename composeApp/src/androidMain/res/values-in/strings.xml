@@ -1,0 +1,4 @@
+<resources>
+    <string name="notification_channel_trip_activity">Aktivitas trip</string>
+    <string name="notification_channel_reminders">Pengingat</string>
+</resources>
