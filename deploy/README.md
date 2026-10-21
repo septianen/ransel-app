@@ -65,7 +65,7 @@ It prints the code (`ABCD-EFGH-JKLM`); the user enters it under Account > Credit
 
 ## Admin app (Karung)
 
-Admins are the accounts in `ADMIN_EMAILS` (comma separated, case-insensitive) in the VPS `.env`; the server checks the list on every `/admin` request, so removing an email locks that person out at once (restart the server container after editing `.env`). Set `ADMIN_APP_ORIGIN=https://karung.mietek.tech` so the browser may call the API. `APP_ENV` (`production` / `staging`) is shown as a badge in Karung. Leave `ADMIN_PASSWORD_RESET_ENABLED` unset until an email provider is connected. Every admin action is in the `admin_audit_log` table. The nginx block for `karung.mietek.tech` comes with the `adminApp` build (task B9.10).
+Admins are the accounts in `ADMIN_EMAILS` (comma separated, case-insensitive) in the VPS `.env`; the server checks the list on every `/admin` request, so removing an email locks that person out at once (restart the server container after editing `.env`). Set `ADMIN_APP_ORIGIN=https://karung.mietek.tech` so the browser may call the API. `APP_ENV` (`production` / `staging`) is shown as a badge in Karung. Leave `ADMIN_PASSWORD_RESET_ENABLED` unset until an email provider is connected. Every admin action is in the `admin_audit_log` table. Karung itself: `deploy/nginx/karung.mietek.tech.conf` (copy, enable, `certbot --nginx -d karung.mietek.tech`, DNS A record for `karung`), served from `/opt/ransel/karung`; the *Deploy admin* workflow (`.github/workflows/deploy-admin.yml`) builds `:adminApp:wasmJsBrowserDistribution` and swaps it in the same way as *Deploy web*, with the same secrets.
 
 ## Backups
 
