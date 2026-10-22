@@ -27,13 +27,26 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 | `JWT_SECRET` | 32+ random characters (`openssl rand -hex 32`) |
 | `PHOTO_SIGNING_SECRET` | 32+ random characters, different from `JWT_SECRET` (`openssl rand -hex 32`); signs place-photo links |
 | `DATABASE_PASSWORD` | random, letters and digits (`openssl rand -hex 24`) |
-| `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_USER_NAME` | the closed-beta account |
+| `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_USER_NAME` | an account created at startup (already verified) |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` (secrets) and `SMTP_HOST`, `SMTP_PORT` (default 587), `EMAIL_FROM` (default `RANSEL <no-reply@mietek.tech>`) (variables) | outgoing email over the provider's SMTP relay: the verification link after sign-up and password reset. Without `SMTP_HOST` nothing is sent, so new accounts cannot verify and never reach Explore. See "Email" below |
+| `REGISTRATION_ENABLED` (variable, optional) | `false` closes sign-up again (only seeded accounts); unset = open |
 | `LLM_API_KEY`, `PLACES_API_KEY` (optional until Explore goes live) | Gemini API key (Google AI Studio) and Google Places (New) key. Set the repository *variable* `LLM_MODEL` to a model id your key can call (`curl -H "x-goog-api-key: $KEY" https://generativelanguage.googleapis.com/v1beta/models`). Without them Explore answers 503 `AI_UNAVAILABLE`. Restrict the Places key to the Places API and set a **budget alert** in Google Cloud |
 | `SEED_USERS` (optional) | more accounts: `email\|password\|name;email\|password\|name`. Use letters and digits in passwords (no `\|`, `;` or `$`) |
 
 | `FCM_SERVICE_ACCOUNT_JSON` (secret), `FCM_PROJECT_ID` (variable), optional until push goes live | Firebase service-account key and project id for push notifications. Store the key as **base64 on one line** (`base64 -i key.json \| tr -d '\n'`) so `.env` and the secret survive the quotes in JSON. Without them pushes are only logged; the in-app inbox works either way. See "Push notifications" below |
 
 **Changing a secret or variable does not change the running server.** The values are written to the VPS by the deploy job, so after editing one (a new `LLM_API_KEY`, say) run the *Deploy server* workflow again: Actions -> Deploy server -> Run workflow on `main` (it has `workflow_dispatch`), or push any change under `server/`, `shared/` or `deploy/`.
+
+### Email
+
+Sign-up is open and every new account gets an email with a verification link (`https://ransel.mietek.tech/verify-email?token=...`, 24 hours). Until the link is opened the account works, except Explore and vouchers, and the 30 signup credits wait. The server sends mail over SMTP, so any provider with an SMTP relay works (Brevo, Resend, Amazon SES, a mailbox host); `no-reply@mietek.tech` does not need a real mailbox, only a verified sending domain:
+
+1. Create the account at the provider and add `mietek.tech` as a sending domain.
+2. Add the DNS records it asks for at the domain's DNS host: SPF (TXT on `mietek.tech`, merge with an existing `v=spf1` record instead of adding a second one), DKIM (usually one or more CNAME/TXT records), and a DMARC record (`_dmarc.mietek.tech TXT "v=DMARC1; p=none"` is a safe start). Wait until the provider shows the domain as verified.
+3. Create SMTP credentials at the provider and set them in GitHub: secrets `SMTP_USERNAME`, `SMTP_PASSWORD`; variables `SMTP_HOST`, `SMTP_PORT` (587 for STARTTLS, 465 for TLS), optionally `EMAIL_FROM`.
+4. Run *Deploy server*. Check: sign up with your own address, the email arrives (look in spam the first time), the link opens "Email terverifikasi".
+
+With SMTP set, Karung's "send password reset" turns on by itself (`ADMIN_PASSWORD_RESET_ENABLED` overrides).
 
 ### Place photo quota (do this before enabling photos)
 

@@ -95,6 +95,14 @@ jobs:
           FCM_PROJECT_ID: ${{ vars.FCM_PROJECT_ID }}
           FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
+          # Sign-up is open unless the repository variable REGISTRATION_ENABLED is "false".
+          REGISTRATION_ENABLED: ${{ vars.REGISTRATION_ENABLED }}
+          # Outgoing email (verification, password reset): any provider's SMTP relay.
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM }}
           LLM_FALLBACK_MODEL: ${{ vars.LLM_FALLBACK_MODEL }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Public verification values. Read from a repository variable, or from a secret of the same name.
@@ -116,7 +124,12 @@ jobs:
             echo "DATABASE_PASSWORD=$DATABASE_PASSWORD"
             echo "APP_BASE_URL=https://ransel.mietek.tech"
             echo "CORS_ORIGINS=https://ransel.mietek.tech"
-            echo "REGISTRATION_ENABLED=false"
+            echo "REGISTRATION_ENABLED=${REGISTRATION_ENABLED:-true}"
+            echo "SMTP_HOST=$SMTP_HOST"
+            echo "SMTP_PORT=${SMTP_PORT:-587}"
+            echo "SMTP_USERNAME=$SMTP_USERNAME"
+            echo "SMTP_PASSWORD=$SMTP_PASSWORD"
+            echo "EMAIL_FROM=${EMAIL_FROM:-RANSEL <no-reply@mietek.tech>}"
             echo "ANDROID_CERT_SHA256=$ANDROID_CERT_SHA256"
             echo "IOS_APP_IDS=$IOS_APP_IDS"
             echo "SEED_USER_EMAIL=$SEED_USER_EMAIL"
