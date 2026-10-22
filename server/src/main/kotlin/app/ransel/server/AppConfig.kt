@@ -146,12 +146,15 @@ data class AppConfig(
 
         const val DEV_JWT_SECRET = "dev-only-secret-never-use-in-production-0123456789"
 
+        private val DEPLOYED_ENVS = setOf("production", "staging")
+
         const val DEV_PHOTO_SIGNING_SECRET = "dev-only-photo-secret-never-use-in-production-0123456789"
 
         fun fromEnv(env: Map<String, String> = System.getenv()): AppConfig {
-            val production = env["APP_ENV"] == "production"
+            // Staging is deployed and reachable from the internet, so it gets the same secret checks as production.
+            val production = env["APP_ENV"] in DEPLOYED_ENVS
             val secret = env["JWT_SECRET"]
-                ?: if (production) error("JWT_SECRET is required when APP_ENV=production") else DEV_JWT_SECRET
+                ?: if (production) error("JWT_SECRET is required when APP_ENV=production or staging") else DEV_JWT_SECRET
             if (production) check(secret.length >= 32) { "JWT_SECRET must be at least 32 characters" }
             val smtp = env["SMTP_HOST"]?.trim()?.takeIf { it.isNotEmpty() }?.let { host ->
                 Smtp(
@@ -163,7 +166,7 @@ data class AppConfig(
                 )
             }
             val photoSecret = env["PHOTO_SIGNING_SECRET"]?.takeIf { it.isNotBlank() }
-                ?: if (production) error("PHOTO_SIGNING_SECRET is required when APP_ENV=production") else DEV_PHOTO_SIGNING_SECRET
+                ?: if (production) error("PHOTO_SIGNING_SECRET is required when APP_ENV=production or staging") else DEV_PHOTO_SIGNING_SECRET
             if (production) check(photoSecret.length >= 32) { "PHOTO_SIGNING_SECRET must be at least 32 characters" }
             return AppConfig(
                 port = env["PORT"]?.toIntOrNull() ?: 8080,

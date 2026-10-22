@@ -92,8 +92,48 @@ Copying the dumps off the VPS (rsync/rclone to another machine or bucket) is a s
 
 ## Rollback
 
-Every deploy tags the image with the commit SHA. On the VPS: edit `SERVER_IMAGE` in `.env` to an older SHA and run
+Every deploy tags the image with the commit SHA. On the VPS (in `/opt/ransel`, or `/opt/ransel-dev` for staging): edit `SERVER_IMAGE` in `.env` to an older SHA and run
 `docker compose -f docker-compose.prod.yml up -d`.
+
+## Staging (`ranselapi-dev.mietek.tech`)
+
+A second, separate server for the Android **debug** build (`app.ransel.debug`, see `composeApp/CLAUDE.md` / the
+build types in `composeApp/build.gradle.kts`). Same VPS, same image, its own Postgres and data:
+
+| | production | staging |
+| --- | --- | --- |
+| Deployed by | push to `main` | push to `develop`, or Actions -> Deploy server -> Run workflow with target `staging` (any branch) |
+| Host | `ranselapi.mietek.tech` | `ranselapi-dev.mietek.tech` |
+| Folder on the VPS | `/opt/ransel` (`DEPLOY_PATH`) | `/opt/ransel-dev` (`STAGING_DEPLOY_PATH`) |
+| Loopback port | 8080 | 8090 |
+| `APP_ENV` | `production` | `staging` (same required-secret checks) |
+| GitHub Environment | `production` (uses the repository secrets) | `staging` (its own secrets override the repository ones) |
+
+One-time setup:
+
+1. DNS: A record `ranselapi-dev` -> the VPS address.
+2. VPS: `sudo mkdir -p /opt/ransel-dev && sudo chown -R sen:sen /opt/ransel-dev`, then nginx like the API host:
+   `sudo cp deploy/nginx/ranselapi-dev.mietek.tech.conf /etc/nginx/sites-available/ranselapi-dev.mietek.tech`,
+   symlink it into `sites-enabled`, `sudo nginx -t && sudo systemctl reload nginx`,
+   `sudo certbot --nginx -d ranselapi-dev.mietek.tech`.
+3. GitHub -> Settings -> Environments -> New environment `staging`. Add its **own** secrets `JWT_SECRET`,
+   `PHOTO_SIGNING_SECRET` and `DATABASE_PASSWORD` (new random values, never the production ones), then the
+   environment **variable** `STAGING_SECRETS_SET=true`. The deploy refuses to run without that variable, because a
+   secret missing in the Environment silently falls back to the production repository secret.
+4. Optional in the same Environment: `LLM_API_KEY`, `PLACES_API_KEY`, `SMTP_*`, `SEED_USER_*`, `ADMIN_EMAILS`, FCM.
+   Anything not set there is taken from the repository, i.e. staging then shares the production key and its quota and
+   bill (Gemini, Places) or sends real email through the same SMTP account. Without SMTP, staging sign-ups cannot
+   verify their email: use `SEED_USER_*` / `SEED_USERS` accounts (already verified) instead. `APP_BASE_URL` and
+   `CORS_ORIGINS` (variables) default to the production web app, so a verification link from staging opens
+   `ransel.mietek.tech/verify-email`; on the phone pick "RANSEL Dev" in the chooser so the debug app verifies it
+   against staging.
+5. Create the branch `develop` (`git push origin main:develop`) or run the workflow by hand with target `staging`.
+6. Check: `curl https://ranselapi-dev.mietek.tech/api/v1/health`.
+
+Push for the debug app: register `app.ransel.debug` as a second Android app in the same Firebase project (see "Push
+notifications"); staging then uses the same `FCM_*` values from the repository. Backups: add a second cron line with
+`cd /opt/ransel-dev`. Rollback works the same way inside `/opt/ransel-dev`. Staging pushes the image tag `:staging`;
+`:latest` stays production.
 
 ## Web host and invite links (`ransel.mietek.tech`)
 

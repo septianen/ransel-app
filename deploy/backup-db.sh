@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Daily pg_dump of the production database. Run from cron on the VPS, e.g.:
+# Daily pg_dump of the database in this folder (production /opt/ransel, staging /opt/ransel-dev). Cron on the VPS, e.g.:
 #   15 3 * * * cd /opt/ransel && ./deploy/backup-db.sh >> backup.log 2>&1
 # Copying the dumps off the VPS (rclone/rsync to another machine or bucket) is a separate step.
 set -euo pipefail

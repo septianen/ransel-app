@@ -1,4 +1,4 @@
-# Production stack on the VPS: server + Postgres. HTTPS is terminated by the host's nginx, which
+# Production (and staging) stack on the VPS: server + Postgres. HTTPS is terminated by the host's nginx, which
 # proxies ranselapi.mietek.tech to 127.0.0.1:8080 (see deploy/nginx/). Postgres is never published.
 # Configuration comes from a `.env` file next to this file (written by the deploy workflow; never committed).
 services:
@@ -6,10 +6,10 @@ services:
     image: ${SERVER_IMAGE:-ghcr.io/septianen/ransel-server:latest}
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:8080"   # loopback only; nginx is the public entry
+      - "127.0.0.1:${HOST_PORT:-8080}:8080"   # loopback only; nginx is the public entry (staging: 8090)
     environment:
       PORT: 8080
-      APP_ENV: production
+      APP_ENV: ${APP_ENV:-production}   # staging stack: staging (same secret checks, shown as a badge in Karung)
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ characters)}
       PHOTO_SIGNING_SECRET: ${PHOTO_SIGNING_SECRET:?set PHOTO_SIGNING_SECRET (32+ characters)}
       JWT_ISSUER: ${JWT_ISSUER:-ransel}
