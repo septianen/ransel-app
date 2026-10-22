@@ -17,12 +17,16 @@ class EmailVerificationTest {
     private suspend fun Api.emailVerified() = get("/me").data().jsonObject.getValue("emailVerified").jsonPrimitive.content
     private suspend fun Api.balance() = get("/credits").data().jsonObject.getValue("balance").jsonPrimitive.content
 
-    private suspend fun awaitVerifyEmails(count: Int) {
+    /** Counts per address: apiTest's own account gets a verification email in the background too. */
+    private fun verifyEmailsTo(to: String) =
+        TestEmails.sent.count { it.kind == TestEmails.Kind.VERIFY && it.to.equals(to, ignoreCase = true) }
+
+    private suspend fun awaitVerifyEmails(to: String, count: Int) {
         repeat(100) {
-            if (TestEmails.count(TestEmails.Kind.VERIFY) >= count) return
+            if (verifyEmailsTo(to) >= count) return
             delay(50)
         }
-        error("expected $count verification emails, got ${TestEmails.count(TestEmails.Kind.VERIFY)}")
+        error("expected $count verification emails to $to, got ${verifyEmailsTo(to)}")
     }
 
     @Test
@@ -71,16 +75,17 @@ class EmailVerificationTest {
         val kinds = get("/credits/ledger").data().jsonArray.map { it.jsonObject.getValue("kind").jsonPrimitive.content }
         assertEquals(listOf("SIGNUP_GRANT"), kinds)
 
-        assertNotEquals("EMAIL_NOT_VERIFIED", get("/explore/suggestions?destination=Bali&month=2026-11").errorCode())
+        // Past the gate: whatever the suggestions answer (no AI in tests), it is not 403 EMAIL_NOT_VERIFIED.
+        assertNotEquals(HttpStatusCode.Forbidden, get("/explore/suggestions?destination=Bali&month=2026-11").status)
     }
 
     @Test
     fun aResendVoidsTheOlderLink() = apiTest {
         signUp("twice@example.com", verified = false)
-        awaitVerifyEmails(1)
+        awaitVerifyEmails("twice@example.com", 1)
         val old = tokenOf(TestEmails.awaitLink("twice@example.com", TestEmails.Kind.VERIFY))
         assertEquals(HttpStatusCode.NoContent, post("/auth/email/resend").status)
-        awaitVerifyEmails(2)
+        awaitVerifyEmails("twice@example.com", 2)
         val new = tokenOf(TestEmails.awaitLink("twice@example.com", TestEmails.Kind.VERIFY))
         assertNotEquals(old, new)
 
@@ -104,11 +109,12 @@ class EmailVerificationTest {
     @Test
     fun aVerifiedAccountGetsNoEmailFromResend() = apiTest {
         // apiTest's own account is verified (signUp's default); let its sign-up email settle first.
+        val me = get("/me").data().jsonObject.getValue("email").jsonPrimitive.content
         delay(300)
-        val before = TestEmails.count(TestEmails.Kind.VERIFY)
+        val before = verifyEmailsTo(me)
         assertEquals(HttpStatusCode.NoContent, post("/auth/email/resend").status)
         delay(300)
-        assertEquals(before, TestEmails.count(TestEmails.Kind.VERIFY))
+        assertEquals(before, verifyEmailsTo(me))
         assertEquals("true", emailVerified())
     }
 
