@@ -42,9 +42,11 @@ import app.ransel.server.routes.wellKnownRoutes
 import app.ransel.server.security.EmailSender
 import app.ransel.server.security.LoggingEmailSender
 import app.ransel.server.security.PasswordHasher
+import app.ransel.server.security.SmtpEmailSender
 import app.ransel.server.security.TokenService
 import app.ransel.server.service.AdminService
 import app.ransel.server.service.AuthService
+import app.ransel.server.service.EmailVerificationService
 import app.ransel.server.service.CreditService
 import app.ransel.server.service.InviteService
 import app.ransel.server.service.PasswordResetService
@@ -85,7 +87,7 @@ fun main() {
 
 fun Application.module(
     config: AppConfig = AppConfig.fromEnv(),
-    emailSender: EmailSender = LoggingEmailSender(config.isProduction),
+    emailSender: EmailSender = config.smtp?.let(::SmtpEmailSender) ?: LoggingEmailSender(config.isProduction),
     ai: AiServices? = null,
     /** Null = ECB rates when the real AI clients are used, none in tests. */
     fx: FxRates? = null,
@@ -165,7 +167,8 @@ fun Application.module(
 
     val tokens = TokenService(config)
     val hasher = PasswordHasher(config.bcryptCost)
-    val auth = AuthService(config, hasher, tokens)
+    val verification = EmailVerificationService(config, tokens, emailSender, credits, this)
+    val auth = AuthService(config, hasher, tokens, verification)
     config.seedUsers.forEach(auth::seed)
     val passwordReset = PasswordResetService(config, hasher, tokens, emailSender, this)
     val admin = AdminService(config, credits, passwordReset)
@@ -181,10 +184,10 @@ fun Application.module(
         wellKnownRoutes(config)
         route(ApiRoutes.BASE) {
             healthRoutes()
-            authRoutes(auth, passwordReset)
+            authRoutes(auth, passwordReset, verification)
             placePhotoRoutes(photoSigner, placePhotos)
             authenticate(JWT_AUTH) {
-                meRoutes()
+                meRoutes(verification)
                 tripRoutes()
                 itineraryRoutes()
                 packingRoutes()

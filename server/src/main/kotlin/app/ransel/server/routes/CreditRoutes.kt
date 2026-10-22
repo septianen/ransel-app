@@ -2,6 +2,7 @@ package app.ransel.server.routes
 
 import app.ransel.server.plugins.RedeemRateLimit
 import app.ransel.server.service.CreditService
+import app.ransel.server.service.requireVerifiedEmail
 import app.ransel.server.service.userId
 import app.ransel.shared.api.ApiRoutes
 import app.ransel.shared.dto.RedeemVoucherRequest
@@ -22,6 +23,7 @@ fun Route.creditRoutes(service: CreditService) {
     // Rate limited per user so a voucher code cannot be guessed.
     rateLimit(RedeemRateLimit) {
         post(ApiRoutes.CREDITS_REDEEM) {
+            requireVerifiedEmail(call.userId())
             call.respondData(HttpStatusCode.OK, service.redeem(call.userId(), call.receive<RedeemVoucherRequest>().code))
         }
     }

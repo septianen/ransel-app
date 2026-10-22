@@ -44,3 +44,13 @@ POST {{host}}/auth/password/reset
 Content-Type: application/json
 
 { "token": "paste token", "newPassword": "NewPassw0rd" }
+
+### Verify the email with the token from the sign-up link (public) -> { email, creditsGranted }
+POST {{host}}/auth/email/verify
+Content-Type: application/json
+
+{ "token": "paste token" }
+
+### Send a new verification link (voids the older one) -> 204
+POST {{host}}/auth/email/resend
+Authorization: Bearer {{token}}

@@ -26,6 +26,7 @@ val PhotoRateLimit = RateLimitName("photo")
 val SuggestionsRateLimit = RateLimitName("suggestions")
 val RedeemRateLimit = RateLimitName("redeem")
 val AdminRateLimit = RateLimitName("admin")
+val VerificationEmailRateLimit = RateLimitName("verification-email")
 
 fun Application.configureAuth(config: AppConfig, tokens: TokenService) {
     install(Authentication) {
@@ -59,6 +60,11 @@ fun Application.configureRateLimit(config: AppConfig) {
         }
         register(RedeemRateLimit) {
             rateLimiter(limit = 10, refillPeriod = 1.minutes)
+            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
+        }
+        // Per user: the app counts down 45 s between resends; this stops a loop from flooding someone's inbox.
+        register(VerificationEmailRateLimit) {
+            rateLimiter(limit = 5, refillPeriod = 1.hours)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
         }
         // Per admin: Karung is a handful of people; this only stops a runaway script.

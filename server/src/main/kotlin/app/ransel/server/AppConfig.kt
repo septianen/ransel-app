@@ -2,6 +2,7 @@ package app.ransel.server
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 /** Server configuration, read from environment variables (never from git). */
@@ -23,6 +24,10 @@ data class AppConfig(
     val appBaseUrl: String = "https://ransel.mietek.tech",
     val isProduction: Boolean = false,
     val passwordResetTtl: Duration = 30.minutes,
+    /** How long the sign-up verification link works. */
+    val emailVerificationTtl: Duration = 24.hours,
+    /** Null = no provider: emails are only logged ([app.ransel.server.security.LoggingEmailSender]). */
+    val smtp: Smtp? = null,
     /** false = POST /auth/register answers 403; accounts exist only through [seedUsers]. */
     val registrationEnabled: Boolean = true,
     /** Accounts created at startup when missing (never overwritten). Come from env, not from git. */
@@ -76,12 +81,15 @@ data class AppConfig(
     val adminEmails: Set<String> = emptySet(),
     /** `production`, `staging` or `development`; shown in Karung so an admin knows which data they change. */
     val appEnv: String = "development",
-    /** Karung's "send password reset" stays off until an email provider is connected. */
+    /** Karung's "send password reset"; defaults to on exactly when [smtp] is configured. */
     val adminPasswordResetEnabled: Boolean = false,
 ) {
     data class CreditPack(val id: String, val credits: Int, val priceMinor: Long, val currency: String = "IDR")
 
     data class SeedUser(val email: String, val password: String, val displayName: String)
+
+    /** `SMTP_*` env. Port 587 = STARTTLS, 465 = implicit TLS. [from] = `EMAIL_FROM`. */
+    data class Smtp(val host: String, val port: Int, val username: String, val password: String, val from: String)
 
     companion object {
         /**
@@ -143,6 +151,15 @@ data class AppConfig(
             val secret = env["JWT_SECRET"]
                 ?: if (production) error("JWT_SECRET is required when APP_ENV=production") else DEV_JWT_SECRET
             if (production) check(secret.length >= 32) { "JWT_SECRET must be at least 32 characters" }
+            val smtp = env["SMTP_HOST"]?.trim()?.takeIf { it.isNotEmpty() }?.let { host ->
+                Smtp(
+                    host = host,
+                    port = env["SMTP_PORT"]?.toIntOrNull() ?: 587,
+                    username = env["SMTP_USERNAME"].orEmpty().trim(),
+                    password = env["SMTP_PASSWORD"].orEmpty(),
+                    from = env["EMAIL_FROM"]?.takeIf { it.isNotBlank() } ?: "RANSEL <no-reply@mietek.tech>",
+                )
+            }
             val photoSecret = env["PHOTO_SIGNING_SECRET"]?.takeIf { it.isNotBlank() }
                 ?: if (production) error("PHOTO_SIGNING_SECRET is required when APP_ENV=production") else DEV_PHOTO_SIGNING_SECRET
             if (production) check(photoSecret.length >= 32) { "PHOTO_SIGNING_SECRET must be at least 32 characters" }
@@ -185,7 +202,9 @@ data class AppConfig(
                 notifyVoteClosingHours = env["NOTIFY_VOTE_CLOSING_HOURS"]?.toIntOrNull()?.coerceIn(1, 23) ?: 3,
                 adminEmails = env["ADMIN_EMAILS"].csv().map { it.lowercase() }.toSet(),
                 appEnv = env["APP_ENV"]?.takeIf { it.isNotBlank() } ?: "development",
-                adminPasswordResetEnabled = env["ADMIN_PASSWORD_RESET_ENABLED"]?.lowercase() == "true",
+                smtp = smtp,
+                // On by default once email can actually be sent; ADMIN_PASSWORD_RESET_ENABLED overrides either way.
+                adminPasswordResetEnabled = env["ADMIN_PASSWORD_RESET_ENABLED"]?.takeIf { it.isNotBlank() }?.lowercase()?.let { it == "true" } ?: (smtp != null),
                 seedUsers = listOfNotNull(
                     env["SEED_USER_EMAIL"]?.takeIf { it.isNotBlank() }?.let { email ->
                         SeedUser(

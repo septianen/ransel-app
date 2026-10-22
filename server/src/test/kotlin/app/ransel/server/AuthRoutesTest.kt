@@ -178,7 +178,7 @@ class PasswordResetTest {
         val link = TestEmails.awaitLink("known@example.com")
         assertTrue(link.startsWith("https://ransel.mietek.tech/reset-password?token="))
         kotlinx.coroutines.delay(300)
-        assertEquals(1, TestEmails.sent.size)
+        assertEquals(1, TestEmails.count(TestEmails.Kind.RESET))
     }
 
     @Test

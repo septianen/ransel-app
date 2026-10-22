@@ -42,6 +42,8 @@ object Users : Table("users") {
     val deletedAt = timestamp("deleted_at").nullable()
     /** Set by an admin: sign-in and refresh answer 403 ACCOUNT_DISABLED. */
     val disabledAt = timestamp("disabled_at").nullable()
+    /** Null until the sign-up email link is opened (V13); Explore and vouchers wait for it. */
+    val emailVerifiedAt = timestamp("email_verified_at").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -151,6 +153,16 @@ object RefreshTokens : Table("refresh_tokens") {
 }
 
 object PasswordResetTokens : Table("password_reset_tokens") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val tokenHash = text("token_hash")
+    val expiresAt = timestamp("expires_at")
+    val usedAt = timestamp("used_at").nullable()
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object EmailVerificationTokens : Table("email_verification_tokens") {
     val id = javaUUID("id")
     val userId = javaUUID("user_id")
     val tokenHash = text("token_hash")

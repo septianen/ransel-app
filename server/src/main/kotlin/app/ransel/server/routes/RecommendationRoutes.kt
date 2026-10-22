@@ -11,11 +11,13 @@ import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.post
+import app.ransel.server.service.requireVerifiedEmail
 import java.util.UUID
 
 fun Route.recommendationRoutes(service: RecommendationService) {
     post(ApiRoutes.RECOMMENDATIONS) {
         val body = call.receive<RecommendationRequest>()
+        requireVerifiedEmail(call.userId())
         call.respondData(HttpStatusCode.OK, service.recommend(call.userId(), body))
     }
     post(ApiRoutes.RECOMMENDATION_FEEDBACK) {

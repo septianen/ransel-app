@@ -33,6 +33,7 @@ class AuthService(
     private val config: AppConfig,
     private val hasher: PasswordHasher,
     private val tokens: TokenService,
+    private val verification: EmailVerificationService,
 ) {
     fun register(body: RegisterRequest): AuthSessionDto {
         if (!config.registrationEnabled) {
@@ -65,7 +66,9 @@ class AuthService(
             if (e.sqlState == UNIQUE_VIOLATION || (e.cause as? SQLException)?.sqlState == UNIQUE_VIOLATION) throw emailTaken()
             throw e
         }
-        return transaction { startSession(userId, body.deviceName) }
+        val session = transaction { startSession(userId, body.deviceName) }
+        verification.send(userId)
+        return session
     }
 
     /** Creates the configured seed account when no account has its email. Idempotent; never touches an existing one. */
@@ -85,6 +88,8 @@ class AuthService(
                     it[displayName] = user.displayName.trim()
                     it[email] = user.email
                     it[passwordHash] = hash
+                    // Seed accounts are made by the operator, so their address needs no proof.
+                    it[emailVerifiedAt] = Instant.now()
                 }
             }
         }
@@ -169,4 +174,5 @@ fun org.jetbrains.exposed.v1.core.ResultRow.toMeDto() = MeDto(
     email = this[Users.email].orEmpty(),
     displayName = this[Users.displayName],
     defaultCurrency = this[Users.defaultCurrency],
+    emailVerified = this[Users.emailVerifiedAt] != null,
 )

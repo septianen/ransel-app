@@ -22,6 +22,8 @@ dependencies {
     implementation(libs.ktor.server.rate.limit)
     implementation(libs.ktor.server.forwarded.header)
     implementation(libs.bcrypt)
+    // Verification and password reset emails over SMTP (any provider's relay)
+    implementation(libs.angus.mail)
 
     // LLM and Places calls (Phase 5)
     implementation(libs.ktor.client.core)

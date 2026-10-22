@@ -84,23 +84,31 @@ object TestDb {
 
 val TestJson = Json { ignoreUnknownKeys = true }
 
-/** Collects "sent" emails so tests can read the reset link. */
+/** Collects "sent" emails so tests can read the reset and verification links. */
 object TestEmails : EmailSender {
-    data class Sent(val to: String, val link: String)
+    enum class Kind { RESET, VERIFY }
+
+    data class Sent(val to: String, val link: String, val kind: Kind)
 
     val sent = CopyOnWriteArrayList<Sent>()
 
     override suspend fun sendPasswordReset(toEmail: String, displayName: String, link: String) {
-        sent += Sent(toEmail, link)
+        sent += Sent(toEmail, link, Kind.RESET)
     }
 
-    /** `forgot` sends in the background; wait for it. */
-    suspend fun awaitLink(to: String): String {
+    override suspend fun sendEmailVerification(toEmail: String, displayName: String, link: String) {
+        sent += Sent(toEmail, link, Kind.VERIFY)
+    }
+
+    fun count(kind: Kind) = sent.count { it.kind == kind }
+
+    /** Both emails go out in the background; wait for the newest one of [kind]. */
+    suspend fun awaitLink(to: String, kind: Kind = Kind.RESET): String {
         repeat(100) {
-            sent.lastOrNull { it.to.equals(to, ignoreCase = true) }?.let { return it.link }
+            sent.lastOrNull { it.to.equals(to, ignoreCase = true) && it.kind == kind }?.let { return it.link }
             delay(50)
         }
-        error("no email for $to")
+        error("no $kind email for $to")
     }
 }
 
@@ -129,11 +137,15 @@ class Api(val client: HttpClient) {
     suspend fun delete(path: String) = send(HttpMethod.Delete, path)
 }
 
-/** Registers a new account and makes it the one this [Api] acts as. */
+/**
+ * Registers a new account and makes it the one this [Api] acts as. [verified] marks the email verified straight in the
+ * database (most tests are about something else); pass false to test the unverified state.
+ */
 suspend fun Api.signUp(
     email: String = "user-${UUID.randomUUID()}@example.com",
     password: String = "Passw0rdOk",
     displayName: String = "Tester",
+    verified: Boolean = true,
 ): HttpResponse {
     token = null
     val response = post("/auth/register", """{"email":"$email","password":"$password","displayName":"$displayName"}""")
@@ -142,6 +154,7 @@ suspend fun Api.signUp(
         token = session.getValue("accessToken").jsonPrimitive.content
         refreshToken = session.getValue("refreshToken").jsonPrimitive.content
         userId = session.getValue("user").jsonObject.getValue("id").jsonPrimitive.content
+        if (verified) TestDb.exec("UPDATE users SET email_verified_at = now() WHERE id = '$userId'")
     }
     return response
 }

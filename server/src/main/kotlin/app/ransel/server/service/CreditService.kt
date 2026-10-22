@@ -6,6 +6,7 @@ import app.ransel.server.db.CreditLedger
 import app.ransel.server.db.CreditVoucherRedemptions
 import app.ransel.server.db.CreditVouchers
 import app.ransel.server.db.CreditWallets
+import app.ransel.server.db.Users
 import app.ransel.server.db.toTimestamp
 import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.validationFailed
@@ -211,16 +212,39 @@ class CreditService(private val config: AppConfig) {
     // ── internals ───────────────────────────────────────────────────────────
 
     /**
-     * Creates the wallet on first use with the signup grant (lazy, so existing and seeded users are covered), then locks
-     * the row until the transaction ends. The signup ledger row has a unique idempotency key, so a race grants it once.
+     * The signup grant for an account whose email was just verified (accounts that verified before their wallet existed
+     * get it from [lockedBalance] instead). Returns the credits added: 0 when the account already had it.
+     */
+    fun grantSignup(userId: UUID): Int = transaction {
+        // An empty wallet first, so the grant below is the one ledger row that adds it (never lockedBalance's too).
+        CreditWallets.insertIgnore { it[CreditWallets.userId] = userId; it[balance] = 0 }
+        val balance = CreditWallets.selectAll().where { CreditWallets.userId eq userId }.forUpdate().single()[CreditWallets.balance]
+        val grant = config.creditSignupGrant
+        if (grant > 0 && signupLedger(userId, grant, balance + grant)) {
+            CreditWallets.update({ CreditWallets.userId eq userId }) { it[CreditWallets.balance] = CreditWallets.balance + grant }
+            grant
+        } else {
+            0
+        }
+    }
+
+    /**
+     * Creates the wallet on first use (lazy, so existing and seeded users are covered), then locks the row until the
+     * transaction ends. A verified account's wallet starts with the signup grant; an unverified one starts empty and
+     * gets the grant from [grantSignup]. The signup ledger row has a unique idempotency key, so a race grants it once.
      */
     private fun lockedBalance(userId: UUID): Int {
-        val created = CreditWallets.insertIgnore { it[CreditWallets.userId] = userId; it[balance] = config.creditSignupGrant }.insertedCount > 0
-        if (created && config.creditSignupGrant > 0) {
-            ledger(userId, CreditLedgerKind.SIGNUP_GRANT, config.creditSignupGrant, config.creditSignupGrant, null, null, null, "signup:$userId")
+        if (CreditWallets.selectAll().where { CreditWallets.userId eq userId }.empty()) {
+            val verified = Users.selectAll().where { Users.id eq userId }.singleOrNull()?.get(Users.emailVerifiedAt) != null
+            val start = if (verified) config.creditSignupGrant else 0
+            val created = CreditWallets.insertIgnore { it[CreditWallets.userId] = userId; it[balance] = start }.insertedCount > 0
+            if (created && start > 0) signupLedger(userId, start, start)
         }
         return CreditWallets.selectAll().where { CreditWallets.userId eq userId }.forUpdate().single()[CreditWallets.balance]
     }
+
+    private fun signupLedger(userId: UUID, amount: Int, balanceAfter: Int) =
+        ledger(userId, CreditLedgerKind.SIGNUP_GRANT, amount, balanceAfter, null, null, null, "signup:$userId")
 
     private fun snapshot(userId: UUID): CreditsDto {
         val balance = lockedBalance(userId)
