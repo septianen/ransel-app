@@ -1,4 +1,4 @@
-# App links (invite links `https://ransel.mietek.tech/j/<code>`)
+# App links (invite links `https://ransel.mietek.tech/j/<code>`, email verification `/verify-email?token=`)
 
 Values the backend agent needs for **B4.6** (`/.well-known/...` on `ransel.mietek.tech`). The frontend declares the
 link in the Android manifest (`autoVerify`) and handles it in `MainActivity` / `InviteLinks`.
@@ -28,7 +28,7 @@ SHA-256 before shipping; links do not verify on release builds without it. (Owne
 Served as `application/json`, no extension, no redirect.
 
 ```json
-{ "applinks": { "details": [{ "appIDs": ["<TEAM_ID>.app.ransel"], "components": [{ "/": "/j/*" }] }] } }
+{ "applinks": { "details": [{ "appIDs": ["<TEAM_ID>.app.ransel"], "components": [{ "/": "/j/*" }, { "/": "/verify-email*" }] }] } }
 ```
 
 `<TEAM_ID>` is the Apple developer team id (owner: needed). The bundle id is assumed to be `app.ransel`;
@@ -37,5 +37,6 @@ confirm when the iOS project is opened on a Mac. The app also needs the Associat
 
 ## Web
 
-The web app reads `/j/<code>` from the page path, so `ransel.mietek.tech/j/*` must fall back to the web app's
-`index.html` (single-page fallback on the host).
+The web app reads `/j/<code>` from the page path and `/verify-email?token=` / `/reset-password?token=` from the
+URL, so these paths must fall back to the web app's `index.html` (single-page fallback on the host; the nginx config
+already does).

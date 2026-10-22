@@ -32,7 +32,10 @@ class WellKnownRoutesTest {
         val details = TestJson.parseToJsonElement(ios.bodyAsText()).jsonObject.getValue("applinks").jsonObject
             .getValue("details").jsonArray.single().jsonObject
         assertEquals("ABCDE12345.app.ransel", details.getValue("appIDs").jsonArray.single().jsonPrimitive.content)
-        assertEquals("/j/*", details.getValue("components").jsonArray.single().jsonObject.getValue("/").jsonPrimitive.content)
+        assertEquals(
+            listOf("/j/*", "/verify-email*"),
+            details.getValue("components").jsonArray.map { it.jsonObject.getValue("/").jsonPrimitive.content },
+        )
     }
 
     @Test

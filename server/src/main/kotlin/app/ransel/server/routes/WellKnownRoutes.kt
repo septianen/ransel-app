@@ -48,7 +48,10 @@ fun Route.wellKnownRoutes(config: AppConfig) {
                     add(
                         buildJsonObject {
                             putJsonArray("appIDs") { config.iosAppIds.forEach { add(JsonPrimitive(it)) } }
-                            putJsonArray("components") { add(buildJsonObject { put("/", "/j/*") }) }
+                            putJsonArray("components") {
+                                add(buildJsonObject { put("/", "/j/*") })
+                                add(buildJsonObject { put("/", "/verify-email*") })
+                            }
                         },
                     )
                 }
