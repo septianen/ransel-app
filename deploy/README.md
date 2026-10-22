@@ -105,6 +105,9 @@ Gotchas from the first setup:
 - After certbot, the 443 block may contain `if ($host = ransel.mietek.tech) { return 301 https://$host$request_uri; }`. Delete it from the 443 block (keep it in the port 80 block); left there it is a redirect loop.
 - SSH to the VPS listens on port 2212, not 22.
 - `index.html` has `<base href="/">`, so the script, `.wasm` files and resources also load on deep links like `/j/<code>`.
+- The web app is an installable PWA (`manifest.webmanifest`, `sw.js`). The conf keeps `index.html`, `sw.js` and the
+  manifest uncached and serves the manifest as `application/manifest+json`; after pulling a change to the conf, copy it
+  to `sites-available` again (certbot's 443 block lives in the same file, so merge by hand) and `nginx -t && reload`.
 
 ### Publishing the web build
 

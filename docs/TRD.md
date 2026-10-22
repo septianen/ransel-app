@@ -280,6 +280,8 @@ The swipe session (remaining cards, position, number saved) is stored locally in
 
 **Theme.** `IrisTheme` with light and dark schemes from the IRIS tokens; the Follow system / Light / Dark choice is stored in local preferences.
 
+**Web PWA.** The web app is installable: `wasmJsMain/resources` holds `manifest.webmanifest` (standalone, theme `primary` #008808, icons from the Android launcher art) and `sw.js`. The service worker caches the app shell only, never API data (the API is on another host and is not intercepted): `.wasm` and fonts cache-first (content-hashed or unchanging), pages, `composeApp.js`, the manifest and other Compose resources network-first with the cache as fallback; every navigation, including `/j/<code>`, falls back to `index.html`. The cache is named `ransel-shell-<build id>`; `wasmJsBrowserDistribution` stamps the id (CI: `GITHUB_SHA`), and the new worker deletes older caches on activation. The worker registers only on `ransel.mietek.tech` (or a local URL with `?sw`), so the dev server is never cached. No install button or update banner in the app: the browser's own install UI is used.
+
 **Layout.** The 390 dp phone is the reference; widths ≥ 1240 dp (web) use a 96 dp navigation rail and a 360 dp side panel. Long forms use `Column` + `verticalScroll` so buttons are never squeezed.
 
 ## Testing, deploy, and observability
