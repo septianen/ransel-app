@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -62,6 +63,7 @@ class RanselMessagingService : FirebaseMessagingService() {
         val channel = if (message.data["type"]?.endsWith("REMINDER") == true) CHANNEL_REMINDERS else CHANNEL_TRIP_ACTIVITY
         val notification = NotificationCompat.Builder(this, channel)
             .setSmallIcon(R.drawable.ic_stat_notification)
+            .setLargeIcon(BitmapFactory.decodeResource(resources, R.drawable.ic_push_notif_large))
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
