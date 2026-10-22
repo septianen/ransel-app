@@ -10,7 +10,8 @@ package app.ransel.shared.api
 object AdminRoutes {
     // Stage A ─ users and credits
     const val ME = "/admin/me"                                     // GET → AdminMeDto
-    const val USERS = "/admin/users"                               // GET ?query=&status=&platform=&joinedFrom=&joinedTo=&noCredits=&page= → List<AdminUserDto> + meta
+    const val USERS = "/admin/users"                               // GET ?query=&status=&platform=&joinedFrom=&joinedTo=&noCredits=&page= → List<AdminUserDto> + meta;
+                                                                   // POST CreateUserRequest → 201 AdminUserDto (sends an invite email)
     const val USERS_EXPORT = "/admin/users/export.csv"             // GET, same filters, no paging → text/csv (audited)
     fun user(userId: String) = "/admin/users/$userId"              // GET → AdminUserDetailDto
     fun userLedger(userId: String) = "/admin/users/$userId/credits/ledger" // GET ?page= → List<CreditLedgerEntryDto> (note + balanceAfter filled) + meta

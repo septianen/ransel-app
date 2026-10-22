@@ -23,7 +23,10 @@ data class AdminMeDto(
     val displayName: String,
     /** `production`, `staging` or `development`: Karung shows it as a badge so an admin knows which data they change. */
     val environment: String,
-    /** False until an email provider is connected; Karung hides "Kirim email reset kata sandi" while false. */
+    /**
+     * False until an email provider is connected; Karung hides "Kirim email reset kata sandi" and "Tambah pengguna"
+     * while false, because both only work by email.
+     */
     val passwordResetEmailEnabled: Boolean,
 )
 
@@ -95,6 +98,18 @@ data class AdjustCreditsRequest(
     val direction: CreditDirection,
     val amount: Int,
     val reason: String,
+)
+
+/**
+ * POST /admin/users: an admin adds an account. The server creates it with the email already verified and sends an
+ * invite email with a link to set the password (valid 7 days); the admin never sees a password. Works while public
+ * sign-up is closed. 422 VALIDATION_FAILED (`email: INVALID_EMAIL`, `displayName: REQUIRED`),
+ * 409 EMAIL_ALREADY_REGISTERED, 409 CONFLICT while email is not set up ([AdminMeDto.passwordResetEmailEnabled] false).
+ */
+@Serializable
+data class CreateUserRequest(
+    val email: String,
+    val displayName: String,
 )
 
 /** Result of a one-shot account action (sign out everywhere, disable, enable). */

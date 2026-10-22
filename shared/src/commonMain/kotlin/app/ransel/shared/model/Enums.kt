@@ -86,7 +86,7 @@ enum class UserStatus { ACTIVE, DISABLED, DELETED }
 
 /** What an admin did; one audit row each. Later stages add SETTINGS_UPDATE and CONTENT_PUBLISH. */
 @Serializable
-enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT }
+enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT, USER_CREATE }
 
 /** Where spent credits came from: the free daily allowance first, then the wallet. */
 @Serializable
