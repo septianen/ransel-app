@@ -44,6 +44,11 @@ services:
       SEED_USER_NAME: ${SEED_USER_NAME:-Test User}
       # More accounts: email|password|name;email|password|name
       SEED_USERS: ${SEED_USERS:-}
+      # Admin app "Karung" (docs/specs/admin-spec.md): who may call /admin, Karung's origin (added to CORS_ORIGINS),
+      # and the reset-email switch (stays false until an email provider exists).
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      ADMIN_APP_ORIGIN: ${ADMIN_APP_ORIGIN:-https://karung.mietek.tech}
+      ADMIN_PASSWORD_RESET_ENABLED: ${ADMIN_PASSWORD_RESET_ENABLED:-false}
     depends_on:
       db:
         condition: service_healthy
