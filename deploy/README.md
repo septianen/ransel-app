@@ -57,8 +57,8 @@ Cards show Google place photos through the signed proxy `GET /api/v1/places/phot
 Nothing exists yet; the server and the Android app are ready and stay quiet until these steps are done.
 
 1. https://console.firebase.google.com -> Add project ("ransel"). Analytics can stay off.
-2. Project settings -> Your apps -> Add Android app, package `app.ransel`. Add the SHA-1/SHA-256 of the debug key (`./gradlew :composeApp:signingReport`) and, later, of the release / Play App Signing key.
-3. Download `google-services.json` into `composeApp/` (it is git-ignored; one file per environment). Build again: `./gradlew :composeApp:assembleDebug`. Without the file the app builds but `PushRegistrar.available` is false.
+2. Project settings -> Your apps -> Add Android app, package `app.ransel` (release build) with the SHA-1/SHA-256 of the release / Play App Signing key, and a second Android app, package `app.ransel.debug` (debug build, talks to staging) with the SHA-1/SHA-256 of the debug key (`./gradlew :composeApp:signingReport`).
+3. Download `google-services.json` into `composeApp/` (it is git-ignored; it must list both packages, otherwise the debug build fails in `processDebugGoogleServices`). Build again: `./gradlew :composeApp:assembleDebug`. Without the file the app builds but `PushRegistrar.available` is false.
 4. Project settings -> Service accounts -> Generate new private key. Put `base64 -i key.json | tr -d '\n'` in the GitHub secret `FCM_SERVICE_ACCOUNT_JSON` and the project id in the repository variable `FCM_PROJECT_ID`, then run the *Deploy server* workflow again. The server log then says `push.sent` instead of `push.logged`.
 5. Android 13+ asks for the notification permission once, after the first sign-in. If it is refused the inbox still works.
 6. iOS (later, on a Mac): add the iOS app (bundle id `app.ransel`) in Firebase, upload an APNs auth key (Apple Developer -> Keys) under Cloud Messaging, add the Firebase iOS SDK and the Push Notifications capability to the Xcode project, and replace `NoPushRegistrar` in `Platform.ios.kt`.
@@ -191,9 +191,9 @@ the **host of the invite link**, so that host's nginx must forward them to the A
 location /.well-known/ { proxy_pass http://127.0.0.1:8080; }
 ```
 
-`ANDROID_CERT_SHA256` is a comma-separated list: put the release keystore fingerprint and, for builds installed from Android
-Studio, the debug keystore fingerprint (`keytool -list -v -keystore ~/.android/debug.keystore -storepass android`). Remove the
-debug one before a public release. Changing a repository variable does not start a deploy: run *Deploy server* by hand
+`ANDROID_CERT_SHA256` is a comma-separated list of release / Play App Signing fingerprints for `app.ransel`. The debug build
+is `app.ransel.debug`, which these files do not name, so on a debug build invite links open through the "Open with" chooser
+instead of directly; pick "RANSEL Dev". Changing a repository variable does not start a deploy: run *Deploy server* by hand
 (`gh workflow run deploy-server.yml --ref main`) or push a change under `server/`, `shared/` or `deploy/`. Check with
 `curl https://ransel.mietek.tech/.well-known/assetlinks.json`, and on the phone
 `adb shell pm verify-app-links --re-verify app.ransel`, then `adb shell pm get-app-links app.ransel`.

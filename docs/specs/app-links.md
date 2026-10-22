@@ -20,8 +20,9 @@ Package name: `app.ransel`
 }]
 ```
 
-That fingerprint is the **debug** keystore on the developer machine. Add the **release / Play App Signing**
-SHA-256 before shipping; links do not verify on release builds without it. (Owner: needed.)
+That fingerprint is the **debug** keystore on the developer machine. Since the debug build became its own package
+(`app.ransel.debug`, staging API), it no longer matches this entry: replace it with the **release / Play App Signing**
+SHA-256 of `app.ransel` (owner: needed). Debug builds open the links through the "Open with" chooser.
 
 ## iOS: `/.well-known/apple-app-site-association`
 

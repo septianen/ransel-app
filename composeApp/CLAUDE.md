@@ -61,7 +61,7 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - `data/auth`: `SessionManager` (state: Loading / SignedOut / SignedIn / Expired), `TokenStore` per platform, `AuthRepository`, `SessionHooks` (mobile: guest data re-owned on sign-in, wiped on sign-out).
 - `RanselApi` adds the bearer token and refreshes once on 401; ViewModels only see `ApiResult`.
 - Mobile sync lives in `mobileMain/data/sync/SyncCoordinator`; the UI reads `SyncStatus` (no-op on web). A row is pending while `syncState = PENDING`; REJECTED rows are kept but never re-sent.
-- Android API origin is `BuildConfig.API_ORIGIN`, set by `ransel.apiOrigin` in `gradle.properties` (deployed API). For the emulator against a local server: `-Pransel.apiOrigin=http://10.0.2.2:8080`.
+- Android build types: **debug** = `app.ransel.debug` ("RANSEL Dev", Chucker, cleartext allowed) against staging `https://ranselapi-dev.mietek.tech`; **release** = `app.ransel` against production, R8 (`proguard-rules.pro`) and signed from `keystore.properties` / `RANSEL_KEYSTORE_*` when present (`keystore.properties.example`). Both install side by side. `BuildConfig.API_ORIGIN` per type; override with `-Pransel.apiOrigin.debug=http://10.0.2.2:8080` (emulator against a local server) or `-Pransel.apiOrigin.release=...`. Smoke-test a release build after adding a library or a reflection-based feature: R8 problems only show at runtime.
 - Debug builds on Android use Chucker (OkHttp interceptor registered as the `HttpClientEngine` in the Android platform module; release gets the no-op artifact). Open it from the "Network" notification or the Chucker launcher shortcut. Authorization headers are redacted.
 - iOS `KeychainTokenStore` and the iOS origin are unverified on Linux.
 - Email verification (F3.5): `EmailVerification` holds the sign-up prompt and an opened `/verify-email?token=` link until the navigation shows `VerifyEmailScreen` / `EmailVerifiedScreen`. Explore shows a verify gate while `MeDto.emailVerified` is false.
@@ -73,7 +73,7 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - Shared expenses: `ExpensesViewModel` loads members and balances from the API (empty = solo behaviour). Splits are stored per expense (`ExpenseEntity.splitsJson`, DB v2) and travel through the normal sync; `SplitState` holds the form, the maths is `shared/domain`.
 - Explore AI (Phase 5): `ExploreTripPickerViewModel` (step 1, trip list), `ExplorePreferencesViewModel` (step 2, existing or new trip, suggestions with 8 s timeout), `SwipeViewModel` (cards, save/skip/undo, prefetch), both over `ExploreSessionStore` (unfinished session as JSON in the preferences, also drives the tab dot). The backend (B5.x) must be live for real recommendations; tests use a MockEngine.
 - Place detail (`feature/explore/PlaceDetail*`): from a swipe card it reads the card from `ExploreSessionStore` (no request); from the itinerary it calls `RanselApi.placeDetail` (`ItineraryTab` provides `LocalOpenPlaceDetail`; only signed-in users). Skip/Save in the detail call the swipe screen's ViewModel via `navController.getBackStackEntry<SwipeRoute>()`. Place photos use `rememberPlacePhotoRequest` (stable cache key per place).
-- Point a debug build at the deployed API with `-Pransel.apiOrigin=https://ranselapi.mietek.tech`.
+- Point a debug build at the production API with `-Pransel.apiOrigin.debug=https://ranselapi.mietek.tech`.
 
 ## Admin app (Phase 6)
 

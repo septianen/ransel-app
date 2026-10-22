@@ -1,3 +1,4 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -155,16 +156,47 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { buildConfig = true }
-    buildTypes.configureEach {
-        // Where the app finds the API. 10.0.2.2 is the host machine seen from the Android emulator (gradle.properties sets the deployed API);
-        // override with `-Pransel.apiOrigin=https://api.ransel.app` (or gradle.properties) for a device/release.
-        val origin = (project.findProperty("ransel.apiOrigin") as String?) ?: "http://10.0.2.2:8080"
-        buildConfigField("String", "API_ORIGIN", "\"$origin\"")
+
+    // Release signing: keystore.properties in the repo root (git-ignored, see keystore.properties.example) or the
+    // RANSEL_KEYSTORE_* environment variables on CI. Without either, assembleRelease builds an unsigned APK.
+    val keystore = Properties().apply {
+        rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+    }
+    fun keystoreValue(key: String, envVar: String): String? =
+        keystore.getProperty(key) ?: providers.environmentVariable(envVar).orNull
+    val releaseStoreFile = keystoreValue("storeFile", "RANSEL_KEYSTORE_FILE")
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = keystoreValue("storePassword", "RANSEL_KEYSTORE_PASSWORD")
+                keyAlias = keystoreValue("keyAlias", "RANSEL_KEY_ALIAS")
+                keyPassword = keystoreValue("keyPassword", "RANSEL_KEY_PASSWORD")
+            }
+        }
+    }
+
+    // Where the app finds the API (BuildConfig.API_ORIGIN): debug -> staging, release -> production. Override per build
+    // type with -Pransel.apiOrigin.debug=... / -Pransel.apiOrigin.release=... (e.g. http://10.0.2.2:8080 for a local
+    // server from the emulator; cleartext is allowed in debug only).
+    fun apiOrigin(buildType: String, default: String): String =
+        (project.findProperty("ransel.apiOrigin.$buildType") as String?) ?: default
+    buildTypes {
+        getByName("debug") {
+            // Installs next to the release app as "RANSEL Dev" (src/debug/res).
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+            buildConfigField("String", "API_ORIGIN", "\"${apiOrigin("debug", "https://ranselapi-dev.mietek.tech")}\"")
+        }
+        getByName("release") {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+            buildConfigField("String", "API_ORIGIN", "\"${apiOrigin("release", "https://ranselapi.mietek.tech")}\"")
+        }
     }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
-    buildTypes {
-        getByName("release") { isMinifyEnabled = false }
-    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -173,7 +205,8 @@ android {
 
 // Push (FCM) needs the Firebase project's google-services.json, which is per environment and not in git.
 // Without it the app still builds and runs; PushRegistrar just reports that push is not available.
-if (file("google-services.json").exists()) {
+// The file must list both app.ransel and app.ransel.debug (or put one per build type in src/debug/ and src/release/).
+if (listOf("google-services.json", "src/debug/google-services.json", "src/release/google-services.json").any { file(it).exists() }) {
     apply(plugin = "com.google.gms.google-services")
 }
 
