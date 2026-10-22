@@ -12,6 +12,7 @@ import app.ransel.shared.dto.AdminMeDto
 import app.ransel.shared.dto.AdminUserDetailDto
 import app.ransel.shared.dto.AdminUserDto
 import app.ransel.shared.dto.AuthSessionDto
+import app.ransel.shared.dto.CreateUserRequest
 import app.ransel.shared.dto.CreditLedgerEntryDto
 import app.ransel.shared.dto.CreditsDto
 import app.ransel.shared.dto.LoginRequest
@@ -109,6 +110,10 @@ class AdminApi(
                 ?: "ransel-users.csv"
             response.bodyAsText() to name
         }
+
+    /** Creates an account and sends its invite email (201). */
+    suspend fun createUser(request: CreateUserRequest): ApiResult<AdminUserDto> =
+        send(HttpMethod.Post, AdminRoutes.USERS, request)
 
     suspend fun user(userId: String): ApiResult<AdminUserDetailDto> = get(AdminRoutes.user(userId))
 

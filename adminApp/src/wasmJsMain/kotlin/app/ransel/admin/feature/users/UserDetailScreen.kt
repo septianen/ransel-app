@@ -57,6 +57,7 @@ import app.ransel.admin.generated.resources.audit_enable
 import app.ransel.admin.generated.resources.audit_password_reset
 import app.ransel.admin.generated.resources.audit_sign_out_all
 import app.ransel.admin.generated.resources.audit_title
+import app.ransel.admin.generated.resources.audit_user_create
 import app.ransel.admin.generated.resources.audit_users_export
 import app.ransel.admin.generated.resources.confirm_disable_body
 import app.ransel.admin.generated.resources.confirm_disable_ok
@@ -686,6 +687,7 @@ private fun auditLabel(action: AdminAction): String = stringResource(
         AdminAction.USER_ENABLE -> Res.string.audit_enable
         AdminAction.PASSWORD_RESET_SEND -> Res.string.audit_password_reset
         AdminAction.USERS_EXPORT -> Res.string.audit_users_export
+        AdminAction.USER_CREATE -> Res.string.audit_user_create
     },
 )
 

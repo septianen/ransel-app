@@ -198,4 +198,15 @@
     <string name="adjust_save_subtract">Subtract %1$s credits</string>
     <string name="adjust_done_add">%1$s credits added. Balance is now %2$s.</string>
     <string name="adjust_done_subtract">%1$s credits subtracted. Balance is now %2$s.</string>
+    <string name="audit_user_create">Add user</string>
+    <string name="users_add">Add user</string>
+    <string name="create_user_title">Add user</string>
+    <string name="create_user_body">We email them a link to set their password (valid 7 days). Their email counts as verified.</string>
+    <string name="create_user_name">Name</string>
+    <string name="create_user_email">Email</string>
+    <string name="create_user_save">Add and send invite</string>
+    <string name="create_user_sent">Invite sent to %1$s</string>
+    <string name="create_user_name_required">Enter a name</string>
+    <string name="create_user_email_invalid">This email is not valid</string>
+    <string name="create_user_email_taken">This email already has an account</string>
 </resources>

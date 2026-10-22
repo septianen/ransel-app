@@ -162,7 +162,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST ★ | /trips/{id}/rounds/{roundId}/decide | OWNER picks the places that enter the itinerary and closes the round | 5 |
 | GET | /places/photo/{placeId}?exp=&sig= | Signed place-photo proxy (no bearer; 404 if no photo) | 5 |
 | GET | /places/{placeId}/detail | Saved detail text of a place (about, tips, hours estimate) to open it again from the itinerary; rebuilt by one small LLM call when expired | 5 |
-| GET, POST ★ | /admin/... | Admin app (Karung): users, credit adjustments, audit log, overview, Explore AI, system, settings, content. Admin token only; full list in `docs/specs/admin-spec.md` "API" | 6 |
+| GET, POST ★ | /admin/... | Admin app (Karung): users (list, add with an invite email), credit adjustments, audit log, overview, Explore AI, system, settings, content. Admin token only; full list in `docs/specs/admin-spec.md` "API" | 6 |
 | GET ★ | /content?version= | Published remote content for the apps (apps call it in a later step) | 6 |
 
 The exact request and response classes for every row are in the `shared` module (`api/ApiRoutes.kt`, `dto/`), which is the contract between the app and the server.

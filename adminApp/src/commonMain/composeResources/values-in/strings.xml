@@ -198,4 +198,15 @@
     <string name="adjust_save_subtract">Kurangi %1$s kredit</string>
     <string name="adjust_done_add">%1$s kredit ditambahkan. Saldo sekarang %2$s.</string>
     <string name="adjust_done_subtract">%1$s kredit dikurangi. Saldo sekarang %2$s.</string>
+    <string name="audit_user_create">Tambah pengguna</string>
+    <string name="users_add">Tambah pengguna</string>
+    <string name="create_user_title">Tambah pengguna</string>
+    <string name="create_user_body">Kami kirim email berisi link untuk mengatur kata sandi (berlaku 7 hari). Emailnya langsung dianggap terverifikasi.</string>
+    <string name="create_user_name">Nama</string>
+    <string name="create_user_email">Email</string>
+    <string name="create_user_save">Tambah dan kirim undangan</string>
+    <string name="create_user_sent">Undangan dikirim ke %1$s</string>
+    <string name="create_user_name_required">Isi nama dulu</string>
+    <string name="create_user_email_invalid">Email ini tidak valid</string>
+    <string name="create_user_email_taken">Email ini sudah punya akun</string>
 </resources>

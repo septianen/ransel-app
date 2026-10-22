@@ -87,6 +87,7 @@ The TRD "Quota" paragraph ("All numbers come from server config") must be update
 
 | Action | Effect | Needs |
 | --- | --- | --- |
+| Add user | Admin enters name + email (`POST /admin/users`). The account is created with the email already verified and a password nobody knows; the user gets an invite email from `no-reply@mietek.tech` with a 7-day link to set the password (the `/reset-password` flow). Works while public sign-up is closed. 409 `EMAIL_ALREADY_REGISTERED` for a taken email (case-insensitive). No credits beyond the signup grant: use "Adjust credits". Decided 22 Oct 2026. | Email set up (button hidden and 409 otherwise) |
 | Sign out of all devices | Revokes all of the user's refresh tokens; their apps get `TOKEN_EXPIRED` at the next refresh | Nothing new |
 | Send password reset email | Same flow as `POST /auth/password/forgot`, started by an admin; rate limited to 3 per user per hour | Email provider (still open) |
 | Deactivate / reactivate account | New `users.disabled_at`. Deactivating revokes refresh tokens; sign-in (with the right password) and refresh then return 403 `ACCOUNT_DISABLED`; an access token already issued keeps working until it expires (15 minutes); data is kept. An admin cannot deactivate their own account. Reactivating clears the field. | New error code, app handling (show "Akun dinonaktifkan" on the sign-in screen) |
@@ -128,6 +129,7 @@ All under `/admin`, bearer token with the admin claim (403 `FORBIDDEN` otherwise
 | --- | --- | --- | --- |
 | GET | /admin/me | Admin profile and environment (production/staging) | A |
 | GET | /admin/users?query=&status=&platform=&joinedFrom=&joinedTo=&noCredits=&page= | User list | A |
+| POST | /admin/users | Add a user: `CreateUserRequest(email, displayName)` → 201 `AdminUserDto`, sends the invite (audited `USER_CREATE`) | A |
 | GET | /admin/users/export.csv (same filters) | CSV export (audited) | A |
 | GET | /admin/users/{id} | Profile, counts, devices, trips metadata (recent activity comes with stage B) | A |
 | GET | /admin/users/{id}/credits/ledger?page= | Credit history with reasons | A |

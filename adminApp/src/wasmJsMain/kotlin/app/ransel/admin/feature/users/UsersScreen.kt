@@ -37,6 +37,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.Button
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -96,6 +98,9 @@ import app.ransel.shared.model.UserStatus
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
+import kotlinx.coroutines.launch
+import app.ransel.admin.generated.resources.users_add
+import app.ransel.admin.generated.resources.create_user_sent
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
@@ -108,7 +113,11 @@ fun UsersScreen(
     snackbar: SnackbarHostState,
     onAccessLost: suspend (ApiFailure) -> Unit,
     onOpenUser: (String) -> Unit,
+    /** True while email is set up: "Tambah pengguna" only works by sending an invite. */
+    canAddUsers: Boolean = false,
 ) {
+    var adding by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val presenter = rememberPresenter {
         UsersPresenter(api, it, ::todayWib, { name, csv -> downloadText(name, csv, "text/csv;charset=utf-8") }, onAccessLost)
     }
@@ -134,7 +143,20 @@ fun UsersScreen(
         onRetry = presenter::retry,
         onExport = presenter::export,
         onOpenUser = onOpenUser,
+        onAdd = if (canAddUsers) ({ adding = true }) else null,
     )
+    if (adding) {
+        CreateUserDialog(
+            api = api,
+            onAccessLost = onAccessLost,
+            onCreated = { user ->
+                adding = false
+                scope.launch { snackbar.showSnackbar(getString(Res.string.create_user_sent, user.email)) }
+                onOpenUser(user.id)
+            },
+            onDismiss = { adding = false },
+        )
+    }
 }
 
 @Composable
@@ -151,6 +173,8 @@ fun UsersContent(
     onExport: () -> Unit,
     onOpenUser: (String) -> Unit,
     modifier: Modifier = Modifier,
+    /** Null hides "Tambah pengguna". */
+    onAdd: (() -> Unit)? = null,
 ) {
     val format = LocalAdminFormat.current
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -178,6 +202,13 @@ fun UsersContent(
                 else Symbol(Symbols.receiptLong, size = 20.dp)
                 Box(Modifier.width(8.dp))
                 Text(stringResource(Res.string.users_export))
+            }
+            if (onAdd != null) {
+                Button(onClick = onAdd, modifier = Modifier.heightIn(min = 44.dp).align(Alignment.CenterVertically)) {
+                    Symbol(Symbols.personAdd, size = 20.dp)
+                    Box(Modifier.width(8.dp))
+                    Text(stringResource(Res.string.users_add))
+                }
             }
         }
         if (state.error != null && state.exporting.not() && state.result != null) {

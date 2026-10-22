@@ -182,7 +182,7 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         }
                     }
                     when (val r = route) {
-                        AdminRoute.Users -> UsersScreen(api, snackbar, onAccessLost, onOpenUser = { navigate(AdminRoute.User(it)) })
+                        AdminRoute.Users -> UsersScreen(api, snackbar, onAccessLost, onOpenUser = { navigate(AdminRoute.User(it)) }, canAddUsers = me.passwordResetEmailEnabled)
                         is AdminRoute.User -> UserDetailScreen(api, me, r.id, snackbar, onAccessLost, onBack = { navigate(AdminRoute.Users) })
                     }
                 }
