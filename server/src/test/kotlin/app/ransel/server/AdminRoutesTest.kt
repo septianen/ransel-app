@@ -222,8 +222,13 @@ class AdminRoutesTest {
     }
 
     @Test
-    fun anAddedUserIsInvitedAndSetsTheirOwnPassword() = apiTest(inviteConfig.copy(registrationEnabled = false)) {
-        userAndAdmin()
+    fun anAddedUserIsInvitedAndSetsTheirOwnPassword() = apiTest(
+        inviteConfig.copy(registrationEnabled = false, seedUsers = listOf(AppConfig.SeedUser(adminEmail, "Passw0rdOk", "Admin"))),
+    ) {
+        // Sign-up is closed (apiTest's own sign-up got 403), so the admin is a seed account, as in production.
+        val session = post("/auth/login", """{"email":"$adminEmail","password":"Passw0rdOk"}""")
+        assertEquals(HttpStatusCode.OK, session.status)
+        token = session.data().jsonObject.getValue("accessToken").jsonPrimitive.content
         val created = createUser("Rina@Example.com", " Rina ")
         assertEquals(HttpStatusCode.Created, created.status)
         val user = created.data().jsonObject
