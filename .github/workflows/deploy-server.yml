@@ -123,6 +123,10 @@ jobs:
           # Public verification values. Read from a repository variable, or from a secret of the same name.
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 || secrets.ANDROID_CERT_SHA256 }}
           IOS_APP_IDS: ${{ vars.IOS_APP_IDS || secrets.IOS_APP_IDS }}
+          # Admin app "Karung": repository variable ADMIN_EMAILS (comma separated). This file overwrites the VPS .env on
+          # every deploy, so a value typed into .env by hand does not survive the next deploy.
+          ADMIN_EMAILS: ${{ vars.ADMIN_EMAILS }}
+          ADMIN_PASSWORD_RESET_ENABLED: ${{ vars.ADMIN_PASSWORD_RESET_ENABLED }}
         run: |
           SSH="ssh -p $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes $DEPLOY_USER@$HOST"
           SCP="scp -P $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes"
@@ -157,6 +161,9 @@ jobs:
             echo "FCM_SERVICE_ACCOUNT_JSON=$FCM_SERVICE_ACCOUNT_JSON"
             echo "LLM_MODEL=${LLM_MODEL:-gemini-3.1-flash-lite}"
             echo "LLM_FALLBACK_MODEL=${LLM_FALLBACK_MODEL:-gemini-3.5-flash}"
+            echo "ADMIN_EMAILS=$ADMIN_EMAILS"
+            echo "ADMIN_APP_ORIGIN=https://karung.mietek.tech"
+            echo "ADMIN_PASSWORD_RESET_ENABLED=${ADMIN_PASSWORD_RESET_ENABLED:-false}"
           } | $SSH "umask 077 && cat > '$DEPLOY_PATH/.env'"
 
           printf '%s' "$GHCR_TOKEN" | $SSH "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
