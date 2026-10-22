@@ -440,6 +440,7 @@
     <string name="auth_error_generic">Something went wrong. Try again.</string>
     <string name="auth_error_account_disabled">Account deactivated. Data on this device stays safe.</string>
     <string name="auth_error_connection">Cannot reach the server. Check your connection.</string>
+    <string name="auth_error_registration_closed">Sign-up isn\'t open yet. Please try again later.</string>
     <string name="field_error_email">Enter a valid email.</string>
     <string name="field_error_name">Enter your name.</string>
     <string name="field_error_password">Password does not meet the rules yet.</string>

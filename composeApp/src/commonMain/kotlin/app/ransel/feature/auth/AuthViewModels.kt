@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** What can be wrong on an auth form; the screen maps it to copy (the app switches on codes, not messages). */
-enum class AuthProblem { INVALID_CREDENTIALS, ACCOUNT_DISABLED, EMAIL_TAKEN, RATE_LIMITED, CONNECTION, RESET_TOKEN_INVALID, GENERIC }
+enum class AuthProblem { INVALID_CREDENTIALS, ACCOUNT_DISABLED, EMAIL_TAKEN, RATE_LIMITED, CONNECTION, RESET_TOKEN_INVALID, REGISTRATION_CLOSED, GENERIC }
 
 private fun problemOf(code: String): AuthProblem = when (code) {
     ErrorCode.INVALID_CREDENTIALS -> AuthProblem.INVALID_CREDENTIALS
@@ -28,6 +28,10 @@ private fun problemOf(code: String): AuthProblem = when (code) {
     ErrorCode.RESET_TOKEN_INVALID -> AuthProblem.RESET_TOKEN_INVALID
     else -> AuthProblem.GENERIC
 }
+
+/** The server answers 403 FORBIDDEN on register while sign-up is closed (`REGISTRATION_ENABLED=false`). */
+private fun signUpProblemOf(code: String): AuthProblem =
+    if (code == ErrorCode.FORBIDDEN) AuthProblem.REGISTRATION_CLOSED else problemOf(code)
 
 // ── sign in ─────────────────────────────────────────────────────────────────
 
@@ -114,7 +118,7 @@ class SignUpViewModel(private val auth: AuthRepository) : ViewModel() {
         viewModelScope.launch {
             when (val result = auth.signUp(current.name, current.email, current.password)) {
                 is ApiResult.Success -> _state.update { it.copy(loading = false) }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, problem = problemOf(result.error.code)) }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, problem = signUpProblemOf(result.error.code)) }
             }
         }
     }

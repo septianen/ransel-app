@@ -52,6 +52,7 @@ import ransel.composeapp.generated.resources.auth_error_email_taken
 import ransel.composeapp.generated.resources.auth_error_generic
 import ransel.composeapp.generated.resources.auth_error_invalid_credentials
 import ransel.composeapp.generated.resources.auth_error_rate_limited
+import ransel.composeapp.generated.resources.auth_error_registration_closed
 import ransel.composeapp.generated.resources.field_password
 import ransel.composeapp.generated.resources.password_hide
 import ransel.composeapp.generated.resources.password_rule_digit
@@ -214,6 +215,7 @@ fun AuthProblemText(problem: AuthProblem?, modifier: Modifier = Modifier) {
         AuthProblem.RATE_LIMITED -> stringResource(Res.string.auth_error_rate_limited)
         AuthProblem.CONNECTION -> stringResource(Res.string.auth_error_connection)
         AuthProblem.RESET_TOKEN_INVALID -> stringResource(Res.string.reset_token_invalid_body)
+        AuthProblem.REGISTRATION_CLOSED -> stringResource(Res.string.auth_error_registration_closed)
         AuthProblem.GENERIC -> stringResource(Res.string.auth_error_generic)
     }
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {

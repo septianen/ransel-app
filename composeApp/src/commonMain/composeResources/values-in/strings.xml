@@ -440,6 +440,7 @@
     <string name="auth_error_generic">Ada yang salah. Coba lagi.</string>
     <string name="auth_error_account_disabled">Akun dinonaktifkan. Data di perangkat ini tetap aman.</string>
     <string name="auth_error_connection">Tidak bisa terhubung ke server. Periksa koneksimu.</string>
+    <string name="auth_error_registration_closed">Pendaftaran akun belum dibuka. Coba lagi nanti, ya.</string>
     <string name="field_error_email">Masukkan email yang valid.</string>
     <string name="field_error_name">Masukkan namamu.</string>
     <string name="field_error_password">Kata sandi belum memenuhi aturan.</string>
