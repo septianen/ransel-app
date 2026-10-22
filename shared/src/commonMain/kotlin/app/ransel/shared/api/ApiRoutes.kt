@@ -43,6 +43,8 @@ object ApiRoutes {
     const val AUTH_LOGOUT = "/auth/logout"                         // POST RefreshRequest → 204 (revokes this device's refresh token)
     const val AUTH_PASSWORD_FORGOT = "/auth/password/forgot"       // POST ForgotPasswordRequest → always 204
     const val AUTH_PASSWORD_RESET = "/auth/password/reset"         // POST ResetPasswordRequest → 204, revokes all refresh tokens
+    const val AUTH_EMAIL_VERIFY = "/auth/email/verify"             // POST VerifyEmailRequest → VerifyEmailResponse (no token needed; the link is the proof)
+    const val AUTH_EMAIL_RESEND = "/auth/email/resend"             // POST (bearer) → 204, sends a new link and voids older ones; 204 too when already verified
     const val ME = "/me"                                           // GET MeDto, PATCH UpdateMeRequest
     const val SYNC = "/sync"                                       // GET ?since=<ISO instant> → SyncPullResponse, POST SyncPushRequest → SyncPushResponse
 

@@ -49,6 +49,22 @@ data class ResetPasswordRequest(
     val newPassword: String,
 )
 
+/** POST /auth/email/verify — token from the link sent after sign-up (valid 24 h, the newest link only). */
+@Serializable
+data class VerifyEmailRequest(
+    val token: String,
+)
+
+/**
+ * [creditsGranted] = the signup credits that arrived with this verification (0 when they were already given, e.g. a
+ * second tap on a link of an account that is already verified, which also answers 200).
+ */
+@Serializable
+data class VerifyEmailResponse(
+    val email: String,
+    val creditsGranted: Int,
+)
+
 @Serializable
 data class MeDto(
     val id: String,
@@ -56,6 +72,12 @@ data class MeDto(
     val displayName: String,
     /** Only the default for NEW trips; existing trips keep their own currency. */
     val defaultCurrency: String = "IDR",
+    /**
+     * false after sign-up until the link in the email is opened. Until then Explore and vouchers answer 403
+     * EMAIL_NOT_VERIFIED and the signup credits are held back; everything else works. Accounts from before
+     * verification existed count as verified (hence the default).
+     */
+    val emailVerified: Boolean = true,
 )
 
 /** PATCH /me. null = unchanged. */

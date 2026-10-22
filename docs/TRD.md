@@ -90,6 +90,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | notifications | inbox: type, params, trip, dedupe\_key (unique per user), read\_at, push\_state (outbox) | V10 |
 | notification\_settings | three switches per user (missing row = all on) | V10 |
 | admin\_audit\_log; users.disabled\_at; credit\_ledger.note | append-only log of admin actions; account deactivated by an admin; the admin's reason for an ADJUSTMENT (which may now be negative) | V12 (6) |
+| email\_verification\_tokens; users.email\_verified\_at | sign-up email link (hash only, 24 h, newest link only); when the email was verified (existing accounts backfilled) | V13 (3) |
 | app\_settings | admin overrides of config values (key, JSON value, updated\_by) | planned (6) |
 | ai\_search\_log, error\_counts | one row per Explore search (parameters, source, latency, credits, estimated cost); errors per hour, code and route | planned (6) |
 
@@ -127,6 +128,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST | /auth/register, /auth/login, /auth/refresh | Account and tokens | 3 |
 | POST ★ | /auth/logout | Sign out this device (revokes its refresh token) | 3 |
 | POST ★ | /auth/password/forgot, /auth/password/reset | Forgot password | 3 |
+| POST ★ | /auth/email/verify (public), /auth/email/resend (bearer) | Verify the email after sign-up; send a new link | 3 |
 | GET, PATCH ★ | /me | Profile, default currency | 3 |
 | GET, POST | /sync | Pull changes since a timestamp / push a local batch | 3 |
 | POST | /trips/{id}/invites | Create an invite code (role, maxUses, expiresAt) | 4 |
@@ -236,10 +238,11 @@ An event writes the inbox row **inside the transaction that caused it** (invite 
 - **Tokens.** A short-lived JWT access token; a random refresh token stored as a hash in `refresh_tokens` and rotated on every use. Sign out revokes that device's refresh token.
 - **Client storage.** Tokens are kept in the platform's secure storage (Keystore/Keychain); on web, an httpOnly cookie or storage with accepted risk.
 - **Forgot password.** `forgot` always answers 204 (it never reveals whether the email exists) and sends a link with a single-use token valid for 30 minutes. `reset` replaces the hash, marks the token used, and revokes every refresh token of the user so other devices are signed out.
+- **Email verification.** Register answers 201 with a session as before and emails a link (`APP_BASE_URL/verify-email?token=`, single use, 24 hours; a resend voids older links). Until the link is opened the account works except Explore and vouchers (403 `EMAIL_NOT_VERIFIED`) and the wallet gets no signup grant; verifying grants it (idempotent, ledger key `signup:<userId>`). Accounts that existed before V13 and seed accounts count as verified.
 - **Session expired.** When refresh fails (`TOKEN_EXPIRED`), the app shows the Session expired screen; local data stays.
 - **Authorization** is always checked on the server per trip (`requireRole`), never only in the UI.
 - **Admins** are the accounts whose email is in `ADMIN_EMAILS` (server env). Every `/admin` request looks the account up and checks its email against the list (no token claim), and the account must be active. Admin actions go to `admin_audit_log`. Details: `docs/specs/admin-spec.md`.
-- **Email.** Password reset emails are sent from `no-reply@mietek.tech` (provider still open; until then the server logs the link).
+- **Email.** Verification and password reset emails are sent from `no-reply@mietek.tech` over SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM`), so any provider with an SMTP relay works; the provider itself is still open. Without `SMTP_HOST` the server logs the link (development) or logs that nothing was sent (production).
 - **Secrets.** The LLM and Places API keys live only on the server (environment variables), never in the client or the repository.
 
 ## AI feature (Explore)

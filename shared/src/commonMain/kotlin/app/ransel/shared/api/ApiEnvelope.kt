@@ -66,6 +66,8 @@ object ErrorCode {
     const val EMAIL_ALREADY_REGISTERED = "EMAIL_ALREADY_REGISTERED" // 409 on /auth/register
     const val RESET_TOKEN_INVALID = "RESET_TOKEN_INVALID"  // 400 on /auth/password/reset (expired, used, unknown)
     const val ACCOUNT_DISABLED = "ACCOUNT_DISABLED"        // 403 on /auth/login (right password) and /auth/refresh: an admin deactivated the account
+    const val VERIFY_TOKEN_INVALID = "VERIFY_TOKEN_INVALID" // 400 on /auth/email/verify (expired, replaced by a newer link, unknown)
+    const val EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED"    // 403 on Explore and voucher routes until the account's email is verified
 
     // trips & members
     const val TRIP_NOT_FOUND = "TRIP_NOT_FOUND"            // 404 (also when the user is not a member, to avoid leaking existence)
