@@ -106,8 +106,14 @@ Gotchas from the first setup:
 - SSH to the VPS listens on port 2212, not 22.
 - `index.html` has `<base href="/">`, so the script, `.wasm` files and resources also load on deep links like `/j/<code>`.
 - The web app is an installable PWA (`manifest.webmanifest`, `sw.js`). The conf keeps `index.html`, `sw.js` and the
-  manifest uncached and serves the manifest as `application/manifest+json`; after pulling a change to the conf, copy it
-  to `sites-available` again (certbot's 443 block lives in the same file, so merge by hand) and `nginx -t && reload`.
+  manifest uncached and serves the manifest as `application/manifest+json`.
+- **Never copy the repo conf over the live file once certbot has run.** The repo file is only the port 80 block;
+  certbot turned the live one into a 443 block plus a port 80 redirect block. Overwriting it drops both: HTTPS falls
+  back to another site's certificate and `http://` stops redirecting. Instead, paste only the changed `location`
+  blocks into the 443 block (for the PWA: `= /index.html`, `= /sw.js`, `= /manifest.webmanifest`). If it happens
+  anyway, `sudo certbot --nginx -d ransel.mietek.tech` (reinstall) restores the 443 block; the port 80 block must end
+  up as just `return 301 https://$host$request_uri;`.
+- `nginx -t` needs `sudo`: without it nginx cannot read the Let's Encrypt keys and reports `Permission denied`.
 
 ### Publishing the web build
 
