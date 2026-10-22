@@ -18,8 +18,12 @@ import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.conflict
 import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
+import app.ransel.server.security.PasswordHasher
+import app.ransel.server.security.TokenService
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.domain.isValidEmail
 import app.ransel.shared.dto.AdjustCreditsRequest
+import app.ransel.shared.dto.CreateUserRequest
 import app.ransel.shared.dto.AdminActionResult
 import app.ransel.shared.dto.AdminAuditEntryDto
 import app.ransel.shared.dto.AdminDeviceDto
@@ -64,6 +68,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
+import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 import kotlin.time.Clock
@@ -90,6 +95,8 @@ class AdminService(
     private val config: AppConfig,
     private val credits: CreditService,
     private val passwordReset: PasswordResetService,
+    private val hasher: PasswordHasher,
+    private val tokens: TokenService,
 ) {
     private val wib = TimeZone.of("Asia/Jakarta")
 
@@ -183,6 +190,50 @@ class AdminService(
     }
 
     // ── actions ─────────────────────────────────────────────────────────────
+
+    /**
+     * Adds an account and emails an invite that sets its first password (the admin never knows one). The email counts
+     * as verified, like a seed account. Works while public sign-up is closed; needs email to be set up (409 otherwise).
+     */
+    fun createUser(admin: AdminPrincipal, body: CreateUserRequest): AdminUserDto {
+        if (!config.adminPasswordResetEnabled) throw conflict("Email is not set up yet, so the invite cannot be sent")
+        val email = body.email.trim()
+        val name = body.displayName.trim()
+        requireValid(
+            buildMap {
+                if (!isValidEmail(email)) put("email", "INVALID_EMAIL")
+                if (name.isEmpty()) put("displayName", "REQUIRED")
+            },
+        )
+        // Nobody knows this password: the account cannot sign in until the invite link sets a real one. A hash is still
+        // required, because every account with an email has one (users_email_needs_password).
+        val placeholderHash = hasher.hash(tokens.newOpaqueToken())
+        val id = UUID.randomUUID()
+        val row = try {
+            transaction {
+                val taken = Users.selectAll().where { Users.email.lowerCase() eq email.lowercase() }.any()
+                if (taken) throw emailTaken()
+                Users.insert {
+                    it[Users.id] = id
+                    it[displayName] = name
+                    it[Users.email] = email
+                    it[passwordHash] = placeholderHash
+                    it[emailVerifiedAt] = Instant.now()
+                }
+                audit(admin, AdminAction.USER_CREATE, "USER", id.toString(), null, buildJsonObject {
+                    put("email", email)
+                    put("displayName", name)
+                })
+                account(id)
+            }
+        } catch (e: SQLException) {
+            // Two creates (or a sign-up) racing on the same email hit the unique index instead of the check above.
+            if (e.sqlState == UNIQUE_VIOLATION || (e.cause as? SQLException)?.sqlState == UNIQUE_VIOLATION) throw emailTaken()
+            throw e
+        }
+        passwordReset.invite(id)
+        return transaction { toDtos(listOf(row)).single() }
+    }
 
     fun adjustCredits(admin: AdminPrincipal, id: UUID, body: AdjustCreditsRequest): CreditsDto {
         val requestId = runCatching { UUID.fromString(body.requestId) }.getOrNull()
@@ -402,6 +453,9 @@ class AdminService(
         return (phones + sessions).sortedByDescending { it.lastSeenAt }
     }
 
+    private fun emailTaken() =
+        ApiException(HttpStatusCode.Conflict, ErrorCode.EMAIL_ALREADY_REGISTERED, "Email is already registered")
+
     private fun csvCell(value: String): String {
         // A leading = + - @ would run as a formula in a spreadsheet.
         val safe = if (value.firstOrNull() in setOf('=', '+', '-', '@')) "'$value" else value
@@ -416,5 +470,6 @@ class AdminService(
         const val PAGE_SIZE = 25
         const val MAX_ADJUSTMENT = 10_000
         const val RESET_EMAILS_PER_HOUR = 3
+        private const val UNIQUE_VIOLATION = "23505"
     }
 }

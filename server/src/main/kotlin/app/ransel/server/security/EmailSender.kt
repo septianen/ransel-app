@@ -15,6 +15,8 @@ import java.util.Properties
 interface EmailSender {
     suspend fun sendPasswordReset(toEmail: String, displayName: String, link: String)
     suspend fun sendEmailVerification(toEmail: String, displayName: String, link: String)
+    /** An admin created the account in Karung; the link sets the first password. */
+    suspend fun sendAccountInvite(toEmail: String, displayName: String, link: String)
 }
 
 /**
@@ -29,6 +31,9 @@ class LoggingEmailSender(private val production: Boolean) : EmailSender {
 
     override suspend fun sendEmailVerification(toEmail: String, displayName: String, link: String) =
         logLink("Verify your RANSEL email", toEmail, link)
+
+    override suspend fun sendAccountInvite(toEmail: String, displayName: String, link: String) =
+        logLink("Your RANSEL account is ready", toEmail, link)
 
     private fun logLink(subject: String, toEmail: String, link: String) {
         if (production) {
@@ -105,6 +110,30 @@ class SmtpEmailSender(private val smtp: AppConfig.Smtp) : EmailSender {
             $link
 
             If you did not create a RANSEL account, ignore this email.
+
+            RANSEL
+        """.trimIndent(),
+    )
+
+    override suspend fun sendAccountInvite(toEmail: String, displayName: String, link: String) = send(
+        toEmail,
+        subject = "Akun RANSEL kamu sudah dibuat / Your RANSEL account is ready",
+        body = """
+            Hai $displayName,
+
+            Tim RANSEL sudah membuatkan akun untuk email ini. Buka link ini untuk mengatur kata sandimu, lalu masuk di aplikasi RANSEL. Link berlaku 7 hari dan hanya bisa dipakai sekali:
+            $link
+
+            Kalau kamu tidak mengharapkan email ini, abaikan saja.
+
+            ---
+
+            Hi $displayName,
+
+            The RANSEL team created an account for this email. Open this link to set your password, then sign in to the RANSEL app. It works once and expires in 7 days:
+            $link
+
+            If you were not expecting this, ignore this email.
 
             RANSEL
         """.trimIndent(),

@@ -50,24 +50,49 @@ class PasswordResetService(
                         .where { (Users.email.lowerCase() eq address.lowercase()) and Users.deletedAt.isNull() }
                         .singleOrNull()
                 } ?: return@launch
-                val token = tokens.newOpaqueToken()
-                transaction {
-                    PasswordResetTokens.insert {
-                        it[userId] = user[Users.id]
-                        it[tokenHash] = TokenService.sha256(token)
-                        it[expiresAt] = Instant.now().plus(config.passwordResetTtl.toJavaDuration())
-                    }
-                }
                 email.sendPasswordReset(
                     toEmail = user[Users.email].orEmpty(),
                     displayName = user[Users.displayName],
-                    link = "${config.appBaseUrl}/reset-password?token=$token",
+                    link = issueLink(user[Users.id], config.passwordResetTtl),
                 )
             } catch (e: Exception) {
                 // Never surface this to the caller: that would reveal whether the email exists.
                 log.error("Password reset request failed", e)
             }
         }
+    }
+
+    /**
+     * An admin created [userId] in Karung: email a link that sets the first password, valid [AppConfig.inviteTtl].
+     * Same token table and `/reset-password` page as a reset. Fire-and-forget like [forgot]; a failure is only logged
+     * (the admin can send a fresh link with "Kirim email reset kata sandi").
+     */
+    fun invite(userId: UUID) {
+        scope.launch {
+            try {
+                val user = transaction { Users.selectAll().where { Users.id eq userId }.single() }
+                email.sendAccountInvite(
+                    toEmail = user[Users.email].orEmpty(),
+                    displayName = user[Users.displayName],
+                    link = issueLink(userId, config.inviteTtl),
+                )
+            } catch (e: Exception) {
+                log.error("Account invite failed", e)
+            }
+        }
+    }
+
+    /** Stores the hash of a new single-use token and returns the link carrying the token itself. */
+    private fun issueLink(userId: UUID, ttl: kotlin.time.Duration): String {
+        val token = tokens.newOpaqueToken()
+        transaction {
+            PasswordResetTokens.insert {
+                it[PasswordResetTokens.userId] = userId
+                it[tokenHash] = TokenService.sha256(token)
+                it[expiresAt] = Instant.now().plus(ttl.toJavaDuration())
+            }
+        }
+        return "${config.appBaseUrl}/reset-password?token=$token"
     }
 
     fun reset(token: String, newPassword: String) {

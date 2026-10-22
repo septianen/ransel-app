@@ -9,6 +9,7 @@ import app.ransel.server.service.userId
 import app.ransel.shared.api.AdminRoutes
 import app.ransel.shared.api.PageMeta
 import app.ransel.shared.dto.AdjustCreditsRequest
+import app.ransel.shared.dto.CreateUserRequest
 import app.ransel.shared.model.AdminAction
 import app.ransel.shared.model.UserStatus
 import io.ktor.http.ContentDisposition
@@ -44,6 +45,11 @@ fun Route.adminRoutes(service: AdminService) {
             val page = call.page()
             val (rows, total) = service.users(call.userFilter(), page, AdminService.PAGE_SIZE)
             call.respondData(HttpStatusCode.OK, rows, PageMeta(page, AdminService.PAGE_SIZE, total))
+        }
+        post(AdminRoutes.USERS) {
+            val admin = call.admin()
+            val body = call.receive<CreateUserRequest>()
+            call.respondData(HttpStatusCode.Created, service.createUser(admin, body))
         }
         get(AdminRoutes.USERS_EXPORT) {
             val admin = call.admin()

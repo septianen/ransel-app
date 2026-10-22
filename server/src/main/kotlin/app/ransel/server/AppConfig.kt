@@ -24,6 +24,8 @@ data class AppConfig(
     val appBaseUrl: String = "https://ransel.mietek.tech",
     val isProduction: Boolean = false,
     val passwordResetTtl: Duration = 30.minutes,
+    /** Link in the invite email when an admin creates an account (it sets the first password). */
+    val inviteTtl: Duration = 7.days,
     /** How long the sign-up verification link works. */
     val emailVerificationTtl: Duration = 24.hours,
     /** Null = no provider: emails are only logged ([app.ransel.server.security.LoggingEmailSender]). */

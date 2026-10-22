@@ -36,6 +36,7 @@ class AdminRoutesTest {
         val routes = listOf(
             HttpMethod.Get to "/admin/me",
             HttpMethod.Get to "/admin/users",
+            HttpMethod.Post to "/admin/users",
             HttpMethod.Get to "/admin/users/export.csv",
             HttpMethod.Get to "/admin/users/$id",
             HttpMethod.Get to "/admin/users/$id/credits/ledger",
@@ -207,5 +208,51 @@ class AdminRoutesTest {
         assertTrue(lines.first().startsWith("id,email,display_name,status"))
         assertEquals(3, lines.size, "header + two accounts")
         assertEquals("USERS_EXPORT", get("/admin/audit").data().jsonArray.single().jsonObject.getValue("action").jsonPrimitive.content)
+    }
+
+    private val inviteConfig = adminConfig.copy(adminPasswordResetEnabled = true)
+
+    private suspend fun Api.createUser(email: String, name: String = "Rina") =
+        post("/admin/users", """{"email":"$email","displayName":"$name"}""")
+
+    @Test
+    fun addingAUserNeedsEmailToBeSetUp() = apiTest(adminConfig) {
+        userAndAdmin()
+        assertEquals(HttpStatusCode.Conflict, createUser("rina@example.com").status)
+    }
+
+    @Test
+    fun anAddedUserIsInvitedAndSetsTheirOwnPassword() = apiTest(inviteConfig.copy(registrationEnabled = false)) {
+        userAndAdmin()
+        val created = createUser("Rina@Example.com", " Rina ")
+        assertEquals(HttpStatusCode.Created, created.status)
+        val user = created.data().jsonObject
+        val id = user.getValue("id").jsonPrimitive.content
+        assertEquals("Rina", user.getValue("displayName").jsonPrimitive.content)
+        assertEquals("ACTIVE", user.getValue("status").jsonPrimitive.content)
+        assertEquals("USER_CREATE", get("/admin/audit?targetId=$id").data().jsonArray.single().jsonObject.getValue("action").jsonPrimitive.content)
+
+        // Nobody knows a password yet.
+        assertEquals("INVALID_CREDENTIALS", post("/auth/login", """{"email":"rina@example.com","password":"Passw0rdOk"}""").errorCode())
+
+        val link = TestEmails.awaitLink("rina@example.com", TestEmails.Kind.INVITE)
+        val token = link.substringAfter("token=")
+        assertEquals(HttpStatusCode.NoContent, post("/auth/password/reset", """{"token":"$token","newPassword":"Rina1234ok"}""").status)
+        val login = post("/auth/login", """{"email":"rina@example.com","password":"Rina1234ok"}""")
+        assertEquals(HttpStatusCode.OK, login.status, "works while public sign-up is closed")
+        assertEquals("true", login.data().jsonObject.getValue("user").jsonObject.getValue("emailVerified").jsonPrimitive.content)
+    }
+
+    @Test
+    fun addingAUserRejectsTakenEmailsAndBadInput() = apiTest(inviteConfig) {
+        userAndAdmin()
+        assertEquals(HttpStatusCode.Created, createUser("taken@example.com").status)
+        val again = createUser("TAKEN@example.com")
+        assertEquals(HttpStatusCode.Conflict, again.status)
+        assertEquals("EMAIL_ALREADY_REGISTERED", again.errorCode())
+
+        val bad = createUser("not-an-email", "  ")
+        assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
+        assertEquals(setOf("email", "displayName"), bad.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.keys)
     }
 }

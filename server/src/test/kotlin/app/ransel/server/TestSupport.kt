@@ -86,7 +86,7 @@ val TestJson = Json { ignoreUnknownKeys = true }
 
 /** Collects "sent" emails so tests can read the reset and verification links. */
 object TestEmails : EmailSender {
-    enum class Kind { RESET, VERIFY }
+    enum class Kind { RESET, VERIFY, INVITE }
 
     data class Sent(val to: String, val link: String, val kind: Kind)
 
@@ -98,6 +98,10 @@ object TestEmails : EmailSender {
 
     override suspend fun sendEmailVerification(toEmail: String, displayName: String, link: String) {
         sent += Sent(toEmail, link, Kind.VERIFY)
+    }
+
+    override suspend fun sendAccountInvite(toEmail: String, displayName: String, link: String) {
+        sent += Sent(toEmail, link, Kind.INVITE)
     }
 
     fun count(kind: Kind) = sent.count { it.kind == kind }

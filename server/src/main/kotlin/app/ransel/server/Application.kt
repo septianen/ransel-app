@@ -171,7 +171,7 @@ fun Application.module(
     val auth = AuthService(config, hasher, tokens, verification)
     config.seedUsers.forEach(auth::seed)
     val passwordReset = PasswordResetService(config, hasher, tokens, emailSender, this)
-    val admin = AdminService(config, credits, passwordReset)
+    val admin = AdminService(config, credits, passwordReset, hasher, tokens)
 
     configureCallLogging()
     configureCors(config.corsOrigins)
