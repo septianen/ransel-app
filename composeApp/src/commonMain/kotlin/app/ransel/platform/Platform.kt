@@ -21,7 +21,10 @@ expect val requiresAccount: Boolean
 /** The password-reset token in the page URL (`/reset-password?token=…`), web only; null elsewhere. */
 expect fun initialResetToken(): String?
 
-/** Removes the reset token from the address bar once it has been used (web only). */
+/** The email-verification token in the page URL (`/verify-email?token=…`), web only; null elsewhere. */
+expect fun initialVerifyToken(): String?
+
+/** Removes the reset or verification token from the address bar once it has been used (web only). */
 expect fun clearResetTokenFromUrl()
 
 /** The invite code in the page URL (`/j/<code>`), web only; null elsewhere (apps get it from the link intent). */

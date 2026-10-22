@@ -228,3 +228,77 @@ class NewPasswordViewModel(private val token: String, private val auth: AuthRepo
         }
     }
 }
+
+// ── email verification ──────────────────────────────────────────────────────
+
+/** "Satu langkah lagi" after sign-up (design `VerifikasiEmail`). */
+class VerifyEmailViewModel(email: String, private val auth: AuthRepository) : ViewModel() {
+    private val _state = MutableStateFlow(CheckEmailUiState(email))
+    val state: StateFlow<CheckEmailUiState> = _state.asStateFlow()
+
+    private val _resent = Channel<Unit>(Channel.BUFFERED)
+    /** Fires after each successful resend so the screen restarts its countdown. */
+    val resent = _resent.receiveAsFlow()
+
+    fun resend() {
+        if (_state.value.resending) return
+        _state.update { it.copy(resending = true, problem = null) }
+        viewModelScope.launch {
+            when (val result = auth.resendVerificationEmail()) {
+                is ApiResult.Success -> {
+                    _state.update { it.copy(resending = false) }
+                    _resent.send(Unit)
+                }
+                is ApiResult.Failure -> _state.update { it.copy(resending = false, problem = problemOf(result.error.code)) }
+            }
+        }
+    }
+}
+
+sealed interface EmailVerifiedUiState {
+    data object Loading : EmailVerifiedUiState
+
+    /** [creditsGranted] = 0 when the account was verified already (the link was opened twice). */
+    data class Verified(val email: String, val creditsGranted: Int) : EmailVerifiedUiState
+
+    /** Expired, replaced by a newer link, or unknown (VERIFY_TOKEN_INVALID). [resent] = a new link is on its way. */
+    data class Invalid(val resending: Boolean = false, val resent: Boolean = false, val problem: AuthProblem? = null) : EmailVerifiedUiState
+
+    /** Could not ask the server (offline, server error): try again. */
+    data class Failed(val problem: AuthProblem) : EmailVerifiedUiState
+}
+
+/** Opens a verification link (designs `EmailTerverifikasi`, `VerifikasiTidakBerlaku`). */
+class EmailVerifiedViewModel(private val token: String, private val auth: AuthRepository) : ViewModel() {
+    private val _state = MutableStateFlow<EmailVerifiedUiState>(EmailVerifiedUiState.Loading)
+    val state: StateFlow<EmailVerifiedUiState> = _state.asStateFlow()
+
+    init {
+        verify()
+    }
+
+    fun verify() {
+        _state.value = EmailVerifiedUiState.Loading
+        viewModelScope.launch {
+            _state.value = when (val result = auth.verifyEmail(token)) {
+                is ApiResult.Success -> EmailVerifiedUiState.Verified(result.value.email, result.value.creditsGranted)
+                is ApiResult.Failure ->
+                    if (result.error.code == ErrorCode.VERIFY_TOKEN_INVALID) EmailVerifiedUiState.Invalid()
+                    else EmailVerifiedUiState.Failed(problemOf(result.error.code))
+            }
+        }
+    }
+
+    /** "Kirim link baru": needs a session, the caller sends guests to sign in instead. */
+    fun resend() {
+        val current = _state.value as? EmailVerifiedUiState.Invalid ?: return
+        if (current.resending) return
+        _state.value = current.copy(resending = true, problem = null)
+        viewModelScope.launch {
+            _state.value = when (val result = auth.resendVerificationEmail()) {
+                is ApiResult.Success -> EmailVerifiedUiState.Invalid(resent = true)
+                is ApiResult.Failure -> EmailVerifiedUiState.Invalid(problem = problemOf(result.error.code))
+            }
+        }
+    }
+}

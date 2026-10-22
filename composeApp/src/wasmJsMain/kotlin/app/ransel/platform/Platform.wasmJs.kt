@@ -59,6 +59,9 @@ private external fun resetUrl()
 actual fun initialResetToken(): String? =
     queryToken().takeIf { it.isNotBlank() && browserPath().trimEnd('/').endsWith("reset-password") }
 
+actual fun initialVerifyToken(): String? =
+    queryToken().takeIf { it.isNotBlank() && browserPath().trimEnd('/').endsWith("verify-email") }
+
 actual fun clearResetTokenFromUrl() = resetUrl()
 
 @JsFun("() => { const m = window.location.pathname.match(/^\\/j\\/([^/]+)\\/?$/); return m ? decodeURIComponent(m[1]) : ''; }")

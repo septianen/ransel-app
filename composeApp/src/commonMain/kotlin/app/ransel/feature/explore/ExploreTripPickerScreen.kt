@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.ui.components.IconFab
+import app.ransel.ui.components.LoadingButton
 import app.ransel.data.explore.ExploreSession
 import app.ransel.feature.trips.TripPhase
 import app.ransel.feature.trips.daysUntilStart
@@ -67,7 +68,7 @@ fun ExploreTripPickerScreen(
     viewModel: ExploreTripPickerViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val forward = !state.loading && state.signedIn && state.noEligibleTrip
+    val forward = !state.loading && state.signedIn && state.emailVerified && state.noEligibleTrip
     LaunchedEffect(forward) { if (forward) onNoTrips() }
     Column(modifier.fillMaxSize().statusBarsPadding()) {
         Text(
@@ -79,6 +80,7 @@ fun ExploreTripPickerScreen(
         when {
             state.loading || forward -> Box(Modifier.fillMaxSize())
             !state.signedIn -> GuestState(onSignIn, onSignUp)
+            !state.emailVerified -> VerifyEmailGate(state.email, state.gate, viewModel::resendVerification, viewModel::checkVerified)
             else -> TripPicker(state, onPickTrip, onNewTrip, onOpenSwipe)
         }
     }
@@ -228,6 +230,67 @@ private fun GuestState(onSignIn: () -> Unit, onSignUp: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/** Design `JelajahBelumVerifikasi`: signed up, email not verified yet. Explore and the signup credits wait for it. */
+@Composable
+private fun VerifyEmailGate(email: String, gate: VerifyGateState, onResend: () -> Unit, onCheck: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().clip(IrisShape.xl).background(scheme.tertiaryContainer).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Box(Modifier.size(44.dp).clip(IrisShape.md).background(IrisTheme.accents.purple), contentAlignment = Alignment.Center) {
+                Symbol(Symbols.markEmailRead, filled = true, tint = IrisTheme.accents.onAccent)
+            }
+            Text(
+                stringResource(Res.string.explore_verify_title),
+                Modifier.padding(top = 4.dp),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = scheme.onTertiaryContainer,
+            )
+            Text(stringResource(Res.string.explore_verify_body, email), style = MaterialTheme.typography.bodyMedium, color = scheme.onTertiaryContainer)
+        }
+        Column(
+            Modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.surfaceVariant).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            listOf(Symbols.inbox to Res.string.check_email_tip_spam, Symbols.schedule to Res.string.explore_verify_tip_expiry).forEach { (symbol, text) ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Symbol(symbol, size = 18.dp, tint = scheme.onSurfaceVariant)
+                    Text(stringResource(text), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+                }
+            }
+        }
+        gate.message?.let { message ->
+            val (text, color) = when (message) {
+                VerifyGateMessage.SENT -> stringResource(Res.string.explore_verify_sent) to scheme.primary
+                VerifyGateMessage.NOT_YET -> stringResource(Res.string.explore_verify_not_yet) to scheme.onSurfaceVariant
+                VerifyGateMessage.CONNECTION -> stringResource(Res.string.auth_error_connection) to scheme.error
+                VerifyGateMessage.RATE_LIMITED -> stringResource(Res.string.auth_error_rate_limited) to scheme.error
+                VerifyGateMessage.GENERIC -> stringResource(Res.string.auth_error_generic) to scheme.error
+            }
+            Text(text, style = MaterialTheme.typography.bodyMedium, color = color)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LoadingButton(onClick = onResend, loading = gate.resending, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(Res.string.check_email_resend), style = MaterialTheme.typography.titleMedium)
+            }
+            OutlinedButton(onClick = onCheck, enabled = !gate.checking, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Symbol(Symbols.refresh, size = 20.dp)
+                Text(stringResource(Res.string.explore_verify_check), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Symbol(Symbols.info, size = 16.dp, tint = scheme.onSurfaceVariant)
+                Text(stringResource(Res.string.explore_verify_note), Modifier.padding(start = 4.dp), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            }
+        }
     }
 }
 

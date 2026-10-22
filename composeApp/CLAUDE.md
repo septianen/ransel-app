@@ -64,6 +64,7 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - Android API origin is `BuildConfig.API_ORIGIN`, set by `ransel.apiOrigin` in `gradle.properties` (deployed API). For the emulator against a local server: `-Pransel.apiOrigin=http://10.0.2.2:8080`.
 - Debug builds on Android use Chucker (OkHttp interceptor registered as the `HttpClientEngine` in the Android platform module; release gets the no-op artifact). Open it from the "Network" notification or the Chucker launcher shortcut. Authorization headers are redacted.
 - iOS `KeychainTokenStore` and the iOS origin are unverified on Linux.
+- Email verification (F3.5): `EmailVerification` holds the sign-up prompt and an opened `/verify-email?token=` link until the navigation shows `VerifyEmailScreen` / `EmailVerifiedScreen`. Explore shows a verify gate while `MeDto.emailVerified` is false.
 
 ## Members and invites (Phase 4)
 

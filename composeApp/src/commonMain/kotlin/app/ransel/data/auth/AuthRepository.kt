@@ -6,6 +6,7 @@ import app.ransel.data.remote.deviceName
 import app.ransel.shared.dto.AuthSessionDto
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.RegisterRequest
+import app.ransel.shared.dto.VerifyEmailResponse
 
 /**
  * Local work that has to follow a sign-in or sign-out (mobile: re-own the guest data, wipe it on
@@ -29,12 +30,35 @@ class AuthRepository(
     private val api: RanselApi,
     private val session: SessionManager,
     private val hooks: SessionHooks,
+    private val verification: EmailVerification,
 ) {
     suspend fun signIn(email: String, password: String): ApiResult<Unit> =
         started(api.login(LoginRequest(email.trim(), password, deviceName())))
 
-    suspend fun signUp(displayName: String, email: String, password: String): ApiResult<Unit> =
-        started(api.register(RegisterRequest(email.trim(), password, displayName.trim(), deviceName())))
+    /** A new account starts unverified: the navigation then shows "Satu langkah lagi" ([EmailVerification.prompt]). */
+    suspend fun signUp(displayName: String, email: String, password: String): ApiResult<Unit> {
+        val result = api.register(RegisterRequest(email.trim(), password, displayName.trim(), deviceName()))
+        if (result is ApiResult.Success && !result.value.user.emailVerified) verification.prompt(result.value.user.email)
+        return started(result)
+    }
+
+    /** Opens the link's token. Signed in, the stored user is refreshed so Explore unlocks at once. */
+    suspend fun verifyEmail(token: String): ApiResult<VerifyEmailResponse> =
+        api.verifyEmail(token).also { if (it is ApiResult.Success) refreshUser() }
+
+    suspend fun resendVerificationEmail(): ApiResult<Unit> = api.resendVerificationEmail()
+
+    /** GET /me into the session (e.g. "Sudah verifikasi" after opening the link on another device). */
+    suspend fun refreshUser(): ApiResult<Unit> {
+        if (session.user == null) return ApiResult.Success(Unit)
+        return when (val result = api.me()) {
+            is ApiResult.Failure -> result
+            is ApiResult.Success -> {
+                session.updateUser(result.value)
+                ApiResult.Success(Unit)
+            }
+        }
+    }
 
     suspend fun forgotPassword(email: String): ApiResult<Unit> = api.forgotPassword(email.trim())
 

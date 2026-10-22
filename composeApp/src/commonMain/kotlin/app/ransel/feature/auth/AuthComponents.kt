@@ -208,7 +208,16 @@ fun AuthSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = 
 @Composable
 fun AuthProblemText(problem: AuthProblem?, modifier: Modifier = Modifier) {
     if (problem == null) return
-    val text = when (problem) {
+    val text = problemText(problem)
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+        Symbol(Symbols.error, size = 18.dp, filled = true, tint = MaterialTheme.colorScheme.error)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Start)
+    }
+}
+
+@Composable
+fun problemText(problem: AuthProblem): String =
+    when (problem) {
         AuthProblem.INVALID_CREDENTIALS -> stringResource(Res.string.auth_error_invalid_credentials)
         AuthProblem.ACCOUNT_DISABLED -> stringResource(Res.string.auth_error_account_disabled)
         AuthProblem.EMAIL_TAKEN -> stringResource(Res.string.auth_error_email_taken)
@@ -218,8 +227,3 @@ fun AuthProblemText(problem: AuthProblem?, modifier: Modifier = Modifier) {
         AuthProblem.REGISTRATION_CLOSED -> stringResource(Res.string.auth_error_registration_closed)
         AuthProblem.GENERIC -> stringResource(Res.string.auth_error_generic)
     }
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
-        Symbol(Symbols.error, size = 18.dp, filled = true, tint = MaterialTheme.colorScheme.error)
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Start)
-    }
-}

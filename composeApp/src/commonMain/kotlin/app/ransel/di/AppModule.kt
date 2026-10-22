@@ -29,15 +29,18 @@ import app.ransel.feature.trip.TripSidePanelViewModel
 import app.ransel.feature.tripform.TripFormViewModel
 import app.ransel.feature.trips.TripListViewModel
 import app.ransel.data.auth.AuthRepository
+import app.ransel.data.auth.EmailVerification
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.remote.apiOrigin
 import app.ransel.data.remote.createApiHttpClient
 import app.ransel.feature.auth.CheckEmailViewModel
+import app.ransel.feature.auth.EmailVerifiedViewModel
 import app.ransel.feature.auth.ForgotPasswordViewModel
 import app.ransel.feature.auth.NewPasswordViewModel
 import app.ransel.feature.auth.SignInViewModel
 import app.ransel.feature.auth.SignUpViewModel
+import app.ransel.feature.auth.VerifyEmailViewModel
 import app.ransel.platform.platformModule
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -52,12 +55,15 @@ val commonModule: Module = module {
     single { SessionManager(get()) { get<RanselApi>() } }
     // The engine is only registered where a platform wants to customise it (Android: Chucker); otherwise Ktor picks one.
     single { RanselApi(createApiHttpClient(getOrNull<io.ktor.client.engine.HttpClientEngine>()), apiOrigin(), get<SessionManager>()) }
-    single { AuthRepository(get(), get(), get()) }
+    single { EmailVerification() }
+    single { AuthRepository(get(), get(), get(), get()) }
     viewModelOf(::SignInViewModel)
     viewModelOf(::SignUpViewModel)
     viewModelOf(::ForgotPasswordViewModel)
     viewModel { params -> CheckEmailViewModel(params.get(), get()) }
     viewModel { params -> NewPasswordViewModel(params.get(), get()) }
+    viewModel { params -> VerifyEmailViewModel(params.get(), get()) }
+    viewModel { params -> EmailVerifiedViewModel(params.get(), get()) }
     viewModelOf(::HomeViewModel)
     viewModelOf(::TripListViewModel)
     viewModelOf(::AccountViewModel)

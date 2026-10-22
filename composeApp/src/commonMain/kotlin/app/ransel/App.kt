@@ -58,6 +58,12 @@ import app.ransel.navigation.SignUpRoute
 import app.ransel.platform.clearResetTokenFromUrl
 import app.ransel.platform.initialInviteCode
 import app.ransel.platform.initialResetToken
+import app.ransel.data.auth.EmailVerification
+import app.ransel.feature.auth.EmailVerifiedScreen
+import app.ransel.feature.auth.VerifyEmailScreen
+import app.ransel.navigation.EmailVerifiedRoute
+import app.ransel.navigation.VerifyEmailRoute
+import app.ransel.platform.initialVerifyToken
 import app.ransel.platform.requiresAccount
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
@@ -222,6 +228,15 @@ private fun SessionGate(openSignIn: Boolean) {
     LaunchedEffect(session) { session.restore() }
     val inviteLinks: InviteLinks = koinInject()
     LaunchedEffect(inviteLinks) { initialInviteCode()?.let(inviteLinks::offerCode) } // web: opened /j/<code>
+    // Web, signed in, opened /verify-email?token=: the app shows the result. Signed out, WebAuthNavigation starts on it.
+    val verification: EmailVerification = koinInject()
+    var verifyLinkOffered by remember { mutableStateOf(false) }
+    LaunchedEffect(state is SessionState.SignedIn) {
+        if (state is SessionState.SignedIn && !verifyLinkOffered) {
+            verifyLinkOffered = true
+            initialVerifyToken()?.let(verification::offerToken)
+        }
+    }
     // Signed in: tell the server which phone this is (push) and fetch the unread count.
     val pushRegistration: PushRegistration = koinInject()
     val notificationsStore: NotificationsStore = koinInject()
@@ -254,9 +269,14 @@ private fun SessionGate(openSignIn: Boolean) {
 private fun WebAuthNavigation() {
     val navController = rememberNavController()
     val resetToken = remember { initialResetToken() }
+    val verifyToken = remember { initialVerifyToken() }
     NavHost(
         navController = navController,
-        startDestination = if (resetToken != null) NewPasswordRoute(resetToken) else SignInRoute,
+        startDestination = when {
+            verifyToken != null -> EmailVerifiedRoute(verifyToken)
+            resetToken != null -> NewPasswordRoute(resetToken)
+            else -> SignInRoute
+        },
     ) {
         authGraph(navController, allowGuest = false, onFinished = {})
     }
@@ -283,9 +303,28 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
         val onJoin = here != null && here.hasRoute<JoinTripRoute>()
         val onAuth = here != null && listOf(
             SignInRoute::class, SignUpRoute::class, ForgotPasswordRoute::class, CheckEmailRoute::class,
-            NewPasswordRoute::class, SessionExpiredRoute::class,
+            NewPasswordRoute::class, SessionExpiredRoute::class, VerifyEmailRoute::class, EmailVerifiedRoute::class,
         ).any { here.hasRoute(it) }
         if (!onJoin && !onAuth) navController.navigate(JoinTripRoute(code)) { launchSingleTop = true }
+    }
+    // A verification link was opened (App Link, or /verify-email on the web while signed in).
+    val verification: EmailVerification = koinInject()
+    val verifyToken by verification.token.collectAsState()
+    LaunchedEffect(verifyToken) {
+        val token = verifyToken ?: return@LaunchedEffect
+        verification.clearToken()
+        navController.navigate(EmailVerifiedRoute(token)) { launchSingleTop = true }
+    }
+    // Just signed up somewhere other than an auth screen (web: the sign-up screen was in WebAuthNavigation).
+    val verifyPrompt by verification.prompt.collectAsState()
+    LaunchedEffect(verifyPrompt, sessionState, currentEntry?.id) {
+        val email = verifyPrompt ?: return@LaunchedEffect
+        val here = navController.currentDestination ?: return@LaunchedEffect
+        val onAuth = listOf(SignInRoute::class, SignUpRoute::class).any { here.hasRoute(it) }
+        if (sessionState is SessionState.SignedIn && !onAuth) {
+            verification.clearPrompt()
+            navController.navigate(VerifyEmailRoute(email)) { launchSingleTop = true }
+        }
     }
     // A notification was tapped: open its trip once we are signed in.
     val notificationTarget: NotificationTarget = koinInject()
@@ -309,7 +348,10 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
             CheckEmailRoute::class, NewPasswordRoute::class, SessionExpiredRoute::class,
         ).any { here.hasRoute(it) }
         if (sessionState is SessionState.SignedIn && onAuthScreen) {
-            navController.navigate(HomeRoute) {
+            // Just signed up: "Satu langkah lagi" instead of Home (it closes to Home).
+            val email = verification.prompt.value
+            verification.clearPrompt()
+            navController.navigate(if (email != null) VerifyEmailRoute(email) else HomeRoute) {
                 popUpTo(navController.graph.findStartDestination().id)
                 launchSingleTop = true
             }
@@ -405,6 +447,17 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                             launchSingleTop = true
                         }
                     })
+                    page<VerifyEmailRoute> { entry ->
+                        VerifyEmailScreen(
+                            email = entry.toRoute<VerifyEmailRoute>().email,
+                            onLater = {
+                                navController.navigate(HomeRoute) {
+                                    popUpTo(navController.graph.findStartDestination().id)
+                                    launchSingleTop = true
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -726,6 +779,21 @@ private fun NavGraphBuilder.authGraph(navController: NavHostController, allowGue
                 clearResetTokenFromUrl()
                 navController.navigate(ForgotPasswordRoute)
             },
+        )
+    }
+    page<EmailVerifiedRoute> { entry ->
+        val session: SessionManager = koinInject()
+        val state by session.state.collectAsState()
+        fun leaveTo(route: Any) {
+            clearResetTokenFromUrl()
+            navController.navigate(route) { popUpTo<EmailVerifiedRoute> { inclusive = true } }
+        }
+        EmailVerifiedScreen(
+            token = entry.toRoute<EmailVerifiedRoute>().token,
+            signedIn = state is SessionState.SignedIn,
+            onExplore = { leaveTo(ExploreRoute) },
+            onHome = { leaveTo(HomeRoute) },
+            onSignIn = { leaveTo(SignInRoute) },
         )
     }
     page<SessionExpiredRoute> {

@@ -54,6 +54,8 @@ actual val requiresAccount: Boolean = false
 
 actual fun initialResetToken(): String? = null
 
+actual fun initialVerifyToken(): String? = null
+
 actual fun clearResetTokenFromUrl() = Unit
 
 actual fun initialInviteCode(): String? = null

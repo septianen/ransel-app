@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import android.Manifest
 import android.os.Build
 import androidx.activity.result.contract.ActivityResultContracts
+import app.ransel.data.auth.EmailVerification
 import app.ransel.data.invite.InviteLinks
 import app.ransel.data.notification.NotificationTarget
 import app.ransel.push.AndroidPushRegistrar
@@ -15,6 +16,7 @@ import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
     private val inviteLinks: InviteLinks by inject()
+    private val emailVerification: EmailVerification by inject()
     private val notificationTarget: NotificationTarget by inject()
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -53,7 +55,12 @@ class MainActivity : ComponentActivity() {
         notificationTarget.offer(tripId, intent.getStringExtra("roundId"), intent.getStringExtra("stage"))
     }
 
+    /** An App Link: an invite or an email verification link (each ignores the other's URLs). */
     private fun offerInvite(intent: Intent?) {
-        if (intent?.action == Intent.ACTION_VIEW) intent.dataString?.let(inviteLinks::offerUrl)
+        if (intent?.action != Intent.ACTION_VIEW) return
+        intent.dataString?.let {
+            inviteLinks.offerUrl(it)
+            emailVerification.offerUrl(it)
+        }
     }
 }

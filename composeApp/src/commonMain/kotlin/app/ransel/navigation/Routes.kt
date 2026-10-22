@@ -38,6 +38,10 @@ import kotlinx.serialization.Serializable
 @Serializable data class CheckEmailRoute(val email: String)
 @Serializable data class NewPasswordRoute(val token: String)
 @Serializable data object SessionExpiredRoute
+/** "Satu langkah lagi" right after sign-up. */
+@Serializable data class VerifyEmailRoute(val email: String)
+/** A verification link was opened: verified, or the invalid-link state. */
+@Serializable data class EmailVerifiedRoute(val token: String)
 
 // Members (Phase 4).
 @Serializable data class MembersRoute(val tripId: String)

@@ -10,6 +10,8 @@ import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.ForgotPasswordRequest
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.MeDto
+import app.ransel.shared.dto.VerifyEmailRequest
+import app.ransel.shared.dto.VerifyEmailResponse
 import app.ransel.shared.dto.RefreshRequest
 import app.ransel.shared.dto.RegisterRequest
 import app.ransel.shared.dto.ResetPasswordRequest
@@ -138,6 +140,9 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.AUTH_PASSWORD_FORGOT, bodyOf = { contentType(ContentType.Application.Json); setBody(ForgotPasswordRequest(email)) }) { }
     suspend fun resetPassword(token: String, newPassword: String): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.AUTH_PASSWORD_RESET, bodyOf = { contentType(ContentType.Application.Json); setBody(ResetPasswordRequest(token, newPassword)) }) { }
+    suspend fun verifyEmail(token: String): ApiResult<VerifyEmailResponse> =
+        send(HttpMethod.Post, ApiRoutes.AUTH_EMAIL_VERIFY, VerifyEmailRequest(token))
+    suspend fun resendVerificationEmail(): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.AUTH_EMAIL_RESEND) { }
     suspend fun me(): ApiResult<MeDto> = get(ApiRoutes.ME)
     suspend fun updateMe(request: UpdateMeRequest): ApiResult<MeDto> = send(HttpMethod.Patch, ApiRoutes.ME, request)
 
