@@ -142,6 +142,11 @@ Phase = the roadmap phase in which the screen must be implemented.
 | `screens/CekEmail.html` | `CheckEmailScreen` | Lupa kata sandi: cek email | 3 |  |  |
 | `screens/SandiBaru.html` | `NewPasswordScreen` | Kata sandi baru | 3 |  |  |
 | `screens/SesiBerakhir.html` | `SessionExpiredScreen` | Sesi berakhir | 3 | `capybara-tired-phone` |  |
+| `screens/VerifikasiEmail.html` | `VerifyEmailScreen` | Verifikasi email: cek email (setelah Daftar) | 3 |  |  |
+| `screens/EmailTerverifikasi.html` | `EmailVerifiedScreen` | Verifikasi email: berhasil (dari link) | 3 |  |  |
+| `screens/VerifikasiTidakBerlaku.html` | `EmailVerifiedScreen` (invalid link) | Verifikasi email: link tidak berlaku | 3 |  |  |
+| `screens/JelajahBelumVerifikasi.html` | `ExploreScreen` (email not verified) | Jelajah: email belum diverifikasi | 3 |  |  |
+| `WebVerifikasiEmail`, `WebEmailTerverifikasi`, `WebVerifikasiTidakBerlaku`, `WebJelajahBelumVerifikasi` (canvas boards) | same, web layout | Web: verifikasi email | 3 |  |  |
 | `screens/Akun.html` | `AccountScreen` | Akun (konten scroll penuh) | 1 (sync rows 3) |  |  |
 | `screens/SheetMataUang.html` | `CurrencySheet` | Akun: pilih mata uang (bottom sheet) | 1 |  | Akun |
 | `screens/SheetTema.html` | `ThemeSheet` | Akun: pilih tema (bottom sheet) | 1 |  | Akun |

@@ -133,6 +133,7 @@ Fase 1–5 sudah lengkap. Yang tersisa adalah layar pendukung yang muncul dari k
 - Masuk tanpa ilustrasi, dengan opsi "Pakai tanpa akun dulu" (offline-first). Daftar dan Kata sandi baru menampilkan syarat kata sandi yang tercentang langsung.
 - Lupa kata sandi: link berlaku 30 menit, kirim ulang dengan hitung mundur, setelah kata sandi baru disimpan semua perangkat lain keluar.
 - Sesi berakhir: layar penuh dengan opsi "Nanti saja, pakai offline"; perubahan yang menunggu dikirim setelah masuk lagi.
+- Verifikasi email (disetujui 22 Okt 2026): setelah Daftar, user langsung masuk dan melihat layar "Satu langkah lagi" (link berlaku 24 jam, kirim ulang dengan hitung mundur, "Nanti saja"). Sebelum terverifikasi, semua fitur jalan kecuali Jelajah dan kredit: tab Jelajah menampilkan kartu "Verifikasi email dulu" dengan "Kirim ulang link" dan "Sudah verifikasi". Kredit awal (30) baru masuk setelah verifikasi. Link membuka layar "Email terverifikasi" (+30 kredit, "Mulai jelajah") atau "Link verifikasi tidak berlaku" (VERIFY_TOKEN_INVALID, "Kirim link baru"). Kirim ulang membatalkan link lama. Akun lama dan akun seed dianggap sudah terverifikasi.
 - Mata uang default hanya berlaku untuk trip baru. Tema: Ikuti sistem / Terang / Gelap dengan kartu pratinjau.
 - Offline: banner `inverse-surface` di bawah tab dan penanda `cloud_upload` pada item yang belum terkirim; saat online lagi muncul snackbar "Kembali online · n perubahan terkirim".
 
