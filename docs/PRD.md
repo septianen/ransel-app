@@ -105,6 +105,7 @@ The UI for Phases 1–5 is designed in the "RANSEL — IRIS" canvas and the admi
 
 - Three onboarding screens, Sign up, Sign in, and "Use without an account for now".
 - Forgot password: email → check your email → new password.
+- Email verification after sign-up (owner decision, 22 Oct 2026): the new account can use the app right away, but Explore and the signup credits wait until the link in the email (valid 24 hours) is opened. The app shows "Satu langkah lagi" after sign-up and a verify gate in the Explore tab (resend link, "Sudah verifikasi").
 - Account: profile, sync status, default currency, theme (system/light/dark), language, packing and activity reminders, sign out.
 - Session expired: ask to sign in again, or continue offline.
 
