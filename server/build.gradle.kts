@@ -52,4 +52,9 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+    // CI logs only show a failure count otherwise; print which test failed and why.
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
 }

@@ -38,6 +38,21 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - name: Shared and server tests (Testcontainers uses the runner's Docker)
         run: ./gradlew :shared:jvmTest :server:test --no-daemon
+      - name: Failed tests as annotations
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          for f in glob.glob('server/build/test-results/test/*.xml') + glob.glob('shared/build/test-results/jvmTest/*.xml'):
+              suite = ET.parse(f).getroot()
+              for case in suite.iter('testcase'):
+                  for kind in ('failure', 'error'):
+                      e = case.find(kind)
+                      if e is None: continue
+                      text = ((e.get('message') or '') + '\n' + (e.text or ''))[:1500]
+                      text = text.replace('%', '%25').replace('\r', '').replace('\n', '%0A')
+                      print(f"::error title={suite.get('name').split('.')[-1]} > {case.get('name')}::{text}")
+          PY
 
   deploy:
     needs: test
