@@ -6,10 +6,24 @@
     <!-- Deep links such as /j/<code> are served index.html too; without this the script and .wasm load from /j/. -->
     <base href="/">
     <title>RANSEL</title>
+    <!-- Installable web app (PWA): manifest, icons and the service worker in sw.js. -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#008808">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="RANSEL">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #FFFFFF; }</style>
     <script>
         // The web app and the API live on different hosts in production; locally the app finds the API on its own.
         if (location.hostname === 'ransel.mietek.tech') window.RANSEL_API_ORIGIN = 'https://ranselapi.mietek.tech';
+        // The service worker runs on the deployed host only, so the dev server (localhost:8081) is never cached.
+        // Add ?sw to a local URL to try it against a production build.
+        if ('serviceWorker' in navigator && (location.hostname === 'ransel.mietek.tech' || new URLSearchParams(location.search).has('sw'))) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+        }
     </script>
     <script src="composeApp.js"></script>
 </head>

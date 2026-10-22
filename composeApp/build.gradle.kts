@@ -176,3 +176,15 @@ android {
 if (file("google-services.json").exists()) {
     apply(plugin = "com.google.gms.google-services")
 }
+
+// The web service worker (wasmJsMain/resources/sw.js) names its cache after the build, so each deploy starts a
+// fresh cache and the changed sw.js makes browsers install the new worker. CI passes its commit as GITHUB_SHA.
+tasks.named("wasmJsBrowserDistribution") {
+    val buildId = providers.environmentVariable("GITHUB_SHA").map { it.take(12) }
+        .orElse(providers.provider { System.currentTimeMillis().toString(36) })
+    val outputDir = layout.buildDirectory.dir("dist/wasmJs/productionExecutable")
+    doLast {
+        val sw = outputDir.get().file("sw.js").asFile
+        sw.writeText(sw.readText().replace("__BUILD_ID__", buildId.get()))
+    }
+}

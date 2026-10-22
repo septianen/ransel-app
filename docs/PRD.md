@@ -10,7 +10,7 @@ RANSEL is a trip planner that keeps the itinerary, the packing list, and expense
 
 **Solution:** one trip as the hub for everything, usable offline, shareable with friends, and helped by AI to find places that match the traveller's taste.
 
-**Platforms:** Android, iOS (Compose Multiplatform), and Web (wide layout ≥ 1240 dp with a navigation rail). The UI is available in Indonesian and English. Android and iOS work offline and without an account; the web app is online-only and requires signing in, since it is loaded from the server anyway.
+**Platforms:** Android, iOS (Compose Multiplatform), and Web (wide layout ≥ 1240 dp with a navigation rail). The UI is available in Indonesian and English. Android and iOS work offline and without an account; the web app is online-only and requires signing in, since it is loaded from the server anyway. The web app can be installed to the home screen or desktop (PWA); installed or not, it still needs a connection for data.
 
 ## Goals and metrics
 

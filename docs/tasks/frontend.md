@@ -57,6 +57,9 @@ Work top to bottom. Tick `[x]` when done and keep this file in the repo as the p
 - [x] **F2.4 States.** `StateError` (connection), `StateServerError`, `StateComingSoon`, showing `error.code` small.
   - Done. `ConnectionErrorState` / `ServerErrorState` / `ComingSoonState` with the capybara art and the API error code shown small. Web: any failed request shows the connection or server state over the app, with "Coba lagi" (re-fetch) and "Kembali ke Beranda".
 
+- [x] **F2.5 Installable web app (PWA).** Manifest, icons, service worker that caches the app shell (data stays online-only).
+  - Done. `wasmJsMain/resources`: `manifest.webmanifest`, `icons/` (from the Android launcher foreground), `sw.js` (see TRD "Web PWA"); build id stamped by `wasmJsBrowserDistribution`; nginx keeps `index.html`/`sw.js`/manifest uncached. Verified in headless Chrome against a local production build: worker active, shell cached, `/` and `/j/<code>` open with the server stopped. Not yet checked: install on Android Chrome / iOS Safari, Lighthouse on the deployed host. Not built (needs design): in-app install button, "new version" banner.
+
 **Done when:** the same trip flows from Phase 1 work in the browser against the deployed (or local) server.
 
 > Status: verified against the local server (Postgres in Docker) in headless Firefox: list/open a trip, tick a packing item, record an expense (85.000), connection-error state. Not yet checked: Chrome/Safari, the deployed server.
