@@ -55,6 +55,7 @@ Fase 1–5 sudah lengkap. Yang tersisa adalah layar pendukung yang muncul dari k
 - [x] Jelajah dengan sesi belum selesai: kartu "Lanjutkan" di atas form
 - [x] Jelajah belum masuk (tamu): hero ajakan masuk, 3 manfaat, tombol Masuk dan Daftar
 - [x] Jelajah belum ada trip: hero "Buat trip dulu, yuk", 3 langkah, tombol Buat trip
+- [x] Jelajah untuk trip yang sudah ada (disetujui 23 Okt 2026): field "Fokus area (opsional)" diganti field **Destinasi** seperti di trip baru, sudah terisi destinasi trip dan bisa diganti (mis. trip Yogyakarta, jelajah Solo). Box "Khas …" dan pencarian mengikuti isi field; tanggal, budget dan anggota tetap dari trip, destinasi trip tidak berubah. Field wajib diisi. Board `PreferensiAI` di canvas masih menampilkan "Fokus area" dan perlu diperbarui.
 - [x] Swipe: memuat, kartu, geser kanan (SIMPAN), geser kiri (LEWATI), snackbar setelah simpan, habis (`capybara-pinning-map`)
 - [x] Error (`capybara-umbrella-rain`), tidak ada hasil (`capybara-magnifier-map`), kuota habis (`capybara-firefly`)
 - [x] Tema gelap: Swipe

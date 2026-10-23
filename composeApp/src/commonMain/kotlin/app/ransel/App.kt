@@ -311,7 +311,6 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     LaunchedEffect(accountDisabled) { if (accountDisabled) navController.navigate(SignInRoute) { launchSingleTop = true } }
     // An invite link was opened (or `/j/<code>` on the web): show the join screen over whatever is open.
     val exploreStore: ExploreSessionStore = koinInject()
-    val exploreSessions by exploreStore.sessions.collectAsState()
     val inviteLinks: InviteLinks = koinInject()
     val pendingInvite by inviteLinks.pending.collectAsState()
     val currentEntry by navController.currentBackStackEntryAsState()
@@ -386,29 +385,14 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     val pendingIds by sync.pendingIds.collectAsState()
     val justSynced by sync.justSynced.collectAsState()
 
-    val selected: MainTab? = when {
+    // The rail (wide web windows) marks the open tab; on a trip it marks "Trip".
+    val railSelected: MainTab? = when {
         destination == null -> MainTab.HOME
         destination.hasRoute<HomeRoute>() -> MainTab.HOME
-        destination.hasRoute<TripListRoute>() -> MainTab.TRIPS
+        destination.hasRoute<TripListRoute>() || destination.hasRoute<TripRoute>() -> MainTab.TRIPS
         destination.hasRoute<ExploreRoute>() -> MainTab.EXPLORE
         destination.hasRoute<AccountRoute>() -> MainTab.ACCOUNT
-        else -> null // full-screen destinations hide the bar
-    }
-    val showTabs = selected != null || (expanded && destination != null &&
-        (destination.hasRoute<TripRoute>() || destination.hasRoute<CreateTripRoute>() || destination.hasRoute<EditTripRoute>()))
-
-    fun openTab(tab: MainTab) {
-        val route: Any = when (tab) {
-            MainTab.HOME -> HomeRoute
-            MainTab.TRIPS -> TripListRoute
-            MainTab.EXPLORE -> ExploreRoute
-            MainTab.ACCOUNT -> AccountRoute
-        }
-        navController.navigate(route) {
-            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-            launchSingleTop = true
-            restoreState = true
-        }
+        else -> null
     }
 
     CompositionLocalProvider(LocalPendingIds provides pendingIds) {
@@ -417,28 +401,17 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
             // Wide web windows: a navigation rail on the left; phones: the bottom bar below.
             if (expanded) {
                 RanselNavigationRail(
-                    selected = selected ?: if (destination?.hasRoute<TripRoute>() == true) MainTab.TRIPS else null,
-                    onSelect = ::openTab,
+                    selected = railSelected,
+                    onSelect = navController::openTab,
                     onCreateTrip = { navController.navigate(CreateTripRoute) },
                 )
             }
-            Scaffold(
-                modifier = Modifier.weight(1f),
-                containerColor = MaterialTheme.colorScheme.background,
-                // Each screen applies its own system-bar insets (tabs: below; full-screen routes: themselves).
-                contentWindowInsets = WindowInsets(0),
-                bottomBar = {
-                    if (!expanded && selected != null) {
-                        RanselBottomBar(selected = selected, onSelect = ::openTab, exploreHasSession = exploreSessions.values.any { !it.finished })
-                    }
-                },
-            ) { padding ->
+            // Each screen applies its own system-bar insets; the four tabs bring their own bottom bar (TabPage), so
+            // every other destination is full screen and slides in over it.
+            Box(Modifier.weight(1f).fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 NavHost(
                     navController = navController,
                     startDestination = HomeRoute,
-                    // consumeWindowInsets: the bottom bar's height is already out of the way, so a screen's imePadding()
-                    // must not count it again (it left a white gap above the keyboard on the Explore form).
-                    modifier = Modifier.padding(padding).consumeWindowInsets(padding),
                     enterTransition = {
                         if (betweenTabs()) EnterTransition.None
                         else slideInHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
@@ -456,7 +429,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                         else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
                     },
                 ) {
-                    tabs(navController, exploreStore)
+                    tabs(navController)
                     trips(navController)
                     authGraph(navController, allowGuest = !requiresAccount, onFinished = {
                         // Signed in (or chose offline): back to the app's home, dropping the auth screens.
@@ -504,8 +477,8 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     }
 }
 
-private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore: ExploreSessionStore) {
-    page<HomeRoute> {
+private fun NavGraphBuilder.tabs(navController: NavHostController) {
+    tabPage<HomeRoute>(MainTab.HOME, navController) {
         HomeScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { id, section ->
@@ -522,14 +495,14 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
             onExplore = { navController.navigate(ExplorePreferencesRoute(null)) },
         )
     }
-    page<TripListRoute> {
+    tabPage<TripListRoute>(MainTab.TRIPS, navController) {
         TripListScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { navController.navigate(TripRoute(it)) },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
         )
     }
-    page<ExploreRoute> {
+    tabPage<ExploreRoute>(MainTab.EXPLORE, navController) {
         ExploreTripPickerScreen(
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
@@ -652,7 +625,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
     page<NotificationSettingsRoute> {
         NotificationSettingsScreen(onBack = { navController.popBackStack() })
     }
-    page<AccountRoute> {
+    tabPage<AccountRoute>(MainTab.ACCOUNT, navController) {
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenCredits = { navController.navigate(CreditsRoute) },
@@ -839,6 +812,51 @@ private fun NavBackStackEntry.isTab(): Boolean =
 /** Switching bottom tabs swaps content in place (no motion); everything else slides like a page push. */
 private fun androidx.compose.animation.AnimatedContentTransitionScope<NavBackStackEntry>.betweenTabs(): Boolean =
     initialState.isTab() && targetState.isTab()
+
+/** Opens a bottom tab, keeping each tab's own back stack and scroll position. */
+private fun NavHostController.openTab(tab: MainTab) {
+    val route: Any = when (tab) {
+        MainTab.HOME -> HomeRoute
+        MainTab.TRIPS -> TripListRoute
+        MainTab.EXPLORE -> ExploreRoute
+        MainTab.ACCOUNT -> AccountRoute
+    }
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+/**
+ * One of the four tabs: the page with the bottom bar under it (phones; wide web windows use the rail instead).
+ * The bar belongs to the tab pages only, so every other destination covers it while sliding in.
+ */
+private inline fun <reified T : Any> NavGraphBuilder.tabPage(
+    tab: MainTab,
+    navController: NavHostController,
+    noinline content: @Composable () -> Unit,
+) {
+    composable<T> {
+        val expanded = rememberIsExpanded()
+        val exploreSessions by koinInject<ExploreSessionStore>().sessions.collectAsState()
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            // The tab applies its own status-bar inset; the bar takes the navigation-bar inset.
+            contentWindowInsets = WindowInsets(0),
+            bottomBar = {
+                if (!expanded) {
+                    RanselBottomBar(selected = tab, onSelect = navController::openTab, exploreHasSession = exploreSessions.values.any { !it.finished })
+                }
+            },
+        ) { padding ->
+            // consumeWindowInsets: the bar's height is already out of the way, so a screen's imePadding() must not count it again.
+            Box(Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Box(Modifier.widthIn(max = PageMaxWidth).fillMaxSize()) { content() }
+            }
+        }
+    }
+}
 
 /**
  * A destination with an opaque page background. Pages slide over each other, so each one must paint
