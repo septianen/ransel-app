@@ -45,12 +45,15 @@ import androidx.compose.ui.unit.dp
 import app.ransel.admin.data.AdminApi
 import app.ransel.admin.data.AdminSession
 import app.ransel.admin.data.AdminState
+import app.ransel.admin.data.ApiEnvironment
 import app.ransel.admin.data.ApiFailure
+import app.ransel.admin.data.LocalEnvironments
 import app.ransel.admin.feature.auth.BrandMark
 import app.ransel.admin.feature.auth.SignInScreen
 import app.ransel.admin.feature.shell.AdminSection
 import app.ransel.admin.feature.shell.AdminSidebar
-import app.ransel.admin.feature.shell.EnvironmentBadge
+import app.ransel.admin.feature.shell.EnvironmentMenuBadge
+import app.ransel.admin.feature.shell.EnvironmentStrip
 import app.ransel.admin.feature.users.UserDetailScreen
 import app.ransel.admin.feature.users.UsersScreen
 import app.ransel.admin.generated.resources.Res
@@ -125,12 +128,18 @@ fun AdminApp(api: AdminApi, session: AdminSession) {
             LaunchedEffect(session) { session.restore() }
             // Surface sets the content colour (onSurface) for every Text below, in light and dark.
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surfaceContainer) {
-                when (val current = state) {
-                    AdminState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-                    AdminState.SignedOut -> SignInScreen(session)
-                    is AdminState.NotAdmin -> NotAdminScreen(current.email, session)
-                    is AdminState.Unavailable -> UnavailableScreen(current.error, session)
-                    is AdminState.Ready -> AdminShell(api, session, current.me)
+                Column(Modifier.fillMaxSize()) {
+                    // Which server this tab is changing, above every screen (sign-in included) unless it is production.
+                    EnvironmentStrip(LocalEnvironments.current.current, (state as? AdminState.Ready)?.me?.environment)
+                    Box(Modifier.weight(1f)) {
+                        when (val current = state) {
+                            AdminState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                            AdminState.SignedOut -> SignInScreen(session)
+                            is AdminState.NotAdmin -> NotAdminScreen(current.email, session)
+                            is AdminState.Unavailable -> UnavailableScreen(current.error, session)
+                            is AdminState.Ready -> AdminShell(api, session, current.me)
+                        }
+                    }
                 }
             }
         }
@@ -145,6 +154,14 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
     val scope = rememberCoroutineScope()
     val onAccessLost: suspend (ApiFailure) -> Unit = { session.onAccessLost(it) }
     val signOut: () -> Unit = { scope.launch { session.signOut() } }
+    val environments = LocalEnvironments.current
+    // Switching server signs out here first (revokes this server's refresh token), then reloads on the other one.
+    val switchEnvironment: (ApiEnvironment) -> Unit = { next ->
+        scope.launch {
+            session.signOut()
+            environments.switchTo(next)
+        }
+    }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= WideLayout
@@ -158,6 +175,7 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                     scope.launch { drawer.close() }
                 },
                 onSignOut = signOut,
+                onSwitchEnvironment = switchEnvironment,
             )
         }
         val page: @Composable () -> Unit = {
@@ -178,7 +196,7 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                                 Symbol(Symbols.moreVert, size = 24.dp, contentDescription = stringResource(Res.string.open_menu))
                             }
                             BrandMark(Modifier.weight(1f))
-                            EnvironmentBadge(me.environment)
+                            EnvironmentMenuBadge(me.environment, environments, switchEnvironment)
                         }
                     }
                     when (val r = route) {

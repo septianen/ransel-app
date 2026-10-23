@@ -38,6 +38,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import app.ransel.admin.data.AdminSession
 import app.ransel.admin.data.ApiFailure
+import app.ransel.admin.data.LocalEnvironments
+import app.ransel.admin.feature.shell.EnvironmentPicker
 import app.ransel.admin.generated.resources.Res
 import app.ransel.admin.generated.resources.app_name
 import app.ransel.admin.generated.resources.app_subtitle
@@ -126,6 +128,7 @@ fun SignInContent(
                 BrandMark()
                 Text(stringResource(Res.string.sign_in_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
                 Text(stringResource(Res.string.sign_in_body), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+                EnvironmentPicker(LocalEnvironments.current)
                 OutlinedTextField(
                     value = state.email,
                     onValueChange = onEmail,

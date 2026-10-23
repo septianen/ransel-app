@@ -59,6 +59,13 @@
     <string name="env_production">Production</string>
     <string name="env_staging">Staging</string>
     <string name="env_development">Local</string>
+    <string name="env_picker_label">Server</string>
+    <string name="env_switch_menu">Change server</string>
+    <string name="env_switch_title">Switch to %1$s?</string>
+    <string name="env_switch_body">You will be signed out of %1$s and sign in again on %2$s. Users, credits and the admin log are separate per server.</string>
+    <string name="env_switch_confirm">Sign out and switch</string>
+    <string name="env_strip">%1$s · %2$s · test data, not real users</string>
+    <string name="env_mismatch">This server reports %1$s, not %2$s. Do not change anything before checking.</string>
 
     <!-- users -->
     <string name="users_title">Users</string>

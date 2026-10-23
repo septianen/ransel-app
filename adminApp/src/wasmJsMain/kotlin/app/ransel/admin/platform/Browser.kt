@@ -1,5 +1,9 @@
 package app.ransel.admin.platform
 
+import app.ransel.admin.data.ApiEnvironment
+import app.ransel.admin.data.environmentsFor
+import app.ransel.admin.data.selected
+
 /*
  * The few browser APIs Karung needs. Everything else is Compose.
  */
@@ -14,17 +18,23 @@ private external fun browserHostname(): String
 @JsFun("() => (typeof window.RANSEL_API_ORIGIN === 'string' ? window.RANSEL_API_ORIGIN : '')")
 private external fun configuredOrigin(): String
 
-/**
- * Where the API lives (scheme + host + port, no `/api/v1`), same rules as the traveller web app:
- *  1. `window.RANSEL_API_ORIGIN` when set (production: `index.html` sets it for karung.mietek.tech);
- *  2. `http://localhost:8080` while developing;
- *  3. otherwise the page's own origin.
- */
-fun apiOrigin(): String {
-    val configured = configuredOrigin()
-    if (configured.isNotBlank()) return configured
-    val host = browserHostname()
-    return if (host == "localhost" || host == "127.0.0.1") "http://$host:8080" else browserOrigin()
+@JsFun("() => window.location.reload()")
+private external fun reloadPage()
+
+private const val ENVIRONMENT_KEY = "karung.environment"
+
+/** The servers this page may use (see [environmentsFor]). */
+fun environments(): List<ApiEnvironment> = environmentsFor(browserHostname(), browserOrigin(), configuredOrigin())
+
+/** The environment chosen in this tab (sessionStorage, like the session), production by default. */
+fun currentEnvironment(all: List<ApiEnvironment> = environments()): ApiEnvironment =
+    all.selected(sessionGet(ENVIRONMENT_KEY).takeIf { it.isNotEmpty() })
+
+/** Remembers [environment] for this tab and reloads on the users list (user ids differ per database). */
+fun switchEnvironment(environment: ApiEnvironment) {
+    sessionSet(ENVIRONMENT_KEY, environment.id)
+    setLocationHash("#/users")
+    reloadPage()
 }
 
 // sessionStorage, not localStorage: Karung has no "remember me" (admin-spec "Privacy and security"); the session survives

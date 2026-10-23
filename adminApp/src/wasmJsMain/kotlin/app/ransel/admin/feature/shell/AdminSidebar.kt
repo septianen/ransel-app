@@ -30,6 +30,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.ransel.admin.data.ApiEnvironment
+import app.ransel.admin.data.LocalEnvironments
 import app.ransel.admin.feature.auth.BrandMark
 import app.ransel.admin.generated.resources.Res
 import app.ransel.admin.generated.resources.coming_soon
@@ -75,13 +77,14 @@ private val ContentSections = listOf(
     AdminSection.CONTENT_STRINGS, AdminSection.CONTENT_ERRORS, AdminSection.CONTENT_CATEGORIES, AdminSection.CONTENT_INTERESTS,
 )
 
-/** Design `Sidebar`: brand, navigation, the signed-in admin and the environment badge from `GET /admin/me`. */
+/** Design `Sidebar`: brand, navigation, the signed-in admin and the environment badge from `GET /admin/me` (also the server switch). */
 @Composable
 fun AdminSidebar(
     me: AdminMeDto,
     selected: AdminSection,
     onSelect: (AdminSection) -> Unit,
     onSignOut: () -> Unit,
+    onSwitchEnvironment: (ApiEnvironment) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -113,7 +116,7 @@ fun AdminSidebar(
                 Text(me.displayName, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(stringResource(Res.string.sidebar_role), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
             }
-            EnvironmentBadge(me.environment)
+            EnvironmentMenuBadge(me.environment, LocalEnvironments.current, onSwitchEnvironment)
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
             val signOut = stringResource(Res.string.sign_out)

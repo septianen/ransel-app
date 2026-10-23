@@ -77,7 +77,7 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 
 ## Admin app (Phase 6)
 
-- `adminApp/` is Karung, the admin web app (wasmJs only, `./gradlew :adminApp:wasmJsBrowserDevelopmentRun`, http://localhost:8082). It uses `iris` for the theme, plain presenters (`ui/Presenter.kt`) instead of Koin ViewModels, hash routes (`#/users/<id>`), and keeps the refresh token in sessionStorage. Run the server with `ADMIN_EMAILS=<your email>` and `ADMIN_APP_ORIGIN=http://localhost:8082`.
+- `adminApp/` is Karung, the admin web app (wasmJs only, `./gradlew :adminApp:wasmJsBrowserDevelopmentRun`, http://localhost:8082). It uses `iris` for the theme, plain presenters (`ui/Presenter.kt`) instead of Koin ViewModels, hash routes (`#/users/<id>`), and keeps the refresh token in sessionStorage (one key per server). On `karung.mietek.tech` it can switch between production and staging (`data/ApiEnvironment.kt`; switching signs out and reloads); locally it only knows `localhost:8080`. Run the server with `ADMIN_EMAILS=<your email>` and `ADMIN_APP_ORIGIN=http://localhost:8082`.
 - Icons: the bundled Material Symbols subset lacks some design icons (`dashboard`, `group`, `toll`, `devices`, `download`, `menu`, ...); Karung uses the nearest existing symbol until the subset is extended.
 - Traveller app (F9.7): `SessionManager` ends the session locally on 403 `ACCOUNT_DISABLED` at refresh (no `SessionHooks.onSignedOut`, local data stays) and sign-in shows "Akun dinonaktifkan".
 

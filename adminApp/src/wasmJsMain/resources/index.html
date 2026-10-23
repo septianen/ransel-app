@@ -7,10 +7,7 @@
     <base href="/">
     <title>Karung · Admin RANSEL</title>
     <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #F3F3F3; }</style>
-    <script>
-        // Karung and the API live on different hosts in production; locally the app finds the API on localhost:8080.
-        if (location.hostname === 'karung.mietek.tech') window.RANSEL_API_ORIGIN = 'https://ranselapi.mietek.tech';
-    </script>
+    <!-- Which API (production or staging) is decided in Kotlin: data/ApiEnvironment.kt environmentsFor(). -->
     <script src="adminApp.js"></script>
 </head>
 <body></body>

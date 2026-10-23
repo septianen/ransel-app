@@ -166,6 +166,7 @@ Admin endpoints are rate limited per admin (60 requests a minute) and never cach
 - CSV export contains name, email, joined, last active, platform, trips count, credits; every export is audited.
 - Admin JWTs live as long as normal access tokens; no "remember me" in Karung.
 - The environment badge ("Produksi"/"Staging") comes from the server, so an admin always sees which database they are changing.
+- One Karung manages both servers: on `karung.mietek.tech` the admin picks Production or Staging on the sign-in screen (or from the badge menu in the sidebar). The choice is per browser tab; switching **signs out** of the current server first and reloads on the other one, and refresh tokens are stored per server. While Staging is chosen an amber strip names the server; if the server reports a different `APP_ENV` than the one picked, the strip turns red.
 
 ## Rollout
 

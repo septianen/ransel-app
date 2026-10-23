@@ -59,6 +59,13 @@
     <string name="env_production">Produksi</string>
     <string name="env_staging">Staging</string>
     <string name="env_development">Lokal</string>
+    <string name="env_picker_label">Server</string>
+    <string name="env_switch_menu">Ganti server</string>
+    <string name="env_switch_title">Pindah ke %1$s?</string>
+    <string name="env_switch_body">Kamu akan keluar dari %1$s, lalu masuk lagi di %2$s. Pengguna, kredit dan log admin tiap server terpisah.</string>
+    <string name="env_switch_confirm">Keluar dan pindah</string>
+    <string name="env_strip">%1$s · %2$s · data uji, bukan pengguna asli</string>
+    <string name="env_mismatch">Server ini melaporkan %1$s, bukan %2$s. Jangan ubah data sebelum dicek.</string>
 
     <!-- users -->
     <string name="users_title">Pengguna</string>
