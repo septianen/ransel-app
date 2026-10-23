@@ -210,8 +210,11 @@ private fun Header(title: String, subtitle: String?, icon: String, onIcon: () ->
     }
 }
 
+/** "Voting untuk trip ke Malang"; a trip without a destination falls back to its name ("Voting untuk Liburan"). */
 @Composable
-private fun voteTitle(state: VoteUiState) = stringResource(Res.string.vote_title, state.destination.ifBlank { state.tripTitle })
+private fun voteTitle(state: VoteUiState) =
+    if (state.destination.isNotBlank()) stringResource(Res.string.vote_title_destination, state.destination)
+    else stringResource(Res.string.vote_title, state.tripTitle)
 
 @Composable
 private fun timeLeft(state: VoteUiState, round: RoundDto) =
@@ -378,6 +381,10 @@ private fun ColumnScope.OwnerResult(
                 Text(stringResource(Res.string.vote_see_itinerary), style = MaterialTheme.typography.titleMedium)
             }
         } else {
+            // Not decided yet (members may still be voting): the owner can leave for the trip and decide later.
+            OutlinedButton(onClick = onOpenItinerary, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                Text(stringResource(Res.string.vote_see_itinerary), style = MaterialTheme.typography.titleMedium)
+            }
             Button(onClick = onDecide, enabled = !state.busy, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                 if (state.busy) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 else Text(

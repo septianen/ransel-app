@@ -856,6 +856,7 @@
     <string name="account_notifications_hint">Trip activity, expenses, reminders</string>
     <!-- Itinerary voting (docs/specs/voting-spec.md) -->
     <string name="vote_title">Voting for %1$s</string>
+    <string name="vote_title_destination">Voting for the trip to %1$s</string>
     <string name="vote_subtitle">From %1$s · %2$d h left</string>
     <string name="vote_subtitle_closed">%1$s · from %2$s</string>
     <string name="vote_liked_count">%1$d liked</string>

@@ -850,6 +850,7 @@
     <string name="account_notifications_hint">Aktivitas trip, pengeluaran, pengingat</string>
     <!-- Itinerary voting (docs/specs/voting-spec.md) -->
     <string name="vote_title">Voting untuk %1$s</string>
+    <string name="vote_title_destination">Voting untuk trip ke %1$s</string>
     <string name="vote_subtitle">Dari %1$s · sisa %2$d jam</string>
     <string name="vote_subtitle_closed">%1$s · dari %2$s</string>
     <string name="vote_liked_count">%1$d disukai</string>
