@@ -17,11 +17,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #FFFFFF; }</style>
     <script>
-        // The web app and the API live on different hosts in production; locally the app finds the API on its own.
-        if (location.hostname === 'ransel.mietek.tech') window.RANSEL_API_ORIGIN = 'https://ranselapi.mietek.tech';
-        // The service worker runs on the deployed host only, so the dev server (localhost:8081) is never cached.
+        // The web app and the API live on different hosts when deployed (production and staging use the same build);
+        // locally the app finds the API on its own.
+        const deployedApi = {
+            'ransel.mietek.tech': 'https://ranselapi.mietek.tech',
+            'ransel-dev.mietek.tech': 'https://ranselapi-dev.mietek.tech',
+        }[location.hostname];
+        if (deployedApi) window.RANSEL_API_ORIGIN = deployedApi;
+        // The service worker runs on the deployed hosts only, so the dev server (localhost:8081) is never cached.
         // Add ?sw to a local URL to try it against a production build.
-        if ('serviceWorker' in navigator && (location.hostname === 'ransel.mietek.tech' || new URLSearchParams(location.search).has('sw'))) {
+        if ('serviceWorker' in navigator && (deployedApi || new URLSearchParams(location.search).has('sw'))) {
             window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
         }
     </script>

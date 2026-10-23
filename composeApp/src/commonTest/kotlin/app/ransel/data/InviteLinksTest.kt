@@ -13,6 +13,7 @@ class InviteLinksTest {
         assertEquals("BALI-7K2Q", parseInviteCode("https://ransel.mietek.tech/j/bali-7k2q/"))
         assertEquals("BALI-7K2Q", parseInviteCode("ransel.mietek.tech/j/BALI-7K2Q?utm=x"))
         assertEquals("BALI-7K2Q", parseInviteCode("  https://ransel.mietek.tech/j/BALI-7K2Q  "))
+        assertEquals("BALI-7K2Q", parseInviteCode("https://ransel-dev.mietek.tech/j/BALI-7K2Q")) // staging
     }
 
     @Test
@@ -22,6 +23,7 @@ class InviteLinksTest {
         assertNull(parseInviteCode("https://evil.example/j/BALI-7K2Q"))
         assertNull(parseInviteCode("https://ransel.app/j/BALI-7K2Q")) // the old domain
         assertNull(parseInviteCode("https://ransel.mietek.tech.evil.example/j/BALI-7K2Q"))
+        assertNull(parseInviteCode("https://ransel-x.mietek.tech/j/BALI-7K2Q"))
     }
 
     @Test

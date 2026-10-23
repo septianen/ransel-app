@@ -107,10 +107,10 @@ jobs:
               echo "HOST_PORT=8090"
               echo "ANDROID_PACKAGE=app.ransel.debug"
               echo "IMAGE_CHANNEL=staging"
-              # Defaults to the production web app (staging has none); set APP_BASE_URL / CORS_ORIGINS in the staging
-              # Environment to change it.
-              echo "APP_BASE_URL=${APP_BASE_URL:-https://ransel.mietek.tech}"
-              echo "CORS_ORIGINS=${CORS_ORIGINS:-https://ransel.mietek.tech}"
+              # The staging web app (Deploy web, target staging); APP_BASE_URL / CORS_ORIGINS in the staging
+              # Environment override them.
+              echo "APP_BASE_URL=${APP_BASE_URL:-https://ransel-dev.mietek.tech}"
+              echo "CORS_ORIGINS=${CORS_ORIGINS:-https://ransel-dev.mietek.tech}"
             } >> "$GITHUB_ENV"
           fi
 

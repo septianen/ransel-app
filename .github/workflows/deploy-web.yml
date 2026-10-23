@@ -1,10 +1,14 @@
 name: Deploy web
 
-# Builds the Compose web (wasmJs) app and publishes it to the folder nginx serves ransel.mietek.tech from.
+# Builds the Compose web (wasmJs) app and publishes it to the folder nginx serves it from.
 # Uses the SSH secrets listed in deploy/README.md (same as Deploy server).
+#   production  push to main            -> ransel.mietek.tech      /opt/ransel/web
+#   staging     push to develop, or     -> ransel-dev.mietek.tech  /opt/ransel-dev/web
+#               Run workflow on any branch with target "staging"
+# The build is the same; index.html picks the API from the hostname.
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths:
       - "composeApp/**"
       - "shared/**"
@@ -13,9 +17,15 @@ on:
       - "gradle.properties"
       - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Where to deploy (production only from main)"
+        type: choice
+        options: [staging, production]
+        default: staging
 
 concurrency:
-  group: deploy-web
+  group: deploy-web-${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
   cancel-in-progress: false
 
 permissions:
@@ -24,7 +34,23 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
     steps:
+      - name: Target settings
+        env:
+          TARGET: ${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+          # Staging has its own variable name, so a missing one never falls back to the production folder.
+          PROD_DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          STAGING_DEPLOY_PATH: ${{ vars.STAGING_DEPLOY_PATH }}
+        run: |
+          if [ "$TARGET" = production ]; then
+            if [ "$GITHUB_REF" != refs/heads/main ]; then echo "production deploys only from main" >&2; exit 1; fi
+            echo "DEPLOY_PATH=${PROD_DEPLOY_PATH:-/opt/ransel}" >> "$GITHUB_ENV"
+            echo "SITE=https://ransel.mietek.tech/" >> "$GITHUB_ENV"
+          else
+            echo "DEPLOY_PATH=${STAGING_DEPLOY_PATH:-/opt/ransel-dev}" >> "$GITHUB_ENV"
+            echo "SITE=https://ransel-dev.mietek.tech/" >> "$GITHUB_ENV"
+          fi
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
@@ -51,7 +77,6 @@ jobs:
           HOST: ${{ secrets.DEPLOY_HOST }}
           PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/ransel' }}
         run: |
           DIST=composeApp/build/dist/wasmJs/productionExecutable
           test -f "$DIST/index.html" || { echo "no web build in $DIST" >&2; exit 1; }
@@ -67,4 +92,4 @@ jobs:
           $SSH "mv '$WEB' '$WEB.old' && mv '$WEB.new' '$WEB' && rm -rf '$WEB.old'"
 
       - name: Check the site answers
-        run: curl -fsS -o /dev/null https://ransel.mietek.tech/
+        run: curl -fsS -o /dev/null "$SITE"

@@ -41,7 +41,7 @@ class EmailVerification {
     }
 }
 
-private val verifyUrl = Regex("""^(?:https?://)?ransel\.mietek\.tech/verify-email/?\?(?:[^#]*&)?token=([A-Za-z0-9_-]+)(?:[&#].*)?$""")
+private val verifyUrl = Regex("""^(?:https?://)?ransel(?:-dev)?\.mietek\.tech/verify-email/?\?(?:[^#]*&)?token=([A-Za-z0-9_-]+)(?:[&#].*)?$""")
 
-/** `https://ransel.mietek.tech/verify-email?token=abc` → `abc`; null for any other URL. */
+/** `https://ransel.mietek.tech/verify-email?token=abc` (or staging `ransel-dev.mietek.tech`) → `abc`; null for any other URL. */
 fun parseVerifyToken(url: String): String? = verifyUrl.matchEntire(url.trim())?.groupValues?.get(1)

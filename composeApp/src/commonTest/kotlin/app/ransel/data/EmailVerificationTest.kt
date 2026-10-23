@@ -13,6 +13,7 @@ class EmailVerificationTest {
         assertEquals("aB3_-x", parseVerifyToken("https://ransel.mietek.tech/verify-email/?token=aB3_-x"))
         assertEquals("aB3_-x", parseVerifyToken("ransel.mietek.tech/verify-email?utm=mail&token=aB3_-x&x=1"))
         assertEquals("aB3_-x", parseVerifyToken("  https://ransel.mietek.tech/verify-email?token=aB3_-x  "))
+        assertEquals("aB3_-x", parseVerifyToken("https://ransel-dev.mietek.tech/verify-email?token=aB3_-x")) // staging
     }
 
     @Test
