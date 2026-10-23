@@ -15,8 +15,6 @@ import kotlinx.serialization.Serializable
 /** What the LLM is asked for. */
 data class LlmQuery(
     val destination: String,
-    /** Narrows the search to an area of the destination. */
-    val focusArea: String?,
     val days: Int,
     /** First day of the trip, as `YYYY-MM-DD`: the prompt names the month so seasonal places fit. */
     val startDate: String,
@@ -107,7 +105,7 @@ class PlacesQuotaException(status: Int) : RuntimeException("Places photo HTTP $s
 
 interface PlacesClient {
     /** Text Search (IDs Only: free). Null = no such place, which drops the candidate. */
-    suspend fun findPlaceId(name: String, destination: String, focusArea: String? = null): String?
+    suspend fun findPlaceId(name: String, destination: String): String?
 
     /**
      * Place Details with a minimal field mask, Essentials tier only (no rating or price: those are Enterprise).

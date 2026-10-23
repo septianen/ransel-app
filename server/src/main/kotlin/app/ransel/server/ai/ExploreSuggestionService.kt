@@ -45,7 +45,7 @@ class ExploreSuggestionService(
 
     private class Guide(val interests: List<String>, val lowMaxUsd: Double, val midMaxUsd: Double)
 
-    private class TripFacts(
+    private data class TripFacts(
         val destination: String,
         val month: String,
         val days: Int,
@@ -58,7 +58,10 @@ class ExploreSuggestionService(
         if (tripId != null) {
             val id = runCatching { UUID.fromString(tripId) }.getOrNull() ?: throw validationFailed(mapOf("tripId" to "INVALID_UUID"))
             requireRole(id, userId, Role.VIEWER)
-            val trip = loadTrip(id)
+            // A destination next to the trip replaces the trip's for the chips; month and budget stay the trip's.
+            val override = destination?.trim()?.takeIf { it.isNotEmpty() }
+            if (override != null && override.length > MAX_DESTINATION) throw validationFailed(mapOf("destination" to "TOO_LONG"))
+            val trip = loadTrip(id).let { if (override != null) it.copy(destination = override) else it }
             val guide = guide(trip.destination, trip.month, language) ?: return ExploreSuggestionsResponse()
             return withBudget(trip, guide)
         }
