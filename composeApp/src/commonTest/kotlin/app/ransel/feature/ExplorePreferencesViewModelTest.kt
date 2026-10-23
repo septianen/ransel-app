@@ -147,6 +147,38 @@ class ExplorePreferencesViewModelTest {
     }
 
     @Test
+    fun anExistingTripPrefillsItsDestinationAndAnotherOneDrivesTheChipsAndTheSearch() = runTest {
+        trips.create(
+            CreateTripRequest(
+                id = "t1", title = "Trip A", destination = "Yogyakarta", startDate = LocalDate(2026, 11, 20),
+                endDate = LocalDate(2026, 11, 23), baseCurrency = "IDR",
+            ),
+        )
+        val vm = vm("t1", api { url -> if ("destination=Solo" in url) suggestions("Batik Laweyan", "Keraton") else suggestions("Malioboro", "Keraton") })
+        eventually { vm.state.value.suggestions is SuggestionsState.Loaded }
+        assertEquals("Yogyakarta", vm.state.value.destination)
+        assertEquals("Yogyakarta", vm.state.value.tripDestination)
+        vm.toggleExtraInterest("Malioboro")
+        vm.toggleExtraInterest("Keraton")
+
+        vm.setDestination("Solo")
+        vm.onDestinationBlur()
+        eventually { (vm.state.value.suggestions as? SuggestionsState.Loaded)?.interests?.contains("Batik Laweyan") == true }
+        val call = suggestionCalls.last()
+        assertTrue("tripId=t1" in call && "destination=Solo" in call, call)
+        assertEquals(listOf("Keraton"), vm.state.value.extraInterests)
+
+        vm.setDestination(" ")
+        assertFalse(vm.state.value.canSearch)
+        vm.setDestination("Solo")
+        var ready = false
+        vm.start("unused") { ready = true }
+        eventually { ready }
+        assertEquals("Solo", sessions.session("t1")!!.form.destination)
+        assertEquals("Yogyakarta", store.trips.value.single().destination, "the trip itself is not changed")
+    }
+
+    @Test
     fun startingANewTripCreatesItAndStoresTheSession() = runTest {
         val vm = vm(null, api { suggestions("Snorkeling") })
         vm.setDestination("Lombok")

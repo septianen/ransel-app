@@ -52,12 +52,14 @@ data class ExplorePreferencesState(
     /** Existing trip not loaded yet. */
     val loading: Boolean,
     val tripTitle: String = "",
+    /** The existing trip's own destination (shown on the trip card); the field below starts with it. */
+    val tripDestination: String = "",
+    /** Where to explore: typed for a new trip, prefilled from the trip and editable for an existing one. */
     val destination: String = "",
     val startDate: LocalDate,
     val endDate: LocalDate,
     /** null = follow the default "Trip ke <destination>". */
     val tripName: String? = null,
-    val focusArea: String = "",
     val priceLevel: PriceLevel = PriceLevel.MEDIUM,
     val budgetNote: BudgetNote? = null,
     /** The trip has no budget (existing trips only): shows the "Sedang dipilih sebagai awal" note. */
@@ -76,7 +78,7 @@ data class ExplorePreferencesState(
 ) {
     val days: Int get() = startDate.daysUntil(endDate) + 1
     val hasInterest: Boolean get() = interests.isNotEmpty() || extraInterests.isNotEmpty()
-    val tripReady: Boolean get() = if (newTrip) destination.isNotBlank() && endDate >= startDate else !loading
+    val tripReady: Boolean get() = destination.isNotBlank() && (if (newTrip) endDate >= startDate else !loading)
     val canSearch: Boolean get() = tripReady && hasInterest
 }
 
@@ -86,7 +88,7 @@ sealed interface ExplorePreferencesEvent {
 }
 
 private data class SuggestionsQuery(val tripId: String?, val destination: String, val month: String, val debounce: Boolean, val nonce: Int) {
-    val key: String get() = "${tripId ?: destination.trim().lowercase()}|$month"
+    val key: String get() = "${tripId.orEmpty()}|${destination.trim().lowercase()}|$month"
 }
 
 internal fun LocalDate.monthKey(): String = "$year-${monthNumber.toString().padStart(2, '0')}"
@@ -145,10 +147,11 @@ class ExplorePreferencesViewModel(
         if (last != null) priceTouched = true
         _state.update {
             it.copy(
-                loading = false, tripTitle = trip.title, destination = trip.destination,
+                loading = false, tripTitle = trip.title, tripDestination = trip.destination,
+                // "Ubah preferensi" keeps the destination of the last search (Solo on a Yogyakarta trip).
+                destination = last?.destination?.takeIf { d -> d.isNotBlank() } ?: trip.destination,
                 startDate = trip.startDate, endDate = trip.endDate,
                 noBudget = trip.budgetMinor == null,
-                focusArea = last?.focusArea ?: it.focusArea,
                 priceLevel = last?.priceLevel ?: it.priceLevel,
                 interests = last?.interests ?: it.interests,
                 extraInterests = last?.extraInterests ?: it.extraInterests,
@@ -171,7 +174,7 @@ class ExplorePreferencesViewModel(
 
     private suspend fun loadSuggestions(q: SuggestionsQuery) {
         if (q.debounce) delay(SUGGESTIONS_DEBOUNCE_MILLIS)
-        if (q.tripId == null && q.destination.trim().length < 2) {
+        if (q.destination.trim().length < 2) {
             lastKey = null
             _state.update { it.copy(suggestions = SuggestionsState.Hidden, extraInterests = emptyList()) }
             return
@@ -184,7 +187,8 @@ class ExplorePreferencesViewModel(
             withTimeoutOrNull(SUGGESTIONS_TIMEOUT_MILLIS) {
                 api.exploreSuggestions(
                     tripId = q.tripId,
-                    destination = if (q.tripId == null) q.destination.trim() else null,
+                    // With a trip the destination replaces the trip's for the chips; month and budget stay the trip's.
+                    destination = q.destination.trim(),
                     month = if (q.tripId == null) q.month else null,
                     language = language,
                 )
@@ -216,14 +220,12 @@ class ExplorePreferencesViewModel(
     // ── form ───────────────────────────────────────────────────────────────
 
     fun setDestination(value: String) {
-        _state.update { it.copy(destination = value) }
+        _state.update { it.copy(destination = value.take(200)) }
         requestSuggestions(debounce = true)
     }
 
     /** The destination field lost focus: load right away if the debounce has not already. */
-    fun onDestinationBlur() {
-        if (_state.value.newTrip) requestSuggestions(debounce = false)
-    }
+    fun onDestinationBlur() = requestSuggestions(debounce = false)
 
     fun setDates(start: LocalDate, end: LocalDate) {
         val monthChanged = start.monthKey() != _state.value.startDate.monthKey()
@@ -232,7 +234,6 @@ class ExplorePreferencesViewModel(
     }
 
     fun setTripName(value: String) = _state.update { it.copy(tripName = value.take(80)) }
-    fun setFocusArea(value: String) = _state.update { it.copy(focusArea = value.take(60)) }
     fun setPriceLevel(level: PriceLevel) {
         priceTouched = true
         _state.update { it.copy(priceLevel = level) }
@@ -288,7 +289,7 @@ class ExplorePreferencesViewModel(
                 ExploreSession(
                     ExploreForm(
                         tripId = id, tripTitle = title, destination = s.destination.trim(),
-                        startDate = s.startDate, endDate = s.endDate, focusArea = s.focusArea.trim(),
+                        startDate = s.startDate, endDate = s.endDate,
                         priceLevel = s.priceLevel, interests = s.interests, extraInterests = s.extraInterests,
                         style = s.style, notes = s.notes,
                     ),
