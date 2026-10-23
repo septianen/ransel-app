@@ -42,7 +42,7 @@ private class FreshLlm : LlmClient {
 
 /** Every name exists, all near each other. */
 private class AnyPlaces : PlacesClient {
-    override suspend fun findPlaceId(name: String, destination: String, focusArea: String?) = "place-$name"
+    override suspend fun findPlaceId(name: String, destination: String) = "place-$name"
     override suspend fun details(placeId: String, withPhotoCredit: Boolean) = PlaceDetails(placeId, -8.5, 115.2, "Jl. Bali")
     override suspend fun photo(placeId: String): PlacePhoto? = null
 }

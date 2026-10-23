@@ -83,7 +83,8 @@ class RecommendationService(
         validate(body)
         // Liked places become itinerary items, so only people who can edit the trip may search.
         requireRole(tripId, userId, Role.EDITOR)
-        val trip = loadTrip(tripId)
+        // A destination in the request replaces the trip's for this search only (a Yogyakarta trip exploring Solo).
+        val trip = loadTrip(tripId).let { t -> body.destination?.trim()?.takeIf { it.isNotEmpty() }?.let { t.copy(destination = it) } ?: t }
         if (todayWib() > trip.endDate) throw validationFailed(mapOf("tripId" to "TRIP_ENDED"))
 
         // A trip with 2+ members turns the search into a voting round (docs/specs/voting-spec.md).
@@ -123,7 +124,6 @@ class RecommendationService(
             val query = LlmQuery(
                 destination = trip.destination.trim(),
                 priceGuide = guide,
-                focusArea = body.focusArea?.trim()?.takeIf { it.isNotEmpty() },
                 days = trip.startDate.daysUntil(trip.endDate) + 1,
                 startDate = trip.startDate.toString(),
                 priceLevel = body.priceLevel,
@@ -223,7 +223,7 @@ class RecommendationService(
                     gate.withPermit {
                         try {
                             metrics.placesSearchCalls.incrementAndGet()
-                            val id = ai.places.findPlaceId(candidate.name, query.destination, query.focusArea) ?: return@withPermit null
+                            val id = ai.places.findPlaceId(candidate.name, query.destination) ?: return@withPermit null
                             metrics.placesDetailsCalls.incrementAndGet()
                             val details = ai.places.details(id, withPhotoCredit = false) ?: return@withPermit null
                             candidate to details
@@ -351,7 +351,6 @@ class RecommendationService(
     internal fun cacheKey(body: RecommendationRequest, trip: TripFacts): String {
         val text = listOf(
             normalizeDestination(trip.destination),
-            normalizeDestination(body.focusArea.orEmpty()),
             monthOf(trip.startDate),
             body.interests.map { it.name }.distinct().sorted().joinToString(","),
             body.extraInterests.map(::normalizeDestination).filter { it.isNotEmpty() }.distinct().sorted().joinToString(","),
@@ -363,7 +362,7 @@ class RecommendationService(
         return MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
-    internal class TripFacts(val destination: String, val startDate: LocalDate, val endDate: LocalDate, val baseCurrency: String = "IDR")
+    internal data class TripFacts(val destination: String, val startDate: LocalDate, val endDate: LocalDate, val baseCurrency: String = "IDR")
 
     private fun loadTrip(tripId: UUID): TripFacts = transaction {
         val row = Trips.selectAll().where { (Trips.id eq tripId) and Trips.deletedAt.isNull() }.single()
@@ -415,7 +414,7 @@ class RecommendationService(
             if (body.interests.isEmpty() && body.extraInterests.none { it.isNotBlank() }) put("interests", "EMPTY")
             if (body.extraInterests.size > MAX_EXTRA_INTERESTS) put("extraInterests", "TOO_MANY")
             else if (body.extraInterests.any { it.length > MAX_EXTRA_LENGTH }) put("extraInterests", "TOO_LONG")
-            if (body.focusArea != null && body.focusArea!!.length > MAX_FOCUS_AREA) put("focusArea", "TOO_LONG")
+            if (body.destination != null && body.destination!!.length > MAX_DESTINATION) put("destination", "TOO_LONG")
             if (body.notes != null && body.notes!!.length > 500) put("notes", "TOO_LONG")
             if (body.excludePlaceIds.size > 500) put("excludePlaceIds", "TOO_MANY")
         },
@@ -436,6 +435,6 @@ class RecommendationService(
         const val MAX_SPREAD_KM = 150.0
         const val MAX_EXTRA_INTERESTS = 5
         const val MAX_EXTRA_LENGTH = 40
-        const val MAX_FOCUS_AREA = 60
+        const val MAX_DESTINATION = 200
     }
 }

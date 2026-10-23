@@ -38,11 +38,12 @@ private class FakeLlm(
     val interestCalls = AtomicInteger()
     var interestFailures = 0
     var interests = listOf("Diving", "Pura laut", "Sawah terasering")
-    var lastFocus: String? = null
+    var lastInterestDestination: String? = null
     var lastExtra: List<String> = emptyList()
 
     override suspend fun suggestInterests(destination: String, month: String, language: String): InterestSuggestions {
         interestCalls.incrementAndGet()
+        lastInterestDestination = destination
         if (interestFailures > 0) {
             interestFailures--
             error("boom")
@@ -54,7 +55,6 @@ private class FakeLlm(
     override suspend fun suggest(query: LlmQuery): List<LlmCandidate> {
         calls.incrementAndGet()
         lastQuery = query
-        lastFocus = query.focusArea
         lastExtra = query.extraInterests
         if (failTimes > 0) {
             failTimes--
@@ -69,13 +69,13 @@ private class FakePlaces(
     private val known: Map<String, Pair<Double, Double>>,
     var allFail: Boolean = false,
 ) : PlacesClient {
-    var lastFocusArea: String? = null
+    var lastDestination: String? = null
     val searches = AtomicInteger()
     val details = AtomicInteger()
     val creditLookups = AtomicInteger()
 
-    override suspend fun findPlaceId(name: String, destination: String, focusArea: String?): String? {
-        lastFocusArea = focusArea
+    override suspend fun findPlaceId(name: String, destination: String): String? {
+        lastDestination = destination
         searches.incrementAndGet()
         if (allFail) error("places down")
         return if (name in known) "place-$name" else null
@@ -120,13 +120,13 @@ class RecommendationRoutesTest {
         notes: String? = null,
         newSearch: Boolean = true,
         exclude: List<String> = emptyList(),
-        focus: String? = null,
+        destination: String? = null,
         interests: List<String> = listOf("FOOD", "NATURE"),
         extra: List<String> = emptyList(),
     ) = buildString {
         append("""{"tripId":"$tripId","priceLevel":"$price","interests":[${interests.joinToString(",") { "\"$it\"" }}],""")
         append(""""extraInterests":[${extra.joinToString(",") { "\"$it\"" }}],"style":"SANTAI","newSearch":$newSearch""")
-        if (focus != null) append(""","focusArea":"$focus"""")
+        if (destination != null) append(""","destination":"$destination"""")
         if (notes != null) append(""","notes":"$notes"""")
         append(""","excludePlaceIds":[${exclude.joinToString(",") { "\"$it\"" }}]}""")
     }
@@ -402,26 +402,39 @@ class RecommendationRoutesTest {
     }
 
     @Test
-    fun searchUsesTheTripDestinationFocusAreaAndDestinationInterests() {
+    fun searchUsesTheTripDestinationAndDestinationInterests() {
         val (llm, places) = fakes()
         apiTest(ai = AiServices(llm, places)) {
             val trip = trip("Ubud")
-            post("/recommendations", request(trip, focus = "Tegallalang", extra = listOf("Sawah terasering")))
-            assertEquals("Tegallalang", llm.lastFocus)
+            post("/recommendations", request(trip, extra = listOf("Sawah terasering")))
             assertEquals(listOf("Sawah terasering"), llm.lastExtra)
             assertEquals("Ubud", llm.lastQuery?.destination)
-            assertEquals("Tegallalang", places.lastFocusArea)
+            assertEquals("Ubud", places.lastDestination)
             assertEquals("2026-11-20", llm.lastQuery?.startDate)
         }
     }
 
     @Test
-    fun focusAreaAndDestinationInterestsArePartsOfTheCacheKey() {
+    fun aDestinationInTheRequestReplacesTheTripsForThatSearch() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            val trip = trip("Yogyakarta")
+            assertEquals(HttpStatusCode.OK, post("/recommendations", request(trip, destination = " Solo ")).status)
+            assertEquals("Solo", llm.lastQuery?.destination)
+            assertEquals("Solo", places.lastDestination)
+            assertEquals("2026-11-20", llm.lastQuery?.startDate, "dates still come from the trip")
+            assertEquals("Solo", llm.lastInterestDestination, "the price guide is the one of the searched destination")
+            assertEquals("Yogyakarta", get("/trips/$trip").data().jsonObject.getValue("trip").jsonObject.str("destination"))
+        }
+    }
+
+    @Test
+    fun destinationAndDestinationInterestsArePartsOfTheCacheKey() {
         val (llm, places) = fakes()
         apiTest(ai = AiServices(llm, places)) {
             val trip = trip()
             post("/recommendations", request(trip))
-            post("/recommendations", request(trip, focus = "Ubud"))
+            post("/recommendations", request(trip, destination = "Ubud"))
             post("/recommendations", request(trip, extra = listOf("Diving")))
             assertEquals(3, llm.calls.get())
             post("/recommendations", request(trip, extra = listOf(" diving ")))
@@ -445,7 +458,7 @@ class RecommendationRoutesTest {
                 Triple(request(open, interests = emptyList()), "interests", "EMPTY"),
                 Triple(request(open, extra = List(6) { "x$it" }), "extraInterests", "TOO_MANY"),
                 Triple(request(open, extra = listOf("x".repeat(41))), "extraInterests", "TOO_LONG"),
-                Triple(request(open, focus = "f".repeat(61)), "focusArea", "TOO_LONG"),
+                Triple(request(open, destination = "d".repeat(201)), "destination", "TOO_LONG"),
             )) {
                 val r = post("/recommendations", body)
                 assertEquals("VALIDATION_FAILED", r.errorCode())
@@ -521,6 +534,13 @@ class RecommendationRoutesTest {
             assertEquals("LOW", level(1_000_000).str("suggestedPriceLevel"))
             assertEquals("HIGH", level(20_000_000).str("suggestedPriceLevel"))
 
+            // Another destination changes the chips but not the budget maths, which stays the trip's.
+            llm.lastInterestDestination = null
+            val solo = get("/explore/suggestions?tripId=${trip(5_000_000)}&destination=Solo").data().jsonObject
+            assertEquals("Solo", llm.lastInterestDestination)
+            assertEquals("MEDIUM", solo.str("suggestedPriceLevel"))
+            assertEquals("1250000", solo.str("budgetPerPersonPerDayMinor"))
+
             val noBudget = level(null)
             assertNull(noBudget["suggestedPriceLevel"])
             assertTrue(noBudget.getValue("interests").jsonArray.isNotEmpty())
@@ -535,6 +555,7 @@ class RecommendationRoutesTest {
             assertEquals("VALIDATION_FAILED", get("/explore/suggestions").errorCode())
             assertEquals("VALIDATION_FAILED", get("/explore/suggestions?destination=Kyoto&month=2026-13").errorCode())
             assertEquals("VALIDATION_FAILED", get("/explore/suggestions?tripId=nope").errorCode())
+            assertEquals("VALIDATION_FAILED", get("/explore/suggestions?tripId=$trip&destination=${"d".repeat(201)}").errorCode())
 
             signUp()
             assertEquals("TRIP_NOT_FOUND", get("/explore/suggestions?tripId=$trip").errorCode())

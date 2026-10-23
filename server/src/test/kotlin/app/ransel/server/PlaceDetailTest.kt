@@ -48,7 +48,7 @@ private class DetailLlm(
 
 /** Place ids are `pid-<Name>`; only [known] names exist. */
 private class DetailPlaces(private val known: Set<String>) : PlacesClient {
-    override suspend fun findPlaceId(name: String, destination: String, focusArea: String?): String? =
+    override suspend fun findPlaceId(name: String, destination: String): String? =
         if (name in known) "pid-$name" else null
 
     override suspend fun details(placeId: String, withPhotoCredit: Boolean): PlaceDetails? {

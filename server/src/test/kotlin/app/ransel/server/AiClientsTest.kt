@@ -30,7 +30,7 @@ import kotlin.test.assertTrue
 private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
 
 private val query = LlmQuery(
-    destination = "Bali", focusArea = null, days = 4, startDate = "2026-11-20", priceLevel = PriceLevel.MEDIUM, priceGuide = null,
+    destination = "Bali", days = 4, startDate = "2026-11-20", priceLevel = PriceLevel.MEDIUM, priceGuide = null,
     interests = listOf(Interest.FOOD, Interest.NATURE), extraInterests = emptyList(),
     style = TravelStyle.SANTAI, notes = "tanpa babi", liked = listOf("Tanah Lot"), skipped = listOf("Pantai Kuta"), count = 15,
 )
