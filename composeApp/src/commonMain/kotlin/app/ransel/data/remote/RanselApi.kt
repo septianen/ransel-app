@@ -1,5 +1,7 @@
 package app.ransel.data.remote
 
+import app.ransel.data.analytics.CrashReporter
+import app.ransel.data.analytics.NoCrashReporter
 import app.ransel.shared.api.ApiErrorResponse
 import app.ransel.shared.api.ApiResponse
 import app.ransel.shared.api.ApiRoutes
@@ -124,6 +126,8 @@ class RanselApi(
     private val origin: String,
     /** Adds the bearer token and renews it once on 401. Null before Phase 3 / in tests. */
     private val auth: ApiAuth? = null,
+    /** Reports responses the app cannot read (a contract mismatch, never a network problem). */
+    private val crashes: CrashReporter = NoCrashReporter,
 ) {
     private fun url(path: String) = origin.trimEnd('/') + ApiRoutes.BASE + path
 
@@ -351,8 +355,10 @@ class RanselApi(
             } catch (e: HttpRequestTimeoutException) {
                 ApiResult.Failure(ApiFailure(ErrorCode.NETWORK_TIMEOUT, "The request timed out"))
             } catch (e: kotlinx.serialization.SerializationException) {
+                crashes.record(UnreadableResponseException(method, path, e))
                 ApiResult.Failure(ApiFailure(ErrorCode.INTERNAL_ERROR, "Unexpected response from the server"))
             } catch (e: io.ktor.serialization.ContentConvertException) {
+                crashes.record(UnreadableResponseException(method, path, e))
                 ApiResult.Failure(ApiFailure(ErrorCode.INTERNAL_ERROR, "Unexpected response from the server"))
             } catch (e: Throwable) {
                 ApiResult.Failure(ApiFailure(ErrorCode.NETWORK_UNAVAILABLE, e.message ?: "No connection"))
@@ -374,3 +380,13 @@ class RanselApi(
         }
     }
 }
+
+/**
+ * A response the client could not parse. The path keeps only its fixed words: ids, invite codes and tokens become
+ * `{}` ("/trips/{}/expenses"), and the query is dropped, so nothing secret ends up in a crash report.
+ */
+class UnreadableResponseException(method: HttpMethod, path: String, cause: Throwable) :
+    Exception("Unreadable response: ${method.value} ${routePattern(path)}", cause)
+
+internal fun routePattern(path: String): String =
+    path.substringBefore('?').split('/').joinToString("/") { if (it.all { c -> c in 'a'..'z' || c == '-' }) it else "{}" }

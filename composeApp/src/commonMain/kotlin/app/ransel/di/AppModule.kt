@@ -54,7 +54,7 @@ val commonModule: Module = module {
     // The API client and the session depend on each other: the manager gets the client lazily.
     single { SessionManager(get()) { get<RanselApi>() } }
     // The engine is only registered where a platform wants to customise it (Android: Chucker); otherwise Ktor picks one.
-    single { RanselApi(createApiHttpClient(getOrNull<io.ktor.client.engine.HttpClientEngine>()), apiOrigin(), get<SessionManager>()) }
+    single { RanselApi(createApiHttpClient(getOrNull<io.ktor.client.engine.HttpClientEngine>()), apiOrigin(), get<SessionManager>(), get()) }
     single { EmailVerification() }
     single { AuthRepository(get(), get(), get(), get()) }
     viewModelOf(::SignInViewModel)
@@ -67,12 +67,12 @@ val commonModule: Module = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::TripListViewModel)
     viewModelOf(::AccountViewModel)
-    viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get()) }
-    viewModel { params -> ItineraryViewModel(params.get(), get(), get()) }
-    viewModel { params -> PackingViewModel(params.get(), get()) }
+    viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get(), get()) }
+    viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get()) }
+    viewModel { params -> PackingViewModel(params.get(), get(), get()) }
     viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get()) }
     viewModel { params -> TripSidePanelViewModel(params.get(), get(), get()) }
-    viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get()) }
+    viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get(), get()) }
     single { InviteLinks() }
     single { CreditsStore() }
     single { PushRegistration(get(), get(), get()) }
@@ -81,15 +81,15 @@ val commonModule: Module = module {
     viewModelOf(::CreditsViewModel)
     viewModelOf(::NotificationsViewModel)
     viewModelOf(::NotificationSettingsViewModel)
-    single { ExploreSessionStore(get()) }
+    single { ExploreSessionStore(get(), get()) }
     viewModelOf(::ExploreTripPickerViewModel)
     viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
-    viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get()) }
+    viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> PlaceDetailViewModel(params.get(), get(), get()) }
     single { VotingStore() }
     viewModel { params -> VoteViewModel(params[0], params[1], params[2], get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { params -> InviteSheetViewModel(params.get(), get()) }
-    viewModel { params -> JoinTripViewModel(params.get(), get(), get(), get(), get(), get()) }
+    viewModel { params -> InviteSheetViewModel(params.get(), get(), get()) }
+    viewModel { params -> JoinTripViewModel(params.get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> MembersViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> ActivityFormViewModel(
             tripId = params.get<String>(0),
@@ -97,6 +97,7 @@ val commonModule: Module = module {
             initialDay = params.get<String?>(2),
             trips = get(),
             itinerary = get(),
+            analytics = get(),
         ) }
 }
 

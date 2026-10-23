@@ -66,6 +66,13 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 - iOS `KeychainTokenStore` and the iOS origin are unverified on Linux.
 - Email verification (F3.5): `EmailVerification` holds the sign-up prompt and an opened `/verify-email?token=` link until the navigation shows `VerifyEmailScreen` / `EmailVerifiedScreen`. Explore shows a verify gate while `MeDto.emailVerified` is false.
 
+## Analytics and crash reports
+
+- `data/analytics`: `Analytics` (screen, event, user) and `CrashReporter`; Android = Firebase Analytics + Crashlytics, web = `WebAnalytics` (JS SDK in `index.html`, production host only), iOS = no-op. Android sends from debug and release (debug is the Firebase app `app.ransel.debug`, so filter by app in the console).
+- A new event: add a case to `AnalyticsEvent` (snake_case name, params = enums/flags/counts, never names, emails, free text or amounts) and call `analytics.event(...)` from the ViewModel; ViewModels take `analytics: Analytics = NoAnalytics` as their last parameter so tests can omit it or pass `FakeAnalytics` (`AnalyticsEventsTest`). Add it to the list in `docs/TRD.md` too.
+- Screen views are automatic (`navigation/TrackScreens`, route class name). User id, user properties (`UserProperty`) and crash keys (`CrashKey`) come from `applySessionContext` in `App.kt`; on Android `BreadcrumbAnalytics` also logs every screen and event to Crashlytics.
+- Non-fatal: `crashes.record(e)` only for errors that point to a bug (unparseable response, corrupt saved data), never for offline or HTTP errors. No personal data in exception messages.
+
 ## Members and invites (Phase 4)
 
 - Members and invites are server-only (no Room tables): `MembersViewModel` and `InviteSheetViewModel` call `RanselApi` directly, on mobile too. The members button only shows for signed-in users.

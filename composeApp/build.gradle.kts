@@ -112,6 +112,8 @@ kotlin {
         androidMain.dependencies {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
+            implementation(libs.firebase.analytics)
+            implementation(libs.firebase.crashlytics)
             implementation(libs.androidx.activity.compose)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
@@ -186,6 +188,7 @@ android {
             // Installs next to the release app as "RANSEL Dev" (src/debug/res).
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // Analytics and Crashlytics collect from debug too; Firebase shows it as its own app (app.ransel.debug).
             buildConfigField("String", "API_ORIGIN", "\"${apiOrigin("debug", "https://ranselapi-dev.mietek.tech")}\"")
         }
         getByName("release") {
@@ -203,11 +206,13 @@ android {
     }
 }
 
-// Push (FCM) needs the Firebase project's google-services.json, which is per environment and not in git.
-// Without it the app still builds and runs; PushRegistrar just reports that push is not available.
+// Push (FCM), Analytics and Crashlytics need the Firebase project's google-services.json, which is per environment and
+// not in git. Without it the app still builds and runs; push reports that it is not available and analytics is a no-op.
 // The file must list both app.ransel and app.ransel.debug (or put one per build type in src/debug/ and src/release/).
+// The Crashlytics plugin uploads the R8 mapping file of release builds, so stack traces are readable.
 if (listOf("google-services.json", "src/debug/google-services.json", "src/release/google-services.json").any { file(it).exists() }) {
     apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 // The web service worker (wasmJsMain/resources/sw.js) names its cache after the build, so each deploy starts a

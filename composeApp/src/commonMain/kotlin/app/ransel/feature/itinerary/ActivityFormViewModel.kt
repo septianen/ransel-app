@@ -1,5 +1,8 @@
 package app.ransel.feature.itinerary
 
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.AnalyticsEvent
+import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.repository.ItineraryRepository
@@ -59,6 +62,7 @@ class ActivityFormViewModel(
     initialDay: String?,
     private val trips: TripRepository,
     private val itinerary: ItineraryRepository,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ActivityFormState(isEditing = itemId != null, day = initialDay?.let(LocalDate::parse)))
     val state: StateFlow<ActivityFormState> = _state.asStateFlow()
@@ -135,6 +139,7 @@ class ActivityFormViewModel(
                     sortOrder = sortOrder,
                 ),
             )
+            if (itemId == null) analytics.event(AnalyticsEvent.ActivityAdded(s.category, scheduled))
             events.send(ActivityFormEvent.Saved)
         }
     }

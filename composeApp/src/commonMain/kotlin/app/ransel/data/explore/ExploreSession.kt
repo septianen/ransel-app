@@ -1,5 +1,7 @@
 package app.ransel.data.explore
 
+import app.ransel.data.analytics.CrashReporter
+import app.ransel.data.analytics.NoCrashReporter
 import app.ransel.data.remote.ApiJson
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.shared.dto.RecommendationItem
@@ -71,7 +73,10 @@ data class ExploreSession(
  * Persists the unfinished searches in the per-device preferences: one per trip, so a user can have several at once
  * (the Explore picker shows each inside its trip), and tells the tab bar whether to show the dot.
  */
-class ExploreSessionStore(private val preferences: PreferencesRepository) {
+class ExploreSessionStore(
+    private val preferences: PreferencesRepository,
+    private val crashes: CrashReporter = NoCrashReporter,
+) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val _sessions = MutableStateFlow<Map<String, ExploreSession>>(emptyMap())
 
@@ -80,7 +85,9 @@ class ExploreSessionStore(private val preferences: PreferencesRepository) {
 
     init {
         scope.launch {
-            val saved = runCatching { preferences.getString(KEY)?.let(::decode) }.getOrNull() ?: legacySession()
+            // An unreadable session is dropped (the user starts a new search), but it should not happen: report it.
+            val saved = runCatching { preferences.getString(KEY)?.let(::decode) }.onFailure(crashes::record).getOrNull()
+                ?: legacySession()
             // whatever was saved while this was loading is newer than what was on disk
             if (!saved.isNullOrEmpty()) _sessions.update { saved + it }
         }

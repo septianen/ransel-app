@@ -1,5 +1,8 @@
 package app.ransel.feature.itinerary
 
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.AnalyticsEvent
+import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.repository.ItineraryRepository
@@ -68,6 +71,7 @@ class ItineraryViewModel(
     private val trip: TripDto,
     private val itinerary: ItineraryRepository,
     private val preferences: PreferencesRepository,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     private val selectedDay = MutableStateFlow<LocalDate?>(null)
     private val pending = MutableStateFlow<PendingReorder?>(null)
@@ -210,6 +214,7 @@ class ItineraryViewModel(
                 trip.id,
                 item.toInput().copy(dayDate = day, startTime = start, endTime = end, sortOrder = order),
             )
+            if (item.dayDate == null) analytics.event(AnalyticsEvent.ActivityScheduled)
         }
     }
 

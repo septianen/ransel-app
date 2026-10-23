@@ -1,5 +1,8 @@
 package app.ransel.feature.invite
 
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.AnalyticsEvent
+import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.SessionManager
@@ -48,6 +51,7 @@ data class InviteSheetState(
 class InviteSheetViewModel(
     private val tripId: String,
     private val api: RanselApi,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InviteSheetState())
     val state: StateFlow<InviteSheetState> = _state.asStateFlow()
@@ -74,7 +78,10 @@ class InviteSheetViewModel(
                 expiresAt = Clock.System.now() + INVITE_VALID_DAYS.days,
             )
             when (val result = api.createInvite(tripId, request)) {
-                is ApiResult.Success -> _state.update { it.copy(invite = result.value, loading = false) }
+                is ApiResult.Success -> {
+                    analytics.event(AnalyticsEvent.InviteCreated(role))
+                    _state.update { it.copy(invite = result.value, loading = false) }
+                }
                 is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = result.error) }
             }
         }
@@ -104,6 +111,7 @@ class JoinTripViewModel(
     private val links: InviteLinks,
     private val trips: TripRepository,
     private val sync: SyncStatus,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     private val _state = MutableStateFlow(JoinTripState(signedIn = session.state.value is SessionState.SignedIn))
     val state: StateFlow<JoinTripState> = _state.asStateFlow()
@@ -142,7 +150,10 @@ class JoinTripViewModel(
         _state.update { it.copy(joining = true, failure = null) }
         viewModelScope.launch {
             when (val result = api.acceptInvite(code)) {
-                is ApiResult.Success -> finish(result.value.id)
+                is ApiResult.Success -> {
+                    analytics.event(AnalyticsEvent.MemberJoined)
+                    finish(result.value.id)
+                }
                 is ApiResult.Failure ->
                     if (result.error.code == ErrorCode.ALREADY_MEMBER) finish(preview.tripId)
                     else _state.update { it.copy(joining = false, failure = result.error) }

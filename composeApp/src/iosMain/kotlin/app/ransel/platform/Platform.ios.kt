@@ -34,6 +34,9 @@ private fun databasePath(): String {
 actual val platformModule: Module = module {
     // Push on iOS needs the Firebase iOS SDK in the Xcode project (see docs/tasks/frontend.md F7.x).
     single<app.ransel.data.notification.PushRegistrar> { app.ransel.data.notification.NoPushRegistrar }
+    // Analytics and Crashlytics on iOS also need the Firebase iOS SDK in the Xcode project.
+    single<app.ransel.data.analytics.Analytics> { app.ransel.data.analytics.NoAnalytics }
+    single<app.ransel.data.analytics.CrashReporter> { app.ransel.data.analytics.NoCrashReporter }
     includes(mobileDataModule)
     single<ConnectionMonitor> { NoConnectionMonitor }
     single<TokenStore> { KeychainTokenStore() }

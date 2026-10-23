@@ -1,5 +1,8 @@
 package app.ransel.feature.expenses
 
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.AnalyticsEvent
+import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.SessionManager
@@ -59,6 +62,7 @@ class ExpensesViewModel(
     private val repository: ExpenseRepository,
     private val api: RanselApi,
     private val session: SessionManager,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     /** Members of the trip; empty for guests, offline, or before the first answer (the tab then behaves as solo). */
     private val _members = MutableStateFlow<List<TripMemberDto>>(emptyList())
@@ -112,7 +116,10 @@ class ExpensesViewModel(
                 amountMinor = transfer.amountMinor,
             )
             when (val result = api.createSettlement(trip.id, request)) {
-                is ApiResult.Success -> _balances.update { it.copy(settledNow = it.settledNow + transfer) }
+                is ApiResult.Success -> {
+                    analytics.event(AnalyticsEvent.BalanceSettled)
+                    _balances.update { it.copy(settledNow = it.settledNow + transfer) }
+                }
                 is ApiResult.Failure -> _problems.send(result.error.code)
             }
             _balances.update { it.copy(settling = false) }
@@ -142,7 +149,9 @@ class ExpensesViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExpensesUiState())
 
     fun save(input: ExpenseInput) {
+        val isNew = state.value.groups.none { group -> group.items.any { it.id == input.id } }
         viewModelScope.launch { repository.save(trip.id, input) }
+        if (isNew) analytics.event(AnalyticsEvent.ExpenseAdded(input.category, shared = input.splits.isNotEmpty()))
     }
 
     fun delete(expenseId: String) {

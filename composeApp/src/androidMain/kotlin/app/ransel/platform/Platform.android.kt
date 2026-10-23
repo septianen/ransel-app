@@ -36,6 +36,15 @@ actual val platformModule: Module = module {
     }
     single<TokenStore> { KeystoreTokenStore(androidContext()) }
     single<app.ransel.data.notification.PushRegistrar> { app.ransel.push.AndroidPushRegistrar(androidContext()) }
+    // Every screen and event is also a Crashlytics breadcrumb.
+    single<app.ransel.data.analytics.Analytics> {
+        app.ransel.data.analytics.BreadcrumbAnalytics(app.ransel.analytics.FirebaseAnalyticsTracker(androidContext()), get())
+    }
+    single<app.ransel.data.analytics.CrashReporter> {
+        app.ransel.analytics.FirebaseCrashReporter(androidContext()).apply {
+            setKey(app.ransel.data.analytics.CrashKey.API_ORIGIN, BuildConfig.API_ORIGIN)
+        }
+    }
     single<RanselDatabase> {
         val context = androidContext()
         Room.databaseBuilder<RanselDatabase>(

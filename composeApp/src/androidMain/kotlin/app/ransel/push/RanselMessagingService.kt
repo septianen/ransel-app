@@ -1,5 +1,6 @@
 package app.ransel.push
 
+import app.ransel.data.analytics.CrashReporter
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -42,7 +43,9 @@ class RanselMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         val koin = GlobalContext.getOrNull() ?: return
-        scope.launch { runCatching { koin.get<PushRegistration>().onNewToken(token) } }
+        scope.launch {
+            runCatching { koin.get<PushRegistration>().onNewToken(token) }.onFailure(koin.get<CrashReporter>()::record)
+        }
     }
 
     /**

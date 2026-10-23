@@ -1,5 +1,8 @@
 package app.ransel.feature.packing
 
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.AnalyticsEvent
+import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.repository.PackingRepository
@@ -32,6 +35,7 @@ data class PackingUiState(
 class PackingViewModel(
     private val tripId: String,
     private val packing: PackingRepository,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     val state: StateFlow<PackingUiState> = packing.observe(tripId)
         .map { items ->
@@ -47,6 +51,11 @@ class PackingViewModel(
     fun toggle(item: PackingItemDto) {
         viewModelScope.launch {
             packing.update(tripId, item.id, PatchPackingItemRequest(isPacked = !item.isPacked))
+        }
+        if (!item.isPacked) {
+            val items = state.value.groups.flatMap { it.items }
+            val packed = items.count { it.isPacked || it.id == item.id }
+            analytics.event(AnalyticsEvent.PackingItemChecked(if (items.isEmpty()) 100 else packed * 100 / items.size))
         }
     }
 

@@ -52,16 +52,19 @@ With SMTP set, Karung's "send password reset" turns on by itself (`ADMIN_PASSWOR
 
 Cards show Google place photos through the signed proxy `GET /api/v1/places/photo/{placeId}`. Each uncached photo is a billed Place Photo request (1,000 per month are free). In Google Cloud Console → APIs & Services → Places API (New) → Quotas, cap *Place Photo requests per day* at about 30 (1,000 / 30 days ≈ 33), and keep the budget alert from above. When the cap is hit the proxy answers 404 and the app falls back to the category colour; the counters `placesPhoto` and `placesPhotoQuotaHits` appear in the hourly `ai.metrics` log line.
 
-## Push notifications (Firebase)
+## Firebase (push notifications, Crashlytics, Analytics)
 
-Nothing exists yet; the server and the Android app are ready and stay quiet until these steps are done.
+The server and the apps are ready and stay quiet until these steps are done.
 
-1. https://console.firebase.google.com -> Add project ("ransel"). Analytics can stay off.
+1. https://console.firebase.google.com -> Add project ("ransel"). Turn **Google Analytics on** (Project settings -> Integrations -> Google Analytics if the project already exists); the apps send screen views and the PRD-metric events (`docs/TRD.md` "Testing, deploy, and observability").
 2. Project settings -> Your apps -> Add Android app, package `app.ransel` (release build) with the SHA-1/SHA-256 of the release / Play App Signing key, and a second Android app, package `app.ransel.debug` (debug build, talks to staging) with the SHA-1/SHA-256 of the debug key (`./gradlew :composeApp:signingReport`).
 3. Download `google-services.json` into `composeApp/` (it is git-ignored; it must list both packages, otherwise the debug build fails in `processDebugGoogleServices`). Build again: `./gradlew :composeApp:assembleDebug`. Without the file the app builds but `PushRegistrar.available` is false.
 4. Project settings -> Service accounts -> Generate new private key. Put `base64 -i key.json | tr -d '\n'` in the GitHub secret `FCM_SERVICE_ACCOUNT_JSON` and the project id in the repository variable `FCM_PROJECT_ID`, then run the *Deploy server* workflow again. The server log then says `push.sent` instead of `push.logged`.
 5. Android 13+ asks for the notification permission once, after the first sign-in. If it is refused the inbox still works.
-6. iOS (later, on a Mac): add the iOS app (bundle id `app.ransel`) in Firebase, upload an APNs auth key (Apple Developer -> Keys) under Cloud Messaging, add the Firebase iOS SDK and the Push Notifications capability to the Xcode project, and replace `NoPushRegistrar` in `Platform.ios.kt`.
+6. Crashlytics: open Crashlytics in the console once (it waits for the first crash). Debug and release builds both report (debug as the app `app.ransel.debug`), and the Gradle plugin uploads the R8 mapping file with each release build, so `assembleRelease` needs network access to Firebase. Try it: install a debug build, `adb shell am crash app.ransel.debug`, open the app again, and the crash shows up within a few minutes.
+7. Analytics on Android: debug and release builds both send; debug shows up as the app `app.ransel.debug`, so pick the app (stream) in the console to keep test data apart. To watch events live in DebugView: `adb shell setprop debug.firebase.analytics.app app.ransel.debug` (or `app.ransel` for a release build) (back to normal: `.none.`).
+8. Analytics on the web: Project settings -> Your apps -> Add app -> Web ("RANSEL web"), with Analytics on. Copy `apiKey`, `appId` and `measurementId` into `firebaseConfig` in `composeApp/src/wasmJsMain/resources/index.html` (public client config, not a secret) and deploy the web app. It only sends from `ransel.mietek.tech`; staging and localhost stay silent.
+9. iOS (later, on a Mac): add the iOS app (bundle id `app.ransel`) in Firebase, upload an APNs auth key (Apple Developer -> Keys) under Cloud Messaging, add the Firebase iOS SDK (Messaging, Analytics, Crashlytics) and the Push Notifications capability to the Xcode project, and replace `NoPushRegistrar`, `NoAnalytics` and `NoCrashReporter` in `Platform.ios.kt`.
 
 Reminders run on the server every minute and use WIB for every trip: the packing reminder at 18:00 the day before departure (`NOTIFY_PACKING_HOUR`), the activity reminder 30 minutes before it starts (`NOTIFY_ACTIVITY_LEAD_MINUTES`). A trip in WITA/WIT gets them 1-2 hours off until trips have a timezone.
 

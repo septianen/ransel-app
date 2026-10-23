@@ -1,5 +1,6 @@
 package app.ransel
 
+import kotlinx.coroutines.flow.map
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -139,10 +140,14 @@ import app.ransel.data.invite.InviteLinks
 import app.ransel.data.notification.NotificationTarget
 import app.ransel.data.notification.NotificationsStore
 import app.ransel.data.notification.PushRegistration
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.CrashReporter
+import app.ransel.data.analytics.applySessionContext
 import app.ransel.data.remote.RanselApi
 import app.ransel.feature.members.MembersScreen
 import app.ransel.navigation.TripListRoute
 import app.ransel.navigation.TripRoute
+import app.ransel.navigation.TrackScreens
 import app.ransel.platform.isDebugBuild
 import app.ransel.ui.components.TripTab
 import app.ransel.ui.gallery.ComponentGalleryScreen
@@ -237,6 +242,15 @@ private fun SessionGate(openSignIn: Boolean) {
             initialVerifyToken()?.let(verification::offerToken)
         }
     }
+    // Analytics and crash reports know the account (its id only), its state and the language; cleared when signed out.
+    val analytics: Analytics = koinInject()
+    val crashReporter: CrashReporter = koinInject()
+    val language by koinInject<PreferencesRepository>().observe().map { it.language }.collectAsState(initial = null)
+    LaunchedEffect(state, language) {
+        val current = language ?: return@LaunchedEffect
+        if (state is SessionState.Loading) return@LaunchedEffect
+        applySessionContext(analytics, crashReporter, state, current, requiresAccount)
+    }
     // Signed in: tell the server which phone this is (push) and fetch the unread count.
     val pushRegistration: PushRegistration = koinInject()
     val notificationsStore: NotificationsStore = koinInject()
@@ -245,7 +259,7 @@ private fun SessionGate(openSignIn: Boolean) {
     var explainPermission by remember { mutableStateOf(false) }
     LaunchedEffect(state is SessionState.SignedIn) {
         if (state is SessionState.SignedIn) {
-            runCatching { pushRegistration.register() }
+            runCatching { pushRegistration.register() }.onFailure(crashReporter::record)
             notificationsStore.refresh(api)
             // Android 13+: explain once, then the system dialog.
             explainPermission = registrar.shouldExplainPermission()
@@ -270,6 +284,7 @@ private fun WebAuthNavigation() {
     val navController = rememberNavController()
     val resetToken = remember { initialResetToken() }
     val verifyToken = remember { initialVerifyToken() }
+    TrackScreens(navController)
     NavHost(
         navController = navController,
         startDestination = when {
@@ -285,6 +300,7 @@ private fun WebAuthNavigation() {
 @Composable
 private fun RanselNavigation(openSignIn: Boolean = false) {
     val navController = rememberNavController()
+    TrackScreens(navController)
     val sessionManager: SessionManager = koinInject()
     val sessionState by sessionManager.state.collectAsState()
     LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }

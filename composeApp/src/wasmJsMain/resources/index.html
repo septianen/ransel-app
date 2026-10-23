@@ -30,6 +30,29 @@
             window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
         }
     </script>
+    <script type="module">
+        // Google Analytics for Firebase, production host only (staging, localhost and the dev server send nothing).
+        // The web config is public client config, not a secret: Firebase console -> Project settings -> Your apps ->
+        // Web app. Until appId and measurementId are filled in, window.ranselAnalytics stays undefined (WebAnalytics.kt).
+        const firebaseConfig = {
+            apiKey: '',
+            authDomain: 'sen-katarina-project.firebaseapp.com',
+            projectId: 'sen-katarina-project',
+            appId: '',
+            measurementId: '',
+        };
+        if (location.hostname === 'ransel.mietek.tech' && firebaseConfig.appId && firebaseConfig.measurementId) {
+            const { initializeApp } = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js');
+            const { getAnalytics, logEvent, setUserId, setUserProperties } = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js');
+            const analytics = getAnalytics(initializeApp(firebaseConfig));
+            window.ranselAnalytics = {
+                event: (name, params) => logEvent(analytics, name, params),
+                screen: (name) => logEvent(analytics, 'screen_view', { firebase_screen: name, firebase_screen_class: name }),
+                user: (id) => setUserId(analytics, id),
+                property: (name, value) => setUserProperties(analytics, { [name]: value }),
+            };
+        }
+    </script>
     <script src="composeApp.js"></script>
 </head>
 <body></body>

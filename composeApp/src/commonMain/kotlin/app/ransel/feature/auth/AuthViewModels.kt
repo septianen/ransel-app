@@ -1,5 +1,8 @@
 package app.ransel.feature.auth
 
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.AnalyticsEvent
+import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.AuthRepository
@@ -44,7 +47,10 @@ data class SignInUiState(
     val loading: Boolean = false,
 )
 
-class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
+class SignInViewModel(
+    private val auth: AuthRepository,
+    private val analytics: Analytics = NoAnalytics,
+) : ViewModel() {
     // Arrived here because an admin deactivated the account while it was signed in: say so once.
     private val _state = MutableStateFlow(
         SignInUiState(problem = if (auth.takeAccountDisabled()) AuthProblem.ACCOUNT_DISABLED else null),
@@ -67,7 +73,10 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
         _state.update { it.copy(loading = true, problem = null) }
         viewModelScope.launch {
             when (val result = auth.signIn(current.email, current.password)) {
-                is ApiResult.Success -> _state.update { it.copy(loading = false) }
+                is ApiResult.Success -> {
+                    analytics.event(AnalyticsEvent.Login)
+                    _state.update { it.copy(loading = false) }
+                }
                 is ApiResult.Failure -> _state.update { it.copy(loading = false, problem = problemOf(result.error.code)) }
             }
         }
@@ -91,7 +100,10 @@ data class SignUpUiState(
     val passwordCheck: PasswordCheck get() = checkPassword(password)
 }
 
-class SignUpViewModel(private val auth: AuthRepository) : ViewModel() {
+class SignUpViewModel(
+    private val auth: AuthRepository,
+    private val analytics: Analytics = NoAnalytics,
+) : ViewModel() {
     private val _state = MutableStateFlow(SignUpUiState())
     val state: StateFlow<SignUpUiState> = _state.asStateFlow()
 
@@ -117,7 +129,10 @@ class SignUpViewModel(private val auth: AuthRepository) : ViewModel() {
         _state.update { it.copy(loading = true, problem = null) }
         viewModelScope.launch {
             when (val result = auth.signUp(current.name, current.email, current.password)) {
-                is ApiResult.Success -> _state.update { it.copy(loading = false) }
+                is ApiResult.Success -> {
+                    analytics.event(AnalyticsEvent.SignUp)
+                    _state.update { it.copy(loading = false) }
+                }
                 is ApiResult.Failure -> _state.update { it.copy(loading = false, problem = signUpProblemOf(result.error.code)) }
             }
         }

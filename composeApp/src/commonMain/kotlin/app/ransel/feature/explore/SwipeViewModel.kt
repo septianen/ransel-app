@@ -1,5 +1,8 @@
 package app.ransel.feature.explore
 
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.AnalyticsEvent
+import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.explore.ExploreCard
@@ -54,6 +57,7 @@ class SwipeViewModel(
     private val api: RanselApi,
     private val itinerary: ItineraryRepository,
     private val credits: CreditsStore = CreditsStore(),
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     private val _state = MutableStateFlow<SwipeUiState>(SwipeUiState.Loading)
     val state: StateFlow<SwipeUiState> = _state.asStateFlow()
@@ -82,6 +86,7 @@ class SwipeViewModel(
                 is ApiResult.Success -> {
                     result.value.credits?.let(credits::update)
                     val cards = result.value.groups.flatMap { g -> g.items.map { ExploreCard(g.category, it) } }
+                    analytics.event(AnalyticsEvent.ExploreSearch(newSearch = true, results = cards.size))
                     val roundId = result.value.roundId
                     if (roundId != null) {
                         // Votes go to the server; the session keeps the form (and cards) for the next batch of this round.
@@ -125,6 +130,7 @@ class SwipeViewModel(
         val item = card.item
         val itemId = if (liked) newId() else null
         session = s.copy(swipes = s.swipes + ExploreSwipe(item.placeId, liked, itemId))
+        analytics.event(if (liked) AnalyticsEvent.PlaceSaved else AnalyticsEvent.PlaceSkipped)
         publish()
         viewModelScope.launch {
             persist()
@@ -177,6 +183,7 @@ class SwipeViewModel(
                     val known = exclude.toSet()
                     val more = result.value.groups.flatMap { g -> g.items.map { ExploreCard(g.category, it) } }
                         .filter { it.item.placeId !in known }
+                    analytics.event(AnalyticsEvent.ExploreSearch(newSearch = false, results = more.size))
                     val current = session ?: s
                     session = current.copy(cards = current.cards + more, exhausted = more.isEmpty())
                     persist()

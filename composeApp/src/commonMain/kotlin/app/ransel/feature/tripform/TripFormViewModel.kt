@@ -1,5 +1,8 @@
 package app.ransel.feature.tripform
 
+import app.ransel.data.analytics.Analytics
+import app.ransel.data.analytics.AnalyticsEvent
+import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.repository.PreferencesRepository
@@ -51,6 +54,7 @@ class TripFormViewModel(
     private val tripId: String?,
     private val trips: TripRepository,
     private val preferences: PreferencesRepository,
+    private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         TripFormState(isEditing = tripId != null, startDate = today(), endDate = today().plusDays(3)),
@@ -116,6 +120,7 @@ class TripFormViewModel(
                         endDate = s.endDate, baseCurrency = s.currency, budgetMinor = budgetMinor,
                     ),
                 )
+                analytics.event(AnalyticsEvent.TripCreated)
             } else {
                 trips.update(
                     tripId,

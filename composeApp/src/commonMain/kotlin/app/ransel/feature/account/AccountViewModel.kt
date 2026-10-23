@@ -1,5 +1,7 @@
 package app.ransel.feature.account
 
+import app.ransel.data.analytics.CrashReporter
+import app.ransel.data.analytics.NoCrashReporter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.AuthRepository
@@ -28,6 +30,7 @@ class AccountViewModel(
     private val push: PushRegistration,
     private val notifications: NotificationsStore,
     private val voting: VotingStore,
+    private val crashes: CrashReporter = NoCrashReporter,
 ) : ViewModel() {
     val state: StateFlow<AppPreferences> = preferences.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPreferences(loaded = false))
@@ -40,7 +43,7 @@ class AccountViewModel(
     fun setConfirmReorder(confirm: Boolean) = viewModelScope.launch { preferences.setSkipReorderConfirmation(!confirm) }
 
     fun signOut() = viewModelScope.launch {
-        runCatching { push.unregister() } // before the token is dropped, so this phone stops getting this user's push
+        runCatching { push.unregister() }.onFailure(crashes::record) // before the token is dropped, so this phone stops getting this user's push
         credits.update(null)
         notifications.clear()
         voting.clear()
