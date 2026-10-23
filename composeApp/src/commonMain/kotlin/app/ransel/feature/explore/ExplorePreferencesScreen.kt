@@ -124,23 +124,28 @@ private fun PreferencesForm(
     val scheme = MaterialTheme.colorScheme
     var showDates by remember { mutableStateOf(false) }
     var destinationFocused by remember { mutableStateOf(false) }
+    val destinationError = stringResource(Res.string.field_error_required).takeIf { state.showErrors && state.destination.isBlank() }
+    val destinationField: @Composable () -> Unit = {
+        IrisTextField(
+            label = stringResource(Res.string.explore_destination),
+            value = state.destination,
+            onValueChange = vm::setDestination,
+            placeholder = stringResource(Res.string.explore_destination_hint),
+            leadingSymbol = Symbols.locationOn,
+            error = destinationError,
+            modifier = Modifier.onFocusChanged {
+                if (destinationFocused && !it.hasFocus) vm.onDestinationBlur()
+                destinationFocused = it.hasFocus
+            },
+        )
+    }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         if (state.newTrip) {
             Text(stringResource(Res.string.explore_new_trip_body), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-            IrisTextField(
-                label = stringResource(Res.string.explore_destination),
-                value = state.destination,
-                onValueChange = vm::setDestination,
-                placeholder = stringResource(Res.string.explore_destination_hint),
-                leadingSymbol = Symbols.locationOn,
-                modifier = Modifier.onFocusChanged {
-                    if (destinationFocused && !it.hasFocus) vm.onDestinationBlur()
-                    destinationFocused = it.hasFocus
-                },
-            )
+            destinationField()
             DatesField(state, onClick = { showDates = true })
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 IrisTextField(
@@ -154,16 +159,10 @@ private fun PreferencesForm(
         } else {
             TripCard(state, onChangeTrip)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                IrisTextField(
-                    label = stringResource(Res.string.explore_focus_area),
-                    labelSuffix = stringResource(Res.string.explore_optional),
-                    value = state.focusArea,
-                    onValueChange = vm::setFocusArea,
-                    placeholder = stringResource(Res.string.explore_focus_area_hint),
-                    leadingSymbol = Symbols.locationOn,
-                )
+                // Prefilled from the trip; another place here explores it without changing the trip.
+                destinationField()
                 Text(
-                    stringResource(Res.string.explore_focus_area_helper, state.destination),
+                    stringResource(Res.string.explore_destination_trip_helper, state.tripTitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
                 )
@@ -277,7 +276,7 @@ private fun TripCard(state: ExplorePreferencesState, onChange: () -> Unit) {
             Text(stringResource(Res.string.explore_for_trip), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
             Text(state.tripTitle, style = MaterialTheme.typography.titleMedium, maxLines = 1)
             Text(
-                "${state.destination} · ${dates.range(state.startDate, state.endDate)} · " + pluralStringResource(Res.plurals.explore_days, state.days, state.days),
+                "${state.tripDestination} · ${dates.range(state.startDate, state.endDate)} · " + pluralStringResource(Res.plurals.explore_days, state.days, state.days),
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,
             )

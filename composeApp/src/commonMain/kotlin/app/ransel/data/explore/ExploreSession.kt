@@ -20,7 +20,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 
-/** What the user typed in the Explore form (design `PreferensiAI`). The trip supplies destination and dates (display only). */
+/**
+ * What the user typed in the Explore form (design `PreferensiAI`). The trip supplies the dates (display only);
+ * [destination] is where this search looks, the trip's own destination unless the user changed it.
+ */
 @Serializable
 data class ExploreForm(
     val tripId: String,
@@ -28,7 +31,6 @@ data class ExploreForm(
     val destination: String,
     val startDate: LocalDate,
     val endDate: LocalDate,
-    val focusArea: String = "",
     val priceLevel: PriceLevel = PriceLevel.MEDIUM,
     val interests: List<Interest> = emptyList(),
     /** Ticked "Khas <destination>" chips, sent as `extraInterests`. */

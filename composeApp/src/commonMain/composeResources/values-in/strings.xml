@@ -672,9 +672,7 @@
     <string name="explore_prefs_title">Cari inspirasi</string>
     <string name="explore_for_trip">Untuk trip</string>
     <string name="explore_change_trip">Ganti</string>
-    <string name="explore_focus_area">Fokus area</string>
-    <string name="explore_focus_area_hint">Mis. Ubud, Canggu</string>
-    <string name="explore_focus_area_helper">Kosongkan untuk mencari di seluruh %1$s. Hanya berlaku untuk pencarian ini; tanggal selalu mengikuti trip.</string>
+    <string name="explore_destination_trip_helper">Diisi dari trip %1$s. Ganti untuk menjelajah destinasi lain; tanggal tetap mengikuti trip.</string>
     <string name="explore_special_title">Khas %1$s</string>
     <string name="explore_special_loading">Mencari minat khas %1$s…</string>
     <string name="explore_interest_required">Pilih minimal satu minat.</string>

@@ -678,9 +678,7 @@
     <string name="explore_prefs_title">Find inspiration</string>
     <string name="explore_for_trip">For trip</string>
     <string name="explore_change_trip">Change</string>
-    <string name="explore_focus_area">Focus area</string>
-    <string name="explore_focus_area_hint">E.g. Ubud, Canggu</string>
-    <string name="explore_focus_area_helper">Leave empty to search all of %1$s. Applies to this search only; dates always follow the trip.</string>
+    <string name="explore_destination_trip_helper">Filled in from trip %1$s. Change it to explore somewhere else; dates still follow the trip.</string>
     <string name="explore_special_title">Special to %1$s</string>
     <string name="explore_special_loading">Looking for interests special to %1$s…</string>
     <string name="explore_interest_required">Pick at least one interest.</string>
