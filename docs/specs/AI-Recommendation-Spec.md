@@ -9,7 +9,7 @@ Explore AI (Phase 5) suggests real places for one trip; the user swipes right to
 Decisions agreed on 16 Oct 2026:
 
 - Explore always starts by choosing a trip: an existing ongoing or upcoming trip, or a new trip created when the search starts.
-- Destination and dates always come from the trip. An optional focus area narrows one search.
+- Dates always come from the trip. The destination starts as the trip's and can be changed for one search (updated 23 Oct 2026, replaces the optional focus area): a Yogyakarta trip extended to Solo explores Solo without editing the trip.
 - Budget becomes a **price level** (`$` / `$$` / `$$$`) relative to local prices, preselected from the trip budget when there is one.
 - Interests are split into **core interests** (fixed, valid everywhere) and **destination interests** (3–5 chips suggested by AI per destination and month, cached).
 - Explore requires an account; searches cost credits (updated 20 Oct 2026; was a fixed 10 searches a day): signup grant, 3 free credits a day reset 00:00 WIB, new search 3, next batch 1 (TRD "Quota"). Loading destination interests never costs credits.
@@ -42,7 +42,7 @@ Every input is relative to the trip's destination, so the same form works for Ba
 | Input | Step | Values | Default | Sent as |
 | --- | --- | --- | --- | --- |
 | Destination, dates, trip name | 2b only | text, date range, text | name = "Trip ke \<destination>" | stored on the trip, not in the request |
-| Focus area | 2a only | free text, optional | empty = whole destination | `focusArea` |
+| Destination | 2a | text, required, labelled "Destinasi" as in 2b | the trip's destination, editable | `destination` (the trip's own destination is not changed) |
 | Price level | 2a, 2b | `$` Murah, `$$` Sedang, `$$$` Mewah | from trip budget, else `$$` | `priceLevel`: LOW, MEDIUM, HIGH |
 | Core interests | 2a, 2b | Alam, Kuliner, Budaya & sejarah, Belanja, Petualangan, Hiburan malam, Spot foto, Santai | none | `interests` (enum) |
 | Destination interests | 2a, 2b | 3–5 AI chips in a "Khas \<destination>" box | none | `extraInterests` (strings) |
@@ -64,6 +64,7 @@ Destination interests load on their own while the user fills the form; the form 
 **When the request is sent**
 
 - Existing trip: as soon as the trip is picked in step 1, so the chips are usually ready when the form opens. The server also warms the cache in the background whenever a trip is created or its destination or dates change.
+- Existing trip, destination changed in the form: like a new trip, 600 ms after typing stops or when the field loses focus; the box becomes "Khas <new destination>" (month and budget note still from the trip).
 - New trip: after the user stops typing the destination for 600 ms, or leaves the field. No request per keystroke.
 - New trip, dates set or moved to another month: the chips reload for that month. Chips already ticked that still exist in the new list stay ticked; the others are dropped.
 
@@ -83,11 +84,11 @@ Destination interests load on their own while the user fills the form; the form 
 
 ## API contract
 
-One new read endpoint feeds the form; the search request loses destination and dates and gains price level, focus area and destination interests. All classes live in `shared` (`dto/RecommendationDtos.kt`, `model/Enums.kt`, `api/ApiRoutes.kt`).
+One new read endpoint feeds the form; the search request loses the dates and gains price level, an optional destination for this search and destination interests. All classes live in `shared` (`dto/RecommendationDtos.kt`, `model/Enums.kt`, `api/ApiRoutes.kt`).
 
 | Method | Path | Body / query | Response | Quota |
 | --- | --- | --- | --- | --- |
-| GET | `/explore/suggestions` | `tripId` (step 2a) or `destination` + `month` as `YYYY-MM` (step 2b) | `ExploreSuggestionsResponse` | none; soft limit 60 per user per hour |
+| GET | `/explore/suggestions` | `tripId`, optionally with `destination` (step 2a), or `destination` + `month` as `YYYY-MM` (step 2b) | `ExploreSuggestionsResponse` | none; soft limit 60 per user per hour |
 | POST | `/recommendations` | `RecommendationRequest` | `RecommendationResponse` (unchanged) | 1 search, except `newSearch = false` |
 | POST, DELETE | `/recommendations/feedback` | unchanged | 204 | none |
 
@@ -100,7 +101,7 @@ One new read endpoint feeds the form; the search request loses destination and d
 **RecommendationRequest**
 
 - `tripId: String`
-- `focusArea: String? = null` (at most 60 characters)
+- `destination: String? = null` (at most 200 characters): where to search this time; null = the trip's destination
 - `priceLevel: PriceLevel` (LOW, MEDIUM, HIGH), replaces `budget: BudgetLevel`
 - `interests: List<Interest>`: NATURE, FOOD, CULTURE, SHOPPING, ADVENTURE, NIGHTLIFE, PHOTO, RELAX. BEACH is removed; RELAX is new.
 - `extraInterests: List<String> = emptyList()`: the ticked destination interests, at most 5, each at most 40 characters, copied from the suggestions response.
@@ -123,7 +124,7 @@ The server owns every AI and Places call; the app never sees a key.
 
 **Suggestions** (`GET /explore/suggestions`)
 
-1. Resolve destination and month: from the trip (`tripId`, role at least VIEWER) or from the query.
+1. Resolve destination and month: from the trip (`tripId`, role at least VIEWER; a `destination` next to it replaces the trip's) or from the query.
 2. Look up the cache (`explore_suggestions_cache`, key = normalized destination + month + language). Hit: return it.
 3. Miss: one short LLM call asking for JSON with 3–5 interests that are typical for that destination in that month and are not already covered by the core list, plus a price guide: the typical spend per person per day in USD at the edge between `$` and `$$` and between `$$` and `$$$`. Validate the JSON; on failure retry once, then return an empty list.
 4. With a trip budget: per day per person = budget / trip days / member count, converted to USD with the server's daily FX table (ECB reference rates, refreshed once a day); below the lower edge = LOW, above the upper edge = HIGH, else MEDIUM.
@@ -133,9 +134,9 @@ The server owns every AI and Places call; the app never sees a key.
 
 1. Load the trip, check role (EDITOR or higher) and that it has not ended (today in WIB after `end_date` → 422).
 2. Check the user has enough credits (402 `INSUFFICIENT_CREDITS`); charge after the search succeeded.
-3. Cache key = normalized destination + focus area + month + sorted core interests + sorted extra interests + price level + style.
-4. Prompt inputs: destination, focus area when given ("only places in or near Ubud"), trip dates and season, price level as words relative to local prices, core and extra interests, style, notes, liked and skipped places.
-5. Validate every place with Places Text Search (IDs Only, free), biased to the destination or focus area; drop places not found.
+3. Cache key = normalized destination (the request's, else the trip's) + month + sorted core interests + sorted extra interests + price level + style.
+4. Prompt inputs: destination, trip dates and season, price level as words relative to local prices, core and extra interests, style, notes, liked and skipped places.
+5. Validate every place with Places Text Search (IDs Only, free), biased to the destination; drop places not found.
 6. Price filter: when Places returns a `priceLevel`, drop places more than one step away from the chosen level; places without a price stay.
 7. Return 10–15 cards; prefetch rules and feedback are unchanged.
 
@@ -167,7 +168,7 @@ Phase 5 work for both agents; `shared` changes land first in their own commit.
 **Contract (`shared`, one commit, logged in `CONTRACT_CHANGES.md`)**
 
 - [ ] `PriceLevel { LOW, MEDIUM, HIGH }` replaces `BudgetLevel`; `Interest` drops BEACH and adds RELAX.
-- [ ] `RecommendationRequest`: `priceLevel`, `focusArea`, `extraInterests`; no destination or dates.
+- [ ] `RecommendationRequest`: `priceLevel`, `destination` (optional), `extraInterests`; no dates.
 - [ ] `ExploreSuggestionsResponse` + route `EXPLORE_SUGGESTIONS = "/explore/suggestions"`; `ErrorCode.RATE_LIMITED`.
 
 **Backend**
@@ -175,7 +176,7 @@ Phase 5 work for both agents; `shared` changes land first in their own commit.
 - [ ] Suggestions endpoint with cache table `explore_suggestions_cache` (destination, month, language, interests JSONB, price guide, expires\_at) in V4, LLM call, retry once, empty list on failure.
 - [ ] Daily FX table from ECB reference rates; price level from trip budget.
 - [ ] Cache warm-up when a trip is created or its destination or start month changes.
-- [ ] Search: role and trip-ended checks, new cache key, prompt with focus area and extra interests, Places price filter.
+- [ ] Search: role and trip-ended checks, new cache key, prompt with the destination and extra interests, Places price filter.
 - [ ] Soft limit 60 suggestions per user per hour → 429 `RATE_LIMITED`.
 
 **Frontend**

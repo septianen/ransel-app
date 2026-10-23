@@ -83,7 +83,7 @@ Phase = the roadmap phase in which the screen must be implemented.
 | `screens/PilihTripJelajah.html` (canvas board) | `ExploreTripPickerScreen` | Jelajah: pilih trip | 5 |  |  |
 | `screens/JelajahLanjut.html` | `ExploreTripPickerScreen` (resume card) | Jelajah: sesi belum selesai di dalam trip (satu per trip, bisa lebih dari satu) | 5 |  |  |
 | `screens/JelajahTamu.html` | `ExploreTripPickerScreen` (guest) | Jelajah: belum masuk (tamu) | 5 |  |  |
-| `screens/PreferensiAI.html` | `ExplorePreferencesScreen` (existing trip) | Jelajah: cari untuk trip (Bali, harga dari budget, Khas Bali) | 5 |  |  |
+| `screens/PreferensiAI.html` | `ExplorePreferencesScreen` (existing trip) | Jelajah: cari untuk trip (Bali, harga dari budget, Khas Bali). *Outdated since 23 Oct 2026: "Fokus area (opsional)" is now a prefilled, editable "Destinasi" field (design-decisions-id.md); the board still needs updating.* | 5 |  |  |
 | `PreferensiAITokyo` (canvas board) | `ExplorePreferencesScreen` (existing trip) | Tokyo tanpa budget, Khas Tokyo (Sakura) | 5 |  |  |
 | `JelajahTripBaru`, `JelajahTripBaruMemuat` (canvas boards) | `ExplorePreferencesScreen` (new trip) | Trip baru, minat khas dimuat / memuat | 5 |  |  |
 | `WebJelajah*` (canvas boards) | same screens, wide window | Jelajah di web | 5 |  |  |
