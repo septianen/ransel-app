@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.LoadingButton
 import app.ransel.data.explore.ExploreSession
@@ -46,6 +46,7 @@ import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import app.ransel.util.today
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -53,8 +54,8 @@ import ransel.composeapp.generated.resources.*
 
 /**
  * Explore tab, step 1 (design `PilihTripJelajah`, `JelajahLanjut`, `JelajahTamu`): pick the trip to search for,
- * or start a new one. Guests see the sign-in state; a signed-in user with no eligible trip goes straight to the
- * new-trip form.
+ * or start a new one. Guests see the sign-in state; a signed-in user with no eligible trip sees the empty state,
+ * with the same "Trip baru" floating button.
  */
 @Composable
 fun ExploreTripPickerScreen(
@@ -62,14 +63,11 @@ fun ExploreTripPickerScreen(
     onSignUp: () -> Unit,
     onPickTrip: (String) -> Unit,
     onNewTrip: () -> Unit,
-    onNoTrips: () -> Unit,
     onOpenSwipe: (tripId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ExploreTripPickerViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
-    val forward = !state.loading && state.signedIn && state.emailVerified && state.noEligibleTrip
-    LaunchedEffect(forward) { if (forward) onNoTrips() }
     Column(modifier.fillMaxSize().statusBarsPadding()) {
         Text(
             stringResource(Res.string.explore_title),
@@ -78,7 +76,7 @@ fun ExploreTripPickerScreen(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
         when {
-            state.loading || forward -> Box(Modifier.fillMaxSize())
+            state.loading -> Box(Modifier.fillMaxSize())
             !state.signedIn -> GuestState(onSignIn, onSignUp)
             !state.emailVerified -> VerifyEmailGate(state.email, state.gate, viewModel::resendVerification, viewModel::checkVerified)
             else -> TripPicker(state, onPickTrip, onNewTrip, onOpenSwipe)
@@ -92,7 +90,15 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
     val dates = rememberDateFormatter()
     val credits by rememberCredits()
     Box(Modifier.fillMaxSize()) {
-    Column(
+    if (state.noEligibleTrip) {
+        // Not designed yet: the shared empty state, with room for the floating button below.
+        FullScreenState(
+            title = stringResource(Res.string.explore_empty_title),
+            body = stringResource(Res.string.explore_empty_body),
+            illustration = painterResource(Res.drawable.ic_data_not_found),
+            modifier = Modifier.padding(bottom = 80.dp),
+        )
+    } else Column(
         // 96 dp at the bottom: the last trip stays reachable above the floating button
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),

@@ -404,7 +404,6 @@
     <string name="password_rule_length">Minimal 8 karakter</string>
     <string name="password_rule_digit">Mengandung angka</string>
     <string name="password_rule_letter">Mengandung huruf</string>
-    <string name="terms_agree">Saya setuju dengan Syarat Layanan dan Kebijakan Privasi.</string>
     <string name="sign_up_action">Daftar</string>
     <string name="have_account">Sudah punya akun? </string>
     <string name="forgot_title">Lupa kata sandi?</string>
@@ -467,7 +466,6 @@
     <string name="field_error_email">Masukkan email yang valid.</string>
     <string name="field_error_name">Masukkan namamu.</string>
     <string name="field_error_password">Kata sandi belum memenuhi aturan.</string>
-    <string name="field_error_terms">Setujui syarat untuk melanjutkan.</string>
     <string name="field_error_required">Wajib diisi</string>
     <string name="web_sign_in_required_title">Masuk untuk membuka trip-mu</string>
     <string name="web_sign_in_required_body">Versi web memakai akunmu.</string>
@@ -534,7 +532,7 @@
     <string name="invite_code_label">Kode undangan</string>
     <string name="invite_copy">Salin</string>
     <string name="invite_share">Bagikan link</string>
-    <string name="invite_share_text">Ikut trip \"%1$s\" di Ransel: %2$s</string>
+    <string name="invite_share_text">Ikut trip "%1$s" di Ransel: %2$s</string>
     <string name="invite_valid">Berlaku %1$d hari · maksimal %2$d orang</string>
     <string name="invite_failed">Undangan belum bisa dibuat.</string>
     <string name="invite_button">Undang anggota</string>
@@ -669,6 +667,8 @@
     <string name="explore_picker_hidden_note">Trip yang sudah selesai dan trip yang hanya bisa kamu lihat tidak ditampilkan.</string>
     <string name="explore_picker_new_trip">Trip baru</string>
     <string name="explore_picker_new_trip_body">Belum ada rencana? Mulai dari destinasi dan tanggal.</string>
+    <string name="explore_empty_title">Belum ada trip untuk dijelajahi</string>
+    <string name="explore_empty_body">Buat trip baru, lalu cari inspirasi tempat untuk trip itu.</string>
     <string name="explore_prefs_title">Cari inspirasi</string>
     <string name="explore_for_trip">Untuk trip</string>
     <string name="explore_change_trip">Ganti</string>
@@ -877,12 +877,12 @@
     <string name="vote_result_skips">%1$d lewati</string>
     <string name="vote_result_action">Masukkan %1$d ke itinerary</string>
     <string name="vote_result_close_none">Tutup voting tanpa memilih</string>
-    <string name="vote_result_note">Tempat masuk ke \"Belum dijadwalkan\". Voting langsung ditutup.</string>
+    <string name="vote_result_note">Tempat masuk ke "Belum dijadwalkan". Voting langsung ditutup.</string>
     <string name="vote_result_join">Ikut memilih</string>
     <string name="vote_closed_title">Voting ditutup</string>
     <string name="vote_closed_waiting">Voting sudah ditutup. %1$s yang akan memilih tempat mana yang masuk itinerary; kamu akan dikabari.</string>
     <string name="vote_closed_header">Hasil voting · %1$d dari %2$d anggota memilih</string>
-    <string name="vote_closed_decided">%1$s memilih %2$d dari %3$d tempat. Semuanya sudah ada di \"Belum dijadwalkan\".</string>
+    <string name="vote_closed_decided">%1$s memilih %2$d dari %3$d tempat. Semuanya sudah ada di "Belum dijadwalkan".</string>
     <string name="vote_closed_decided_none">%1$s menutup voting tanpa memilih tempat.</string>
     <string name="vote_closed_chosen">Masuk itinerary</string>
     <string name="vote_closed_not_chosen">Tidak dipilih · %1$d tempat</string>

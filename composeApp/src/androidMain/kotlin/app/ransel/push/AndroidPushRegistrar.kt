@@ -45,7 +45,7 @@ class AndroidPushRegistrar(private val context: Context) : PushRegistrar {
     }
 
     override fun shouldExplainPermission(): Boolean =
-        available && !hasPermission() && !context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_EXPLAINED, false)
+        !hasPermission() && !context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_EXPLAINED, false)
 
     override fun explanationDismissed() {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_EXPLAINED, true).apply()

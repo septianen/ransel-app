@@ -38,7 +38,7 @@ data class ExploreTripPickerState(
     val signedIn: Boolean = false,
     /** Ongoing and upcoming trips where the user is OWNER or EDITOR, nearest first. */
     val trips: List<ExplorePickerTrip> = emptyList(),
-    /** Signed in but with nothing to pick: the app goes straight to the new-trip form. */
+    /** Signed in but with nothing to pick: the empty state with the "Trip baru" button. */
     val noEligibleTrip: Boolean = false,
     /** False until the sign-up email is verified: the verify gate replaces the picker (design `JelajahBelumVerifikasi`). */
     val emailVerified: Boolean = true,

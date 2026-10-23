@@ -30,6 +30,12 @@ import app.ransel.ui.format.rememberDateFormatter
 import org.koin.compose.koinInject
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import kotlinx.coroutines.launch
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.voting.VotingStore
 import app.ransel.data.voting.bannerRound
@@ -74,6 +80,25 @@ fun TripScreen(
     LaunchedEffect(tripId, signedIn) { if (signedIn) voting.refresh(api, tripId) }
     val bannerRound = if (signedIn) rounds[tripId]?.bannerRound() else null
 
+    // Pull to refresh (signed in only: a guest's trip lives on this phone alone). Mobile syncs, web fetches again;
+    // then the server-only parts (voting rounds, members and balances in Expenses) are asked for again.
+    val scope = rememberCoroutineScope()
+    var refreshing by remember { mutableStateOf(false) }
+    var refreshCount by remember { mutableIntStateOf(0) }
+    fun refresh() {
+        if (refreshing) return
+        refreshing = true
+        scope.launch {
+            try {
+                sync.refresh()
+                voting.refresh(api, tripId)
+                refreshCount++
+            } finally {
+                refreshing = false
+            }
+        }
+    }
+
     @Composable
     fun Main(modifier: Modifier) {
         Column(modifier) {
@@ -98,7 +123,12 @@ fun TripScreen(
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
                 )
             }
-            Box(Modifier.weight(1f).navigationBarsPadding()) {
+            PullToRefresh(
+                enabled = signedIn,
+                refreshing = refreshing,
+                onRefresh = { refresh() },
+                modifier = Modifier.weight(1f).navigationBarsPadding(),
+            ) {
                 if (current != null) {
                     when (tab) {
                         TripTab.ITINERARY -> ItineraryTab(
@@ -108,7 +138,7 @@ fun TripScreen(
                             onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
                         )
                         TripTab.PACKING -> PackingTab(current)
-                        TripTab.EXPENSES -> ExpensesTab(current)
+                        TripTab.EXPENSES -> ExpensesTab(current, refreshKey = refreshCount)
                     }
                 }
             }
@@ -127,5 +157,22 @@ fun TripScreen(
         }
     } else {
         Main(modifier.fillMaxSize().statusBarsPadding())
+    }
+}
+
+/** Pull-to-refresh around a tab; disabled (guests) it is a plain box. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PullToRefresh(
+    enabled: Boolean,
+    refreshing: Boolean,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    if (enabled) {
+        PullToRefreshBox(isRefreshing = refreshing, onRefresh = onRefresh, modifier = modifier) { content() }
+    } else {
+        Box(modifier) { content() }
     }
 }

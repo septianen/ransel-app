@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -73,7 +74,8 @@ fun AuthScaffold(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
-        modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).statusBarsPadding().imePadding(),
+        // navigationBarsPadding: the footer line stays above the gesture bar / navigation buttons (edge-to-edge).
+        modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).statusBarsPadding().navigationBarsPadding().imePadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(

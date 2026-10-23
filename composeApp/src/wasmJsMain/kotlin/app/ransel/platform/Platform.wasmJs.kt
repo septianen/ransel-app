@@ -43,8 +43,11 @@ actual val platformModule: Module = module {
     single<PreferencesRepository> { LocalStoragePreferencesRepository() }
 }
 
-// Web has no debug/release split yet; the gallery stays reachable until the Phase 2 deploy.
-actual val isDebugBuild: Boolean = true
+@JsFun("() => window.location.hostname")
+private external fun browserHostname(): String
+
+// Web has no build types: only the production host (ransel.mietek.tech) counts as a release; staging and localhost keep the debug tools.
+actual val isDebugBuild: Boolean = browserHostname() != "ransel.mietek.tech"
 
 actual val supportsInAppLanguage: Boolean = false
 

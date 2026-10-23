@@ -404,7 +404,6 @@
     <string name="password_rule_length">At least 8 characters</string>
     <string name="password_rule_digit">Contains a number</string>
     <string name="password_rule_letter">Contains a letter</string>
-    <string name="terms_agree">I agree to the Terms of Service and Privacy Policy.</string>
     <string name="sign_up_action">Sign up</string>
     <string name="have_account">Already have an account? </string>
     <string name="forgot_title">Forgot your password?</string>
@@ -440,7 +439,7 @@
     <string name="auth_error_generic">Something went wrong. Try again.</string>
     <string name="auth_error_account_disabled">Account deactivated. Data on this device stays safe.</string>
     <string name="auth_error_connection">Cannot reach the server. Check your connection.</string>
-    <string name="auth_error_registration_closed">Sign-up isn\'t open yet. Please try again later.</string>
+    <string name="auth_error_registration_closed">Sign-up isn't open yet. Please try again later.</string>
     <string name="verify_email_title">One more step</string>
     <string name="verify_email_body">Your account is ready. Open the link we sent to %1$s to verify your email. The link works for 24 hours.</string>
     <string name="verify_email_credits_title">Explore credits are waiting</string>
@@ -460,14 +459,13 @@
     <string name="explore_verify_title">Verify your email to use Explore</string>
     <string name="explore_verify_body">We sent a link to %1$s. Once your email is verified, your Explore credits arrive right away.</string>
     <string name="explore_verify_tip_expiry">The link works for 24 hours. Sending a new one cancels the old one.</string>
-    <string name="explore_verify_check">I\'ve verified</string>
+    <string name="explore_verify_check">I've verified</string>
     <string name="explore_verify_note">Everything else works while you wait.</string>
     <string name="explore_verify_sent">New link sent.</string>
     <string name="explore_verify_not_yet">Not verified yet. Open the link in your email first.</string>
     <string name="field_error_email">Enter a valid email.</string>
     <string name="field_error_name">Enter your name.</string>
     <string name="field_error_password">Password does not meet the rules yet.</string>
-    <string name="field_error_terms">Accept the terms to continue.</string>
     <string name="field_error_required">Required</string>
     <string name="web_sign_in_required_title">Sign in to open your trips</string>
     <string name="web_sign_in_required_body">The web app works with your account.</string>
@@ -535,7 +533,7 @@
     <string name="invite_code_label">Invite code</string>
     <string name="invite_copy">Copy</string>
     <string name="invite_share">Share link</string>
-    <string name="invite_share_text">Join my trip \"%1$s\" on Ransel: %2$s</string>
+    <string name="invite_share_text">Join my trip "%1$s" on Ransel: %2$s</string>
     <string name="invite_valid">Valid for %1$d days · up to %2$d people</string>
     <string name="invite_failed">Could not create an invite.</string>
     <string name="invite_button">Invite members</string>
@@ -581,7 +579,7 @@
     <string name="shared_balance_collect_short">gets back</string>
     <string name="shared_balance_owe_short">needs to pay</string>
     <string name="shared_balance_even_short">all square</string>
-    <string name="shared_balances_title">Everyone\'s balance</string>
+    <string name="shared_balances_title">Everyone's balance</string>
     <string name="shared_balances_total">Group total %1$s</string>
     <string name="shared_balances_empty">Everyone is settled up.</string>
     <string name="shared_settle_title">To settle up</string>
@@ -675,6 +673,8 @@
     <string name="explore_picker_hidden_note">Finished trips and trips you can only view are not shown.</string>
     <string name="explore_picker_new_trip">New trip</string>
     <string name="explore_picker_new_trip_body">No plan yet? Start from a destination and dates.</string>
+    <string name="explore_empty_title">No trips to explore yet</string>
+    <string name="explore_empty_body">Start a new trip, then find places to visit for it.</string>
     <string name="explore_prefs_title">Find inspiration</string>
     <string name="explore_for_trip">For trip</string>
     <string name="explore_change_trip">Change</string>
@@ -883,12 +883,12 @@
     <string name="vote_result_skips">%1$d skipped</string>
     <string name="vote_result_action">Add %1$d to the itinerary</string>
     <string name="vote_result_close_none">Close voting without choosing</string>
-    <string name="vote_result_note">Places go to \"Unscheduled\". Voting closes right away.</string>
+    <string name="vote_result_note">Places go to "Unscheduled". Voting closes right away.</string>
     <string name="vote_result_join">Vote too</string>
     <string name="vote_closed_title">Voting closed</string>
     <string name="vote_closed_waiting">Voting is closed. %1$s chooses which places go into the itinerary; you will be told.</string>
     <string name="vote_closed_header">Voting result · %1$d of %2$d members voted</string>
-    <string name="vote_closed_decided">%1$s chose %2$d of %3$d places. They are all in \"Unscheduled\".</string>
+    <string name="vote_closed_decided">%1$s chose %2$d of %3$d places. They are all in "Unscheduled".</string>
     <string name="vote_closed_decided_none">%1$s closed voting without choosing a place.</string>
     <string name="vote_closed_chosen">In the itinerary</string>
     <string name="vote_closed_not_chosen">Not chosen · %1$d places</string>

@@ -261,9 +261,11 @@ private fun SessionGate(openSignIn: Boolean) {
         if (state is SessionState.SignedIn) {
             runCatching { pushRegistration.register() }.onFailure(crashReporter::record)
             notificationsStore.refresh(api)
-            // Android 13+: explain once, then the system dialog.
-            explainPermission = registrar.shouldExplainPermission()
         }
+    }
+    // Once the app is up (past the splash), guests included: explain once, then the system dialog (Android 13+, iOS).
+    LaunchedEffect(state is SessionState.Loading) {
+        if (state !is SessionState.Loading) explainPermission = registrar.shouldExplainPermission()
     }
     when {
         state is SessionState.Loading -> SplashScreen()
@@ -388,7 +390,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
         destination == null -> MainTab.HOME
         destination.hasRoute<HomeRoute>() -> MainTab.HOME
         destination.hasRoute<TripListRoute>() -> MainTab.TRIPS
-        destination.hasRoute<ExploreRoute>() || destination.hasRoute<ExplorePreferencesRoute>() -> MainTab.EXPLORE
+        destination.hasRoute<ExploreRoute>() -> MainTab.EXPLORE
         destination.hasRoute<AccountRoute>() -> MainTab.ACCOUNT
         else -> null // full-screen destinations hide the bar
     }
@@ -516,15 +518,8 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
             },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
             onOpenNotifications = { navController.navigate(NotificationsRoute) },
-            // "Coba": switch to the Explore tab, then open its preferences step on a new trip ("Trip baru").
-            onExplore = {
-                navController.navigate(ExploreRoute) {
-                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-                navController.navigate(ExplorePreferencesRoute(null))
-            },
+            // "Coba": the preferences step on a new trip ("Trip baru"), full screen over Home.
+            onExplore = { navController.navigate(ExplorePreferencesRoute(null)) },
         )
     }
     page<TripListRoute> {
@@ -540,8 +535,6 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
             onSignUp = { navController.navigate(SignUpRoute) },
             onPickTrip = { navController.navigate(ExplorePreferencesRoute(it)) },
             onNewTrip = { navController.navigate(ExplorePreferencesRoute(null)) },
-            // Nothing to pick: go straight to the new-trip form and leave the picker out of the back stack.
-            onNoTrips = { navController.navigate(ExplorePreferencesRoute(null)) { popUpTo<ExploreRoute> { inclusive = true } } },
             onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
         )
     }
@@ -550,8 +543,16 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, exploreStore:
         ExplorePreferencesScreen(
             tripId = route.tripId,
             onBack = { navController.popBackStack() },
-            // "Ganti": back to the picker, whichever way the form was opened.
-            onChangeTrip = { navController.navigate(ExploreRoute) { popUpTo<ExplorePreferencesRoute> { inclusive = true } } },
+            // "Ganti": back to the picker, whichever way the form was opened (from Home or a trip: switch to the Explore tab).
+            onChangeTrip = {
+                if (!navController.popBackStack<ExploreRoute>(inclusive = false)) {
+                    navController.navigate(ExploreRoute) {
+                        popUpTo(navController.graph.findStartDestination().id)
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            },
             onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
         )
     }

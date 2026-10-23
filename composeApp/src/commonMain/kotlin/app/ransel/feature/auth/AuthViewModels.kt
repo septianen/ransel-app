@@ -89,11 +89,9 @@ data class SignUpUiState(
     val name: String = "",
     val email: String = "",
     val password: String = "",
-    val acceptedTerms: Boolean = false,
     val nameError: Boolean = false,
     val emailError: Boolean = false,
     val passwordError: Boolean = false,
-    val termsError: Boolean = false,
     val problem: AuthProblem? = null,
     val loading: Boolean = false,
 ) {
@@ -110,7 +108,6 @@ class SignUpViewModel(
     fun setName(value: String) = _state.update { it.copy(name = value, nameError = false) }
     fun setEmail(value: String) = _state.update { it.copy(email = value, emailError = false, problem = null) }
     fun setPassword(value: String) = _state.update { it.copy(password = value, passwordError = false) }
-    fun setAcceptedTerms(value: Boolean) = _state.update { it.copy(acceptedTerms = value, termsError = false) }
 
     fun submit() {
         val current = _state.value
@@ -119,11 +116,8 @@ class SignUpViewModel(
         val nameError = current.name.isBlank()
         val emailError = !isValidEmail(current.email)
         val passwordError = !check.isValid
-        val termsError = !current.acceptedTerms
-        if (nameError || emailError || passwordError || termsError) {
-            _state.update {
-                it.copy(nameError = nameError, emailError = emailError, passwordError = passwordError, termsError = termsError)
-            }
+        if (nameError || emailError || passwordError) {
+            _state.update { it.copy(nameError = nameError, emailError = emailError, passwordError = passwordError) }
             return
         }
         _state.update { it.copy(loading = true, problem = null) }

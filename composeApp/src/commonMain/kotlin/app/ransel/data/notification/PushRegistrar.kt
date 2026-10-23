@@ -3,8 +3,8 @@ package app.ransel.data.notification
 import app.ransel.shared.model.DevicePlatform
 
 /**
- * What the platform knows about push. Android implements it with Firebase Cloud Messaging; iOS and web have none yet
- * ([NoPushRegistrar]), so [available] is false and nothing is registered with the server.
+ * What the platform knows about push. Android implements it with Firebase Cloud Messaging; iOS only asks for the
+ * permission so far and web has none ([NoPushRegistrar]): [available] is false there and nothing is registered with the server.
  */
 interface PushRegistrar {
     val platform: DevicePlatform?
@@ -18,10 +18,10 @@ interface PushRegistrar {
 
     fun hasPermission(): Boolean
 
-    /** Asks for the permission to show notifications (Android 13+: the system dialog); a no-op elsewhere. */
+    /** Asks for the permission to show notifications (Android 13+ and iOS: the system dialog); a no-op elsewhere. */
     fun requestPermission()
 
-    /** True once: the explanation sheet should be shown (push is available, permission missing, not explained before). */
+    /** True once: the explanation sheet should be shown at app start (permission missing, not explained before). */
     fun shouldExplainPermission(): Boolean
 
     /** The explanation sheet was shown and answered ("Nanti saja" or "Ya"): do not show it again. */

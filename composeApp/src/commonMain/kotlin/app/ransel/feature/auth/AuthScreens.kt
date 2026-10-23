@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,7 +50,6 @@ import ransel.composeapp.generated.resources.field_email
 import ransel.composeapp.generated.resources.field_error_email
 import ransel.composeapp.generated.resources.field_error_name
 import ransel.composeapp.generated.resources.field_error_password
-import ransel.composeapp.generated.resources.field_error_terms
 import ransel.composeapp.generated.resources.field_name
 import ransel.composeapp.generated.resources.forgot_password_link
 import ransel.composeapp.generated.resources.forgot_send
@@ -83,7 +81,6 @@ import ransel.composeapp.generated.resources.sign_up_action
 import ransel.composeapp.generated.resources.sign_up_link
 import ransel.composeapp.generated.resources.sign_up_subtitle
 import ransel.composeapp.generated.resources.sign_up_title
-import ransel.composeapp.generated.resources.terms_agree
 import ransel.composeapp.generated.resources.use_without_account
 
 @Composable
@@ -168,13 +165,6 @@ fun SignUpScreen(
             error = if (state.passwordError) stringResource(Res.string.field_error_password) else null,
         )
         PasswordRules(state.passwordCheck)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = state.acceptedTerms, onCheckedChange = viewModel::setAcceptedTerms)
-            Text(stringResource(Res.string.terms_agree), style = MaterialTheme.typography.bodyMedium)
-        }
-        if (state.termsError) {
-            Text(stringResource(Res.string.field_error_terms), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-        }
         AuthProblemText(state.problem)
         AuthPrimaryButton(stringResource(Res.string.sign_up_action), viewModel::submit, loading = state.loading)
     }

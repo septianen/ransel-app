@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,8 +83,11 @@ import ransel.composeapp.generated.resources.trips_spent_label
 fun ExpensesTab(
     trip: TripDto,
     modifier: Modifier = Modifier,
+    /** Bumped by the trip screen's pull to refresh: members and balances are asked for again. */
+    refreshKey: Int = 0,
     viewModel: ExpensesViewModel = koinViewModel(key = "expenses-${trip.id}") { parametersOf(trip) },
 ) {
+    LaunchedEffect(refreshKey) { if (refreshKey > 0) viewModel.loadMembers() }
     val state by viewModel.state.collectAsState()
     val members by viewModel.members.collectAsState()
     val balances by viewModel.balances.collectAsState()

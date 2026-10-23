@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -86,8 +87,9 @@ fun ExplorePreferencesScreen(
     }
     val defaultName = stringResource(Res.string.explore_new_trip_default_name, state.destination.trim())
     Box(modifier.fillMaxSize()) {
+        // Full screen (no bottom bar): clear the system navigation bar too.
         // imePadding: the keyboard shrinks the scrolling form instead of covering the focused field.
-        Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
             Row(Modifier.padding(start = 8.dp, top = 12.dp, end = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
                     Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
