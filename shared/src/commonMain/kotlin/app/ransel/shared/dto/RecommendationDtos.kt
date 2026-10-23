@@ -20,18 +20,21 @@ import kotlinx.serialization.Serializable
  */
 
 /**
- * POST /recommendations. Destination and dates come from the trip (spec: docs/specs/AI-Recommendation-Spec.md).
+ * POST /recommendations. Dates come from the trip, the destination too unless [destination] is set (spec: docs/specs/AI-Recommendation-Spec.md).
  * 402 INSUFFICIENT_CREDITS when the search (or next batch) costs more than the user has; 404 TRIP_NOT_FOUND; 403 FORBIDDEN for a VIEWER;
  * 409 ROUND_LIMIT when a multi-member trip already has 3 open rounds; 404 ROUND_NOT_FOUND / 409 VOTING_CLOSED for a next
  * batch whose [RecommendationRequest.roundId] is unknown or no longer open;
- * 422 VALIDATION_FAILED with details.tripId = TRIP_ENDED, details.interests = EMPTY (no core and no extra interest)
- * or details.extraInterests = TOO_MANY.
+ * 422 VALIDATION_FAILED with details.tripId = TRIP_ENDED, details.interests = EMPTY (no core and no extra interest),
+ * details.extraInterests = TOO_MANY or details.destination = TOO_LONG.
  */
 @Serializable
 data class RecommendationRequest(
     val tripId: String,
-    /** Narrows one search to an area of the destination, at most 60 characters. Null = the whole destination. */
-    val focusArea: String? = null,
+    /**
+     * Where to search this time, at most 200 characters. Null = the trip's destination. Lets a Yogyakarta trip explore
+     * Solo without changing the trip; dates, budget and members still come from the trip.
+     */
+    val destination: String? = null,
     val priceLevel: PriceLevel,
     val interests: List<Interest>,
     /** The ticked destination interests, copied from [ExploreSuggestionsResponse.interests]: at most 5, each at most 40 characters. */
@@ -50,7 +53,8 @@ data class RecommendationRequest(
 )
 
 /**
- * GET /explore/suggestions?tripId= (existing trip, role at least VIEWER) or ?destination=&month=YYYY-MM (new trip).
+ * GET /explore/suggestions?tripId=[&destination=] (existing trip, role at least VIEWER) or ?destination=&month=YYYY-MM (new trip).
+ * With tripId, a destination replaces the trip's destination for the interests; the month and the budget fields still come from the trip.
  * Never uses the daily quota; soft limit 60 requests per user per hour (429 RATE_LIMITED). Language follows Accept-Language.
  * A failure is not an error: [interests] is empty and the app hides the "Khas <destination>" box.
  */

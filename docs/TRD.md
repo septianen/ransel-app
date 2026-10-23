@@ -152,7 +152,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET ★ | /credits/ledger | Credit history, newest first | 5 |
 | GET ★ | /credits/packages | Top-up packs and prices (`purchasable` is false until a payment provider exists) | 5 |
 | POST ★ | /credits/redeem | Redeem a voucher code | 5 |
-| GET | /explore/suggestions | Destination interests + suggested price level for the Explore form (costs no credits) | 5 |
+| GET | /explore/suggestions | Destination interests + suggested price level for the Explore form (costs no credits); `tripId`, optionally with `destination` to use another place than the trip's | 5 |
 | POST | /recommendations | AI recommendations from preferences | 5 |
 | POST ★ | /recommendations/feedback | LIKE / SKIP per place | 5 |
 | DELETE ★ | /recommendations/feedback/{tripId}/{placeId} | Undo the last swipe | 5 |
@@ -249,8 +249,8 @@ An event writes the inbox row **inside the transaction that caused it** (invite 
 
 The server receives the preferences, asks the LLM for candidate places as JSON, validates every place against the Places API, then sends 10–15 cards to the app.
 
-1. The app sends `POST /recommendations` with `tripId` (destination and dates come from the trip), optional focus area, price level (LOW/MEDIUM/HIGH, relative to local prices), core and destination interests, style (SANTAI/PADAT), notes, and the `placeId`s already liked or skipped. The form is fed by `GET /explore/suggestions` (destination interests cached per destination + month for 30 days, no quota).
-2. The server checks the user can pay (402 `INSUFFICIENT_CREDITS` when not, before any LLM call), then checks `recommendation_cache` with a key hashed from destination + focus area + month + interests + price level + style.
+1. The app sends `POST /recommendations` with `tripId` (dates come from the trip; the destination too unless the user changed it in the form, then `destination` is sent), price level (LOW/MEDIUM/HIGH, relative to local prices), core and destination interests, style (SANTAI/PADAT), notes, and the `placeId`s already liked or skipped. The form is fed by `GET /explore/suggestions` (destination interests cached per destination + month for 30 days, no quota).
+2. The server checks the user can pay (402 `INSUFFICIENT_CREDITS` when not, before any LLM call), then checks `recommendation_cache` with a key hashed from destination + month + interests + price level + style.
 3. Cache miss: call the LLM with a prompt asking for JSON that matches the schema; parse into a `@Serializable` data class in `shared`; on a parse failure retry once → `AI_UNAVAILABLE`.
 4. Validate every name with Places Text Search (IDs Only, free); places that are not found are dropped. Details (photo, rating) are fetched lazily for the top 2–3 cards only.
 5. An empty result after validation → an empty response; the app shows the "No good match yet" state naming the preferences that caused it.
