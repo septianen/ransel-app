@@ -30,7 +30,7 @@ This spec changes the product behaviour "Explore always saves into a trip" for m
 3. **Members get a banner.** Trip screens show a banner "Rina meminta pilihanmu: 12 tempat di Bali · sisa 23 jam" and the trip list gets a magenta dot. Tapping it opens the same swipe screen in vote mode. Opening a card's detail uses `PlaceDetailScreen` (see the place detail design), whose bottom buttons read Lewati / Suka.
 4. **Finished voting.** A member who has voted on every card sees "Suaramu sudah masuk" with a summary of their own likes. Counts of other people's votes stay hidden until voting closes (avoids herd voting).
 5. **Owner decides** (`VoteResultScreen`). The OWNER opens the round from the banner at any time and sees the places sorted by likes, with who voted what and who has not voted yet. They tick places and tap "Masukkan <n> ke itinerary"; the places appear in "Belum dijadwalkan" exactly like saved AI places today. The round is then closed.
-6. **After the window.** After 24 hours members can no longer vote; they see "Voting ditutup" and, once decided, which places the owner chose. If the OWNER never decides, the round stays visible for 7 days and then expires; nothing enters the itinerary by itself.
+6. **After the window.** After 24 hours members can no longer vote; they see "Voting ditutup" and, once decided, which places the owner chose. If the OWNER never decides, the round stays visible for 3 days after it was created and then expires; nothing enters the itinerary by itself. The OWNER can also close voting early ("Tutup voting"): members stop voting at once and the OWNER decides as usual.
 
 Not handled in this version: a tie is decided by the OWNER by hand; there is no automatic majority rule.
 
@@ -82,7 +82,7 @@ Rules:
 
 ## Data model (new migration after the place detail cache one; V1–V5 stay untouched)
 
-`suggestion_rounds`: `id uuid pk`, `trip_id`, `created_by`, `created_at`, `closes_at` (created + 24 h), `decided_at null`, `decided_by null`, `expires_at` (created + 7 d).
+`suggestion_rounds`: `id uuid pk`, `trip_id`, `created_by`, `created_at`, `closes_at` (created + 24 h), `decided_at null`, `decided_by null`, `expires_at` (created + 3 d, `ROUND_EXPIRY_DAYS`).
 
 `suggestion_round_places`: `round_id`, `place_id`, `category`, `sort_order`, `snapshot jsonb` (the `RecommendationItem`: name, reason, price level, duration, lat/lng, address, photoUrl, and the detail text: about, highlights, opening hours, best time, estimated cost), PK `(round_id, place_id)`.
 

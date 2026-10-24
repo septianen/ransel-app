@@ -191,6 +191,21 @@ class VotingRoutesTest {
     }
 
     @Test
+    fun theOwnerCanCloseVotingEarly() = apiTest(ai = ai) {
+        val g = group()
+        val (roundId, places) = startRound(g.tripId)
+        use(g.editor)
+        assertEquals(HttpStatusCode.Forbidden, post("/trips/${g.tripId}/rounds/$roundId/close", "{}").status)
+        use(g.owner)
+        assertEquals(HttpStatusCode.NoContent, post("/trips/${g.tripId}/rounds/$roundId/close", "{}").status)
+        // Voting is over for everyone, a second close is refused, and the owner still decides.
+        assertEquals("VOTING_CLOSED", vote(g.tripId, roundId, places[0], "LIKE").errorCode())
+        assertEquals("VOTING_CLOSED", post("/trips/${g.tripId}/rounds/$roundId/close", "{}").errorCode())
+        assertEquals(HttpStatusCode.NoContent, post("/trips/${g.tripId}/rounds/$roundId/decide", """{"placeIds":["${places[0]}"]}""").status)
+        assertEquals("ROUND_ALREADY_DECIDED", post("/trips/${g.tripId}/rounds/$roundId/close", "{}").errorCode())
+    }
+
+    @Test
     fun anExpiredRoundIsGone() = apiTest(ai = ai) {
         val g = group()
         val (roundId, _) = startRound(g.tripId)

@@ -74,7 +74,7 @@ data class AppConfig(
     /** Voting: how long a round is open for votes. */
     val votingHours: Int = 24,
     /** Voting: a round nobody decided disappears this many days after it was created. */
-    val roundExpiryDays: Int = 7,
+    val roundExpiryDays: Int = 3,
     /** Voting: open (not decided, not expired) rounds a trip may have; one more search is 409 ROUND_LIMIT. */
     val maxOpenRounds: Int = 3,
     /** Voting: the "closes soon" reminder goes out this many hours before a round closes. */
@@ -202,7 +202,7 @@ data class AppConfig(
                 notifyPackingHour = env["NOTIFY_PACKING_HOUR"]?.toIntOrNull()?.coerceIn(0, 23) ?: 18,
                 notifyActivityLeadMinutes = env["NOTIFY_ACTIVITY_LEAD_MINUTES"]?.toIntOrNull()?.coerceIn(1, 240) ?: 30,
                 votingHours = env["VOTING_HOURS"]?.toIntOrNull()?.coerceIn(1, 168) ?: 24,
-                roundExpiryDays = env["ROUND_EXPIRY_DAYS"]?.toIntOrNull()?.coerceIn(1, 60) ?: 7,
+                roundExpiryDays = env["ROUND_EXPIRY_DAYS"]?.toIntOrNull()?.coerceIn(1, 60) ?: 3,
                 maxOpenRounds = env["MAX_OPEN_ROUNDS"]?.toIntOrNull()?.coerceIn(1, 20) ?: 3,
                 notifyVoteClosingHours = env["NOTIFY_VOTE_CLOSING_HOURS"]?.toIntOrNull()?.coerceIn(1, 23) ?: 3,
                 adminEmails = env["ADMIN_EMAILS"].csv().map { it.lowercase() }.toSet(),

@@ -16,7 +16,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import java.util.UUID
 
-/** Itinerary voting (docs/specs/voting-spec.md). Paths mirror `ApiRoutes.rounds/round/roundVote/roundDecide`. */
+/** Itinerary voting (docs/specs/voting-spec.md). Paths mirror `ApiRoutes.rounds/round/roundVote/roundClose/roundDecide`. */
 fun Route.votingRoutes(service: RoundService) {
     get("/trips/{id}/rounds") {
         call.respondData(HttpStatusCode.OK, service.list(call.tripId(), call.userId()))
@@ -31,6 +31,10 @@ fun Route.votingRoutes(service: RoundService) {
     }
     delete("/trips/{id}/rounds/{roundId}/votes/{placeId}") {
         service.undo(call.tripId(), call.roundId(), call.parameters["placeId"].orEmpty(), call.userId())
+        call.respondNoContent()
+    }
+    post("/trips/{id}/rounds/{roundId}/close") {
+        service.close(call.tripId(), call.roundId(), call.userId())
         call.respondNoContent()
     }
     post("/trips/{id}/rounds/{roundId}/decide") {

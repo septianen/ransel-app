@@ -235,6 +235,22 @@ class RoundService(private val config: AppConfig, private val photoSigner: Photo
     }
 
     /**
+     * OWNER only: ends voting now. `closes_at` moves to the present, so the round reads as CLOSED everywhere (no new
+     * field) and the OWNER still decides which places enter the itinerary.
+     */
+    fun close(tripId: UUID, roundId: UUID, userId: UUID, now: Instant = Instant.now()) {
+        requireRole(tripId, userId, Role.OWNER)
+        transaction {
+            val round = findRound(tripId, roundId, now) ?: throw roundNotFound()
+            if (round[SuggestionRounds.decidedAt] != null) {
+                throw ApiException(HttpStatusCode.Conflict, ErrorCode.ROUND_ALREADY_DECIDED, "This round was already decided")
+            }
+            if (!now.isBefore(round[SuggestionRounds.closesAt])) throw votingClosed()
+            SuggestionRounds.update({ SuggestionRounds.id eq roundId }) { it[closesAt] = now }
+        }
+    }
+
+    /**
      * OWNER only, any time before the round expires. The itinerary items were already created by the OWNER's client
      * (normal sync path); this marks which places were chosen, closes the round and tells the others.
      */
