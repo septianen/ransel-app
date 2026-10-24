@@ -37,6 +37,9 @@ import app.ransel.ui.shell.RanselNavigationRail
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import app.ransel.ui.components.BackOnlineToast
+import app.ransel.ui.components.ExitHintToast
+import app.ransel.navigation.BindBrowserHistory
+import app.ransel.navigation.ExitBackHandler
 import app.ransel.ui.components.LocalPendingIds
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -287,6 +290,7 @@ private fun WebAuthNavigation() {
     val resetToken = remember { initialResetToken() }
     val verifyToken = remember { initialVerifyToken() }
     TrackScreens(navController)
+    BindBrowserHistory(navController)
     NavHost(
         navController = navController,
         startDestination = when {
@@ -303,6 +307,7 @@ private fun WebAuthNavigation() {
 private fun RanselNavigation(openSignIn: Boolean = false) {
     val navController = rememberNavController()
     TrackScreens(navController)
+    BindBrowserHistory(navController)
     val sessionManager: SessionManager = koinInject()
     val sessionState by sessionManager.state.collectAsState()
     LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }
@@ -395,6 +400,18 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
         else -> null
     }
 
+    // Mobile: at the root of the back stack (Home) the first back press only warns; a second one within 2 s exits.
+    var exitArmed by remember { mutableStateOf(false) }
+    LaunchedEffect(exitArmed) {
+        if (exitArmed) {
+            delay(2_000)
+            exitArmed = false
+        }
+    }
+    ExitBackHandler(enabled = !requiresAccount && !exitArmed && backStack != null && navController.previousBackStackEntry == null) {
+        exitArmed = true
+    }
+
     CompositionLocalProvider(LocalPendingIds provides pendingIds) {
     Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize()) {
@@ -453,6 +470,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
             }
         }
 
+        ExitHintToast(exitArmed, modifier = Modifier.align(Alignment.BottomCenter))
         BackOnlineToast(justSynced, onShown = sync::acknowledgeJustSynced, modifier = Modifier.align(Alignment.BottomCenter))
 
         // Web: a failed request replaces the screen with the connection / server state (design "State").
