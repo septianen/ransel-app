@@ -82,6 +82,8 @@ object ApiRoutes {
         "/trips/$tripId/rounds/$roundId/votes/$placeId"            // PUT VoteRequest → 204, DELETE = undo → 204; 409 VOTING_CLOSED
     fun roundDecide(tripId: String, roundId: String) =
         "/trips/$tripId/rounds/$roundId/decide"                    // POST DecideRequest → 204 (OWNER); 409 ROUND_ALREADY_DECIDED
+    fun roundClose(tripId: String, roundId: String) =
+        "/trips/$tripId/rounds/$roundId/close"                     // POST → 204 (OWNER): ends voting now (closesAt = now); 409 VOTING_CLOSED if already closed, 409 ROUND_ALREADY_DECIDED
 
     // Explore credits (replaces the fixed daily quota)
     const val CREDITS = "/credits"                                 // GET → CreditsDto (creates the wallet with the signup grant on first call)

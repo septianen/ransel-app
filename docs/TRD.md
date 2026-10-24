@@ -160,6 +160,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET ★ | /trips/{id}/rounds/{roundId} | One round: cards, my votes; OWNER also tally with names and voters, members counts after closing | 5 |
 | PUT ★ | /trips/{id}/rounds/{roundId}/votes/{placeId} | Vote LIKE / SKIP (idempotent); DELETE = undo; 409 `VOTING_CLOSED` | 5 |
 | POST ★ | /trips/{id}/rounds/{roundId}/decide | OWNER picks the places that enter the itinerary and closes the round | 5 |
+| POST ★ | /trips/{id}/rounds/{roundId}/close | OWNER ends voting now; members can no longer vote, the OWNER still decides | 5 |
 | GET | /places/photo/{placeId}?exp=&sig= | Signed place-photo proxy (no bearer; 404 if no photo) | 5 |
 | GET | /places/{placeId}/detail | Saved detail text of a place (about, tips, hours estimate) to open it again from the itinerary; rebuilt by one small LLM call when expired | 5 |
 | GET, POST ★ | /admin/... | Admin app (Karung): users (list, add with an invite email), credit adjustments, audit log, overview, Explore AI, system, settings, content. Admin token only; full list in `docs/specs/admin-spec.md` "API" | 6 |
