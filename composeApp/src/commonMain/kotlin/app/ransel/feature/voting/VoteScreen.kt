@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -122,6 +123,7 @@ fun VoteScreen(
             onToggle = viewModel::toggle,
             onDecide = viewModel::decide,
             onStartVoting = viewModel::startVoting,
+            onCloseVoting = viewModel::closeVoting,
             onOpenItinerary = onOpenItinerary,
             onOpenMembers = onOpenMembers,
             onOpenDetail = onOpenDetail,
@@ -149,6 +151,7 @@ fun VoteContent(
     onToggle: (placeId: String) -> Unit,
     onDecide: () -> Unit,
     onStartVoting: () -> Unit,
+    onCloseVoting: () -> Unit,
     onOpenItinerary: () -> Unit,
     onOpenMembers: () -> Unit,
     onOpenDetail: (placeId: String) -> Unit,
@@ -187,7 +190,7 @@ fun VoteContent(
             }
             VoteMode.VOTING -> if (round != null) VotingDeck(state, round, onClose, onLike, onSkip, onUndo, onOpenMembers, onOpenDetail)
             VoteMode.WAITING -> if (round != null) Waiting(state, round, onClose, onChangeVotes, onOpenItinerary)
-            VoteMode.RESULT -> if (round != null) OwnerResult(state, round, onClose, onToggle, onDecide, onStartVoting, onOpenItinerary)
+            VoteMode.RESULT -> if (round != null) OwnerResult(state, round, onClose, onToggle, onDecide, onStartVoting, onCloseVoting, onOpenItinerary)
             VoteMode.CLOSED -> if (round != null) MemberClosed(state, round, onClose, onOpenItinerary)
         }
     }
@@ -323,6 +326,7 @@ private fun ColumnScope.OwnerResult(
     onToggle: (placeId: String) -> Unit,
     onDecide: () -> Unit,
     onStartVoting: () -> Unit,
+    onCloseVoting: () -> Unit,
     onOpenItinerary: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -354,6 +358,23 @@ private fun ColumnScope.OwnerResult(
         }
         if (open && !decided && state.votes.size < round.places.size) {
             TextButton(onClick = onStartVoting) { Text(stringResource(Res.string.vote_result_join), fontWeight = FontWeight.Bold) }
+        }
+        if (open && !decided) {
+            var confirmClose by rememberSaveable { mutableStateOf(false) }
+            TextButton(onClick = { confirmClose = true }, enabled = !state.busy) {
+                Text(stringResource(Res.string.vote_close_action), fontWeight = FontWeight.Bold)
+            }
+            if (confirmClose) {
+                AlertDialog(
+                    onDismissRequest = { confirmClose = false },
+                    title = { Text(stringResource(Res.string.vote_close_title)) },
+                    text = { Text(stringResource(Res.string.vote_close_body)) },
+                    confirmButton = {
+                        TextButton(onClick = { confirmClose = false; onCloseVoting() }) { Text(stringResource(Res.string.vote_close_action)) }
+                    },
+                    dismissButton = { TextButton(onClick = { confirmClose = false }) { Text(stringResource(Res.string.action_cancel)) } },
+                )
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(Res.string.vote_result_sorted), Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
@@ -620,7 +641,7 @@ private fun previewState(round: RoundDto, cursor: Int? = null) = VoteUiState(
 @Composable
 private fun PreviewContent(state: VoteUiState) = VoteContent(
     state, onClose = {}, onRetry = {}, onLike = {}, onSkip = {}, onUndo = {}, onChangeVotes = {}, onToggle = {},
-    onDecide = {}, onStartVoting = {}, onOpenItinerary = {}, onOpenMembers = {}, onOpenDetail = {},
+    onDecide = {}, onStartVoting = {}, onCloseVoting = {}, onOpenItinerary = {}, onOpenMembers = {}, onOpenDetail = {},
 )
 
 @Preview

@@ -930,4 +930,17 @@
     <string name="vote_banner_own_request_body">%1$d dari %2$d tempat sudah kamu pilih · sisa %3$d jam</string>
     <string name="notification_vote_owner_open">%1$s mengusulkan %2$d tempat</string>
     <string name="notification_vote_owner_open_body">Ikut pilih, lalu putuskan mana yang masuk itinerary · %1$s</string>
+    <string name="vote_list_title">Voting</string>
+    <string name="vote_list_section_action">Butuh aksimu</string>
+    <string name="vote_list_section_waiting">Menunggu</string>
+    <string name="vote_list_section_done">Selesai</string>
+    <string name="vote_list_empty">Belum ada voting di trip ini</string>
+    <string name="vote_list_row">%1$s · %2$d tempat</string>
+    <string name="vote_list_row_open">Sisa %1$d jam</string>
+    <string name="vote_banner_more">+%1$d voting lain</string>
+    <string name="vote_banner_history">Riwayat voting</string>
+    <string name="vote_banner_history_body">%1$d voting di trip ini</string>
+    <string name="vote_close_action">Tutup voting</string>
+    <string name="vote_close_title">Tutup voting sekarang?</string>
+    <string name="vote_close_body">Anggota tidak bisa memilih lagi. Kamu tetap memutuskan tempat yang masuk ke itinerary.</string>
 </resources>

@@ -936,4 +936,17 @@
     <string name="vote_banner_own_request_body">%1$d of %2$d places picked · %3$d h left</string>
     <string name="notification_vote_owner_open">%1$s suggested %2$d places</string>
     <string name="notification_vote_owner_open_body">Vote too, then decide what goes into the itinerary · %1$s</string>
+    <string name="vote_list_title">Voting</string>
+    <string name="vote_list_section_action">Needs your action</string>
+    <string name="vote_list_section_waiting">Waiting</string>
+    <string name="vote_list_section_done">Done</string>
+    <string name="vote_list_empty">No voting on this trip yet</string>
+    <string name="vote_list_row">%1$s · %2$d places</string>
+    <string name="vote_list_row_open">%1$d h left</string>
+    <string name="vote_banner_more">+%1$d more</string>
+    <string name="vote_banner_history">Voting history</string>
+    <string name="vote_banner_history_body">%1$d votings on this trip</string>
+    <string name="vote_close_action">Close voting</string>
+    <string name="vote_close_title">Close voting now?</string>
+    <string name="vote_close_body">Members can no longer vote. You still decide which places enter the itinerary.</string>
 </resources>

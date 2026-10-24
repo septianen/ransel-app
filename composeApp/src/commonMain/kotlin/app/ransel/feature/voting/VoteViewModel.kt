@@ -307,6 +307,26 @@ class VoteViewModel(
 
     fun showResult() = _state.update { it.copy(cursor = null) }
 
+    /** OWNER: "Tutup voting": members stop voting now, the OWNER still decides (the result stays open). */
+    fun closeVoting() {
+        val s = _state.value
+        if (s.busy || !s.isOwner || s.roundState != RoundState.OPEN) return
+        _state.update { it.copy(busy = true, cursor = null) }
+        viewModelScope.launch {
+            when (val result = api.closeRound(tripId, roundId)) {
+                is ApiResult.Success -> {
+                    voting.refresh(api, tripId)
+                    load()
+                }
+                is ApiResult.Failure -> {
+                    events.send(VoteEvent.Problem(result.error.code))
+                    if (result.error.code == ErrorCode.VOTING_CLOSED || result.error.code == ErrorCode.ROUND_ALREADY_DECIDED) load()
+                }
+            }
+            _state.update { it.copy(busy = false) }
+        }
+    }
+
     /**
      * Puts the ticked places into "Belum dijadwalkan" through the normal path (local DB + sync on mobile, POST on
      * web), exactly like a swipe-right, then closes the round on the server. A place already in the itinerary is not

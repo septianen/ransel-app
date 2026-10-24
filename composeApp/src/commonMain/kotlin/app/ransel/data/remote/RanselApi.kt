@@ -262,6 +262,8 @@ class RanselApi(
         call(HttpMethod.Put, ApiRoutes.roundVote(tripId, roundId, placeId), bodyOf = { contentType(ContentType.Application.Json); setBody(VoteRequest(vote)) }) { }
     suspend fun undoVote(tripId: String, roundId: String, placeId: String): ApiResult<Unit> =
         delete(ApiRoutes.roundVote(tripId, roundId, placeId))
+    suspend fun closeRound(tripId: String, roundId: String): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.roundClose(tripId, roundId)) { }
     suspend fun decideRound(tripId: String, roundId: String, placeIds: List<String>): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.roundDecide(tripId, roundId), bodyOf = { contentType(ContentType.Application.Json); setBody(DecideRequest(placeIds)) }) { }
 

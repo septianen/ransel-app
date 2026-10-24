@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 
 /**
@@ -41,14 +40,10 @@ fun RoundSummaryDto.needsMyVote(now: Instant = Clock.System.now()): Boolean =
     roundState(now, closesAt, decidedAt) == RoundState.OPEN && myVoteCount < placeCount
 
 /**
- * The round the itinerary banner is about: the newest one that is not decided, or one decided in the last day
- * (so members see the owner's choice once).
+ * The rounds the user has to act on, newest first: vote (open, cards left) or, for the OWNER, decide (voting closed,
+ * not decided yet). The itinerary banner shows the first one; all rounds are in the voting list.
  */
-fun List<RoundSummaryDto>.bannerRound(now: Instant = Clock.System.now()): RoundSummaryDto? =
-    firstOrNull { round ->
-        when (roundState(now, round.closesAt, round.decidedAt)) {
-            RoundState.OPEN -> true
-            RoundState.CLOSED -> true
-            RoundState.DECIDED -> round.decidedAt?.let { now - it < 24.hours } == true
-        }
+fun List<RoundSummaryDto>.actionRounds(isOwner: Boolean, now: Instant = Clock.System.now()): List<RoundSummaryDto> =
+    filter { round ->
+        round.needsMyVote(now) || (isOwner && roundState(now, round.closesAt, round.decidedAt) == RoundState.CLOSED)
     }

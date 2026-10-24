@@ -38,8 +38,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import kotlinx.coroutines.launch
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.voting.VotingStore
-import app.ransel.data.voting.bannerRound
-import app.ransel.data.voting.needsMyVote
+import app.ransel.data.voting.actionRounds
 import app.ransel.feature.voting.VoteBanner
 
 /**
@@ -57,8 +56,8 @@ fun TripScreen(
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
-    /** Opens a voting round from the banner; [showResult] = the OWNER goes to the result. */
-    onOpenRound: ((roundId: String, showResult: Boolean) -> Unit)? = null,
+    /** Opens the list of all voting rounds of this trip, the one place the banner leads to. */
+    onOpenVoteList: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
 ) {
@@ -78,7 +77,7 @@ fun TripScreen(
     val api: RanselApi = koinInject()
     val rounds by voting.rounds.collectAsState()
     LaunchedEffect(tripId, signedIn) { if (signedIn) voting.refresh(api, tripId) }
-    val bannerRound = if (signedIn) rounds[tripId]?.bannerRound() else null
+    val tripRounds = if (signedIn) rounds[tripId].orEmpty() else emptyList()
 
     // Pull to refresh (signed in only: a guest's trip lives on this phone alone). Mobile syncs, web fetches again;
     // then the server-only parts (voting rounds, members and balances in Expenses) are asked for again.
@@ -112,14 +111,18 @@ fun TripScreen(
                 onMembers = if (signedIn) onMembers else null,
             )
             if (offline) app.ransel.ui.components.OfflineBanner()
-            if (bannerRound != null && current != null && onOpenRound != null) {
+            // One banner: the round that needs the user (vote, or decide for the owner), else a quiet link to the list.
+            if (tripRounds.isNotEmpty() && current != null && onOpenVoteList != null) {
                 val isOwner = current.myRole == app.ransel.shared.model.Role.OWNER
+                val actions = tripRounds.actionRounds(isOwner)
                 VoteBanner(
-                    round = bannerRound,
+                    round = actions.firstOrNull(),
+                    roundCount = tripRounds.size,
+                    moreActions = (actions.size - 1).coerceAtLeast(0),
                     destination = current.destination,
                     isOwner = isOwner,
                     myUserId = session.user?.id,
-                    onOpen = { onOpenRound(bannerRound.id, isOwner && !bannerRound.needsMyVote()) },
+                    onOpen = onOpenVoteList,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
                 )
             }

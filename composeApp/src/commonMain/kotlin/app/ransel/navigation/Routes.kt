@@ -73,3 +73,6 @@ import kotlinx.serialization.Serializable
 
 /** Invite link or code opened: preview and join, or the invalid-invite state. */
 @Serializable data class JoinTripRoute(val code: String)
+
+/** Every voting round of a trip, opened from the itinerary banner. */
+@Serializable data class VoteListRoute(val tripId: String)
