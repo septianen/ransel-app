@@ -571,7 +571,6 @@ private fun TimelineRow(
             }
             app.ransel.ui.components.PendingMarker(item.id)
             if (!dragging) PlaceDetailButton(item)
-            if (!dragging) app.ransel.feature.comments.CommentButton(item.id, item.title)
             // Handle: touching it drags immediately; the rest of the row needs a long press.
             // Gestures are detected by the container in DaySection (this row moves while dragging).
             Box(Modifier.size(48.dp).testTag("drag-handle-${item.id}"), contentAlignment = Alignment.Center) {

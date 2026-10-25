@@ -20,8 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.ransel.data.repository.TripRepository
-import app.ransel.feature.comments.ProvideComments
-import app.ransel.shared.model.CommentTarget
 import app.ransel.feature.expenses.ExpensesTab
 import app.ransel.feature.group.GroupActionSheet
 import app.ransel.feature.group.GroupTab
@@ -170,18 +168,14 @@ fun TripScreen(
                             onOpenMembers = onMembers,
                             refreshKey = refreshCount,
                         )
-                        TripTab.ITINERARY -> ProvideComments(current.id, CommentTarget.ITINERARY_ITEM, refreshCount) {
-                            ItineraryTab(
-                                current, onAddActivity, onEditActivity,
-                                onExplore = if (signedIn) onExplore else null,
-                                // The place text lives on the server: guests have no account to ask it with.
-                                onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
-                            )
-                        }
+                        TripTab.ITINERARY -> ItineraryTab(
+                            current, onAddActivity, onEditActivity,
+                            onExplore = if (signedIn) onExplore else null,
+                            // The place text lives on the server: guests have no account to ask it with.
+                            onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
+                        )
                         TripTab.PACKING -> PackingTab(current)
-                        TripTab.EXPENSES -> ProvideComments(current.id, CommentTarget.EXPENSE, refreshCount) {
-                            ExpensesTab(current, refreshKey = refreshCount)
-                        }
+                        TripTab.EXPENSES -> ExpensesTab(current, refreshKey = refreshCount)
                     }
                 }
             }

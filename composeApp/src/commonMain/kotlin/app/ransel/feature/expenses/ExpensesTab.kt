@@ -308,13 +308,6 @@ private fun ExpenseRow(
             )
         }
         app.ransel.ui.components.PendingMarker(expense.id)
-        // Comments belong to shared trips: it is where someone asks "ini apa?" about a bill.
-        if (members != null) {
-            app.ransel.feature.comments.CommentButton(
-                expense.id,
-                expense.note?.takeIf { it.isNotBlank() } ?: stringResource(expense.category.expenseLabel),
-            )
-        }
         Column(horizontalAlignment = Alignment.End) {
             Text(formatMoney(expense.amountMinor, expense.currency), style = MaterialTheme.typography.titleSmall)
             val myShare = if (members == null) null else
