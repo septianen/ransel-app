@@ -1,6 +1,7 @@
 package app.ransel.server
 
 import app.ransel.server.service.PollService
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -53,7 +54,7 @@ private fun pollJson(
 
 private suspend fun Api.createPoll(trip: PollTrip, json: String = pollJson()): JsonObject {
     val response = post("/trips/${trip.id}/polls", json)
-    assertEquals(HttpStatusCode.Created, response.status)
+    assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText() + " for " + json)
     return response.data().obj()
 }
 

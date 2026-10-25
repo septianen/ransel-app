@@ -25,28 +25,32 @@ private suspend fun ApplicationCall.respondError(status: HttpStatusCode, error: 
     respond(status, ApiErrorResponse(error))
 }
 
+/** Class names only (never the input), so a client or a test can tell a missing field from a wrong type. */
+private fun causeChain(e: Throwable): String =
+    generateSequence(e) { it.cause }.take(3).joinToString(" <- ") { it.javaClass.simpleName }
+
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<ApiException> { call, e ->
             call.respondError(e.status, ApiError(e.code, e.message ?: e.code, e.details))
         }
         // Malformed JSON, wrong field types, unknown enum constants, bad UUIDs in the body.
-        exception<BadRequestException> { call, _ ->
+        exception<BadRequestException> { call, e ->
             call.respondError(
                 HttpStatusCode.BadRequest,
-                ApiError(ErrorCode.VALIDATION_FAILED, "Malformed request body"),
+                ApiError(ErrorCode.VALIDATION_FAILED, "Malformed request body", mapOf("cause" to causeChain(e))),
             )
         }
-        exception<ContentTransformationException> { call, _ ->
+        exception<ContentTransformationException> { call, e ->
             call.respondError(
                 HttpStatusCode.BadRequest,
-                ApiError(ErrorCode.VALIDATION_FAILED, "Malformed request body"),
+                ApiError(ErrorCode.VALIDATION_FAILED, "Malformed request body", mapOf("cause" to causeChain(e))),
             )
         }
-        exception<SerializationException> { call, _ ->
+        exception<SerializationException> { call, e ->
             call.respondError(
                 HttpStatusCode.BadRequest,
-                ApiError(ErrorCode.VALIDATION_FAILED, "Malformed request body"),
+                ApiError(ErrorCode.VALIDATION_FAILED, "Malformed request body", mapOf("cause" to causeChain(e))),
             )
         }
         // Sent by the RateLimit plugin (Retry-After is already set); give it the standard error body.
