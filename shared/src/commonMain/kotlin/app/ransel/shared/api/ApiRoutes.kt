@@ -92,6 +92,17 @@ object ApiRoutes {
     fun roundClose(tripId: String, roundId: String) =
         "/trips/$tripId/rounds/$roundId/close"                     // POST → 204 (OWNER): ends voting now (closesAt = now); 409 VOTING_CLOSED if already closed, 409 ROUND_ALREADY_DECIDED
 
+    // Polls (PRD "Group tab, polling and comments"). Any member with an account reads and votes; the OWNER and EDITORs create.
+    fun polls(tripId: String) = "/trips/$tripId/polls"             // GET → List<PollDto> (newest first), POST CreatePollRequest → 201 PollDto
+    fun poll(pollId: String) = "/polls/$pollId"                    // GET → PollDto, PATCH UpdatePollRequest (creator or OWNER) → PollDto, DELETE (creator or OWNER) → 204
+    fun pollOptions(pollId: String) = "/polls/$pollId/options"     // POST PollOptionInput → 201 PollDto
+    fun pollOption(pollId: String, optionId: String) =
+        "/polls/$pollId/options/$optionId"                         // PATCH PollOptionInput → PollDto (bumps the version, clears its votes), DELETE → PollDto (clears its votes)
+    fun pollVotes(pollId: String) = "/polls/$pollId/votes"         // PUT VotePollRequest → PollDto; 409 POLL_CLOSED / VOTE_STALE
+    fun pollClose(pollId: String) = "/polls/$pollId/close"         // POST (creator or OWNER) → PollDto: ends voting now
+    fun pollDecide(pollId: String) = "/polls/$pollId/decide"       // POST DecidePollRequest (creator or OWNER) → PollDto: confirms the winner and runs its action
+    fun pollReopen(pollId: String) = "/polls/$pollId/reopen"       // POST ReopenPollRequest (creator or OWNER) → PollDto
+
     // Explore credits (replaces the fixed daily quota)
     const val CREDITS = "/credits"                                 // GET → CreditsDto (creates the wallet with the signup grant on first call)
     const val CREDITS_LEDGER = "/credits/ledger"                   // GET ?limit= (default 50, max 200), newest first → List<CreditLedgerEntryDto>

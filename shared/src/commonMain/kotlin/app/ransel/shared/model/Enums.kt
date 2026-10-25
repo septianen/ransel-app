@@ -52,10 +52,25 @@ enum class Vote { LIKE, SKIP }
 
 /**
  * comments.target_kind: what a comment hangs on. There is no group chat, only comments on things.
- * The poll option arrives with polls (stage 2).
+ * POLL_OPTION: a comment on one option of a poll (the place comments show in the app).
  */
 @Serializable
-enum class CommentTarget { ITINERARY_ITEM, EXPENSE }
+enum class CommentTarget { ITINERARY_ITEM, EXPENSE, POLL_OPTION }
+
+/** polls.kind: which question a poll asks. Each kind has its own option fields and what happens to the winner (domain/Polls.kt). */
+@Serializable
+enum class PollKind { DATE, PLACE, STAY, FOOD, BUDGET, DESTINATION, TRANSPORT, CUSTOM }
+
+/**
+ * polls.status. OPEN until `closesAt`; then CLOSED (a winner can be confirmed) or TIED (the creator picks among the
+ * tied options, or the poll reopens by itself after 24 hours); DECIDED once the creator confirmed or dismissed it.
+ */
+@Serializable
+enum class PollStatus { OPEN, TIED, CLOSED, DECIDED }
+
+/** What a price on a poll option is per. */
+@Serializable
+enum class PollPriceUnit { NIGHT, PERSON, TOTAL }
 
 /**
  * Explore form: price of the places, relative to local prices (a cheap ramen stall in Tokyo is LOW in Tokyo).
@@ -111,6 +126,7 @@ enum class NotificationType {
     VOTE_REQUESTED, VOTE_RESULT,
     PACKING_REMINDER, ACTIVITY_REMINDER,
     MEMBER_CLAIMED, COMMENT_MENTION,
+    POLL_REQUESTED, POLL_RESULT,
 }
 
 @Serializable

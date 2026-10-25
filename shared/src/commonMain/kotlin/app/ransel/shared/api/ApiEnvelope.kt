@@ -81,6 +81,11 @@ object ErrorCode {
     const val MEMBER_ALREADY_CLAIMED = "MEMBER_ALREADY_CLAIMED" // 409, the caller already claimed a member of this trip
     const val MEMBER_HAS_ACCOUNT = "MEMBER_HAS_ACCOUNT"    // 409, the member to claim belongs to an account
 
+    // polls
+    const val POLL_CLOSED = "POLL_CLOSED"                  // 409, vote or option change after closesAt (also for a vote queued offline)
+    const val POLL_LOCKED = "POLL_LOCKED"                  // 409, the anonymous switch changed after the first vote
+    const val VOTE_STALE = "VOTE_STALE"                    // 409, the option was edited since the voter saw it: load the poll again
+
     // expenses
     const val SPLIT_TOTAL_MISMATCH = "SPLIT_TOTAL_MISMATCH" // 422, sum(shares) != amount
     const val PAYER_TOTAL_MISMATCH = "PAYER_TOTAL_MISMATCH" // 422, sum(payers) != amount

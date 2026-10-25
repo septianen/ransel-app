@@ -25,7 +25,11 @@ import kotlinx.serialization.Serializable
  *                       DECIDED (to the others): actorName (the owner), chosenCount
  *   MEMBER_CLAIMED      tripTitle, actorName (who claimed), guestName (the member added by name), guestMemberId (to undo the claim)  → the OWNER
  *   COMMENT_MENTION     tripTitle, actorName, targetKind (CommentTarget), targetId, commentId, snippet (first 80 characters)
- * Both follow the "Aktivitas trip" switch. Members without an account have no inbox and no push.
+ *   POLL_REQUESTED      tripTitle, pollId, pollKind, question, stage (OPEN | CLOSING | RESET | REOPENED; missing = OPEN), actorName (OPEN: the creator),
+ *                       closesAt (ISO timestamp), optionLabel (RESET: the option whose votes were cleared)
+ *   POLL_RESULT         tripTitle, pollId, pollKind, question, stage (TIED | DECIDED; missing = DECIDED);
+ *                       TIED (to the creator): tiedCount; DECIDED (to the others): actorName, winner (option label; absent when dismissed)
+ * All of them follow the "Aktivitas trip" switch. Members without an account have no inbox and no push.
  * Unknown keys must be ignored; a missing key means "do not show that part".
  */
 
