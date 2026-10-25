@@ -31,18 +31,20 @@ import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_edit_trip
 import ransel.composeapp.generated.resources.action_members
 import ransel.composeapp.generated.resources.trip_tab_expenses
+import ransel.composeapp.generated.resources.trip_tab_group
 import ransel.composeapp.generated.resources.trip_tab_itinerary
 import ransel.composeapp.generated.resources.trip_tab_packing
 
 enum class TripTab(val label: StringResource) {
+    GROUP(Res.string.trip_tab_group),
     ITINERARY(Res.string.trip_tab_itinerary),
     PACKING(Res.string.trip_tab_packing),
     EXPENSES(Res.string.trip_tab_expenses),
 }
 
 /**
- * Header shared by Itinerary, Packing and Expenses: back, trip title + dates, the `group_add`
- * members button, and the three trip tabs. Pass [onMembers] = null to hide the button
+ * Header shared by Group, Itinerary, Packing and Expenses: back, trip title + dates, the `group_add`
+ * members button, and the four trip tabs. Pass [onMembers] = null to hide the button
  * (Phase 1-3; it appears in Phase 4).
  */
 @Composable

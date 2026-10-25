@@ -21,7 +21,7 @@ class ExpenseSummaryTest {
         deleted: Boolean = false,
     ) = ExpenseDto(
         id = id, tripId = "t", amountMinor = amount, currency = currency, fxRateToBase = fx,
-        category = category, spentAt = spentAt, paidByUserId = "u",
+        category = category, spentAt = spentAt, paidByMemberId = "u",
         createdAt = now, updatedAt = now, deletedAt = if (deleted) now else null,
     )
 

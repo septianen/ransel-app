@@ -153,6 +153,15 @@ Design: Claude Design canvas "Karung" (code names in `docs/design/README.md` "Ad
 
 **Done when (Phase 6):** same check as backend Phase 6, done from the Karung UI.
 
+## Group foundation (stage 1; contract commits `c27f73c`, `f67c671`, server B10.1/B10.2)
+
+- [x] **F10.1 Member ids.** Expenses, balances and settlements use `memberId`; the app computes its own with `memberIdFor(tripId, userId)` (guest data: `LOCAL_USER_ID`, rewritten at sign-in by `RoomSessionHooks`). **Room v5** (`Migration4To5`: `paidByUserId` → `paidByMemberId`, the splits and payers JSON via `userIdsToMemberIds`; schema `5.json`). `MemberAvatar` has a grey-and-white guest look.
+- [x] **F10.2 Group tab.** `TripTab.GROUP` first; `GroupTab` (countdown, "Perlu tindakanmu" with the voting banner, members with the "Tanpa akun" tag; a guest sees the invitation to sign in), the + button (owner, phone) opens `GroupActionSheet`: Buat polling and Unggah dokumen show "Segera hadir", Ajak anggota opens the invite sheet. The trip still opens on the tab the route names (Itinerary by default).
+- [x] **F10.3 People by name.** `AddMemberSheet` and "Tambah lewat nama" on the members screen, "Kirim link" (fresh invite, then WhatsApp `wa.me` with the number or the share sheet), guest rows have no role chip.
+- [x] **F10.4 Kamu yang mana?** After accepting an invite to a trip with people added by name, `ClaimMemberContent` lets the new member pick their name (`JoinTripViewModel.claim`); the OWNER gets `MEMBER_CLAIMED` in the inbox, which opens the members screen with "Salah orang? Batalkan".
+- [x] **F10.5 Comments.** `CommentsSheet` (mention chips insert `@Name`, `extractMentions` resolves the ids), `ProvideComments` and `CommentButton`, `COMMENT_MENTION` rows in the inbox. Online only. Owner decision 25 Oct: comments live in the Group tab only (polls, stage 2), not on itinerary, packing or expense rows, so nothing opens the sheet yet; the polls step wires `CommentButton` to each option.
+- Tests: `GroupFoundationTest` (countdown, comments, add member, send link, undo claim, claim step), `MemberIdJsonTest`, split tests on member ids. Deviations to review: the icon subset has no `chat_bubble`, `how_to_vote`, `upload_file`, `forum`, so comments use `edit_note`, polls `checklist`, documents `cloud_upload`; the designs for the group screens (TripGrup, TambahAnggotaNama, GabungPilihNama, WebTripGrup, ...) are not in `docs/design/screens/` yet, so these screens follow the PRD text. *Not seen on a device.* The wide web layout of the Group tab has no + button yet.
+
 ## Integration checkpoints with the backend agent
 
 | When | Check together |

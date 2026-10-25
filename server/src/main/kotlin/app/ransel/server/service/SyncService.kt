@@ -115,19 +115,19 @@ class SyncService {
         val serverTime = dbNow().minusSeconds(PULL_MARGIN_SECONDS)
         val sinceJava = since?.toJavaInstant()
 
-        val myRoles = TripMembers.selectAll().where { TripMembers.userId eq userId }
+        val myRoles = TripMembers.selectAll().where { (TripMembers.userId eq userId) and TripMembers.active() }
             .associate { it[TripMembers.tripId] to it[TripMembers.role] }
         val allTripIds = myRoles.keys.toList()
         // Trips I joined after `since` (invite accepted): their rows are older than my cursor, so a plain
         // `updated_at > since` filter would never deliver them. Send those trips whole.
         val newTripIds = if (sinceJava == null) emptyList() else TripMembers.selectAll()
-            .where { (TripMembers.userId eq userId) and (TripMembers.updatedAt greater sinceJava) }
+            .where { (TripMembers.userId eq userId) and TripMembers.active() and (TripMembers.updatedAt greater sinceJava) }
             .map { it[TripMembers.tripId] }
 
         val tripRows = TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id)
             .selectAll()
             .where {
-                val mine = TripMembers.userId eq userId
+                val mine = (TripMembers.userId eq userId) and TripMembers.active()
                 if (sinceJava == null) mine else mine and ((Trips.updatedAt greater sinceJava) or (Trips.id inList newTripIds))
             }
             .toList()
@@ -155,9 +155,9 @@ class SyncService {
             }.toList()
         val splits = if (expenseRows.isEmpty()) emptyMap() else ExpenseSplits.selectAll()
             .where { ExpenseSplits.expenseId inList expenseRows.map { it[Expenses.id] } }
-            .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) })
+            .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) })
         val payers = ExpenseService.loadPayers(expenseRows.map { it[Expenses.id] })
-        val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.userId }, payers[it[Expenses.id]].orEmpty()) }
+        val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty()) }
 
         val settlements = if (allTripIds.isEmpty()) emptyList() else Settlements.selectAll()
             .where {
@@ -166,23 +166,27 @@ class SyncService {
                 else inTrips and ((Settlements.updatedAt greater sinceJava) or (Settlements.tripId inList newTripIds))
             }.map { it.toSettlementDto() }
 
-        // Membership rows of my trips. A removed member leaves no tombstone (the table has no deleted_at):
-        // that user simply stops receiving the trip, and their next push of its rows is rejected TRIP_NOT_FOUND.
+        // Membership rows of my trips (current members only; the OWNER also gets the phone of members added by name).
+        // A removed member leaves no tombstone: that user simply stops receiving the trip, and their next push of its
+        // rows is rejected TRIP_NOT_FOUND.
         val members = if (allTripIds.isEmpty()) emptyList() else TripMembers
-            .join(Users, JoinType.INNER, TripMembers.userId, Users.id)
+            .join(Users, JoinType.LEFT, TripMembers.userId, Users.id)
             .selectAll()
             .where {
-                val inTrips = TripMembers.tripId inList allTripIds
+                val inTrips = (TripMembers.tripId inList allTripIds) and TripMembers.active()
                 if (sinceJava == null) inTrips
                 else inTrips and ((TripMembers.updatedAt greater sinceJava) or (TripMembers.tripId inList newTripIds))
             }.map {
+                val iAmOwner = myRoles[it[TripMembers.tripId]] == Role.OWNER
                 TripMemberDto(
                     tripId = it[TripMembers.tripId].toString(),
-                    userId = it[TripMembers.userId].toString(),
-                    displayName = it[Users.displayName],
-                    email = if (myRoles[it[TripMembers.tripId]] == Role.OWNER) it[Users.email] else null,
+                    memberId = it[TripMembers.id].toString(),
+                    userId = it[TripMembers.userId]?.toString(),
+                    displayName = it[TripMembers.displayName] ?: it[Users.displayName],
+                    email = if (iAmOwner) it[Users.email] else null,
                     role = it[TripMembers.role],
                     joinedAt = it[TripMembers.joinedAt].toTimestamp(),
+                    phone = if (iAmOwner) it[TripMembers.phone] else null,
                 )
             }
 
@@ -216,6 +220,7 @@ class SyncService {
             }
             if (dto.deletedAt == null) TripEvents.onTripSaved(dto.destination, dto.startDate)
             TripMembers.insert {
+                it[TripMembers.id] = callerMemberId(id, userId)
                 it[tripId] = id
                 it[TripMembers.userId] = userId
                 it[role] = Role.OWNER
@@ -317,17 +322,17 @@ class SyncService {
         val id = uuid(dto.id, "id")
         val tripId = uuid(dto.tripId, "tripId")
         requireEditorOnLiveTrip(tripId, userId)
-        val payer = uuid(dto.paidByUserId, "paidByUserId")
+        val payer = uuid(dto.paidByMemberId, "paidByMemberId")
         val input = ExpenseInput(
             id = dto.id, amountMinor = dto.amountMinor, currency = dto.currency, fxRateToBase = dto.fxRateToBase,
             category = dto.category, paymentMethod = dto.paymentMethod, note = dto.note, spentAt = dto.spentAt,
-            paidByUserId = dto.paidByUserId, payers = dto.payers, splits = dto.splits,
+            paidByMemberId = dto.paidByMemberId, payers = dto.payers, splits = dto.splits,
         )
         val existing = Expenses.selectAll().where { Expenses.id eq id }.singleOrNull()
         val keep = if (existing == null) emptySet() else buildSet {
-            add(existing[Expenses.paidByUserId])
-            ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq id }.forEach { add(it[ExpenseSplits.userId]) }
-            ExpenseService.loadPayers(listOf(id))[id].orEmpty().forEach { add(UUID.fromString(it.userId)) }
+            add(existing[Expenses.paidByMemberId])
+            ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq id }.forEach { add(it[ExpenseSplits.memberId]) }
+            ExpenseService.loadPayers(listOf(id))[id].orEmpty().forEach { add(UUID.fromString(it.memberId)) }
         }
         // throws ApiException with the right code (SPLIT_TOTAL_MISMATCH, VALIDATION_FAILED)
         ExpenseService.validate(input, payer, tripId, keep)
@@ -361,11 +366,11 @@ class SyncService {
         if (trip == null || trip[Trips.deletedAt] != null || memberRole(tripId, userId) == null) {
             throw ApiException(HttpStatusCode.NotFound, ErrorCode.TRIP_NOT_FOUND, "Trip not found")
         }
-        val from = uuid(dto.fromUserId, "fromUserId")
-        val to = uuid(dto.toUserId, "toUserId")
+        val from = uuid(dto.fromMemberId, "fromMemberId")
+        val to = uuid(dto.toMemberId, "toMemberId")
         val problems = buildMap {
             if (dto.amountMinor <= 0) put("amountMinor", "MUST_BE_POSITIVE")
-            if (from == to) put("toUserId", "MUST_DIFFER_FROM_PAYER")
+            if (from == to) put("toMemberId", "MUST_DIFFER_FROM_PAYER")
             putAll(BalanceService.memberProblems(tripId, from, to))
         }
         if (problems.isNotEmpty()) throw validation(problems)
@@ -375,8 +380,8 @@ class SyncService {
             Settlements.insert {
                 it[Settlements.id] = id
                 it[Settlements.tripId] = tripId
-                it[fromUserId] = from
-                it[toUserId] = to
+                it[fromMemberId] = from
+                it[toMemberId] = to
                 it[amountMinor] = dto.amountMinor
                 it[settledAt] = dto.settledAt.toJavaInstant()
                 it[createdAt] = dto.createdAt.toJavaInstant()
@@ -387,8 +392,8 @@ class SyncService {
             if (existing[Settlements.tripId] != tripId) throw conflict("Settlement belongs to another trip")
             requireNewer(dto.updatedAt, existing[Settlements.updatedAt])
             Settlements.update({ Settlements.id eq id }) {
-                it[fromUserId] = from
-                it[toUserId] = to
+                it[fromMemberId] = from
+                it[toMemberId] = to
                 it[amountMinor] = dto.amountMinor
                 it[settledAt] = dto.settledAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()

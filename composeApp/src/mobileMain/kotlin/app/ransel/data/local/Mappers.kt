@@ -48,7 +48,7 @@ fun PackingItemEntity.toDto() = PackingItemDto(
 fun ExpenseEntity.toDto() = ExpenseDto(
     id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
     category = enumOr(category, Category.OTHER), paymentMethod = enumOr(paymentMethod, PaymentMethod.CASH),
-    note = note, spentAt = spentAt.toInstant(), paidByUserId = paidByUserId,
+    note = note, spentAt = spentAt.toInstant(), paidByMemberId = paidByMemberId,
     payers = payersJson.toPayers(),
     splits = splitsJson.toSplits(),
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
@@ -84,7 +84,7 @@ fun PackingItemDto.toEntity() = PackingItemEntity(
 fun ExpenseDto.toEntity() = ExpenseEntity(
     id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
     category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
-    paidByUserId = paidByUserId, splitsJson = splits.toSplitsJson(), payersJson = payers.toPayersJson(),
+    paidByMemberId = paidByMemberId, splitsJson = splits.toSplitsJson(), payersJson = payers.toPayersJson(),
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
 )

@@ -74,14 +74,16 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | itinerary\_items | id, trip\_id, day\_date (null = unscheduled), start\_time, end\_time, title, category, place\_name, place\_id, lat, lng, duration\_min (AI estimate), notes, booking\_url, source (MANUAL/AI), sort\_order DOUBLE | V1 (1–2) |
 | packing\_items | id, trip\_id, category, name, quantity, is\_packed, sort\_order | V1 (1–2) |
 | packing\_templates | id, owner\_id (null = built-in), name, items JSONB; shared\_trip\_id added in V3 | V1, V3 |
-| expenses | id, trip\_id, amount\_minor, currency, fx\_rate\_to\_base, category, payment\_method, note, spent\_at, paid\_by\_user\_id | V1 (1–2) |
+| expenses | id, trip\_id, amount\_minor, currency, fx\_rate\_to\_base, category, payment\_method, note, spent\_at, paid\_by\_member\_id (V15; was paid\_by\_user\_id) | V1 (1–2), V15 |
 | users | id, display\_name; email, password\_hash, default\_currency added in V2 | V1, V2 |
 | refresh\_tokens | id, user\_id, token\_hash, device\_name, expires\_at, revoked\_at | V2 (3) |
 | password\_reset\_tokens | id, user\_id, token\_hash, expires\_at, used\_at | V2 (3) |
-| trip\_members | trip\_id, user\_id, role (OWNER/EDITOR/VIEWER), joined\_at | V3 (4) |
+| trip\_members | trip\_id, user\_id, role (OWNER/EDITOR/VIEWER), joined\_at; **V15:** `id` (the primary key), `user_id` nullable (a member added by name), display\_name, phone, claimed\_at, claimed\_by\_member\_id, removed\_at | V3 (4), V15 |
 | trip\_invites | code, trip\_id, created\_by, role, max\_uses, used\_count, expires\_at, revoked\_at | V3 (4) |
-| expense\_splits | expense\_id, user\_id, share\_minor | V3 (4) |
-| settlements | id, trip\_id, from\_user\_id, to\_user\_id, amount\_minor, settled\_at | V3 (4) |
+| expense\_splits | expense\_id, member\_id (V15; was user\_id), share\_minor | V3 (4), V15 |
+| settlements | id, trip\_id, from\_member\_id, to\_member\_id (V15; were from/to user\_id), amount\_minor, settled\_at | V3 (4), V15 |
+| member\_claims | id, trip\_id, guest\_member\_id, claimed\_by\_member\_id, moved JSONB (ids of the rewritten rows, for undo), claimed\_at, undone\_at | V15 |
+| comments | id, trip\_id, target\_kind (ITINERARY\_ITEM/EXPENSE), target\_id, author\_member\_id, body (1–1,000), mentions JSONB, created\_at, edited\_at, deleted\_at | V15 |
 | recommendation\_cache | query\_hash, destination, response JSONB, model, hit\_count, expires\_at | V4 (5) |
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
 | credit\_wallets, credit\_daily, credit\_ledger | wallet balance per user (created with the signup grant), free credits used per WIB day, append-only ledger (SPEND/SIGNUP\_GRANT/VOUCHER/TOPUP/...) | V8 (5) |
@@ -104,7 +106,8 @@ Notes:
 
 - `sort_order` is fractional so moving one item only changes one row (a value between its neighbours); an itinerary reorder also rewrites the times in the affected range.
 - The currency is stored per expense together with fx\_rate\_to\_base (the rate when the expense was recorded, so old totals stay fixed); conversion to `base_currency` happens when the summary is shown.
-- In Phase 1, `owner_id` and `paid_by_user_id` hold a fixed local ID, replaced by the real user ID on sign-in.
+- In Phase 1, `owner_id` holds a fixed local ID, replaced by the real user ID on sign-in.
+- **Members (V15, 25 Oct 2026).** People in a trip are `trip_members` rows with their own `id`, and a member does not need an account (the OWNER adds people by name; they are always VIEWER and have no inbox). Expenses, splits, payers and settlements point at `trip_members.id`. The id of an account's own row is `memberIdFor(tripId, userId)` (`shared/domain/MemberIds.kt`: the first 16 bytes of SHA-256 of `<tripId>:<userId>`, shaped like a UUID v5), so the apps write `paidByMemberId` offline without asking the server; guest data uses `memberIdFor(tripId, LOCAL_USER_ID)` and is rewritten at sign-in. V15 backfilled every id with the same function in SQL (`MemberIdMigrationTest` keeps the two equal). Removing, leaving or being claimed sets `removed_at`; the row stays so old expenses keep a name, and rejoining reuses the row. The TRD of 24 Oct said to fold this into V3; V1–V4 are live, so it is the new migration V15.
 
 ## API
 
@@ -134,10 +137,14 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST | /trips/{id}/invites | Create an invite code (role, maxUses, expiresAt) | 4 |
 | GET ★ | /trips/{id}/invites | List invites with usage, for the Members screen | 4 |
 | DELETE ★ | /trips/{id}/invites/{code} | Revoke an invite | 4 |
-| GET ★ | /invites/{code} | Trip preview for the Join trip screen | 4 |
+| GET ★ | /invites/{code} | Trip preview for the Join trip screen. **Public** (no bearer, rate limited per IP): initials of the members, names of the members added by name, activity count, total shared spend; no amount per person, phone or payment info | 4 |
 | POST | /invites/{code}/accept | Join the trip | 4 |
-| GET | /trips/{id}/members | List members | 4 |
-| PATCH, DELETE ★ | /trips/{id}/members/{userId} | Change role / remove member | 4 |
+| GET, POST | /trips/{id}/members | List members (phone of a member added by name: OWNER only) / add a person by name (OWNER) → 201 | 4 |
+| PATCH, DELETE ★ | /trips/{id}/members/{memberId} | Change role / remove member (a member added by name is always VIEWER) | 4 |
+| POST, DELETE | /trips/{id}/members/{memberId}/claim | "Kamu yang mana?": the caller takes over a member added by name, everything that pointed at it moves in one transaction (409 `MEMBER_ALREADY_CLAIMED`, `MEMBER_HAS_ACCOUNT`) / the OWNER undoes it | 4 |
+| GET, POST | /trips/{id}/comments | Comments of one item (`?targetKind=&targetId=`) / add one (any member with an account, any role) | 4 |
+| GET | /trips/{id}/comments/counts | Number of comments per target (`?targetKind=`), so lists can show a count without fetching the comments | 4 |
+| PATCH, DELETE | /comments/{id} | Edit / delete a comment (author only); a new @mention notifies that member | 4 |
 | POST ★ | /trips/{id}/leave, /trips/{id}/transfer-ownership | Leave the trip / transfer ownership | 4 |
 | GET | /trips/{id}/balances | Balance per person + fewest transfers | 4 |
 | POST ★ | /trips/{id}/settlements | Mark as settled | 4 |

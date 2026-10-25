@@ -37,6 +37,15 @@ object PushText {
                 (if (en) "Payment recorded in $trip" else "Pembayaran dicatat di $trip") to
                     (if (en) "$actor marked $amount as settled." else "$actor menandai $amount lunas.")
             }
+            NotificationType.MEMBER_CLAIMED -> {
+                val guest = params["guestName"].orEmpty()
+                (if (en) "$actor took a spot in $trip" else "$actor memilih namanya di $trip") to
+                    (if (en) "They are \"$guest\" in the member list." else "Dia adalah \"$guest\" di daftar anggota.")
+            }
+            NotificationType.COMMENT_MENTION -> {
+                val snippet = params["snippet"].orEmpty()
+                (if (en) "$actor mentioned you in $trip" else "$actor menyebutmu di $trip") to snippet
+            }
             NotificationType.PACKING_REMINDER -> {
                 val n = params["remaining"].orEmpty()
                 (if (en) "Packing for $trip" else "Packing untuk $trip") to

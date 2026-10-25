@@ -14,7 +14,7 @@ import kotlinx.serialization.Serializable
  * Pull: GET /sync?since=<serverTime of the previous pull> returns every row the user can
  * see that changed after `since` (server clock), deletes included. First pull: omit `since`.
  *
- * Guest data ("Pakai tanpa akun dulu") uses LOCAL_USER_ID as ownerId / paidByUserId;
+ * Guest data ("Pakai tanpa akun dulu") uses LOCAL_USER_ID as ownerId / paidByMemberId (as memberIdFor(tripId, LOCAL_USER_ID));
  * the client rewrites it to the real user id before the first push.
  */
 

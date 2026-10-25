@@ -93,7 +93,7 @@ fun ExpensesTab(
     val balances by viewModel.balances.collectAsState()
     val shared = members.size > 1
     val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
-    val myUserId = viewModel.myUserId
+    val myMemberId = viewModel.myMemberId
     var sharedTab by rememberSaveable { mutableStateOf(SharedTab.SUMMARY) }
     var sheet by remember { mutableStateOf<ExpenseSheetTarget?>(null) }
     val dates = rememberDateFormatter()
@@ -121,7 +121,7 @@ fun ExpensesTab(
                         BalancesContent(
                             state = balances,
                             members = members,
-                            myUserId = myUserId,
+                            myMemberId = myMemberId,
                             onRetry = viewModel::loadBalances,
                             onSettle = viewModel::settle,
                         )
@@ -132,7 +132,7 @@ fun ExpensesTab(
                         budgetMinor = trip.budgetMinor,
                         currency = trip.baseCurrency,
                     )
-                    val mine = balances.balances?.members?.firstOrNull { it.userId == myUserId }
+                    val mine = balances.balances?.members?.firstOrNull { it.memberId == myMemberId }
                     if (shared && mine != null) {
                         PositionCard(mine, balances.balances!!.baseCurrency, onOpen = { sharedTab = SharedTab.BALANCES })
                     }
@@ -161,7 +161,7 @@ fun ExpensesTab(
                             }
                             group.items.forEach { expense ->
                                 ExpenseRow(
-                                    expense, tz, members.takeIf { shared }, myUserId,
+                                    expense, tz, members.takeIf { shared }, myMemberId,
                                     onClick = if (canEdit) ({ sheet = ExpenseSheetTarget.Edit(expense.id) }) else null,
                                 )
                             }
@@ -200,7 +200,7 @@ fun ExpensesTab(
                 },
                 onDismiss = { sheet = null },
                 members = members,
-                myUserId = myUserId,
+                myMemberId = myMemberId,
             )
         }
     }
@@ -269,7 +269,7 @@ private fun ExpenseRow(
     expense: ExpenseDto,
     tz: TimeZone,
     members: List<TripMemberDto>?,
-    myUserId: String?,
+    myMemberId: String?,
     onClick: (() -> Unit)?,
 ) {
     val time = expense.spentAt.toLocalDateTime(tz).time
@@ -294,9 +294,9 @@ private fun ExpenseRow(
             } else {
                 // Shared trip: who paid and how many people share it ("Dibayar kamu · 3 orang").
                 val you = stringResource(Res.string.shared_you_lower)
-                fun nameOf(userId: String) = if (userId == myUserId) you else members.firstOrNull { it.userId == userId }?.displayName ?: "?"
+                fun nameOf(memberId: String) = if (memberId == myMemberId) you else members.firstOrNull { it.memberId == memberId }?.displayName ?: "?"
                 // several payers: "Rina, kamu"; one payer: just that name
-                val payer = if (expense.payers.size > 1) expense.payers.joinToString(", ") { nameOf(it.userId) } else nameOf(expense.paidByUserId)
+                val payer = if (expense.payers.size > 1) expense.payers.joinToString(", ") { nameOf(it.memberId) } else nameOf(expense.paidByMemberId)
                 val people = if (expense.splits.isEmpty()) stringResource(Res.string.shared_personal)
                 else pluralStringResource(Res.plurals.shared_people, expense.splits.size, expense.splits.size)
                 stringResource(Res.string.shared_paid_by_line, payer) + " · " + people
@@ -311,8 +311,8 @@ private fun ExpenseRow(
         Column(horizontalAlignment = Alignment.End) {
             Text(formatMoney(expense.amountMinor, expense.currency), style = MaterialTheme.typography.titleSmall)
             val myShare = if (members == null) null else
-                (expense.splits.firstOrNull { it.userId == myUserId }?.shareMinor
-                    ?: if (expense.splits.isEmpty() && expense.paidByUserId == myUserId) expense.amountMinor else 0L)
+                (expense.splits.firstOrNull { it.memberId == myMemberId }?.shareMinor
+                    ?: if (expense.splits.isEmpty() && expense.paidByMemberId == myMemberId) expense.amountMinor else 0L)
             Text(
                 if (myShare != null) stringResource(Res.string.shared_your_share, formatMoney(myShare, expense.currency))
                 else stringResource(expense.paymentMethod.label),

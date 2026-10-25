@@ -7,10 +7,18 @@ import app.ransel.data.remote.ApiFailure
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.TripRepository
+import app.ransel.feature.invite.INVITE_MAX_USES
+import app.ransel.feature.invite.INVITE_VALID_DAYS
+import app.ransel.shared.domain.normalizePhone
+import app.ransel.shared.domain.validateMemberName
+import app.ransel.shared.dto.AddMemberRequest
+import app.ransel.shared.dto.CreateInviteRequest
 import app.ransel.shared.dto.InviteDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
+import app.ransel.util.newId
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +34,26 @@ sealed interface MembersDialog {
     data object Leave : MembersDialog
 }
 
+/** Why the name of a new member is not accepted. */
+enum class NameProblem { REQUIRED, TOO_LONG }
+
+/** The "Tambah anggota" sheet: a person added by name, without an account. */
+data class AddMemberForm(
+    val name: String = "",
+    val phone: String = "",
+    val nameProblem: NameProblem? = null,
+    val phoneInvalid: Boolean = false,
+    val saving: Boolean = false,
+)
+
+/** Shown to the OWNER after someone took a name ("Kamu yang mana?"), until the screen is left. */
+data class ClaimBanner(
+    val guestMemberId: String,
+    val guestName: String,
+    val claimerName: String?,
+    val undoing: Boolean = false,
+)
+
 data class MembersUiState(
     val loading: Boolean = true,
     val tripTitle: String = "",
@@ -39,6 +67,8 @@ data class MembersUiState(
     /** Owner only: invites that can still be used. */
     val invites: List<InviteDto> = emptyList(),
     val inviteSheetOpen: Boolean = false,
+    val addForm: AddMemberForm? = null,
+    val claimBanner: ClaimBanner? = null,
 ) {
     val me: TripMemberDto? get() = members.firstOrNull { it.userId == myUserId }
     /** Unknown until the list is loaded: the safest (read-only) role. */
@@ -51,6 +81,8 @@ sealed interface MembersEvent {
     data object Left : MembersEvent
     /** A change was rejected or could not be sent; [code] is an `ErrorCode`. */
     data class Problem(val code: String) : MembersEvent
+    /** A fresh invite link for [member], who was added by name: open WhatsApp (or the share sheet) with it. */
+    data class SendLink(val member: TripMemberDto, val url: String, val tripTitle: String) : MembersEvent
 }
 
 class MembersViewModel(
@@ -118,7 +150,83 @@ class MembersViewModel(
 
     fun changeRole(member: TripMemberDto, role: Role) {
         if (role == member.role || role == Role.OWNER) return
-        change { api.updateMemberRole(tripId, member.userId, role) }
+        if (member.isGuest) return // a person without an account is always a viewer
+        change { api.updateMemberRole(tripId, member.memberId, role) }
+    }
+
+    // ── add a person by name ────────────────────────────────────────────────
+
+    fun openAddForm() = _state.update { it.copy(addForm = AddMemberForm()) }
+    fun closeAddForm() = _state.update { it.copy(addForm = null) }
+    fun onAddName(value: String) = _state.update { it.copy(addForm = it.addForm?.copy(name = value, nameProblem = null)) }
+    fun onAddPhone(value: String) = _state.update { it.copy(addForm = it.addForm?.copy(phone = value, phoneInvalid = false)) }
+
+    fun submitAdd() {
+        val form = _state.value.addForm ?: return
+        if (form.saving) return
+        val nameProblem = validateMemberName(form.name)["displayName"]?.let { NameProblem.valueOf(it) }
+        val phoneInvalid = form.phone.isNotBlank() && normalizePhone(form.phone) == null
+        if (nameProblem != null || phoneInvalid) {
+            _state.update { it.copy(addForm = form.copy(nameProblem = nameProblem, phoneInvalid = phoneInvalid)) }
+            return
+        }
+        _state.update { it.copy(addForm = form.copy(saving = true)) }
+        viewModelScope.launch {
+            val request = AddMemberRequest(newId(), form.name.trim(), form.phone.trim().ifEmpty { null })
+            when (val result = api.addMember(tripId, request)) {
+                is ApiResult.Success -> {
+                    _state.update { it.copy(addForm = null) }
+                    reloadMembers()
+                }
+                is ApiResult.Failure -> {
+                    _state.update { it.copy(addForm = form.copy(saving = false)) }
+                    events.send(MembersEvent.Problem(result.error.code))
+                }
+            }
+        }
+    }
+
+    /** "Kirim link" on a person added by name: a fresh invite, then the screen opens WhatsApp with it. */
+    fun sendLink(member: TripMemberDto) {
+        viewModelScope.launch {
+            _state.update { it.copy(busy = true) }
+            val request = CreateInviteRequest(Role.EDITOR, INVITE_MAX_USES, Clock.System.now() + INVITE_VALID_DAYS.days)
+            when (val result = api.createInvite(tripId, request)) {
+                is ApiResult.Success -> events.send(MembersEvent.SendLink(member, result.value.url, _state.value.tripTitle))
+                is ApiResult.Failure -> events.send(MembersEvent.Problem(result.error.code))
+            }
+            _state.update { it.copy(busy = false) }
+        }
+    }
+
+    // ── undo a claim (the OWNER, after the MEMBER_CLAIMED notification) ─────
+
+    fun showClaimUndo(guestMemberId: String, guestName: String, claimerName: String?) =
+        _state.update { it.copy(claimBanner = ClaimBanner(guestMemberId, guestName, claimerName)) }
+
+    fun undoClaim() {
+        val banner = _state.value.claimBanner ?: return
+        if (banner.undoing) return
+        _state.update { it.copy(claimBanner = banner.copy(undoing = true)) }
+        viewModelScope.launch {
+            when (val result = api.undoClaim(tripId, banner.guestMemberId)) {
+                is ApiResult.Success -> {
+                    _state.update { it.copy(claimBanner = null) }
+                    reloadMembers()
+                }
+                is ApiResult.Failure -> {
+                    _state.update { it.copy(claimBanner = banner.copy(undoing = false)) }
+                    events.send(MembersEvent.Problem(result.error.code))
+                }
+            }
+        }
+    }
+
+    private suspend fun reloadMembers() {
+        when (val list = api.members(tripId)) {
+            is ApiResult.Success -> _state.update { it.copy(members = list.value.sortedWith(memberOrder)) }
+            is ApiResult.Failure -> Unit
+        }
     }
 
     fun ask(dialog: MembersDialog) = _state.update { it.copy(dialog = dialog) }
@@ -128,8 +236,8 @@ class MembersViewModel(
         val dialog = _state.value.dialog ?: return
         _state.update { it.copy(dialog = null) }
         when (dialog) {
-            is MembersDialog.Remove -> change { api.removeMember(tripId, dialog.member.userId) }
-            is MembersDialog.MakeOwner -> change { api.transferOwnership(tripId, dialog.member.userId) }
+            is MembersDialog.Remove -> change { api.removeMember(tripId, dialog.member.memberId) }
+            is MembersDialog.MakeOwner -> dialog.member.userId?.let { newOwner -> change { api.transferOwnership(tripId, newOwner) } }
             MembersDialog.Leave -> viewModelScope.launch {
                 _state.update { it.copy(busy = true) }
                 when (val result = api.leaveTrip(tripId)) {
@@ -149,10 +257,7 @@ class MembersViewModel(
                 is ApiResult.Success -> Unit
                 is ApiResult.Failure -> events.send(MembersEvent.Problem(result.error.code))
             }
-            when (val list = api.members(tripId)) {
-                is ApiResult.Success -> _state.update { it.copy(members = list.value.sortedWith(memberOrder)) }
-                is ApiResult.Failure -> Unit
-            }
+            reloadMembers()
             _state.update { it.copy(busy = false) }
         }
     }

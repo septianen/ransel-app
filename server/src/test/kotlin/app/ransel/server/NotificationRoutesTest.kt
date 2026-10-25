@@ -111,8 +111,8 @@ class NotificationRoutesTest {
             val t = ownerAndGuest()
             join(t.tripId, t.guest)
             use(t.owner)
-            assertEquals(HttpStatusCode.OK, patch("/trips/${t.tripId}/members/${t.guest.userId}", """{"role":"VIEWER"}""").status)
-            assertEquals(HttpStatusCode.NoContent, delete("/trips/${t.tripId}/members/${t.guest.userId}").status)
+            assertEquals(HttpStatusCode.OK, patch("/trips/${t.tripId}/members/${t.guest.memberId(t.tripId)}", """{"role":"VIEWER"}""").status)
+            assertEquals(HttpStatusCode.NoContent, delete("/trips/${t.tripId}/members/${t.guest.memberId(t.tripId)}").status)
 
             use(t.guest)
             val types = inbox().getValue("items").jsonArray.map { it.jsonObject.str("type") }
@@ -128,7 +128,7 @@ class NotificationRoutesTest {
             use(t.owner)
             val id = UUID.randomUUID().toString()
             val body = """{"id":"$id","amountMinor":100000,"currency":"IDR","spentAt":"2026-11-20T05:00:00Z",
-                "splits":[{"userId":"${t.owner.userId}","shareMinor":50000},{"userId":"${t.guest.userId}","shareMinor":50000}]}"""
+                "splits":[{"memberId":"${t.owner.memberId(t.tripId)}","shareMinor":50000},{"memberId":"${t.guest.memberId(t.tripId)}","shareMinor":50000}]}"""
             assertEquals(HttpStatusCode.Created, post("/trips/${t.tripId}/expenses", body).status)
 
             use(t.owner)
@@ -147,7 +147,7 @@ class NotificationRoutesTest {
             val t = ownerAndGuest()
             join(t.tripId, t.guest)
             use(t.guest)
-            val body = """{"id":"${UUID.randomUUID()}","fromUserId":"${t.guest.userId}","toUserId":"${t.owner.userId}","amountMinor":25000}"""
+            val body = """{"id":"${UUID.randomUUID()}","fromMemberId":"${t.guest.memberId(t.tripId)}","toMemberId":"${t.owner.memberId(t.tripId)}","amountMinor":25000}"""
             assertEquals(HttpStatusCode.Created, post("/trips/${t.tripId}/settlements", body).status)
             use(t.owner)
             val item = inbox().getValue("items").jsonArray.map { it.jsonObject }.single { it.str("type") == "SETTLEMENT_MARKED" }
@@ -181,7 +181,7 @@ class NotificationRoutesTest {
             val t = ownerAndGuest()
             join(t.tripId, t.guest)
             use(t.owner)
-            patch("/trips/${t.tripId}/members/${t.guest.userId}", """{"role":"VIEWER"}""")
+            patch("/trips/${t.tripId}/members/${t.guest.memberId(t.tripId)}", """{"role":"VIEWER"}""")
             use(t.guest)
             assertEquals("1", inbox().str("unreadCount"))
             val first = get("/notifications?limit=1").data().jsonObject

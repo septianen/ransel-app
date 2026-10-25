@@ -109,7 +109,7 @@ class ExploreSuggestionService(
             destination = row[Trips.destination],
             month = "%04d-%02d".format(start.year, start.monthNumber),
             days = start.daysUntil(row[Trips.endDate].toKotlinLocalDate()) + 1,
-            members = TripMembers.selectAll().where { TripMembers.tripId eq tripId }.count().toInt(),
+            members = TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and TripMembers.active() }.count().toInt(),
             budgetMinor = row[Trips.budgetMinor],
             currency = row[Trips.baseCurrency],
         )

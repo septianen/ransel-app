@@ -20,6 +20,8 @@ data class AppConfig(
     val bcryptCost: Int = 12,
     /** Login/register attempts per client address per minute. */
     val authRateLimitPerMinute: Int = 10,
+    /** GET /invites/{code} is public: requests per client address per minute. */
+    val invitePreviewRateLimitPerMinute: Int = 30,
     /** Used to build links in emails (password reset). */
     val appBaseUrl: String = "https://ransel.mietek.tech",
     val isProduction: Boolean = false,

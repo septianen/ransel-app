@@ -21,7 +21,7 @@ import app.ransel.ui.format.parseAmountMinor
  */
 class SplitState(
     val members: List<TripMemberDto>,
-    myUserId: String?,
+    myMemberId: String?,
     existing: ExpenseDto?,
     currency: String,
 ) {
@@ -40,27 +40,27 @@ class SplitState(
     init {
         val savedPayers = existing?.payers.orEmpty()
         if (savedPayers.isEmpty()) {
-            payers.add(existing?.paidByUserId ?: myUserId ?: members.first().userId)
+            payers.add(existing?.paidByMemberId ?: myMemberId ?: members.first().memberId)
         } else {
-            payers.addAll(savedPayers.map { it.userId })
+            payers.addAll(savedPayers.map { it.memberId })
             val equal = splitEqually(existing!!.amountMinor, payers.toList(), payers.first())
-            if (savedPayers.any { equal[it.userId] != it.amountMinor }) {
+            if (savedPayers.any { equal[it.memberId] != it.amountMinor }) {
                 payersCustom = true
-                savedPayers.forEach { payerTexts[it.userId] = amountToInput(it.amountMinor, currency) }
+                savedPayers.forEach { payerTexts[it.memberId] = amountToInput(it.amountMinor, currency) }
             }
         }
 
         val saved = existing?.splits.orEmpty()
         if (saved.isEmpty()) {
             // New expense: everybody takes part. Editing a personal one: only the payer.
-            val ids = if (existing == null) members.map { it.userId } else listOf(existing.paidByUserId)
+            val ids = if (existing == null) members.map { it.memberId } else listOf(existing.paidByMemberId)
             participants.addAll(ids)
         } else {
-            participants.addAll(saved.map { it.userId })
+            participants.addAll(saved.map { it.memberId })
             val equal = splitEqually(existing!!.amountMinor, participants.toList(), paidBy)
-            if (saved.any { equal[it.userId] != it.shareMinor }) {
+            if (saved.any { equal[it.memberId] != it.shareMinor }) {
                 custom = true
-                saved.forEach { shareTexts[it.userId] = amountToInput(it.shareMinor, currency) }
+                saved.forEach { shareTexts[it.memberId] = amountToInput(it.shareMinor, currency) }
             }
         }
     }
@@ -68,11 +68,11 @@ class SplitState(
     // ── who paid ────────────────────────────────────────────────────────────
 
     /** Ticks or unticks a payer; at least one stays ticked. */
-    fun togglePayer(userId: String) {
-        if (userId in payers) {
-            if (payers.size > 1) payers.remove(userId)
+    fun togglePayer(memberId: String) {
+        if (memberId in payers) {
+            if (payers.size > 1) payers.remove(memberId)
         } else {
-            payers.add(userId)
+            payers.add(memberId)
         }
     }
 
@@ -111,8 +111,8 @@ class SplitState(
 
     // ── who owes ────────────────────────────────────────────────────────────
 
-    fun toggle(userId: String) {
-        if (userId in participants) participants.remove(userId) else participants.add(userId)
+    fun toggle(memberId: String) {
+        if (memberId in participants) participants.remove(memberId) else participants.add(memberId)
     }
 
     fun useCustom(amountMinor: Long?, currency: String) {
@@ -154,7 +154,7 @@ class SplitState(
             .map { (id, share) -> ExpenseSplitDto(id, share) }
     }
 
-    /** Payers to send: empty for a single payer (then `paidByUserId` is the only one), else who paid how much. */
+    /** Payers to send: empty for a single payer (then `paidByMemberId` is the only one), else who paid how much. */
     fun toPayers(amountMinor: Long, currency: String): List<ExpensePayerDto> {
         if (payers.size < 2) return emptyList()
         val amounts = payerAmounts(amountMinor, currency)

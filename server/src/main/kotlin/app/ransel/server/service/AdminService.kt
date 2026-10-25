@@ -53,6 +53,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.count
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inSubQuery
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.inList
@@ -157,7 +158,7 @@ class AdminService(
         val wallet = credits.credits(id)
         return transaction {
             val trips = TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id).selectAll()
-                .where { (TripMembers.userId eq id) and Trips.deletedAt.isNull() }
+                .where { (TripMembers.userId eq id) and TripMembers.active() and Trips.deletedAt.isNull() }
                 .orderBy(Trips.startDate to SortOrder.DESC)
                 .map { t ->
                     val tripId = t[Trips.id]
@@ -167,7 +168,7 @@ class AdminService(
                         startDate = t[Trips.startDate].toKotlinLocalDate(),
                         endDate = t[Trips.endDate].toKotlinLocalDate(),
                         role = t[TripMembers.role],
-                        memberCount = TripMembers.selectAll().where { TripMembers.tripId eq tripId }.count().toInt(),
+                        memberCount = TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and TripMembers.active() }.count().toInt(),
                         itemCount = (
                             ItineraryItems.selectAll().where { (ItineraryItems.tripId eq tripId) and ItineraryItems.deletedAt.isNull() }.count() +
                                 PackingItems.selectAll().where { (PackingItems.tripId eq tripId) and PackingItems.deletedAt.isNull() }.count()
@@ -177,7 +178,7 @@ class AdminService(
             AdminUserDetailDto(
                 user = toDtos(listOf(row)).single(),
                 credits = wallet,
-                expenseCount = Expenses.selectAll().where { (Expenses.paidByUserId eq id) and Expenses.deletedAt.isNull() }.count().toInt(),
+                expenseCount = Expenses.selectAll().where { (Expenses.paidByMemberId inSubQuery TripMembers.select(TripMembers.id).where { TripMembers.userId eq id }) and Expenses.deletedAt.isNull() }.count().toInt(),
                 trips = trips,
                 devices = devices(id),
             )
@@ -416,9 +417,9 @@ class AdminService(
             .associate { it[Devices.userId] to it[Devices.platform] } // ascending, so the newest device wins
         val tripCount = TripMembers.userId.count()
         val trips = TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id).select(TripMembers.userId, tripCount)
-            .where { (TripMembers.userId inList ids) and Trips.deletedAt.isNull() }
+            .where { (TripMembers.userId inList ids) and TripMembers.active() and Trips.deletedAt.isNull() }
             .groupBy(TripMembers.userId)
-            .associate { it[TripMembers.userId] to it[tripCount].toInt() }
+            .mapNotNull { r -> r[TripMembers.userId]?.let { it to r[tripCount].toInt() } }.toMap()
         return rows.map { row ->
             val id = row[Users.id]
             AdminUserDto(

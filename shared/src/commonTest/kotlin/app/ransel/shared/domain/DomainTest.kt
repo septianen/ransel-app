@@ -89,10 +89,10 @@ class DomainTest {
         )
         val balances = computeBalances(listOf("a", "b", "c"), expenses, settlements = emptyList())
         assertEquals(0, balances.sumOf { it.balanceMinor })
-        assertEquals(200_000, balances.first { it.userId == "a" }.balanceMinor)
+        assertEquals(200_000, balances.first { it.memberId == "a" }.balanceMinor)
 
         val transfers = fewestTransfers(balances)
-        val after = computeBalances(listOf("a", "b", "c"), expenses, transfers.map { BalanceSettlement(it.fromUserId, it.toUserId, it.amountMinor) })
+        val after = computeBalances(listOf("a", "b", "c"), expenses, transfers.map { BalanceSettlement(it.fromMemberId, it.toMemberId, it.amountMinor) })
         assertTrue(after.all { it.balanceMinor == 0L })
         assertTrue(transfers.size <= 2)
     }

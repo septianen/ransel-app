@@ -51,6 +51,13 @@ enum class FeedbackAction { LIKE, SKIP }
 enum class Vote { LIKE, SKIP }
 
 /**
+ * comments.target_kind: what a comment hangs on. There is no group chat, only comments on things.
+ * The poll option arrives with polls (stage 2).
+ */
+@Serializable
+enum class CommentTarget { ITINERARY_ITEM, EXPENSE }
+
+/**
  * Explore form: price of the places, relative to local prices (a cheap ramen stall in Tokyo is LOW in Tokyo).
  * UI: `$` Murah, `$$` Sedang, `$$$` Mewah. Maps to Google Places priceLevel: LOW = 0–1, MEDIUM = 2, HIGH = 3–4.
  */
@@ -103,6 +110,7 @@ enum class NotificationType {
     EXPENSE_ADDED, SETTLEMENT_MARKED,
     VOTE_REQUESTED, VOTE_RESULT,
     PACKING_REMINDER, ACTIVITY_REMINDER,
+    MEMBER_CLAIMED, COMMENT_MENTION,
 }
 
 @Serializable

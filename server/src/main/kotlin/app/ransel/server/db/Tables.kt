@@ -1,11 +1,14 @@
 package app.ransel.server.db
 
 import app.ransel.shared.model.Category
+import app.ransel.shared.model.CommentTarget
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.PackingCategory
 import app.ransel.shared.model.PaymentMethod
 import app.ransel.shared.model.Role
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.time
@@ -27,7 +30,7 @@ import kotlinx.serialization.json.JsonElement
 import app.ransel.shared.model.AdminAction
 
 /*
- * Exposed mappings of the Flyway schema (V1..V3). Flyway owns the DDL; these objects only describe it.
+ * Exposed mappings of the Flyway schema (V1..V15). Flyway owns the DDL; these objects only describe it.
  * `updated_at` is set by the DB trigger, so writers never set it.
  */
 
@@ -64,12 +67,51 @@ object Trips : Table("trips") {
 }
 
 object TripMembers : Table("trip_members") {
+    /** What expenses, splits, payers and settlements point at. Accounts: shared memberIdFor(tripId, userId). */
+    val id = javaUUID("id")
     val tripId = javaUUID("trip_id")
-    val userId = javaUUID("user_id")
+    /** Null = a member added by name, without an account (V15). */
+    val userId = javaUUID("user_id").nullable()
     val role = enumerationByName<Role>("role", 16)
+    val displayName = text("display_name").nullable()
+    /** Digits with country code; only the OWNER may see it. */
+    val phone = text("phone").nullable()
+    val claimedAt = timestamp("claimed_at").nullable()
+    val claimedByMemberId = javaUUID("claimed_by_member_id").nullable()
+    /** Set when removed, left or claimed: the row stays so expenses keep a name, but the person is no longer a member. */
+    val removedAt = timestamp("removed_at").nullable()
     val joinedAt = timestamp("joined_at")
     val updatedAt = timestamp("updated_at")
-    override val primaryKey = PrimaryKey(tripId, userId)
+    override val primaryKey = PrimaryKey(id)
+
+    /** Current members only: not removed, not left, not claimed. */
+    fun active(): Op<Boolean> = removedAt.isNull()
+}
+
+/** Which rows moved when a member added by name was claimed (V15); lets the OWNER undo it. */
+object MemberClaims : Table("member_claims") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val guestMemberId = javaUUID("guest_member_id")
+    val claimedByMemberId = javaUUID("claimed_by_member_id")
+    val moved = jsonb<Map<String, List<String>>>("moved", Json)
+    val claimedAt = timestamp("claimed_at")
+    val undoneAt = timestamp("undone_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object Comments : Table("comments") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val targetKind = enumerationByName<CommentTarget>("target_kind", 16)
+    val targetId = javaUUID("target_id")
+    val authorMemberId = javaUUID("author_member_id")
+    val body = text("body")
+    val mentions = jsonb<List<String>>("mentions", Json)
+    val createdAt = timestamp("created_at")
+    val editedAt = timestamp("edited_at").nullable()
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
 }
 
 object ItineraryItems : Table("itinerary_items") {
@@ -119,7 +161,7 @@ object Expenses : Table("expenses") {
     val paymentMethod = enumerationByName<PaymentMethod>("payment_method", 16)
     val note = text("note").nullable()
     val spentAt = timestamp("spent_at")
-    val paidByUserId = javaUUID("paid_by_user_id")
+    val paidByMemberId = javaUUID("paid_by_member_id")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
@@ -128,16 +170,16 @@ object Expenses : Table("expenses") {
 
 object ExpenseSplits : Table("expense_splits") {
     val expenseId = javaUUID("expense_id")
-    val userId = javaUUID("user_id")
+    val memberId = javaUUID("member_id")
     val shareMinor = long("share_minor")
-    override val primaryKey = PrimaryKey(expenseId, userId)
+    override val primaryKey = PrimaryKey(expenseId, memberId)
 }
 
 object ExpensePayers : Table("expense_payers") {
     val expenseId = javaUUID("expense_id")
-    val userId = javaUUID("user_id")
+    val memberId = javaUUID("member_id")
     val amountMinor = long("amount_minor")
-    override val primaryKey = PrimaryKey(expenseId, userId)
+    override val primaryKey = PrimaryKey(expenseId, memberId)
 }
 
 object RefreshTokens : Table("refresh_tokens") {
@@ -188,8 +230,8 @@ object TripInvites : Table("trip_invites") {
 object Settlements : Table("settlements") {
     val id = javaUUID("id")
     val tripId = javaUUID("trip_id")
-    val fromUserId = javaUUID("from_user_id")
-    val toUserId = javaUUID("to_user_id")
+    val fromMemberId = javaUUID("from_member_id")
+    val toMemberId = javaUUID("to_member_id")
     val amountMinor = long("amount_minor")
     val settledAt = timestamp("settled_at")
     val createdAt = timestamp("created_at")

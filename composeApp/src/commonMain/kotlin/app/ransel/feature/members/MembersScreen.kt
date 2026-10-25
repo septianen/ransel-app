@@ -50,7 +50,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.ransel.feature.invite.InviteMembersSheet
+import app.ransel.shared.domain.whatsappLink
 import app.ransel.shared.dto.InviteDto
+import app.ransel.platform.rememberShareText
+import androidx.compose.ui.platform.LocalUriHandler
+import org.jetbrains.compose.resources.getString
 import kotlin.time.Clock
 import app.ransel.data.remote.ApiFailure
 import app.ransel.shared.dto.TripMemberDto
@@ -74,7 +78,13 @@ import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.group_guest_tag
 import ransel.composeapp.generated.resources.invite_button
+import ransel.composeapp.generated.resources.member_invite_message
+import ransel.composeapp.generated.resources.member_send_link
+import ransel.composeapp.generated.resources.members_add_button
+import ransel.composeapp.generated.resources.members_claim_banner
+import ransel.composeapp.generated.resources.members_claim_undo
 import ransel.composeapp.generated.resources.invites_active_title
 import ransel.composeapp.generated.resources.invite_revoke
 import ransel.composeapp.generated.resources.invite_meta_used
@@ -118,17 +128,31 @@ fun MembersScreen(
     onBack: () -> Unit,
     onLeft: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Set when opened from a MEMBER_CLAIMED notification: lets the OWNER undo that claim. */
+    claimedGuestId: String? = null,
+    claimedGuestName: String? = null,
+    claimerName: String? = null,
     viewModel: MembersViewModel = koinViewModel(key = "members-$tripId") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val generic = stringResource(Res.string.members_error_generic)
     val connection = stringResource(Res.string.members_error_connection)
+    val uriHandler = LocalUriHandler.current
+    val share = rememberShareText()
 
+    LaunchedEffect(claimedGuestId) {
+        if (claimedGuestId != null && claimedGuestName != null) viewModel.showClaimUndo(claimedGuestId, claimedGuestName, claimerName)
+    }
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
                 MembersEvent.Left -> onLeft()
+                is MembersEvent.SendLink -> {
+                    val message = getString(Res.string.member_invite_message, event.member.displayName, event.tripTitle, event.url)
+                    // WhatsApp straight to the number when there is one, otherwise the system share sheet.
+                    whatsappLink(event.member.phone, message)?.let { uriHandler.openUri(it) } ?: share(message)
+                }
                 is MembersEvent.Problem -> {
                     snackbar.currentSnackbarData?.dismiss()
                     val offline = event.code == app.ransel.shared.api.ErrorCode.NETWORK_TIMEOUT ||
@@ -148,10 +172,23 @@ fun MembersScreen(
             onAsk = viewModel::ask,
             onInvite = viewModel::openInviteSheet,
             onRevokeInvite = viewModel::revokeInvite,
+            onAddByName = viewModel::openAddForm,
+            onSendLink = viewModel::sendLink,
+            onUndoClaim = viewModel::undoClaim,
         )
         SnackbarHost(
             hostState = snackbar,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp),
+        )
+    }
+
+    state.addForm?.let { form ->
+        AddMemberSheet(
+            form = form,
+            onName = viewModel::onAddName,
+            onPhone = viewModel::onAddPhone,
+            onSubmit = viewModel::submitAdd,
+            onDismiss = viewModel::closeAddForm,
         )
     }
 
@@ -208,6 +245,9 @@ fun MembersContent(
     modifier: Modifier = Modifier,
     onInvite: () -> Unit = {},
     onRevokeInvite: (InviteDto) -> Unit = {},
+    onAddByName: () -> Unit = {},
+    onSendLink: (TripMemberDto) -> Unit = {},
+    onUndoClaim: () -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         MembersTopBar(state, onBack)
@@ -225,6 +265,7 @@ fun MembersContent(
                     .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
+                state.claimBanner?.takeIf { state.isOwner }?.let { ClaimBannerCard(it, onUndoClaim) }
                 if (state.isOwner) {
                     Button(
                         onClick = onInvite,
@@ -239,6 +280,20 @@ fun MembersContent(
                         )
                     }
                 }
+                if (state.isOwner) {
+                    OutlinedButton(
+                        onClick = onAddByName,
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                    ) {
+                        Symbol(Symbols.personAdd, size = 22.dp, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            stringResource(Res.string.members_add_button),
+                            Modifier.padding(start = 8.dp),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
                 Column {
                     state.members.forEachIndexed { index, member ->
                         MemberRow(
@@ -248,6 +303,7 @@ fun MembersContent(
                             enabled = !state.busy,
                             showDivider = index != state.members.lastIndex,
                             onChangeRole = { onChangeRole(member, it) },
+                            onSendLink = { onSendLink(member) },
                             onMakeOwner = { onAsk(MembersDialog.MakeOwner(member)) },
                             onRemove = { onAsk(MembersDialog.Remove(member)) },
                         )
@@ -328,6 +384,7 @@ private fun MemberRow(
     enabled: Boolean,
     showDivider: Boolean,
     onChangeRole: (Role) -> Unit,
+    onSendLink: () -> Unit,
     onMakeOwner: () -> Unit,
     onRemove: () -> Unit,
 ) {
@@ -337,7 +394,7 @@ private fun MemberRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            MemberAvatar(member.displayName, member.userId, isOwner = member.role == Role.OWNER)
+            MemberAvatar(member.displayName, member.memberId, isOwner = member.role == Role.OWNER, isGuest = member.isGuest)
             Column(Modifier.weight(1f)) {
                 Row {
                     Text(
@@ -355,6 +412,15 @@ private fun MemberRow(
                         )
                     }
                 }
+                if (member.isGuest) {
+                    Text(
+                        listOfNotNull(stringResource(Res.string.group_guest_tag), member.phone?.let { "+$it" }).joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
                 member.email?.let {
                     Text(
                         it,
@@ -365,7 +431,9 @@ private fun MemberRow(
                     )
                 }
             }
-            if (canManage) {
+            if (canManage && member.isGuest) {
+                GuestMenu(member, enabled, onSendLink, onRemove)
+            } else if (canManage) {
                 RoleMenuChip(member, enabled, onChangeRole, onMakeOwner, onRemove)
             } else {
                 RoleChip(member.role)
@@ -401,6 +469,57 @@ private fun RoleChip(role: Role) {
             style = MaterialTheme.typography.labelMedium,
             color = if (owner) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
         )
+    }
+}
+
+/** Menu of a person added by name: send them the trip link, or remove them. They have no role to change. */
+@Composable
+private fun GuestMenu(member: TripMemberDto, enabled: Boolean, onSendLink: () -> Unit, onRemove: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val description = stringResource(Res.string.members_change_role, member.displayName)
+    Box {
+        Box(
+            Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .clickable(enabled = enabled, role = SemanticsRole.Button) { open = true }
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center,
+        ) { Symbol(Symbols.moreVert) }
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { open = false },
+            shape = IrisShape.md,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
+            ActionOption(Symbols.share, stringResource(Res.string.member_send_link), danger = false) {
+                open = false; onSendLink()
+            }
+            ActionOption(Symbols.personRemove, stringResource(Res.string.members_remove), danger = true) {
+                open = false; onRemove()
+            }
+        }
+    }
+}
+
+/** Shown to the OWNER after someone picked a name: who took it, with a way back if it was the wrong person. */
+@Composable
+private fun ClaimBannerCard(banner: ClaimBanner, onUndo: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(IrisShape.lg)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            stringResource(Res.string.members_claim_banner, banner.claimerName ?: "?", banner.guestName),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        OutlinedButton(onClick = onUndo, enabled = !banner.undoing, modifier = Modifier.height(40.dp)) {
+            Text(stringResource(Res.string.members_claim_undo), style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 
@@ -584,9 +703,10 @@ private fun InfoNote(symbol: String, text: String, muted: Boolean = false) {
 }
 
 private val previewMembers = listOf(
-    TripMemberDto("t", "u1", "Septian", "septian@contoh.id", Role.OWNER, Instant.parse("2026-10-01T00:00:00Z")),
-    TripMemberDto("t", "u2", "Dinda", "dinda@contoh.id", Role.EDITOR, Instant.parse("2026-10-02T00:00:00Z")),
-    TripMemberDto("t", "u3", "Maya", "maya@contoh.id", Role.VIEWER, Instant.parse("2026-10-03T00:00:00Z")),
+    TripMemberDto("t", "m1", "u1", "Septian", "septian@contoh.id", Role.OWNER, Instant.parse("2026-10-01T00:00:00Z")),
+    TripMemberDto("t", "m2", "u2", "Dinda", "dinda@contoh.id", Role.EDITOR, Instant.parse("2026-10-02T00:00:00Z")),
+    TripMemberDto("t", "m3", "u3", "Maya", "maya@contoh.id", Role.VIEWER, Instant.parse("2026-10-03T00:00:00Z")),
+    TripMemberDto("t", "m4", null, "Rina", null, Role.VIEWER, Instant.parse("2026-10-04T00:00:00Z"), phone = "6281234567890"),
 )
 
 @Preview
@@ -594,6 +714,18 @@ private val previewMembers = listOf(
 private fun MembersOwnerPreview() = IrisPreview {
     MembersContent(
         state = MembersUiState(loading = false, tripTitle = "Bali 4 hari", members = previewMembers, myUserId = "u1"),
+        onBack = {}, onRetry = {}, onChangeRole = { _, _ -> }, onAsk = {},
+    )
+}
+
+@Preview
+@Composable
+private fun MembersClaimPreview() = IrisPreview {
+    MembersContent(
+        state = MembersUiState(
+            loading = false, tripTitle = "Bali 4 hari", members = previewMembers, myUserId = "u1",
+            claimBanner = ClaimBanner("m4", "Rina", "Dinda"),
+        ),
         onBack = {}, onRetry = {}, onChangeRole = { _, _ -> }, onAsk = {},
     )
 }

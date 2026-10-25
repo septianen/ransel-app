@@ -12,20 +12,20 @@ import kotlin.test.assertTrue
 class SplitStateTest {
     private val joined = Instant.parse("2026-10-01T00:00:00Z")
     private val members = listOf(
-        TripMemberDto("t", "me", "Septian", null, Role.OWNER, joined),
-        TripMemberDto("t", "d", "Dinda", null, Role.EDITOR, joined),
-        TripMemberDto("t", "r", "Raka", null, Role.EDITOR, joined),
-        TripMemberDto("t", "m", "Maya", null, Role.VIEWER, joined),
+        TripMemberDto("t", "me", "u-me", "Septian", null, Role.OWNER, joined),
+        TripMemberDto("t", "d", "u-d", "Dinda", null, Role.EDITOR, joined),
+        TripMemberDto("t", "r", "u-r", "Raka", null, Role.EDITOR, joined),
+        TripMemberDto("t", "m", "u-m", "Maya", null, Role.VIEWER, joined),
     )
 
-    private fun state() = SplitState(members, myUserId = "me", existing = null, currency = "IDR")
+    private fun state() = SplitState(members, myMemberId = "me", existing = null, currency = "IDR")
 
     @Test
     fun newExpenseIsSplitEquallyBetweenEveryone() {
         val s = state()
         assertEquals("me", s.paidBy)
         assertEquals(4, s.participants.size)
-        val shares = s.toSplits(600_000, "IDR").associate { it.userId to it.shareMinor }
+        val shares = s.toSplits(600_000, "IDR").associate { it.memberId to it.shareMinor }
         assertEquals(mapOf("me" to 150_000L, "d" to 150_000L, "r" to 150_000L, "m" to 150_000L), shares)
     }
 
@@ -33,7 +33,7 @@ class SplitStateTest {
     fun untickedMemberIsLeftOutAndTheRemainderGoesToThePayer() {
         val s = state()
         s.toggle("m")
-        val shares = s.toSplits(100_000, "IDR").associate { it.userId to it.shareMinor }
+        val shares = s.toSplits(100_000, "IDR").associate { it.memberId to it.shareMinor }
         assertEquals(100_000L, shares.values.sum())
         assertEquals(33_334L, shares["me"]) // payer takes the rounding remainder
         assertFalse("m" in shares)

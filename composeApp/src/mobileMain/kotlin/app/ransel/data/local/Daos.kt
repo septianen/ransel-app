@@ -184,17 +184,26 @@ interface SyncDao {
     suspend fun putExpense(entity: ExpenseEntity)
 
     // Guest data becomes the account's data on first sign-in: re-own, then send everything.
-    @Query(
-        "SELECT (SELECT COUNT(*) FROM trips WHERE ownerId = :guestId) + " +
-            "(SELECT COUNT(*) FROM expenses WHERE paidByUserId = :guestId)",
-    )
+    @Query("SELECT COUNT(*) FROM trips WHERE ownerId = :guestId")
     suspend fun guestRowCount(guestId: String): Int
+
+    @Query("SELECT id FROM trips WHERE ownerId = :guestId")
+    suspend fun guestTripIds(guestId: String): List<String>
 
     @Query("UPDATE trips SET ownerId = :userId WHERE ownerId = :guestId")
     suspend fun reownTrips(guestId: String, userId: String)
 
-    @Query("UPDATE expenses SET paidByUserId = :userId WHERE paidByUserId = :guestId")
-    suspend fun reownExpenses(guestId: String, userId: String)
+    /**
+     * In one trip the guest's member (`memberIdFor(trip, LOCAL_USER_ID)`) becomes the account's: who paid, and the
+     * id inside the splits and payers JSON. SQL `replace` keeps a NULL column NULL.
+     */
+    @Query(
+        "UPDATE expenses SET " +
+            "paidByMemberId = CASE WHEN paidByMemberId = :oldId THEN :newId ELSE paidByMemberId END, " +
+            "splitsJson = replace(splitsJson, :oldId, :newId), payersJson = replace(payersJson, :oldId, :newId) " +
+            "WHERE tripId = :tripId",
+    )
+    suspend fun reownExpenseMember(tripId: String, oldId: String, newId: String)
 
     @Query("UPDATE trips SET syncState = 'PENDING'")
     suspend fun markAllTripsPending()

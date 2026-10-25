@@ -115,7 +115,7 @@ fun ExpenseSheet(
     onDismiss: () -> Unit,
     /** Trip members (empty = solo: no paid-by / split section). */
     members: List<TripMemberDto> = emptyList(),
-    myUserId: String? = null,
+    myMemberId: String? = null,
 ) {
     val tz = remember { TimeZone.currentSystemDefault() }
     val dates = rememberDateFormatter()
@@ -137,7 +137,7 @@ fun ExpenseSheet(
     var methodMenu by remember { mutableStateOf(false) }
 
     val shared = members.size > 1
-    val split = remember(members) { if (shared) SplitState(members, myUserId, existing, currency) else null }
+    val split = remember(members) { if (shared) SplitState(members, myMemberId, existing, currency) else null }
 
     val foreign = !currency.equals(trip.baseCurrency, ignoreCase = true)
     val amountMinor = parseAmountMinor(amountText, currency)
@@ -155,14 +155,14 @@ fun ExpenseSheet(
         val keptSplits = when {
             split != null || existing == null || existing.splits.isEmpty() -> null
             existing.amountMinor == amountMinor -> existing.splits
-            else -> splitEqually(amountMinor, existing.splits.map { it.userId }, existing.paidByUserId)
+            else -> splitEqually(amountMinor, existing.splits.map { it.memberId }, existing.paidByMemberId)
                 .map { (id, share) -> ExpenseSplitDto(id, share) }
         }
         // Same for who paid: keep the old payers, scaled when the amount changed.
         val keptPayers = when {
             split != null || existing == null || existing.payers.isEmpty() -> null
             existing.amountMinor == amountMinor -> existing.payers
-            else -> convertPayers(existing.payers.map { it.userId to it.amountMinor }, existing.amountMinor, amountMinor)
+            else -> convertPayers(existing.payers.map { it.memberId to it.amountMinor }, existing.amountMinor, amountMinor)
                 .map { (id, paid) -> ExpensePayerDto(id, paid) }
         }
         val time = existingLocal?.time ?: now().toLocalDateTime(tz).time
@@ -178,7 +178,7 @@ fun ExpenseSheet(
                 spentAt = LocalDate(date.year, date.month, date.day).let {
                     kotlinx.datetime.LocalDateTime(it, LocalTime(time.hour, time.minute)).toInstant(tz)
                 },
-                paidByUserId = keptPayers?.firstOrNull()?.userId ?: split?.paidBy ?: existing?.paidByUserId,
+                paidByMemberId = keptPayers?.firstOrNull()?.memberId ?: split?.paidBy ?: existing?.paidByMemberId,
                 payers = split?.toPayers(amountMinor, currency) ?: keptPayers.orEmpty(),
                 splits = split?.toSplits(amountMinor, currency) ?: keptSplits.orEmpty(),
             ),
@@ -340,7 +340,7 @@ fun ExpenseSheet(
                 onValueChange = { note = it },
             )
 
-            if (split != null) SplitSection(split, amountMinor, currency, myUserId)
+            if (split != null) SplitSection(split, amountMinor, currency, myMemberId)
 
             Button(
                 onClick = ::save,

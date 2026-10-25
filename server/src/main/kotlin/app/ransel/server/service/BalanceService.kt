@@ -47,31 +47,30 @@ object BalanceService {
         return transaction {
             val trip = Trips.selectAll().where { Trips.id eq tripId }.singleOrNull() ?: throw tripNotFound()
             val base = trip[Trips.baseCurrency]
-            val memberIds = TripMembers.select(TripMembers.userId).where { TripMembers.tripId eq tripId }
-                .map { it[TripMembers.userId].toString() }
+            val memberIds = TripMembers.select(TripMembers.id).where { (TripMembers.tripId eq tripId) and TripMembers.active() }
+                .map { it[TripMembers.id].toString() }
 
             val expenseRows = Expenses.selectAll()
                 .where { (Expenses.tripId eq tripId) and Expenses.deletedAt.isNull() }.toList()
             val splits = if (expenseRows.isEmpty()) emptyMap() else ExpenseSplits.selectAll()
                 .where { ExpenseSplits.expenseId inList expenseRows.map { it[Expenses.id] } }
-                .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) })
+                .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) })
             val payers = ExpenseService.loadPayers(expenseRows.map { it[Expenses.id] })
             val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty(), payers[it[Expenses.id]].orEmpty()) }.map { toBalanceExpense(it, base) }
 
             val settlements = Settlements.selectAll()
                 .where { (Settlements.tripId eq tripId) and Settlements.deletedAt.isNull() }
-                .map { BalanceSettlement(it[Settlements.fromUserId].toString(), it[Settlements.toUserId].toString(), it[Settlements.amountMinor]) }
+                .map { BalanceSettlement(it[Settlements.fromMemberId].toString(), it[Settlements.toMemberId].toString(), it[Settlements.amountMinor]) }
 
             val computed = computeBalances(memberIds, expenses, settlements)
-            val names = Users.selectAll().where { Users.id inList computed.map { UUID.fromString(it.userId) } }
-                .associate { it[Users.id].toString() to it[Users.displayName] }
+            val names = memberNames(computed.map { UUID.fromString(it.memberId) }).mapKeys { it.key.toString() }
 
             BalancesDto(
                 baseCurrency = base,
                 members = computed.map {
-                    MemberBalanceDto(it.userId, names[it.userId].orEmpty(), it.paidMinor, it.shareMinor, it.balanceMinor)
+                    MemberBalanceDto(it.memberId, names[it.memberId].orEmpty(), it.paidMinor, it.shareMinor, it.balanceMinor)
                 },
-                transfers = fewestTransfers(computed).map { TransferDto(it.fromUserId, it.toUserId, it.amountMinor) },
+                transfers = fewestTransfers(computed).map { TransferDto(it.fromMemberId, it.toMemberId, it.amountMinor) },
             )
         }
     }
@@ -89,13 +88,13 @@ object BalanceService {
     /** Any member may record a payment ("Take part in cost splitting" is open to every role). */
     fun createSettlement(userId: UUID, tripId: UUID, id: UUID, body: CreateSettlementRequest): SettlementDto {
         requireRole(tripId, userId, Role.VIEWER)
-        val from = runCatching { UUID.fromString(body.fromUserId) }.getOrNull()
-        val to = runCatching { UUID.fromString(body.toUserId) }.getOrNull()
+        val from = runCatching { UUID.fromString(body.fromMemberId) }.getOrNull()
+        val to = runCatching { UUID.fromString(body.toMemberId) }.getOrNull()
         requireValid(
             buildMap {
-                if (from == null) put("fromUserId", "INVALID_UUID")
-                if (to == null) put("toUserId", "INVALID_UUID")
-                if (from != null && from == to) put("toUserId", "MUST_DIFFER_FROM_PAYER")
+                if (from == null) put("fromMemberId", "INVALID_UUID")
+                if (to == null) put("toMemberId", "INVALID_UUID")
+                if (from != null && from == to) put("toMemberId", "MUST_DIFFER_FROM_PAYER")
                 if (body.amountMinor <= 0) put("amountMinor", "MUST_BE_POSITIVE")
             },
         )
@@ -105,8 +104,8 @@ object BalanceService {
             Settlements.insert {
                 it[Settlements.id] = id
                 it[Settlements.tripId] = tripId
-                it[fromUserId] = from
-                it[toUserId] = to
+                it[fromMemberId] = from
+                it[toMemberId] = to
                 it[amountMinor] = body.amountMinor
                 body.settledAt?.let { at -> it[settledAt] = at.toJavaInstant() }
             }
@@ -117,12 +116,12 @@ object BalanceService {
 
     /** Both people must belong to the trip. Used by the REST endpoint and by sync. */
     internal fun memberProblems(tripId: UUID, from: UUID, to: UUID): Map<String, String> {
-        val members = TripMembers.select(TripMembers.userId)
-            .where { (TripMembers.tripId eq tripId) and (TripMembers.userId inList listOf(from, to)) }
-            .map { it[TripMembers.userId] }.toSet()
+        val members = TripMembers.select(TripMembers.id)
+            .where { (TripMembers.tripId eq tripId) and TripMembers.active() and (TripMembers.id inList listOf(from, to)) }
+            .map { it[TripMembers.id] }.toSet()
         return buildMap {
-            if (from !in members) put("fromUserId", "NOT_A_MEMBER")
-            if (to !in members) put("toUserId", "NOT_A_MEMBER")
+            if (from !in members) put("fromMemberId", "NOT_A_MEMBER")
+            if (to !in members) put("toMemberId", "NOT_A_MEMBER")
         }
     }
 
@@ -134,11 +133,11 @@ object BalanceService {
     private fun toBalanceExpense(e: ExpenseDto, base: String): BalanceExpense {
         val amount = convertMinor(e.amountMinor, e.currency, base, e.fxRateToBase)
         // what each payer paid, in base currency (empty = the one payer paid all)
-        val paid = if (e.payers.isEmpty()) emptyMap() else convertPayers(e.payers.map { it.userId to it.amountMinor }, e.amountMinor, amount)
-        if (e.splits.isEmpty()) return BalanceExpense(e.paidByUserId, amount, emptyMap(), paid)
-        val converted = e.splits.associate { it.userId to convertMinor(it.shareMinor, e.currency, base, e.fxRateToBase) }
-        val target = if (e.paidByUserId in converted) e.paidByUserId else converted.maxBy { it.value }.key
+        val paid = if (e.payers.isEmpty()) emptyMap() else convertPayers(e.payers.map { it.memberId to it.amountMinor }, e.amountMinor, amount)
+        if (e.splits.isEmpty()) return BalanceExpense(e.paidByMemberId, amount, emptyMap(), paid)
+        val converted = e.splits.associate { it.memberId to convertMinor(it.shareMinor, e.currency, base, e.fxRateToBase) }
+        val target = if (e.paidByMemberId in converted) e.paidByMemberId else converted.maxBy { it.value }.key
         val fixed = converted + (target to converted.getValue(target) + (amount - converted.values.sum()))
-        return BalanceExpense(e.paidByUserId, amount, fixed, paid)
+        return BalanceExpense(e.paidByMemberId, amount, fixed, paid)
     }
 }

@@ -81,9 +81,9 @@ import ransel.composeapp.generated.resources.shared_you
 import ransel.composeapp.generated.resources.shared_you_even
 import kotlin.math.abs
 
-private fun List<TripMemberDto>.nameOf(userId: String, myUserId: String?, you: String): String {
-    val name = firstOrNull { it.userId == userId }?.displayName ?: "?"
-    return if (userId == myUserId) "$name ($you)" else name
+private fun List<TripMemberDto>.nameOf(memberId: String, myMemberId: String?, you: String): String {
+    val name = firstOrNull { it.memberId == memberId }?.displayName ?: "?"
+    return if (memberId == myMemberId) "$name ($you)" else name
 }
 
 // ── Summary / Balances switch ───────────────────────────────────────────────
@@ -167,7 +167,7 @@ fun PositionCard(
 fun BalancesContent(
     state: BalancesUiState,
     members: List<TripMemberDto>,
-    myUserId: String?,
+    myMemberId: String?,
     onRetry: () -> Unit,
     onSettle: (TransferDto) -> Unit,
     modifier: Modifier = Modifier,
@@ -194,7 +194,7 @@ fun BalancesContent(
                     )
                 }
                 data.members.forEach { b ->
-                    BalanceRow(b, members, myUserId, you, data.baseCurrency)
+                    BalanceRow(b, members, myMemberId, you, data.baseCurrency)
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -208,10 +208,10 @@ fun BalancesContent(
                     Text(stringResource(Res.string.shared_balances_empty), style = MaterialTheme.typography.bodyLarge)
                 }
                 data.transfers.forEach { t ->
-                    TransferRow(t, members, myUserId, you, data.baseCurrency, settled = false, enabled = !state.settling) { onSettle(t) }
+                    TransferRow(t, members, myMemberId, you, data.baseCurrency, settled = false, enabled = !state.settling) { onSettle(t) }
                 }
                 state.settledNow.forEach { t ->
-                    TransferRow(t, members, myUserId, you, data.baseCurrency, settled = true, enabled = false) {}
+                    TransferRow(t, members, myMemberId, you, data.baseCurrency, settled = true, enabled = false) {}
                 }
             }
         }
@@ -222,18 +222,18 @@ fun BalancesContent(
 private fun BalanceRow(
     b: MemberBalanceDto,
     members: List<TripMemberDto>,
-    myUserId: String?,
+    myMemberId: String?,
     you: String,
     currency: String,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val name = members.nameOf(b.userId, myUserId, you)
+    val name = members.nameOf(b.memberId, myMemberId, you)
     Row(
         Modifier.fillMaxWidth().heightIn(min = 64.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        MemberAvatar(b.displayName, b.userId, size = 40.dp)
+        MemberAvatar(b.displayName, b.memberId, size = 40.dp)
         Text(name, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Column(horizontalAlignment = Alignment.End) {
             val amount = when {
@@ -265,7 +265,7 @@ private fun BalanceRow(
 private fun TransferRow(
     t: TransferDto,
     members: List<TripMemberDto>,
-    myUserId: String?,
+    myMemberId: String?,
     you: String,
     currency: String,
     settled: Boolean,
@@ -273,8 +273,8 @@ private fun TransferRow(
     onSettle: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val from = members.firstOrNull { it.userId == t.fromUserId }
-    val to = members.firstOrNull { it.userId == t.toUserId }
+    val from = members.firstOrNull { it.memberId == t.fromMemberId }
+    val to = members.firstOrNull { it.memberId == t.toMemberId }
     Row(
         Modifier
             .fillMaxWidth()
@@ -285,16 +285,16 @@ private fun TransferRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            MemberAvatar(from?.displayName ?: "?", t.fromUserId, size = 32.dp)
+            MemberAvatar(from?.displayName ?: "?", t.fromMemberId, size = 32.dp)
             Symbol(Symbols.arrowForward, size = 18.dp, tint = scheme.onSurfaceVariant)
-            MemberAvatar(to?.displayName ?: "?", t.toUserId, size = 32.dp)
+            MemberAvatar(to?.displayName ?: "?", t.toMemberId, size = 32.dp)
         }
         Column(Modifier.weight(1f)) {
             Text(
                 stringResource(
                     Res.string.shared_pays_to,
-                    members.nameOf(t.fromUserId, myUserId, you),
-                    members.nameOf(t.toUserId, myUserId, you),
+                    members.nameOf(t.fromMemberId, myMemberId, you),
+                    members.nameOf(t.toMemberId, myMemberId, you),
                 ),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
@@ -321,7 +321,7 @@ fun SplitSection(
     split: SplitState,
     amountMinor: Long?,
     currency: String,
-    myUserId: String?,
+    myMemberId: String?,
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -339,21 +339,21 @@ fun SplitSection(
             }
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 split.members.forEach { m ->
-                    val selected = m.userId in split.payers
+                    val selected = m.memberId in split.payers
                     Row(
                         Modifier
                             .heightIn(min = 48.dp)
                             .clip(CircleShape)
                             .background(if (selected) scheme.primaryContainer else scheme.surface)
                             .border(BorderStroke(if (selected) 2.dp else 1.dp, if (selected) scheme.primary else scheme.outlineVariant), CircleShape)
-                            .clickable(role = Role.Checkbox) { split.togglePayer(m.userId) }
+                            .clickable(role = Role.Checkbox) { split.togglePayer(m.memberId) }
                             .padding(start = 8.dp, end = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        MemberAvatar(m.displayName, m.userId, size = 32.dp)
+                        MemberAvatar(m.displayName, m.memberId, size = 32.dp)
                         Text(
-                            split.members.nameOf(m.userId, myUserId, you),
+                            split.members.nameOf(m.memberId, myMemberId, you),
                             style = MaterialTheme.typography.labelLarge,
                             color = if (selected) scheme.onPrimaryContainer else scheme.onSurface,
                             maxLines = 1,
@@ -362,7 +362,7 @@ fun SplitSection(
                     }
                 }
             }
-            if (split.payers.size > 1) PayerAmounts(split, amountMinor, currency, myUserId)
+            if (split.payers.size > 1) PayerAmounts(split, amountMinor, currency, myMemberId)
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -374,7 +374,7 @@ fun SplitSection(
                 }
             }
             split.members.forEach { m ->
-                val ticked = m.userId in split.participants
+                val ticked = m.memberId in split.participants
                 Row(
                     Modifier.fillMaxWidth().heightIn(min = 52.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -384,7 +384,7 @@ fun SplitSection(
                         Modifier
                             .weight(1f)
                             .clip(IrisShape.md)
-                            .clickable(role = Role.Checkbox) { split.toggle(m.userId) },
+                            .clickable(role = Role.Checkbox) { split.toggle(m.memberId) },
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -396,9 +396,9 @@ fun SplitSection(
                                 .border(2.dp, if (ticked) scheme.primary else scheme.outline, IrisShape.xs),
                             contentAlignment = Alignment.Center,
                         ) { if (ticked) Symbol(Symbols.check, size = 18.dp, tint = scheme.onPrimary) }
-                        MemberAvatar(m.displayName, m.userId, size = 32.dp)
+                        MemberAvatar(m.displayName, m.memberId, size = 32.dp)
                         Text(
-                            split.members.nameOf(m.userId, myUserId, you),
+                            split.members.nameOf(m.memberId, myMemberId, you),
                             style = MaterialTheme.typography.bodyLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -412,8 +412,8 @@ fun SplitSection(
                             color = scheme.onSurfaceVariant,
                         )
                         split.custom -> OutlinedTextField(
-                            value = split.shareTexts[m.userId].orEmpty(),
-                            onValueChange = { split.shareTexts[m.userId] = sanitizeAmountInput(it, currencyDecimals(currency)) },
+                            value = split.shareTexts[m.memberId].orEmpty(),
+                            onValueChange = { split.shareTexts[m.memberId] = sanitizeAmountInput(it, currencyDecimals(currency)) },
                             modifier = Modifier.width(150.dp),
                             singleLine = true,
                             prefix = { Text(currencySymbol(currency)) },
@@ -424,7 +424,7 @@ fun SplitSection(
                             shape = IrisShape.md,
                         )
                         else -> Text(
-                            formatMoney(shares[m.userId] ?: 0, currency),
+                            formatMoney(shares[m.memberId] ?: 0, currency),
                             style = MaterialTheme.typography.titleSmall,
                         )
                     }
@@ -437,7 +437,7 @@ fun SplitSection(
 
 /** Two or more people paid: how much each paid (equal, or "Atur nominal"), with the same check as the split. */
 @Composable
-private fun PayerAmounts(split: SplitState, amountMinor: Long?, currency: String, myUserId: String?) {
+private fun PayerAmounts(split: SplitState, amountMinor: Long?, currency: String, myMemberId: String?) {
     val scheme = MaterialTheme.colorScheme
     val you = stringResource(Res.string.shared_you)
     val amounts = split.payerAmounts(amountMinor, currency)
@@ -453,15 +453,15 @@ private fun PayerAmounts(split: SplitState, amountMinor: Long?, currency: String
             }
         }
         split.payers.forEach { id ->
-            val m = split.members.firstOrNull { it.userId == id } ?: return@forEach
+            val m = split.members.firstOrNull { it.memberId == id } ?: return@forEach
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                MemberAvatar(m.displayName, m.userId, size = 32.dp)
+                MemberAvatar(m.displayName, m.memberId, size = 32.dp)
                 Text(
-                    split.members.nameOf(m.userId, myUserId, you),
+                    split.members.nameOf(m.memberId, myMemberId, you),
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

@@ -88,14 +88,15 @@ data class ExpenseEntity(
     val paymentMethod: String,
     val note: String?,
     val spentAt: Long,
-    val paidByUserId: String,
+    /** `trip_members.id` of who paid (`memberIdFor(tripId, userId)` for an account; DB v5, was paidByUserId). */
+    val paidByMemberId: String,
     val createdAt: Long,
     val updatedAt: Long,
     val deletedAt: Long?,
     val syncState: String = SyncState.PENDING,
-    /** JSON list of `ExpenseSplitDto` (Phase 4, DB v2); null = paid and carried by `paidByUserId` alone. */
+    /** JSON list of `ExpenseSplitDto` (Phase 4, DB v2); null = paid and carried by `paidByMemberId` alone. */
     val splitsJson: String? = null,
-    /** JSON list of `ExpensePayerDto` (DB v4) when several people paid; null = `paidByUserId` paid all. */
+    /** JSON list of `ExpensePayerDto` (DB v4) when several people paid; null = `paidByMemberId` paid all. */
     val payersJson: String? = null,
 )
 

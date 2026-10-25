@@ -62,6 +62,8 @@ fun NotificationsScreen(
     onOpenSettings: () -> Unit,
     /** A voting notification opens its round; [showResult] for the OWNER's "ready to decide". */
     onOpenRound: (tripId: String, roundId: String, showResult: Boolean) -> Unit,
+    /** Someone took a name (MEMBER_CLAIMED): the OWNER lands on the members with a way to undo it. */
+    onOpenMembers: (tripId: String, guestMemberId: String?, guestName: String?, claimerName: String?) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NotificationsViewModel = koinViewModel(),
 ) {
@@ -79,6 +81,8 @@ fun NotificationsScreen(
             when {
                 // Someone who was removed can no longer open the trip.
                 n.type == NotificationType.MEMBER_REMOVED -> Unit
+                n.type == NotificationType.MEMBER_CLAIMED && tripId != null ->
+                    onOpenMembers(tripId, n.params["guestMemberId"], n.params["guestName"], n.params["actorName"])
                 // The vote screen sorts out where the round stands (open, closed, decided, expired).
                 tripId != null && roundId != null -> onOpenRound(tripId, roundId, n.params["stage"] == VoteStage.READY)
                 tripId != null -> onOpenTrip(tripId)

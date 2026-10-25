@@ -47,7 +47,7 @@ object ExpenseService {
 
     fun create(userId: UUID, tripId: UUID, expenseId: UUID, body: ExpenseInput): ExpenseDto {
         requireRole(tripId, userId, Role.EDITOR)
-        val payer = resolvePayer(userId, body)
+        val payer = resolvePayer(userId, tripId, body)
         return transaction {
             validate(body, payer, tripId)
             if (Expenses.select(Expenses.id).where { Expenses.id eq expenseId }.any()) throw conflict("Expense id already exists")
@@ -66,11 +66,11 @@ object ExpenseService {
     /** Replaces the expense, its payers and its splits as a whole. */
     fun replace(userId: UUID, tripId: UUID, expenseId: UUID, body: ExpenseInput): ExpenseDto {
         requireRole(tripId, userId, Role.EDITOR)
-        val payer = resolvePayer(userId, body)
+        val payer = resolvePayer(userId, tripId, body)
         return transaction {
             val before = load(tripId, expenseId)
             // Someone who has since left may still be on this expense; editing the note must not fail.
-            val keep = (before.splits.map { it.userId } + before.payers.map { it.userId } + before.paidByUserId).map(UUID::fromString).toSet()
+            val keep = (before.splits.map { it.memberId } + before.payers.map { it.memberId } + before.paidByMemberId).map(UUID::fromString).toSet()
             validate(body, payer, tripId, keep)
             Expenses.update({ Expenses.id eq expenseId }) { fill(it, body, payer) }
             replaceSplits(expenseId, body.splits)
@@ -102,17 +102,17 @@ object ExpenseService {
     }
 
     /** With several payers the first one is "who paid" (older clients show only that name). */
-    private fun resolvePayer(callerId: UUID, body: ExpenseInput): UUID {
+    private fun resolvePayer(callerId: UUID, tripId: UUID, body: ExpenseInput): UUID {
         body.payers.firstOrNull()?.let { first ->
-            return runCatching { UUID.fromString(first.userId) }.getOrNull() ?: throw validation("payers" to "INVALID_UUID")
+            return runCatching { UUID.fromString(first.memberId) }.getOrNull() ?: throw validation("payers" to "INVALID_UUID")
         }
-        return body.paidByUserId?.let { raw ->
+        return body.paidByMemberId?.let { raw ->
             runCatching { UUID.fromString(raw) }.getOrNull()
-                ?: throw validation("paidByUserId" to "INVALID_UUID")
-        } ?: callerId
+                ?: throw validation("paidByMemberId" to "INVALID_UUID")
+        } ?: callerMemberId(tripId, callerId)
     }
 
-    private fun loadAll(tripId: UUID): List<ExpenseDto> {
+    internal fun loadAll(tripId: UUID): List<ExpenseDto> {
         val rows = Expenses.selectAll()
             .where { (Expenses.tripId eq tripId) and Expenses.deletedAt.isNull() }
             .orderBy(Expenses.spentAt to SortOrder.DESC, Expenses.createdAt to SortOrder.DESC)
@@ -120,24 +120,24 @@ object ExpenseService {
         if (rows.isEmpty()) return emptyList()
         val splits = ExpenseSplits.selectAll()
             .where { ExpenseSplits.expenseId inList rows.map { it[Expenses.id] } }
-            .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) })
+            .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) })
         val payers = loadPayers(rows.map { it[Expenses.id] })
-        return rows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.userId }, payers[it[Expenses.id]].orEmpty()) }
+        return rows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty()) }
     }
 
     /** Payer rows of the given expenses; an expense with one payer has none. */
     internal fun loadPayers(expenseIds: Collection<UUID>): Map<UUID, List<ExpensePayerDto>> =
         if (expenseIds.isEmpty()) emptyMap() else ExpensePayers.selectAll()
             .where { ExpensePayers.expenseId inList expenseIds }
-            .groupBy({ it[ExpensePayers.expenseId] }, { ExpensePayerDto(it[ExpensePayers.userId].toString(), it[ExpensePayers.amountMinor]) })
+            .groupBy({ it[ExpensePayers.expenseId] }, { ExpensePayerDto(it[ExpensePayers.memberId].toString(), it[ExpensePayers.amountMinor]) })
 
     private fun load(tripId: UUID, expenseId: UUID): ExpenseDto {
         val row = Expenses.selectAll()
             .where { (Expenses.tripId eq tripId) and Expenses.deletedAt.isNull() and (Expenses.id eq expenseId) }
             .singleOrNull() ?: throw notFound("Expense")
         val splits = ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq expenseId }
-            .map { ExpenseSplitDto(it[ExpenseSplits.userId].toString(), it[ExpenseSplits.shareMinor]) }
-            .sortedBy { it.userId }
+            .map { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) }
+            .sortedBy { it.memberId }
         return row.toExpenseDto(splits, loadPayers(listOf(expenseId))[expenseId].orEmpty())
     }
 
@@ -146,7 +146,7 @@ object ExpenseService {
         if (splits.isNotEmpty()) {
             ExpenseSplits.batchInsert(splits) { split ->
                 this[ExpenseSplits.expenseId] = expenseId
-                this[ExpenseSplits.userId] = UUID.fromString(split.userId)
+                this[ExpenseSplits.memberId] = UUID.fromString(split.memberId)
                 this[ExpenseSplits.shareMinor] = split.shareMinor
             }
         }
@@ -157,7 +157,7 @@ object ExpenseService {
         if (payers.isNotEmpty()) {
             ExpensePayers.batchInsert(payers) { p ->
                 this[ExpensePayers.expenseId] = expenseId
-                this[ExpensePayers.userId] = UUID.fromString(p.userId)
+                this[ExpensePayers.memberId] = UUID.fromString(p.memberId)
                 this[ExpensePayers.amountMinor] = p.amountMinor
             }
         }
@@ -171,7 +171,7 @@ object ExpenseService {
         it[Expenses.paymentMethod] = body.paymentMethod
         it[Expenses.note] = body.note
         it[Expenses.spentAt] = body.spentAt.toJavaInstant()
-        it[Expenses.paidByUserId] = payer
+        it[Expenses.paidByMemberId] = payer
     }
 
     private fun validation(vararg pairs: Pair<String, String>) =
@@ -190,31 +190,31 @@ object ExpenseService {
                 if (rate == null || rate.signum() <= 0 || rate >= BigDecimal("1E10")) put("fxRateToBase", "INVALID_RATE")
             }
             if (body.splits.any { it.shareMinor < 0 }) put("splits", "MUST_NOT_BE_NEGATIVE")
-            if (body.splits.map { it.userId }.toSet().size != body.splits.size) put("splits", "DUPLICATE_USER")
-            if (body.splits.any { runCatching { UUID.fromString(it.userId) }.isFailure }) put("splits", "INVALID_UUID")
+            if (body.splits.map { it.memberId }.toSet().size != body.splits.size) put("splits", "DUPLICATE_MEMBER")
+            if (body.splits.any { runCatching { UUID.fromString(it.memberId) }.isFailure }) put("splits", "INVALID_UUID")
             if (body.payers.isNotEmpty()) {
                 if (body.payers.size < 2) put("payers", "NEEDS_AT_LEAST_TWO")
                 else if (body.payers.any { it.amountMinor <= 0 }) put("payers", "MUST_BE_POSITIVE")
-                else if (body.payers.map { it.userId }.toSet().size != body.payers.size) put("payers", "DUPLICATE_USER")
-                else if (body.payers.any { runCatching { UUID.fromString(it.userId) }.isFailure }) put("payers", "INVALID_UUID")
+                else if (body.payers.map { it.memberId }.toSet().size != body.payers.size) put("payers", "DUPLICATE_MEMBER")
+                else if (body.payers.any { runCatching { UUID.fromString(it.memberId) }.isFailure }) put("payers", "INVALID_UUID")
             }
         }
         requireValid(problems)
 
-        val payerIds = body.payers.map { UUID.fromString(it.userId) }
-        // paidByUserId is the first payer: the REST endpoint derives it, sync sends it, both must agree
-        // The REST endpoint takes the first payer as `payer` whatever paidByUserId says, so compare the sent value too.
-        val sentPaidBy = body.paidByUserId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+        val payerIds = body.payers.map { UUID.fromString(it.memberId) }
+        // paidByMemberId is the first payer: the REST endpoint derives it, sync sends it, both must agree
+        // The REST endpoint takes the first payer as `payer` whatever paidByMemberId says, so compare the sent value too.
+        val sentPaidBy = body.paidByMemberId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
         if (payerIds.isNotEmpty() && (payerIds.first() != payer || (sentPaidBy != null && sentPaidBy != payerIds.first()))) {
-            throw validation("paidByUserId" to "MUST_BE_FIRST_PAYER")
+            throw validation("paidByMemberId" to "MUST_BE_FIRST_PAYER")
         }
-        val participants = (body.splits.map { UUID.fromString(it.userId) } + payerIds + payer).toSet()
-        val allowed = TripMembers.select(TripMembers.userId)
-            .where { (TripMembers.tripId eq tripId) and (TripMembers.userId inList participants) }
-            .map { it[TripMembers.userId] }.toSet() + alreadyOnExpense
+        val participants = (body.splits.map { UUID.fromString(it.memberId) } + payerIds + payer).toSet()
+        val allowed = TripMembers.select(TripMembers.id)
+            .where { (TripMembers.tripId eq tripId) and TripMembers.active() and (TripMembers.id inList participants) }
+            .map { it[TripMembers.id] }.toSet() + alreadyOnExpense
         if (!allowed.containsAll(participants)) {
             val key = when {
-                payer !in allowed -> "paidByUserId"
+                payer !in allowed -> "paidByMemberId"
                 payerIds.any { it !in allowed } -> "payers"
                 else -> "splits"
             }

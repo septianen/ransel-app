@@ -44,7 +44,13 @@ import kotlinx.serialization.Serializable
 @Serializable data class EmailVerifiedRoute(val token: String)
 
 // Members (Phase 4).
-@Serializable data class MembersRoute(val tripId: String)
+@Serializable data class MembersRoute(
+    val tripId: String,
+    /** From a MEMBER_CLAIMED notification: the OWNER can undo that claim. */
+    val claimedGuestId: String? = null,
+    val claimedGuestName: String? = null,
+    val claimerName: String? = null,
+)
 
 /** Swipe through the recommendations of the unfinished Explore session of [tripId] (a user can have one per trip). */
 @Serializable data class SwipeRoute(val tripId: String)

@@ -85,7 +85,7 @@ class VoteViewModelTest {
                     path.endsWith("/rounds/r1") -> respond(roundJson(), HttpStatusCode.OK, json)
                     path.endsWith("/rounds") -> respond("""{"data":[]}""", HttpStatusCode.OK, json)
                     path.endsWith("/members") -> respond(
-                        """{"data":[{"tripId":"t1","userId":"u1","displayName":"Rina","role":"OWNER","joinedAt":"$now"}]}""",
+                        """{"data":[{"tripId":"t1","memberId":"m1","userId":"u1","displayName":"Rina","role":"OWNER","joinedAt":"$now"}]}""",
                         HttpStatusCode.OK, json,
                     )
                     path.endsWith("/notifications") -> respond("""{"data":{"items":[],"unreadCount":0}}""", HttpStatusCode.OK, json)

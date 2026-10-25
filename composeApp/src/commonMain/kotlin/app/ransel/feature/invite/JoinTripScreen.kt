@@ -104,6 +104,15 @@ fun JoinTripScreen(
     val failure = state.failure
     Box(modifier.fillMaxSize().statusBarsPadding()) {
         when {
+            state.claimStep != null -> state.claimStep!!.let { step ->
+                ClaimMemberContent(
+                    candidates = step.candidates,
+                    claiming = step.claiming,
+                    failed = step.failed,
+                    onClaim = viewModel::claim,
+                    onSkip = viewModel::skipClaim,
+                )
+            }
             !state.signedIn -> FullScreenState(
                 title = stringResource(Res.string.join_trip_sign_in_title),
                 body = stringResource(Res.string.join_trip_sign_in_body, code),

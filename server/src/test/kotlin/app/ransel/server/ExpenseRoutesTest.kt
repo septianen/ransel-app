@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import app.ransel.shared.domain.memberIdFor
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -32,18 +33,18 @@ class ExpenseRoutesTest {
         val response = post("/trips/$trip/expenses", expenseJson())
         assertEquals(HttpStatusCode.Created, response.status)
         val body = response.data().jsonObject
-        assertEquals(userId, body.getValue("paidByUserId").jsonPrimitive.content)
+        assertEquals(memberIdFor(trip, userId), body.getValue("paidByMemberId").jsonPrimitive.content)
         assertEquals("CASH", body.getValue("paymentMethod").jsonPrimitive.content)
     }
 
     @Test
     fun splitsMustAddUpToAmount() = apiTest {
         val trip = newTrip()
-        val bad = post("/trips/$trip/expenses", expenseJson(amount = 100, splits = """[{"userId":"$userId","shareMinor":60}]"""))
+        val bad = post("/trips/$trip/expenses", expenseJson(amount = 100, splits = """[{"memberId":"${memberIdFor(trip, userId)}","shareMinor":60}]"""))
         assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
         assertEquals("SPLIT_TOTAL_MISMATCH", bad.errorCode())
 
-        val ok = post("/trips/$trip/expenses", expenseJson(amount = 100, splits = """[{"userId":"$userId","shareMinor":100}]"""))
+        val ok = post("/trips/$trip/expenses", expenseJson(amount = 100, splits = """[{"memberId":"${memberIdFor(trip, userId)}","shareMinor":100}]"""))
         assertEquals(HttpStatusCode.Created, ok.status)
         assertEquals(1, ok.data().jsonObject.getValue("splits").jsonArray.size)
     }
@@ -52,7 +53,7 @@ class ExpenseRoutesTest {
     fun replaceReplacesSplitsWholeAndValidates() = apiTest {
         val trip = newTrip()
         val id = UUID.randomUUID().toString()
-        post("/trips/$trip/expenses", expenseJson(id, amount = 100, splits = """[{"userId":"$userId","shareMinor":100}]"""))
+        post("/trips/$trip/expenses", expenseJson(id, amount = 100, splits = """[{"memberId":"${memberIdFor(trip, userId)}","shareMinor":100}]"""))
         val updated = put("/trips/$trip/expenses/$id", expenseJson(id, amount = 200))
         assertEquals(HttpStatusCode.OK, updated.status)
         assertEquals(0, updated.data().jsonObject.getValue("splits").jsonArray.size)
@@ -63,7 +64,7 @@ class ExpenseRoutesTest {
     @Test
     fun unknownPayerIs422() = apiTest {
         val trip = newTrip()
-        val body = expenseJson().dropLast(1) + ""","paidByUserId":"${UUID.randomUUID()}"}"""
+        val body = expenseJson().dropLast(1) + ""","paidByMemberId":"${UUID.randomUUID()}"}"""
         val response = post("/trips/$trip/expenses", body)
         assertEquals(HttpStatusCode.UnprocessableEntity, response.status)
     }

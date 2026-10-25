@@ -53,6 +53,14 @@ fun notificationLine(n: NotificationDto): NotificationLine {
                 trip,
             )
         }
+        NotificationType.MEMBER_CLAIMED -> NotificationLine(
+            stringResource(Res.string.notification_member_claimed, actor.orEmpty()).trim(),
+            p["guestName"]?.let { stringResource(Res.string.notification_member_claimed_body, it, trip) } ?: trip,
+        )
+        NotificationType.COMMENT_MENTION -> NotificationLine(
+            stringResource(Res.string.notification_comment_mention, actor.orEmpty()).trim(),
+            p["snippet"]?.takeIf { it.isNotBlank() } ?: trip,
+        )
         NotificationType.PACKING_REMINDER -> NotificationLine(
             stringResource(Res.string.notification_packing_reminder, trip),
             stringResource(Res.string.notification_packing_reminder_body, p["remaining"].orEmpty()),
@@ -114,6 +122,8 @@ fun notificationTile(type: NotificationType, params: Map<String, String> = empty
         NotificationType.ROLE_CHANGED -> accents.purple to Symbols.badge
         NotificationType.EXPENSE_ADDED -> accents.teal to Symbols.payments
         NotificationType.SETTLEMENT_MARKED -> accents.green to Symbols.checkCircle
+        NotificationType.MEMBER_CLAIMED -> accents.blue to Symbols.person
+        NotificationType.COMMENT_MENTION -> accents.teal to Symbols.alternateEmail
         NotificationType.PACKING_REMINDER -> accents.orange to Symbols.luggage
         NotificationType.ACTIVITY_REMINDER -> accents.orange to Symbols.schedule
         NotificationType.VOTE_REQUESTED -> accents.magenta to (if (stage == VoteStage.CLOSING) Symbols.schedule else Symbols.favorite)

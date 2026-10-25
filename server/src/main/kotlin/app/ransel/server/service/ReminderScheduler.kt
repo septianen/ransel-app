@@ -74,5 +74,5 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
     }
 
     private fun members(tripId: UUID): List<UUID> =
-        TripMembers.selectAll().where { TripMembers.tripId eq tripId }.map { it[TripMembers.userId] }
+        TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and TripMembers.active() }.mapNotNull { it[TripMembers.userId] }
 }

@@ -7,7 +7,13 @@ import app.ransel.shared.api.ApiResponse
 import app.ransel.shared.api.ApiRoutes
 import app.ransel.shared.api.ErrorCode
 import app.ransel.data.auth.ApiAuth
+import app.ransel.shared.dto.AddMemberRequest
 import app.ransel.shared.dto.AuthSessionDto
+import app.ransel.shared.dto.CommentCountDto
+import app.ransel.shared.dto.CommentDto
+import app.ransel.shared.dto.CreateCommentRequest
+import app.ransel.shared.dto.UpdateCommentRequest
+import app.ransel.shared.model.CommentTarget
 import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.ForgotPasswordRequest
 import app.ransel.shared.dto.LoginRequest
@@ -199,9 +205,34 @@ class RanselApi(
 
     // ── members (Phase 4) ───────────────────────────────────────────────────
     suspend fun members(tripId: String): ApiResult<List<TripMemberDto>> = get(ApiRoutes.members(tripId))
-    suspend fun updateMemberRole(tripId: String, userId: String, role: Role): ApiResult<Unit> =
-        call(HttpMethod.Patch, ApiRoutes.member(tripId, userId), bodyOf = { contentType(ContentType.Application.Json); setBody(UpdateMemberRoleRequest(role)) }) { }
-    suspend fun removeMember(tripId: String, userId: String): ApiResult<Unit> = delete(ApiRoutes.member(tripId, userId))
+    suspend fun updateMemberRole(tripId: String, memberId: String, role: Role): ApiResult<Unit> =
+        call(HttpMethod.Patch, ApiRoutes.member(tripId, memberId), bodyOf = { contentType(ContentType.Application.Json); setBody(UpdateMemberRoleRequest(role)) }) { }
+    suspend fun removeMember(tripId: String, memberId: String): ApiResult<Unit> = delete(ApiRoutes.member(tripId, memberId))
+    /** OWNER: adds a person by name, without an account. */
+    suspend fun addMember(tripId: String, request: AddMemberRequest): ApiResult<TripMemberDto> =
+        send(HttpMethod.Post, ApiRoutes.members(tripId), request)
+    /** "Kamu yang mana?": the signed-in caller takes over a member added by name. */
+    suspend fun claimMember(tripId: String, memberId: String): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.memberClaim(tripId, memberId)) { }
+    /** OWNER: undoes a wrong claim. */
+    suspend fun undoClaim(tripId: String, memberId: String): ApiResult<Unit> = delete(ApiRoutes.memberClaim(tripId, memberId))
+
+    // ── comments (online only) ──────────────────────────────────────────────
+    suspend fun comments(tripId: String, kind: CommentTarget, targetId: String): ApiResult<List<CommentDto>> = call(
+        HttpMethod.Get,
+        ApiRoutes.comments(tripId),
+        bodyOf = { parameter("targetKind", kind.name); parameter("targetId", targetId) },
+    ) { it.body<ApiResponse<List<CommentDto>>>().data }
+    suspend fun commentCounts(tripId: String, kind: CommentTarget): ApiResult<List<CommentCountDto>> = call(
+        HttpMethod.Get,
+        ApiRoutes.commentCounts(tripId),
+        bodyOf = { parameter("targetKind", kind.name) },
+    ) { it.body<ApiResponse<List<CommentCountDto>>>().data }
+    suspend fun createComment(tripId: String, request: CreateCommentRequest): ApiResult<CommentDto> =
+        send(HttpMethod.Post, ApiRoutes.comments(tripId), request)
+    suspend fun updateComment(commentId: String, request: UpdateCommentRequest): ApiResult<CommentDto> =
+        send(HttpMethod.Patch, ApiRoutes.comment(commentId), request)
+    suspend fun deleteComment(commentId: String): ApiResult<Unit> = delete(ApiRoutes.comment(commentId))
     suspend fun leaveTrip(tripId: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.leave(tripId)) { }
     suspend fun transferOwnership(tripId: String, newOwnerUserId: String): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.transferOwnership(tripId), bodyOf = { contentType(ContentType.Application.Json); setBody(TransferOwnershipRequest(newOwnerUserId)) }) { }

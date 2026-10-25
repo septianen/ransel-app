@@ -51,11 +51,18 @@ object ApiRoutes {
     // Phase 4 ─ members, invites, balances, templates
     fun invites(tripId: String) = "/trips/$tripId/invites"         // GET list InviteDto, POST CreateInviteRequest (OWNER)
     fun invite(tripId: String, code: String) = "/trips/$tripId/invites/$code" // DELETE = revoke (OWNER)
-    fun invitePreview(code: String) = "/invites/$code"             // GET InvitePreviewDto (signed in)
+    fun invitePreview(code: String) = "/invites/$code"             // GET InvitePreviewDto (public, no bearer; rate limited per IP)
     fun inviteAccept(code: String) = "/invites/$code/accept"       // POST → TripDto
-    fun members(tripId: String) = "/trips/$tripId/members"         // GET list TripMemberDto
-    fun member(tripId: String, userId: String) =
-        "/trips/$tripId/members/$userId"                           // PATCH UpdateMemberRoleRequest, DELETE = remove (OWNER)
+    fun members(tripId: String) = "/trips/$tripId/members"         // GET list TripMemberDto, POST AddMemberRequest (OWNER) → 201 TripMemberDto
+    fun member(tripId: String, memberId: String) =
+        "/trips/$tripId/members/$memberId"                         // PATCH UpdateMemberRoleRequest, DELETE = remove (OWNER)
+    fun memberClaim(tripId: String, memberId: String) =
+        "/trips/$tripId/members/$memberId/claim"                   // POST = claim a member without an account → 204; DELETE = undo (OWNER) → 204
+
+    // Group: comments on itinerary items and expenses (no chat). Any member with an account may read and write.
+    fun comments(tripId: String) = "/trips/$tripId/comments"       // GET ?targetKind=&targetId= → List<CommentDto>, POST CreateCommentRequest → 201 CommentDto
+    fun commentCounts(tripId: String) = "/trips/$tripId/comments/counts" // GET ?targetKind= → List<CommentCountDto> (targets that have comments)
+    fun comment(commentId: String) = "/comments/$commentId"        // PATCH UpdateCommentRequest, DELETE (author only) → 204
     fun leave(tripId: String) = "/trips/$tripId/leave"             // POST → 204 (OWNER → OWNER_CANNOT_LEAVE)
     fun transferOwnership(tripId: String) = "/trips/$tripId/transfer-ownership" // POST TransferOwnershipRequest
     fun balances(tripId: String) = "/trips/$tripId/balances"       // GET BalancesDto

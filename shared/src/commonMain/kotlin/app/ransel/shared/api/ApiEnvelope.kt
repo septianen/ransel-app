@@ -77,6 +77,10 @@ object ErrorCode {
     const val ALREADY_MEMBER = "ALREADY_MEMBER"            // 409 on accept
     const val OWNER_CANNOT_LEAVE = "OWNER_CANNOT_LEAVE"    // 409, transfer ownership first
 
+    // members without an account, claims
+    const val MEMBER_ALREADY_CLAIMED = "MEMBER_ALREADY_CLAIMED" // 409, the caller already claimed a member of this trip
+    const val MEMBER_HAS_ACCOUNT = "MEMBER_HAS_ACCOUNT"    // 409, the member to claim belongs to an account
+
     // expenses
     const val SPLIT_TOTAL_MISMATCH = "SPLIT_TOTAL_MISMATCH" // 422, sum(shares) != amount
     const val PAYER_TOTAL_MISMATCH = "PAYER_TOTAL_MISMATCH" // 422, sum(payers) != amount
