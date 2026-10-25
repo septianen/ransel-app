@@ -13,9 +13,8 @@ Authorization: Bearer {{token}}
 DELETE {{host}}/trips/{{tripId}}/invites/BALI-XXXX
 Authorization: Bearer {{token}}
 
-### Preview an invite (any signed-in user). 410 INVITE_REVOKED / INVITE_EXPIRED, 409 INVITE_FULL
+### Preview an invite. Public: no token needed. 410 INVITE_REVOKED / INVITE_EXPIRED, 409 INVITE_FULL
 GET {{host}}/invites/BALI-XXXX
-Authorization: Bearer {{token}}
 
 ### Accept. 409 ALREADY_MEMBER if you are in the trip
 POST {{host}}/invites/BALI-XXXX/accept
@@ -25,7 +24,7 @@ Authorization: Bearer {{token}}
 GET {{host}}/trips/{{tripId}}/members
 Authorization: Bearer {{token}}
 
-### Change role (OWNER)
+### Change role (OWNER). The id is a member id (trip_members.id), not a user id
 PATCH {{host}}/trips/{{tripId}}/members/00000000-0000-0000-0000-000000000000
 Content-Type: application/json
 Authorization: Bearer {{token}}
@@ -46,3 +45,45 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 { "newOwnerUserId": "00000000-0000-0000-0000-000000000000" }
+
+
+### Add a person without an account (OWNER). The phone is optional; the OWNER sees it as digits with the country code
+POST {{host}}/trips/{{tripId}}/members
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "id": "11111111-1111-1111-1111-111111111111", "displayName": "Rina", "phone": "0812-3456-7890" }
+
+### "Kamu yang mana?": take over a member added by name -> 204. 409 MEMBER_ALREADY_CLAIMED / MEMBER_HAS_ACCOUNT
+POST {{host}}/trips/{{tripId}}/members/11111111-1111-1111-1111-111111111111/claim
+Authorization: Bearer {{token}}
+
+### Undo a claim (OWNER) -> 204
+DELETE {{host}}/trips/{{tripId}}/members/11111111-1111-1111-1111-111111111111/claim
+Authorization: Bearer {{token}}
+
+### Comments on an itinerary item (or targetKind=EXPENSE)
+GET {{host}}/trips/{{tripId}}/comments?targetKind=ITINERARY_ITEM&targetId=22222222-2222-2222-2222-222222222222
+Authorization: Bearer {{token}}
+
+###
+GET {{host}}/trips/{{tripId}}/comments/counts?targetKind=ITINERARY_ITEM
+Authorization: Bearer {{token}}
+
+###
+POST {{host}}/trips/{{tripId}}/comments
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "id": "33333333-3333-3333-3333-333333333333", "targetKind": "ITINERARY_ITEM", "targetId": "22222222-2222-2222-2222-222222222222", "body": "@Rina berangkat jam 8 ya", "mentions": ["11111111-1111-1111-1111-111111111111"] }
+
+### Edit or delete your own comment
+PATCH {{host}}/comments/33333333-3333-3333-3333-333333333333
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "body": "Berangkat jam 8.", "mentions": [] }
+
+###
+DELETE {{host}}/comments/33333333-3333-3333-3333-333333333333
+Authorization: Bearer {{token}}

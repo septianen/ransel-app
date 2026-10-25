@@ -204,6 +204,8 @@ Canvas **Karung** (https://claude.ai/artifact/GJbx3VCHbQUVPgkHzmnHbu), not expor
 
 Build these from existing patterns; ask the product owner before inventing new layouts: enter invite code, activity detail/edit (reuse *Tambah aktivitas* form), notifications, edit profile, language sheet (reuse *Sheet tema* pattern), search trips, all transactions list, Explore credits (Credits screen with balance, voucher field, packs and history; the out-of-credits state of `SwipeScreen`), dark theme for Itinerary/Packing/Explore/sheets/dialogs (apply the IRIS dark tokens; see *GelapBeranda*, *GelapPengeluaran*, *GelapSwipe* for the pattern).
 
+**Group foundation (25 Oct 2026).** The canvas has the boards `TripGrup`, `WebTripGrup`, `AnggotaTanpaAkun`, `TambahAnggotaNama`, `GabungPilihNama`, `WebGabungPratinjau` and the comment screens, but their HTML is not exported to `screens/` yet. Stage 1 follows the PRD text and the existing patterns (`AnggotaTrip`, `GabungTrip`, `UndangAnggota`): `GroupTab`, `GroupActionSheet`, `AddMemberSheet`, `ClaimMemberContent`, `CommentsSheet`. Export the boards and the screens get a design pass.
+
 ## Design decisions
 
 See `../specs/design-decisions-id.md` (Indonesian; the agreed design rules) plus `../specs/itinerary-spec.md` and `../specs/packing-spec.md` (English).
