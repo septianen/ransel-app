@@ -98,6 +98,9 @@ object ApiRoutes {
     fun pollOptions(pollId: String) = "/polls/$pollId/options"     // POST PollOptionInput → 201 PollDto
     fun pollOption(pollId: String, optionId: String) =
         "/polls/$pollId/options/$optionId"                         // PATCH PollOptionInput → PollDto (bumps the version, clears its votes), DELETE → PollDto (clears its votes)
+    fun pollOptionsBulk(pollId: String) = "/polls/$pollId/options/bulk" // POST BulkPollOptionsRequest → 201 PollDto
+    fun pollSearch(pollId: String) = "/polls/$pollId/search"       // POST PollSearchRequest → PollSearchResponse (Jelajah for STAY and FOOD polls; costs credits)
+    const val LINK_PREVIEW = "/link-preview"                       // POST LinkPreviewRequest → LinkPreviewDto
     fun pollVotes(pollId: String) = "/polls/$pollId/votes"         // PUT VotePollRequest → PollDto; 409 POLL_CLOSED / VOTE_STALE
     fun pollClose(pollId: String) = "/polls/$pollId/close"         // POST (creator or OWNER) → PollDto: ends voting now
     fun pollDecide(pollId: String) = "/polls/$pollId/decide"       // POST DecidePollRequest (creator or OWNER) → PollDto: confirms the winner and runs its action
