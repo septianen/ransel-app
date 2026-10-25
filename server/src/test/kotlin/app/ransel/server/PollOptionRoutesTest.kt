@@ -88,14 +88,14 @@ class PollOptionRoutesTest {
 
     @Test
     fun searchReturnsPricedResultsAndCharges() {
-        val llm = StayLlm(listOf(hotel("Villa Murah", 30.0), hotel("Resort Mewah", 400.0), hotel("Hotel Pas", 60.0), hotel("Hotel Gratis", null)))
+        val llm = StayLlm(listOf(hotel("Villa Murah", 15.0), hotel("Resort Mewah", 400.0), hotel("Hotel Pas", 60.0), hotel("Hotel Gratis", null)))
         val places = PollPlaces()
         apiTest(ai = AiServices(llm, places), fx = IdrFx) {
             val (_, pollId) = tripWithPoll()
             val r = post("/polls/$pollId/search", """{"area":"Ubud","minMinor":500000,"maxMinor":1200000,"needs":"kolam renang"}""")
             assertEquals(HttpStatusCode.OK, r.status)
             val results = r.data().jsonObject.getValue("results").jsonArray.map { it.jsonObject }
-            // 30 USD = 480.000 (below 70% of the minimum) and 400 USD = 6.400.000 (above the maximum) are dropped
+            // 15 USD = 240.000 (below 70% of the minimum) and 400 USD = 6.400.000 (above the maximum) are dropped
             assertEquals(listOf("Hotel Pas", "Hotel Gratis"), results.map { it.str("name") })
             assertEquals("960000", results[0].str("priceMinor"))
             assertEquals("NIGHT", results[0].str("priceUnit"))
