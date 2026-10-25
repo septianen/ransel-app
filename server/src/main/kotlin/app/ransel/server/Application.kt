@@ -28,6 +28,8 @@ import app.ransel.server.routes.exploreRoutes
 import app.ransel.server.routes.expenseRoutes
 import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
+import app.ransel.server.routes.commentRoutes
+import app.ransel.server.routes.invitePreviewRoutes
 import app.ransel.server.routes.memberRoutes
 import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
@@ -186,6 +188,8 @@ fun Application.module(
             healthRoutes()
             authRoutes(auth, passwordReset, verification)
             placePhotoRoutes(photoSigner, placePhotos)
+            val invites = InviteService(config)
+            invitePreviewRoutes(invites)
             authenticate(JWT_AUTH) {
                 meRoutes(verification)
                 tripRoutes()
@@ -193,7 +197,8 @@ fun Application.module(
                 packingRoutes()
                 expenseRoutes()
                 syncRoutes(SyncService())
-                memberRoutes(InviteService(config))
+                memberRoutes(invites)
+                commentRoutes()
                 balanceRoutes()
                 packingTemplateRoutes()
                 recommendationRoutes(recommendations)

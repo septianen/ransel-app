@@ -188,6 +188,9 @@ fun apiTest(
     }
 }
 
+/** The member id of this account in a trip: what expenses, splits and settlements point at. */
+fun Session.memberId(tripId: String): String = app.ransel.shared.domain.memberIdFor(tripId, userId)
+
 /** Remember who is signed in, so a test can switch between accounts. */
 fun Api.session() = Session(token, refreshToken, userId)
 

@@ -32,8 +32,8 @@ private suspend fun Api.trio(): Trio {
     return Trio(tripId, a, others[0], others[1])
 }
 
-private fun json(pairs: Map<String, Long>) = pairs.entries.joinToString(",", "[", "]") { """{"userId":"${it.key}","amountMinor":${it.value}}""" }
-private fun shares(pairs: Map<String, Long>) = pairs.entries.joinToString(",", "[", "]") { """{"userId":"${it.key}","shareMinor":${it.value}}""" }
+private fun json(pairs: Map<String, Long>) = pairs.entries.joinToString(",", "[", "]") { """{"memberId":"${it.key}","amountMinor":${it.value}}""" }
+private fun shares(pairs: Map<String, Long>) = pairs.entries.joinToString(",", "[", "]") { """{"memberId":"${it.key}","shareMinor":${it.value}}""" }
 
 private fun expense(
     id: String = UUID.randomUUID().toString(),
@@ -42,7 +42,7 @@ private fun expense(
     splits: Map<String, Long>,
     paidBy: String? = null,
 ): String {
-    val paid = paidBy?.let { ""","paidByUserId":"$it"""" }.orEmpty()
+    val paid = paidBy?.let { ""","paidByMemberId":"$it"""" }.orEmpty()
     return """{"id":"$id","amountMinor":$amount,"currency":"IDR","spentAt":"2026-11-20T05:00:00Z"$paid,"payers":${json(payers)},"splits":${shares(splits)}}"""
 }
 
@@ -60,13 +60,13 @@ class MultiPayerRoutesTest {
         val body = created.data().jsonObject
         val payers = body.getValue("payers").jsonArray.map { it.jsonObject }
         assertEquals(listOf(g.b.userId, g.a.userId), payers.map { it.str("userId") }, "the first one sent is who paid; the rest follow")
-        assertEquals(g.b.userId, body.str("paidByUserId"))
+        assertEquals(g.b.userId, body.str("paidByMemberId"))
 
         val listed = get("/trips/${g.tripId}/expenses").data().jsonArray.single().jsonObject
         assertEquals(2, listed.getValue("payers").jsonArray.size)
 
         val balances = get("/trips/${g.tripId}/balances").data().jsonObject.getValue("members").jsonArray
-            .map { it.jsonObject }.associateBy { it.str("userId") }
+            .map { it.jsonObject }.associateBy { it.str("memberId") }
         assertEquals(200_000L, balances.getValue(g.a.userId).long("paidMinor"))
         assertEquals(100_000L, balances.getValue(g.b.userId).long("paidMinor"))
         assertEquals(100_000L, balances.getValue(g.a.userId).long("balanceMinor"))
@@ -109,7 +109,7 @@ class MultiPayerRoutesTest {
             expense(amount = 100, payers = mapOf(g.a.userId to 60, g.b.userId to 40), splits = emptyMap(), paidBy = g.b.userId),
         )
         assertEquals(HttpStatusCode.UnprocessableEntity, response.status)
-        assertEquals("MUST_BE_FIRST_PAYER", response.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("paidByUserId"))
+        assertEquals("MUST_BE_FIRST_PAYER", response.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("paidByMemberId"))
     }
 
     @Test
@@ -118,7 +118,7 @@ class MultiPayerRoutesTest {
         val id = UUID.randomUUID().toString()
         post("/trips/${g.tripId}/expenses", expense(id, 100, mapOf(g.a.userId to 60, g.b.userId to 40), emptyMap()))
 
-        val single = """{"id":"$id","amountMinor":100,"currency":"IDR","spentAt":"2026-11-20T05:00:00Z","paidByUserId":"${g.a.userId}"}"""
+        val single = """{"id":"$id","amountMinor":100,"currency":"IDR","spentAt":"2026-11-20T05:00:00Z","paidByMemberId":"${g.a.userId}"}"""
         val replaced = put("/trips/${g.tripId}/expenses/$id", single)
         assertEquals(HttpStatusCode.OK, replaced.status)
         assertEquals(0, replaced.data().jsonObject.getValue("payers").jsonArray.size)

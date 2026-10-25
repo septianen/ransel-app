@@ -14,6 +14,7 @@ import app.ransel.server.plugins.tripNotFound
 import app.ransel.shared.domain.itemsOutsideRange
 import app.ransel.shared.domain.summarizeExpenses
 import app.ransel.shared.domain.toUnscheduledInput
+import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.domain.validateTrip
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.TripDetailDto
@@ -49,7 +50,7 @@ object TripService {
     fun list(userId: UUID): List<TripDto> = transaction {
         TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id)
             .selectAll()
-            .where { (TripMembers.userId eq userId) and Trips.deletedAt.isNull() }
+            .where { (TripMembers.userId eq userId) and TripMembers.active() and Trips.deletedAt.isNull() }
             .orderBy(Trips.startDate to SortOrder.DESC, Trips.createdAt to SortOrder.DESC)
             .map { it.toTripDto(it[TripMembers.role]) }
     }
@@ -69,6 +70,7 @@ object TripService {
             it[coverUrl] = body.coverUrl
         }
         TripMembers.insert {
+            it[TripMembers.id] = UUID.fromString(memberIdFor(id.toString(), userId.toString()))
             it[tripId] = id
             it[TripMembers.userId] = userId
             it[role] = Role.OWNER
@@ -162,7 +164,7 @@ object TripService {
             expenseCount = expenses.size,
             spentMinor = money.spentMinor,
             remainingMinor = money.remainingMinor,
-            memberCount = TripMembers.selectAll().where { TripMembers.tripId eq tripId }.count().toInt(),
+            memberCount = TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and TripMembers.active() }.count().toInt(),
         )
     }
 }

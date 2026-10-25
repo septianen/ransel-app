@@ -113,7 +113,7 @@ object PackingTemplateService {
     private fun visibleTo(userId: UUID) =
         PackingTemplates.ownerId.isNull() or
             (PackingTemplates.ownerId eq userId) or
-            (PackingTemplates.sharedTripId inSubQuery TripMembers.select(TripMembers.tripId).where { TripMembers.userId eq userId })
+            (PackingTemplates.sharedTripId inSubQuery TripMembers.select(TripMembers.tripId).where { (TripMembers.userId eq userId) and TripMembers.active() })
 
     private fun ResultRow.toDto() = PackingTemplateDto(
         id = this[PackingTemplates.id].toString(),

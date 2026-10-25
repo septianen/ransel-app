@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -152,10 +153,10 @@ class MemberRoutesTest {
         assertEquals("FORBIDDEN", denied.errorCode())
 
         use(trip.owner)
-        val patched = patch("/trips/${trip.id}/members/${trip.guest.userId}", """{"role":"EDITOR"}""")
+        val patched = patch("/trips/${trip.id}/members/${trip.guest.memberId(trip.id)}", """{"role":"EDITOR"}""")
         assertEquals("EDITOR", patched.data().jsonObject.str("role"))
-        assertEquals(HttpStatusCode.UnprocessableEntity, patch("/trips/${trip.id}/members/${trip.guest.userId}", """{"role":"OWNER"}""").status)
-        assertEquals(HttpStatusCode.UnprocessableEntity, patch("/trips/${trip.id}/members/${trip.owner.userId}", """{"role":"EDITOR"}""").status)
+        assertEquals(HttpStatusCode.UnprocessableEntity, patch("/trips/${trip.id}/members/${trip.guest.memberId(trip.id)}", """{"role":"OWNER"}""").status)
+        assertEquals(HttpStatusCode.UnprocessableEntity, patch("/trips/${trip.id}/members/${trip.owner.memberId(trip.id)}", """{"role":"EDITOR"}""").status)
 
         use(trip.guest)
         assertEquals(HttpStatusCode.Created, post("/trips/${trip.id}/itinerary", item).status)
@@ -173,10 +174,10 @@ class MemberRoutesTest {
         assertEquals(HttpStatusCode.Created, post("/trips/${trip.id}/expenses", body).status)
 
         use(trip.owner)
-        assertEquals(HttpStatusCode.NoContent, delete("/trips/${trip.id}/members/${trip.guest.userId}").status)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/${trip.id}/members/${trip.guest.memberId(trip.id)}").status)
         val expenses = get("/trips/${trip.id}/expenses").data().jsonArray
         assertEquals(1, expenses.size)
-        assertEquals(trip.guest.userId, expenses.single().jsonObject.str("paidByUserId"))
+        assertEquals(trip.guest.memberId(trip.id), expenses.single().jsonObject.str("paidByMemberId"))
 
         use(trip.guest)
         assertEquals("TRIP_NOT_FOUND", get("/trips/${trip.id}").errorCode())
@@ -192,7 +193,7 @@ class MemberRoutesTest {
         val ownerLeave = post("/trips/${trip.id}/leave")
         assertEquals(HttpStatusCode.Conflict, ownerLeave.status)
         assertEquals("OWNER_CANNOT_LEAVE", ownerLeave.errorCode())
-        assertEquals("OWNER_CANNOT_LEAVE", delete("/trips/${trip.id}/members/${trip.owner.userId}").errorCode())
+        assertEquals("OWNER_CANNOT_LEAVE", delete("/trips/${trip.id}/members/${trip.owner.memberId(trip.id)}").errorCode())
 
         use(trip.guest)
         assertEquals(HttpStatusCode.NoContent, post("/trips/${trip.id}/leave").status)
@@ -218,5 +219,190 @@ class MemberRoutesTest {
 
         use(trip.guest)
         assertEquals(HttpStatusCode.NoContent, delete("/trips/${trip.id}").status)
+    }
+}
+
+private fun namedExpense(id: String = UUID.randomUUID().toString(), amount: Long, paidBy: String, splits: Map<String, Long>): String {
+    val parts = splits.entries.joinToString(",") { """{"memberId":"${it.key}","shareMinor":${it.value}}""" }
+    return """{"id":"$id","amountMinor":$amount,"currency":"IDR","spentAt":"2026-11-20T05:00:00Z","paidByMemberId":"$paidBy","splits":[$parts]}"""
+}
+
+/** Adds a person without an account; returns the member id. Signed in as the owner. */
+private suspend fun Api.addNamed(trip: Trip, name: String, phone: String? = null): String {
+    val id = UUID.randomUUID().toString()
+    val phoneField = if (phone != null) ""","phone":"$phone"""" else ""
+    val response = post("/trips/${trip.id}/members", """{"id":"$id","displayName":"$name"$phoneField}""")
+    assertEquals(HttpStatusCode.Created, response.status)
+    return response.data().jsonObject.str("memberId")
+}
+
+class NamedMemberRoutesTest {
+    private suspend fun Api.join(trip: Trip, who: Session, role: String = "EDITOR") {
+        use(trip.owner)
+        val code = invite(trip, role)
+        use(who)
+        assertEquals(HttpStatusCode.OK, post("/invites/$code/accept").status)
+    }
+
+    @Test
+    fun ownerAddsAPersonByNameAndOnlyTheOwnerSeesThePhone() = apiTest {
+        val trip = setup()
+        val rina = post("/trips/${trip.id}/members", """{"id":"${UUID.randomUUID()}","displayName":" Rina ","phone":"0812-3456-7890"}""")
+        assertEquals(HttpStatusCode.Created, rina.status)
+        val dto = rina.data().jsonObject
+        assertEquals("Rina", dto.str("displayName"))
+        assertEquals("VIEWER", dto.str("role"))
+        assertNull(dto["userId"])
+        assertEquals("6281234567890", dto.str("phone"))
+
+        join(trip, trip.guest)
+        use(trip.guest)
+        val asEditor = get("/trips/${trip.id}/members").data().jsonArray.map { it.jsonObject }
+        assertEquals(3, asEditor.size)
+        assertEquals(true, asEditor.all { it["phone"] == null })
+        assertEquals(true, asEditor.single { it.str("displayName") == "Rina" }["userId"] == null)
+        assertEquals(HttpStatusCode.Forbidden, post("/trips/${trip.id}/members", """{"id":"${UUID.randomUUID()}","displayName":"Dewi"}""").status)
+
+        use(trip.owner)
+        assertEquals(HttpStatusCode.UnprocessableEntity, post("/trips/${trip.id}/members", """{"id":"${UUID.randomUUID()}","displayName":"  "}""").status)
+        assertEquals(HttpStatusCode.UnprocessableEntity, post("/trips/${trip.id}/members", """{"id":"${UUID.randomUUID()}","displayName":"Dewi","phone":"123"}""").status)
+    }
+
+    @Test
+    fun aPersonWithoutAnAccountCanPayAndShareButNotHaveARole() = apiTest {
+        val trip = setup()
+        val rina = addNamed(trip, "Rina")
+        val me = trip.owner.memberId(trip.id)
+
+        val created = post("/trips/${trip.id}/expenses", namedExpense(amount = 100_000, paidBy = rina, splits = mapOf(rina to 50_000, me to 50_000)))
+        assertEquals(HttpStatusCode.Created, created.status)
+        assertEquals(rina, created.data().jsonObject.str("paidByMemberId"))
+
+        val balances = get("/trips/${trip.id}/balances").data().jsonObject.getValue("members").jsonArray.map { it.jsonObject }
+        assertEquals(50_000L, balances.single { it.str("memberId") == rina }.str("balanceMinor").toLong())
+        assertEquals("Rina", balances.single { it.str("memberId") == rina }.str("displayName"))
+
+        assertEquals(HttpStatusCode.UnprocessableEntity, patch("/trips/${trip.id}/members/$rina", """{"role":"EDITOR"}""").status)
+        val stranger = post("/trips/${trip.id}/expenses", namedExpense(amount = 10, paidBy = UUID.randomUUID().toString(), splits = emptyMap()))
+        assertEquals("NOT_A_MEMBER", stranger.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("paidByMemberId"))
+    }
+
+    @Test
+    fun claimingMovesEverythingToTheClaimerAndTheOwnerCanUndo() = apiTest {
+        val trip = setup()
+        val rina = addNamed(trip, "Rina")
+        val me = trip.owner.memberId(trip.id)
+        val expenseId = UUID.randomUUID().toString()
+        assertEquals(HttpStatusCode.Created, post("/trips/${trip.id}/expenses", namedExpense(expenseId, 90_000, paidBy = rina, splits = mapOf(rina to 45_000, me to 45_000))).status)
+        join(trip, trip.guest)
+        val guestMember = trip.guest.memberId(trip.id)
+
+        use(trip.guest)
+        assertEquals(HttpStatusCode.NoContent, post("/trips/${trip.id}/members/$rina/claim").status)
+        use(trip.owner)
+        val moved = get("/trips/${trip.id}/expenses").data().jsonArray.single().jsonObject
+        assertEquals(guestMember, moved.str("paidByMemberId"))
+        assertEquals(setOf(guestMember, me), moved.getValue("splits").jsonArray.map { it.jsonObject.str("memberId") }.toSet())
+        val names = get("/trips/${trip.id}/members").data().jsonArray.map { it.jsonObject.str("displayName") }
+        assertEquals(false, names.contains("Rina"))
+        val inbox = get("/notifications").data().jsonObject.getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(true, inbox.any { it.str("type") == "MEMBER_CLAIMED" && it.getValue("params").jsonObject.str("guestName") == "Rina" })
+
+        // only the owner undoes it
+        use(trip.guest)
+        assertEquals(HttpStatusCode.Forbidden, delete("/trips/${trip.id}/members/$rina/claim").status)
+        use(trip.owner)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/${trip.id}/members/$rina/claim").status)
+        val back = get("/trips/${trip.id}/expenses").data().jsonArray.single().jsonObject
+        assertEquals(rina, back.str("paidByMemberId"))
+        assertEquals(setOf(rina, me), back.getValue("splits").jsonArray.map { it.jsonObject.str("memberId") }.toSet())
+        assertEquals(true, get("/trips/${trip.id}/members").data().jsonArray.any { it.jsonObject.str("displayName") == "Rina" })
+    }
+
+    @Test
+    fun claimingMergesWhenBothAreOnTheSameExpense() = apiTest {
+        val trip = setup()
+        val rina = addNamed(trip, "Rina")
+        join(trip, trip.guest)
+        val guestMember = trip.guest.memberId(trip.id)
+        use(trip.owner)
+        assertEquals(HttpStatusCode.Created, post("/trips/${trip.id}/expenses", namedExpense(amount = 100_000, paidBy = rina, splits = mapOf(rina to 60_000, guestMember to 40_000))).status)
+
+        use(trip.guest)
+        assertEquals(HttpStatusCode.NoContent, post("/trips/${trip.id}/members/$rina/claim").status)
+        val merged = get("/trips/${trip.id}/expenses").data().jsonArray.single().jsonObject.getValue("splits").jsonArray.map { it.jsonObject }
+        assertEquals(1, merged.size)
+        assertEquals(100_000L, merged.single().str("shareMinor").toLong())
+
+        use(trip.owner)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/${trip.id}/members/$rina/claim").status)
+        val split = get("/trips/${trip.id}/expenses").data().jsonArray.single().jsonObject.getValue("splits").jsonArray
+            .associate { it.jsonObject.str("memberId") to it.jsonObject.str("shareMinor").toLong() }
+        assertEquals(mapOf(rina to 60_000L, guestMember to 40_000L), split)
+    }
+
+    @Test
+    fun claimRulesOneClaimPerAccountAndNotAnAccountMember() = apiTest {
+        val trip = setup()
+        val rina = addNamed(trip, "Rina")
+        val dewi = addNamed(trip, "Dewi")
+        join(trip, trip.guest)
+
+        use(trip.guest)
+        assertEquals(HttpStatusCode.NoContent, post("/trips/${trip.id}/members/$rina/claim").status)
+        val again = post("/trips/${trip.id}/members/$dewi/claim")
+        assertEquals(HttpStatusCode.Conflict, again.status)
+        assertEquals("MEMBER_ALREADY_CLAIMED", again.errorCode())
+        assertEquals("MEMBER_HAS_ACCOUNT", post("/trips/${trip.id}/members/${trip.owner.memberId(trip.id)}/claim").errorCode())
+        assertEquals(HttpStatusCode.NotFound, post("/trips/${trip.id}/members/$rina/claim").status) // already taken
+
+        use(trip.third)
+        assertEquals("TRIP_NOT_FOUND", post("/trips/${trip.id}/members/$dewi/claim").errorCode()) // not in the trip
+    }
+
+    @Test
+    fun rejoiningGivesTheSameMemberBack() = apiTest {
+        val trip = setup()
+        join(trip, trip.guest)
+        val mine = trip.guest.memberId(trip.id)
+        use(trip.guest)
+        assertEquals(HttpStatusCode.Created, post("/trips/${trip.id}/expenses", namedExpense(amount = 1_000, paidBy = mine, splits = emptyMap())).status)
+        assertEquals(HttpStatusCode.NoContent, post("/trips/${trip.id}/leave").status)
+
+        join(trip, trip.guest, role = "VIEWER")
+        use(trip.guest)
+        val ids = get("/trips/${trip.id}/members").data().jsonArray.map { it.jsonObject.str("memberId") }
+        assertEquals(true, mine in ids)
+        assertEquals(2, ids.size)
+        assertEquals(mine, get("/trips/${trip.id}/expenses").data().jsonArray.single().jsonObject.str("paidByMemberId"))
+    }
+
+    @Test
+    fun theInvitePreviewIsPublicAndLeaksNothingPrivate() = apiTest {
+        val trip = setup()
+        addNamed(trip, "Rina", phone = "081234567890")
+        val me = trip.owner.memberId(trip.id)
+        assertEquals(HttpStatusCode.Created, post("/trips/${trip.id}/itinerary", itemJson()).status)
+        assertEquals(HttpStatusCode.Created, post("/trips/${trip.id}/expenses", namedExpense(amount = 80_000, paidBy = me, splits = mapOf(me to 80_000))).status)
+        val code = invite(trip)
+
+        use(Session(null, null, ""))
+        val response = get("/invites/$code")
+        assertEquals(HttpStatusCode.OK, response.status)
+        val text = response.bodyAsText()
+        val preview = TestJson.parseToJsonElement(text).jsonObject.getValue("data").jsonObject
+        assertEquals(2, preview.getValue("memberInitials").jsonArray.size)
+        assertEquals(listOf("Rina"), preview.getValue("guestNames").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals("1", preview.str("activityCount"))
+        assertEquals("80000", preview.str("sharedSpendMinor"))
+        assertEquals("IDR", preview.str("baseCurrency"))
+        assertEquals(false, text.contains("081234567890") || text.contains("6281234567890"))
+        assertEquals(false, text.contains("@example.com"))
+        assertEquals(false, text.contains("paidBy") || text.contains("shareMinor"))
+
+        use(trip.owner)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/${trip.id}/invites/$code").status)
+        use(Session(null, null, ""))
+        assertEquals(HttpStatusCode.Gone, get("/invites/$code").status)
     }
 }

@@ -23,6 +23,7 @@ import kotlin.time.Duration.Companion.minutes
 const val JWT_AUTH = "jwt"
 val AuthRateLimit = RateLimitName("auth")
 val PhotoRateLimit = RateLimitName("photo")
+val InvitePreviewRateLimit = RateLimitName("invite-preview")
 val SuggestionsRateLimit = RateLimitName("suggestions")
 val RedeemRateLimit = RateLimitName("redeem")
 val AdminRateLimit = RateLimitName("admin")
@@ -71,6 +72,11 @@ fun Application.configureRateLimit(config: AppConfig) {
         register(AdminRateLimit) {
             rateLimiter(limit = 60, refillPeriod = 1.minutes)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
+        }
+        // The public invite preview needs no sign-in, so it is limited per address.
+        register(InvitePreviewRateLimit) {
+            rateLimiter(limit = config.invitePreviewRateLimitPerMinute, refillPeriod = 1.minutes)
+            requestKey { call -> call.request.origin.remoteHost }
         }
         register(PhotoRateLimit) {
             rateLimiter(limit = config.photoRateLimitPerMinute, refillPeriod = 1.minutes)

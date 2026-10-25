@@ -397,11 +397,11 @@ class RoundService(private val config: AppConfig, private val photoSigner: Photo
         if (item.photoUrl == null) item else item.copy(photoUrl = photoSigner.signedPath(item.placeId))
 
     private fun ownerOf(tripId: UUID): UUID? =
-        TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and (TripMembers.role eq Role.OWNER) }
+        TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and TripMembers.active() and (TripMembers.role eq Role.OWNER) }
             .singleOrNull()?.get(TripMembers.userId)
 
     private fun currentMembers(tripId: UUID): List<UUID> =
-        TripMembers.selectAll().where { TripMembers.tripId eq tripId }.map { it[TripMembers.userId] }
+        TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and TripMembers.active() }.mapNotNull { it[TripMembers.userId] }
 
     private fun names(ids: Collection<UUID>): Map<UUID, String> =
         if (ids.isEmpty()) emptyMap()

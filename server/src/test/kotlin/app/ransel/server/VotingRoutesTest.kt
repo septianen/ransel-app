@@ -221,7 +221,7 @@ class VotingRoutesTest {
         use(g.editor)
         vote(g.tripId, roundId, places[0], "LIKE")
         use(g.owner)
-        assertEquals(HttpStatusCode.NoContent, delete("/trips/${g.tripId}/members/${g.editor.userId}").status)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/${g.tripId}/members/${g.editor.memberId(g.tripId)}").status)
         val tally = round(g.tripId, roundId).getValue("tally").jsonArray.first { it.jsonObject.str("placeId") == places[0] }.jsonObject
         assertEquals("0", tally.str("likes"))
         assertEquals("2", round(g.tripId, roundId).str("memberCount"))

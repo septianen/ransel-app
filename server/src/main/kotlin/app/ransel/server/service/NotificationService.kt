@@ -71,7 +71,8 @@ class NotificationService(private val config: AppConfig, private val push: PushS
                 val (tripActivity, expenses, reminders) = settings[user] ?: Triple(true, true, true)
                 val wanted = when (type) {
                     NotificationType.MEMBER_JOINED, NotificationType.MEMBER_REMOVED, NotificationType.ROLE_CHANGED,
-                    NotificationType.VOTE_REQUESTED, NotificationType.VOTE_RESULT -> tripActivity
+                    NotificationType.VOTE_REQUESTED, NotificationType.VOTE_RESULT,
+                    NotificationType.MEMBER_CLAIMED, NotificationType.COMMENT_MENTION -> tripActivity
                     NotificationType.EXPENSE_ADDED, NotificationType.SETTLEMENT_MARKED -> expenses
                     NotificationType.PACKING_REMINDER, NotificationType.ACTIVITY_REMINDER -> reminders
                 }
@@ -96,8 +97,8 @@ class NotificationService(private val config: AppConfig, private val push: PushS
         val title = tripTitle(tripId)
         val name = displayName(joiner)
         val audience = TripMembers.selectAll()
-            .where { (TripMembers.tripId eq tripId) and (TripMembers.role inList listOf(Role.OWNER, Role.EDITOR)) and (TripMembers.userId neq joiner) }
-            .map { it[TripMembers.userId] }
+            .where { (TripMembers.tripId eq tripId) and TripMembers.active() and (TripMembers.role inList listOf(Role.OWNER, Role.EDITOR)) and (TripMembers.userId neq joiner) }
+            .mapNotNull { it[TripMembers.userId] }
         notify(audience, NotificationType.MEMBER_JOINED, tripId, "joined:$tripId:$joiner:${UUID.randomUUID()}") {
             mapOf("tripTitle" to title, "actorName" to name)
         }
@@ -115,17 +116,42 @@ class NotificationService(private val config: AppConfig, private val push: PushS
         }
     }
 
+    /** Someone took over a member added by name: tell the OWNER (unless the OWNER did it themselves). */
+    fun memberClaimed(tripId: UUID, claimer: UUID, guestName: String) {
+        val title = tripTitle(tripId)
+        val name = displayName(claimer)
+        val owners = TripMembers.selectAll()
+            .where { (TripMembers.tripId eq tripId) and TripMembers.active() and (TripMembers.role eq Role.OWNER) }
+            .mapNotNull { it[TripMembers.userId] }.filter { it != claimer }
+        notify(owners, NotificationType.MEMBER_CLAIMED, tripId, "claimed:$tripId:$claimer:${UUID.randomUUID()}") {
+            mapOf("tripTitle" to title, "actorName" to name, "guestName" to guestName)
+        }
+    }
+
+    /** A comment that names people with @: each of them (not the author), once per comment. */
+    fun commentMention(tripId: UUID, commentId: UUID, author: UUID, mentioned: Collection<UUID>, params: Map<String, String>) {
+        val title = tripTitle(tripId)
+        val name = displayName(author)
+        notify(mentioned.filter { it != author }, NotificationType.COMMENT_MENTION, tripId, "mention:$commentId") {
+            params + mapOf("tripTitle" to title, "actorName" to name, "commentId" to commentId.toString())
+        }
+    }
+
     /** A new expense: everyone on it (payers, people with a share) except the one who recorded it. */
     fun expenseAdded(tripId: UUID, expenseId: UUID, actor: UUID) {
         val expense = Expenses.selectAll().where { Expenses.id eq expenseId }.singleOrNull() ?: return
         if (expense[Expenses.deletedAt] != null) return
-        val shares = ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq expenseId }
-            .associate { it[ExpenseSplits.userId] to it[ExpenseSplits.shareMinor] }
-        val payers = ExpensePayers.selectAll().where { ExpensePayers.expenseId eq expenseId }.map { it[ExpensePayers.userId] }
-        val audience = (shares.keys + payers + expense[Expenses.paidByUserId]).filter { it != actor }
-        // Only members: a person who left can still be on an old expense.
-        val members = TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and (TripMembers.userId inList audience) }
-            .map { it[TripMembers.userId] }
+        val shareByMember = ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq expenseId }
+            .associate { it[ExpenseSplits.memberId] to it[ExpenseSplits.shareMinor] }
+        val payers = ExpensePayers.selectAll().where { ExpensePayers.expenseId eq expenseId }.map { it[ExpensePayers.memberId] }
+        val memberIds = (shareByMember.keys + payers + expense[Expenses.paidByMemberId]).distinct()
+        // Only current members with an account: a person who left can still be on an old expense, and a member added by name has no inbox.
+        val accounts = TripMembers.selectAll()
+            .where { (TripMembers.tripId eq tripId) and TripMembers.active() and (TripMembers.id inList memberIds) }
+            .mapNotNull { row -> row[TripMembers.userId]?.let { row[TripMembers.id] to it } }
+            .toMap()
+        val shares = shareByMember.mapNotNull { (member, share) -> accounts[member]?.let { it to share } }.toMap()
+        val members = accounts.values.filter { it != actor }
         val title = tripTitle(tripId)
         val name = displayName(actor)
         notify(members, NotificationType.EXPENSE_ADDED, tripId, "expense:$expenseId") { user ->
@@ -143,7 +169,7 @@ class NotificationService(private val config: AppConfig, private val push: PushS
     fun settlementMarked(tripId: UUID, settlementId: UUID, actor: UUID) {
         val settlement = Settlements.selectAll().where { Settlements.id eq settlementId }.singleOrNull() ?: return
         if (settlement[Settlements.deletedAt] != null) return
-        val audience = listOf(settlement[Settlements.fromUserId], settlement[Settlements.toUserId]).filter { it != actor }
+        val audience = userIdsOfMembers(listOf(settlement[Settlements.fromMemberId], settlement[Settlements.toMemberId])).values.filter { it != actor }
         val trip = Trips.selectAll().where { Trips.id eq tripId }.singleOrNull() ?: return
         val name = displayName(actor)
         notify(audience, NotificationType.SETTLEMENT_MARKED, tripId, "settlement:$settlementId") {

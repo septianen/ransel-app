@@ -77,12 +77,12 @@ fun ResultRow.toExpenseDto(splits: List<ExpenseSplitDto> = emptyList(), payers: 
     paymentMethod = this[Expenses.paymentMethod],
     note = this[Expenses.note],
     spentAt = this[Expenses.spentAt].toTimestamp(),
-    paidByUserId = this[Expenses.paidByUserId].toString(),
+    paidByMemberId = this[Expenses.paidByMemberId].toString(),
     // the payer the expense names first, then the biggest amounts: the same order on every read
     payers = payers.sortedWith(
-        compareByDescending<ExpensePayerDto> { it.userId == this[Expenses.paidByUserId].toString() }
+        compareByDescending<ExpensePayerDto> { it.memberId == this[Expenses.paidByMemberId].toString() }
             .thenByDescending { it.amountMinor }
-            .thenBy { it.userId },
+            .thenBy { it.memberId },
     ),
     splits = splits,
     createdAt = this[Expenses.createdAt].toTimestamp(),
@@ -93,8 +93,8 @@ fun ResultRow.toExpenseDto(splits: List<ExpenseSplitDto> = emptyList(), payers: 
 fun ResultRow.toSettlementDto() = SettlementDto(
     id = this[Settlements.id].toString(),
     tripId = this[Settlements.tripId].toString(),
-    fromUserId = this[Settlements.fromUserId].toString(),
-    toUserId = this[Settlements.toUserId].toString(),
+    fromMemberId = this[Settlements.fromMemberId].toString(),
+    toMemberId = this[Settlements.toMemberId].toString(),
     amountMinor = this[Settlements.amountMinor],
     settledAt = this[Settlements.settledAt].toTimestamp(),
     createdAt = this[Settlements.createdAt].toTimestamp(),

@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
@@ -88,8 +89,8 @@ class SyncRoutesTest {
                 ),
                 expenses = listOf(
                     ExpenseDto(
-                        id(), tripId, 50_000, "IDR", spentAt = Clock.System.now(), paidByUserId = userId,
-                        splits = listOf(ExpenseSplitDto(userId, 50_000)),
+                        id(), tripId, 50_000, "IDR", spentAt = Clock.System.now(), paidByMemberId = memberIdFor(tripId, userId),
+                        splits = listOf(ExpenseSplitDto(memberIdFor(tripId, userId), 50_000)),
                         createdAt = Clock.System.now(), updatedAt = Clock.System.now(),
                     ),
                 ),
@@ -183,8 +184,8 @@ class SyncRoutesTest {
     fun mismatchedSplitsAreRejectedWithTheirOwnCode() = apiTest {
         val tripId = id()
         val expense = ExpenseDto(
-            id(), tripId, 100, "IDR", spentAt = Clock.System.now(), paidByUserId = userId,
-            splits = listOf(ExpenseSplitDto(userId, 60)), createdAt = Clock.System.now(), updatedAt = Clock.System.now(),
+            id(), tripId, 100, "IDR", spentAt = Clock.System.now(), paidByMemberId = memberIdFor(tripId, userId),
+            splits = listOf(ExpenseSplitDto(memberIdFor(tripId, userId), 60)), createdAt = Clock.System.now(), updatedAt = Clock.System.now(),
         )
         val response = push(SyncChanges(trips = listOf(trip(tripId)), expenses = listOf(expense)))
         assertEquals("SPLIT_TOTAL_MISMATCH", response.rejected.single().code)
