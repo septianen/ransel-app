@@ -2,6 +2,9 @@ package app.ransel.server.db
 
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.CommentTarget
+import app.ransel.shared.model.PollKind
+import app.ransel.shared.model.PollPriceUnit
+import app.ransel.shared.model.PollStatus
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.PackingCategory
 import app.ransel.shared.model.PaymentMethod
@@ -98,6 +101,59 @@ object MemberClaims : Table("member_claims") {
     val claimedAt = timestamp("claimed_at")
     val undoneAt = timestamp("undone_at").nullable()
     override val primaryKey = PrimaryKey(id)
+}
+
+object Polls : Table("polls") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val kind = enumerationByName<PollKind>("kind", 16)
+    val question = text("question")
+    val createdByMemberId = javaUUID("created_by_member_id")
+    val closesAt = timestamp("closes_at")
+    val multiChoice = bool("multi_choice")
+    val isAnonymous = bool("is_anonymous")
+    val anonymityLocked = bool("anonymity_locked")
+    val applyWinner = bool("apply_winner")
+    val dayDate = date("day_date").nullable()
+    val startTime = time("start_time").nullable()
+    val status = enumerationByName<PollStatus>("status", 16)
+    val decidedOptionId = javaUUID("decided_option_id").nullable()
+    val decidedAt = timestamp("decided_at").nullable()
+    val tiedAt = timestamp("tied_at").nullable()
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object PollOptions : Table("poll_options") {
+    val id = javaUUID("id")
+    val pollId = javaUUID("poll_id")
+    val label = text("label")
+    val startDate = date("start_date").nullable()
+    val endDate = date("end_date").nullable()
+    val placeId = text("place_id").nullable()
+    val url = text("url").nullable()
+    val imageUrl = text("image_url").nullable()
+    val priceMinor = long("price_minor").nullable()
+    val priceUnit = enumerationByName<PollPriceUnit>("price_unit", 8).nullable()
+    val minMinor = long("min_minor").nullable()
+    val maxMinor = long("max_minor").nullable()
+    /** Goes up when what people voted on changes; a vote on an older version no longer counts. */
+    val version = integer("version")
+    val sortOrder = integer("sort_order")
+    val createdAt = timestamp("created_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object PollVotes : Table("poll_votes") {
+    val optionId = javaUUID("option_id")
+    val pollId = javaUUID("poll_id")
+    val memberId = javaUUID("member_id")
+    val optionVersion = integer("option_version")
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(optionId, memberId)
 }
 
 object Comments : Table("comments") {

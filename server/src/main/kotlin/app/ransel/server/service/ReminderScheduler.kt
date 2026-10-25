@@ -29,6 +29,7 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
         val local = LocalDateTime.ofInstant(now, zone)
         packing(local)
         activities(local)
+        PollService.tick(now)
     }
 
     /** The evening before departure, from [AppConfig.notifyPackingHour] on: if things are still not packed. */

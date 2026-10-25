@@ -72,7 +72,8 @@ class NotificationService(private val config: AppConfig, private val push: PushS
                 val wanted = when (type) {
                     NotificationType.MEMBER_JOINED, NotificationType.MEMBER_REMOVED, NotificationType.ROLE_CHANGED,
                     NotificationType.VOTE_REQUESTED, NotificationType.VOTE_RESULT,
-                    NotificationType.MEMBER_CLAIMED, NotificationType.COMMENT_MENTION -> tripActivity
+                    NotificationType.MEMBER_CLAIMED, NotificationType.COMMENT_MENTION,
+                    NotificationType.POLL_REQUESTED, NotificationType.POLL_RESULT -> tripActivity
                     NotificationType.EXPENSE_ADDED, NotificationType.SETTLEMENT_MARKED -> expenses
                     NotificationType.PACKING_REMINDER, NotificationType.ACTIVITY_REMINDER -> reminders
                 }
@@ -305,6 +306,7 @@ class NotificationService(private val config: AppConfig, private val push: PushS
                     // Voting: the app opens the round itself, and the owner's "ready" opens the result.
                     n.params["roundId"]?.let { put("roundId", it) }
                     n.params["stage"]?.let { put("stage", it) }
+                    n.params["pollId"]?.let { put("pollId", it) }
                 }
                 when (push.send(device.token, PushMessage(title, body, data))) {
                     PushResult.OK -> delivered = true

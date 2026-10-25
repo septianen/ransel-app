@@ -90,6 +90,7 @@ object MemberService {
             val target = activeMember(tripId, targetMemberId) ?: throw notFound("Member")
             if (target[TripMembers.role] == Role.OWNER) throw ownerCannotLeave()
             softRemove(targetMemberId)
+            PollService.handOver(tripId, targetMemberId)
             target[TripMembers.userId]?.let { removed -> Notify.emit { memberRemoved(tripId, removed) } }
         }
     }
@@ -97,7 +98,10 @@ object MemberService {
     fun leave(userId: UUID, tripId: UUID) {
         val role = requireRole(tripId, userId, Role.VIEWER)
         if (role == Role.OWNER) throw ownerCannotLeave()
-        transaction { softRemove(callerMemberId(tripId, userId)) }
+        transaction {
+            softRemove(callerMemberId(tripId, userId))
+            PollService.handOver(tripId, callerMemberId(tripId, userId))
+        }
     }
 
     /** Old owner becomes EDITOR, the new owner OWNER, in one transaction (a trip never has zero or two owners). */

@@ -46,6 +46,34 @@ object PushText {
                 val snippet = params["snippet"].orEmpty()
                 (if (en) "$actor mentioned you in $trip" else "$actor menyebutmu di $trip") to snippet
             }
+            NotificationType.POLL_REQUESTED -> {
+                val question = params["question"].orEmpty()
+                when (params["stage"]) {
+                    "CLOSING" -> (if (en) "Poll closes soon" else "Polling segera ditutup") to
+                        (if (en) "Vote on \"$question\" in $trip." else "Pilih untuk \"$question\" di $trip.")
+                    "RESET" -> (if (en) "Choose again" else "Pilih ulang") to
+                        (if (en) "\"${params["optionLabel"].orEmpty()}\" changed in \"$question\"." else "\"${params["optionLabel"].orEmpty()}\" berubah di \"$question\".")
+                    "REOPENED" -> (if (en) "Poll reopened" else "Polling dibuka lagi") to
+                        (if (en) "Vote on \"$question\" in $trip." else "Pilih untuk \"$question\" di $trip.")
+                    else -> (if (en) "$actor started a poll" else "$actor membuat polling") to
+                        (if (en) "\"$question\" in $trip. Cast your vote." else "\"$question\" di $trip. Ayo pilih.")
+                }
+            }
+            NotificationType.POLL_RESULT -> {
+                val question = params["question"].orEmpty()
+                if (params["stage"] == "TIED") {
+                    (if (en) "It is a tie" else "Hasil polling seri") to
+                        (if (en) "Pick the winner of \"$question\" in $trip." else "Pilih pemenang \"$question\" di $trip.")
+                } else {
+                    val winner = params["winner"]
+                    (if (en) "Poll decided" else "Polling diputuskan") to when {
+                        en && winner != null -> "$actor chose \"$winner\" for \"$question\"."
+                        en -> "$actor closed \"$question\" without choosing."
+                        winner != null -> "$actor memilih \"$winner\" untuk \"$question\"."
+                        else -> "$actor menutup \"$question\" tanpa memilih."
+                    }
+                }
+            }
             NotificationType.PACKING_REMINDER -> {
                 val n = params["remaining"].orEmpty()
                 (if (en) "Packing for $trip" else "Packing untuk $trip") to

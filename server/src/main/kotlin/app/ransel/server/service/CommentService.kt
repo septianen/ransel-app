@@ -3,6 +3,8 @@ package app.ransel.server.service
 import app.ransel.server.db.Comments
 import app.ransel.server.db.Expenses
 import app.ransel.server.db.ItineraryItems
+import app.ransel.server.db.PollOptions
+import app.ransel.server.db.Polls
 import app.ransel.server.db.TripMembers
 import app.ransel.server.db.toTimestamp
 import app.ransel.server.plugins.conflict
@@ -16,6 +18,7 @@ import app.ransel.shared.dto.CreateCommentRequest
 import app.ransel.shared.dto.UpdateCommentRequest
 import app.ransel.shared.model.CommentTarget
 import app.ransel.shared.model.Role
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
@@ -124,6 +127,9 @@ object CommentService {
                 .where { (ItineraryItems.id eq targetId) and (ItineraryItems.tripId eq tripId) and ItineraryItems.deletedAt.isNull() }.any()
             CommentTarget.EXPENSE -> Expenses.select(Expenses.id)
                 .where { (Expenses.id eq targetId) and (Expenses.tripId eq tripId) and Expenses.deletedAt.isNull() }.any()
+            CommentTarget.POLL_OPTION -> PollOptions.join(Polls, JoinType.INNER, PollOptions.pollId, Polls.id)
+                .select(PollOptions.id)
+                .where { (PollOptions.id eq targetId) and (Polls.tripId eq tripId) and PollOptions.deletedAt.isNull() and Polls.deletedAt.isNull() }.any()
         }
         if (!exists) throw notFound("Comment target")
     }

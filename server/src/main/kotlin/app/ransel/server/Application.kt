@@ -31,6 +31,7 @@ import app.ransel.server.routes.itineraryRoutes
 import app.ransel.server.routes.commentRoutes
 import app.ransel.server.routes.invitePreviewRoutes
 import app.ransel.server.routes.memberRoutes
+import app.ransel.server.routes.pollRoutes
 import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
 import app.ransel.server.routes.packingTemplateRoutes
@@ -199,6 +200,7 @@ fun Application.module(
                 syncRoutes(SyncService())
                 memberRoutes(invites)
                 commentRoutes()
+                pollRoutes()
                 balanceRoutes()
                 packingTemplateRoutes()
                 recommendationRoutes(recommendations)
