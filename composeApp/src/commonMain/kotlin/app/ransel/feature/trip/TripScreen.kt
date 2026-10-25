@@ -20,7 +20,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.ransel.data.repository.TripRepository
+import app.ransel.feature.comments.ProvideComments
+import app.ransel.shared.model.CommentTarget
 import app.ransel.feature.expenses.ExpensesTab
+import app.ransel.feature.group.GroupActionSheet
+import app.ransel.feature.group.GroupTab
+import app.ransel.feature.invite.InviteMembersSheet
+import app.ransel.ui.components.IconFab
+import app.ransel.ui.symbols.Symbols
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.ui.Alignment
+import org.jetbrains.compose.resources.stringResource
+import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.group_fab_description
 import app.ransel.feature.itinerary.ItineraryTab
 import app.ransel.feature.packing.PackingTab
 import app.ransel.ui.adaptive.rememberIsExpanded
@@ -78,6 +90,11 @@ fun TripScreen(
     val rounds by voting.rounds.collectAsState()
     LaunchedEffect(tripId, signedIn) { if (signedIn) voting.refresh(api, tripId) }
     val tripRounds = if (signedIn) rounds[tripId].orEmpty() else emptyList()
+    val isOwner = current?.myRole == app.ransel.shared.model.Role.OWNER
+    val actionRounds = tripRounds.actionRounds(isOwner)
+    // The + button of the Group tab: Buat polling / Ajak anggota / Unggah dokumen (owner only until polls arrive).
+    var actionSheetOpen by remember { mutableStateOf(false) }
+    var inviteSheetOpen by remember { mutableStateOf(false) }
 
     // Pull to refresh (signed in only: a guest's trip lives on this phone alone). Mobile syncs, web fetches again;
     // then the server-only parts (voting rounds, members and balances in Expenses) are asked for again.
@@ -112,13 +129,11 @@ fun TripScreen(
             )
             if (offline) app.ransel.ui.components.OfflineBanner()
             // One banner: the round that needs the user (vote, or decide for the owner), else a quiet link to the list.
-            if (tripRounds.isNotEmpty() && current != null && onOpenVoteList != null) {
-                val isOwner = current.myRole == app.ransel.shared.model.Role.OWNER
-                val actions = tripRounds.actionRounds(isOwner)
+            if (tab != TripTab.GROUP && tripRounds.isNotEmpty() && current != null && onOpenVoteList != null) {
                 VoteBanner(
-                    round = actions.firstOrNull(),
+                    round = actionRounds.firstOrNull(),
                     roundCount = tripRounds.size,
-                    moreActions = (actions.size - 1).coerceAtLeast(0),
+                    moreActions = (actionRounds.size - 1).coerceAtLeast(0),
                     destination = current.destination,
                     isOwner = isOwner,
                     myUserId = session.user?.id,
@@ -126,26 +141,70 @@ fun TripScreen(
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
                 )
             }
+            Box(Modifier.weight(1f).navigationBarsPadding()) {
             PullToRefresh(
                 enabled = signedIn,
                 refreshing = refreshing,
                 onRefresh = { refresh() },
-                modifier = Modifier.weight(1f).navigationBarsPadding(),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 if (current != null) {
                     when (tab) {
-                        TripTab.ITINERARY -> ItineraryTab(
-                            current, onAddActivity, onEditActivity,
-                            onExplore = if (signedIn) onExplore else null,
-                            // The place text lives on the server: guests have no account to ask it with.
-                            onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
+                        TripTab.GROUP -> GroupTab(
+                            trip = current,
+                            signedIn = signedIn,
+                            hasNeeds = actionRounds.isNotEmpty(),
+                            needs = {
+                                if (onOpenVoteList != null) {
+                                    VoteBanner(
+                                        round = actionRounds.firstOrNull(),
+                                        roundCount = tripRounds.size,
+                                        moreActions = (actionRounds.size - 1).coerceAtLeast(0),
+                                        destination = current.destination,
+                                        isOwner = isOwner,
+                                        myUserId = session.user?.id,
+                                        onOpen = onOpenVoteList,
+                                    )
+                                }
+                            },
+                            onOpenMembers = onMembers,
+                            refreshKey = refreshCount,
                         )
+                        TripTab.ITINERARY -> ProvideComments(current.id, CommentTarget.ITINERARY_ITEM, refreshCount) {
+                            ItineraryTab(
+                                current, onAddActivity, onEditActivity,
+                                onExplore = if (signedIn) onExplore else null,
+                                // The place text lives on the server: guests have no account to ask it with.
+                                onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
+                            )
+                        }
                         TripTab.PACKING -> PackingTab(current)
-                        TripTab.EXPENSES -> ExpensesTab(current, refreshKey = refreshCount)
+                        TripTab.EXPENSES -> ProvideComments(current.id, CommentTarget.EXPENSE, refreshCount) {
+                            ExpensesTab(current, refreshKey = refreshCount)
+                        }
                     }
                 }
             }
+            if (tab == TripTab.GROUP && signedIn && isOwner && !expanded) {
+                IconFab(
+                    Symbols.add,
+                    label = stringResource(Res.string.group_fab_description),
+                    onClick = { actionSheetOpen = true },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                )
+            }
+            }
         }
+    }
+
+    if (actionSheetOpen) {
+        GroupActionSheet(
+            onInvite = { actionSheetOpen = false; inviteSheetOpen = true },
+            onDismiss = { actionSheetOpen = false },
+        )
+    }
+    if (inviteSheetOpen && current != null) {
+        InviteMembersSheet(tripId = tripId, tripTitle = current.title, onDismiss = { inviteSheetOpen = false })
     }
 
     if (expanded && current != null) {

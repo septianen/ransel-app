@@ -17,6 +17,7 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.CreateInviteRequest
 import app.ransel.shared.dto.InviteDto
 import app.ransel.shared.dto.InvitePreviewDto
+import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -97,6 +98,16 @@ data class JoinTripState(
     /** Previewing and joining need an account. */
     val signedIn: Boolean = false,
     val joining: Boolean = false,
+    /** Set after joining a trip that has people added by name: "Kamu yang mana?". */
+    val claimStep: ClaimStep? = null,
+)
+
+/** [candidates] are the members without an account; [failed] after a claim that did not go through. */
+data class ClaimStep(
+    val tripId: String,
+    val candidates: List<TripMemberDto>,
+    val claiming: Boolean = false,
+    val failed: Boolean = false,
 )
 
 sealed interface JoinTripEvent {
@@ -152,13 +163,38 @@ class JoinTripViewModel(
             when (val result = api.acceptInvite(code)) {
                 is ApiResult.Success -> {
                     analytics.event(AnalyticsEvent.MemberJoined)
-                    finish(result.value.id)
+                    askWhichOne(result.value.id)
                 }
                 is ApiResult.Failure ->
                     if (result.error.code == ErrorCode.ALREADY_MEMBER) finish(preview.tripId)
                     else _state.update { it.copy(joining = false, failure = result.error) }
             }
         }
+    }
+
+    /** A trip with people added by name: let the new member say which of them they are before opening the trip. */
+    private suspend fun askWhichOne(tripId: String) {
+        val guests = (api.members(tripId) as? ApiResult.Success)?.value.orEmpty().filter { it.isGuest }
+        if (guests.isEmpty()) finish(tripId)
+        else _state.update { it.copy(joining = false, claimStep = ClaimStep(tripId, guests)) }
+    }
+
+    fun claim(member: TripMemberDto) {
+        val step = _state.value.claimStep ?: return
+        if (step.claiming) return
+        _state.update { it.copy(claimStep = step.copy(claiming = true, failed = false)) }
+        viewModelScope.launch {
+            when (api.claimMember(step.tripId, member.memberId)) {
+                is ApiResult.Success -> finish(step.tripId)
+                is ApiResult.Failure -> _state.update { it.copy(claimStep = step.copy(claiming = false, failed = true)) }
+            }
+        }
+    }
+
+    fun skipClaim() {
+        val step = _state.value.claimStep ?: return
+        _state.update { it.copy(claimStep = step.copy(claiming = true)) }
+        viewModelScope.launch { finish(step.tripId) }
     }
 
     /** Mobile keeps trips in a local DB: pull once so the trip is there when its screen opens. */

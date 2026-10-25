@@ -3,6 +3,7 @@ package app.ransel.data.sync
 import androidx.room3.withWriteTransaction
 import app.ransel.data.auth.SessionHooks
 import app.ransel.data.local.RanselDatabase
+import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.LOCAL_USER_ID
 
 /**
@@ -18,8 +19,11 @@ class RoomSessionHooks(
         db.withWriteTransaction {
             // Only guest data is new to the account; signing in again as the same user must not resend all.
             if (dao.guestRowCount(LOCAL_USER_ID) == 0) return@withWriteTransaction
+            // The guest's member in each trip becomes the account's, so who paid and who shares stay on the same person.
+            dao.guestTripIds(LOCAL_USER_ID).forEach { tripId ->
+                dao.reownExpenseMember(tripId, memberIdFor(tripId, LOCAL_USER_ID), memberIdFor(tripId, userId))
+            }
             dao.reownTrips(LOCAL_USER_ID, userId)
-            dao.reownExpenses(LOCAL_USER_ID, userId)
             dao.markAllTripsPending()
             dao.markAllItemsPending()
             dao.markAllPackingPending()

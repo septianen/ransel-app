@@ -15,16 +15,16 @@ import kotlin.time.Instant
 class MultiPayerStateTest {
     private val joined = Instant.parse("2026-10-01T00:00:00Z")
     private val members = listOf(
-        TripMemberDto("t", "me", "Septian", null, Role.OWNER, joined),
-        TripMemberDto("t", "d", "Dinda", null, Role.EDITOR, joined),
-        TripMemberDto("t", "r", "Raka", null, Role.EDITOR, joined),
+        TripMemberDto("t", "me", "u-me", "Septian", null, Role.OWNER, joined),
+        TripMemberDto("t", "d", "u-d", "Dinda", null, Role.EDITOR, joined),
+        TripMemberDto("t", "r", "u-r", "Raka", null, Role.EDITOR, joined),
     )
 
-    private fun state(existing: ExpenseDto? = null) = SplitState(members, myUserId = "me", existing = existing, currency = "IDR")
+    private fun state(existing: ExpenseDto? = null) = SplitState(members, myMemberId = "me", existing = existing, currency = "IDR")
 
     private fun expense(payers: List<ExpensePayerDto>, splits: List<ExpenseSplitDto> = emptyList(), amount: Long = 300_000) = ExpenseDto(
         id = "e", tripId = "t", amountMinor = amount, currency = "IDR", spentAt = joined,
-        paidByUserId = payers.first().userId, payers = payers, splits = splits, createdAt = joined, updatedAt = joined,
+        paidByMemberId = payers.first().memberId, payers = payers, splits = splits, createdAt = joined, updatedAt = joined,
     )
 
     @Test
@@ -52,7 +52,7 @@ class MultiPayerStateTest {
         s.togglePayer("d")
         s.togglePayer("r")
         val payers = s.toPayers(100_000, "IDR")
-        assertEquals(listOf("me", "d", "r"), payers.map { it.userId })
+        assertEquals(listOf("me", "d", "r"), payers.map { it.memberId })
         assertEquals(100_000L, payers.sumOf { it.amountMinor })
         assertEquals(33_334L, payers.first().amountMinor)
     }
@@ -69,7 +69,7 @@ class MultiPayerStateTest {
         s.payerTexts["d"] = "100000"
         assertEquals(0L, s.payerDifference(300_000, "IDR"))
         assertTrue(s.isValid(300_000, "IDR"))
-        assertEquals(mapOf("me" to 200_000L, "d" to 100_000L), s.toPayers(300_000, "IDR").associate { it.userId to it.amountMinor })
+        assertEquals(mapOf("me" to 200_000L, "d" to 100_000L), s.toPayers(300_000, "IDR").associate { it.memberId to it.amountMinor })
     }
 
     @Test
@@ -99,7 +99,7 @@ class MultiPayerStateTest {
         val s = state()
         s.togglePayer("d")
         s.toggle("r") // r no longer takes part: shares go to me and d
-        val shares = s.toSplits(100_001, "IDR").associate { it.userId to it.shareMinor }
+        val shares = s.toSplits(100_001, "IDR").associate { it.memberId to it.shareMinor }
         assertEquals(100_001L, shares.values.sum())
         assertEquals(50_001L, shares["me"])
     }

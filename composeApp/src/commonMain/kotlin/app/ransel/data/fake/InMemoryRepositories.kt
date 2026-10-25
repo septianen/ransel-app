@@ -17,6 +17,7 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.LOCAL_USER_ID
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
@@ -202,7 +203,7 @@ class InMemoryExpenseRepository(private val store: InMemoryStore) : ExpenseRepos
                 id = input.id, tripId = tripId, amountMinor = input.amountMinor, currency = input.currency,
                 fxRateToBase = input.fxRateToBase, category = input.category, paymentMethod = input.paymentMethod,
                 note = input.note, spentAt = input.spentAt,
-                paidByUserId = input.payers.firstOrNull()?.userId ?: input.paidByUserId ?: LOCAL_USER_ID,
+                paidByMemberId = input.payers.firstOrNull()?.memberId ?: input.paidByMemberId ?: memberIdFor(tripId, LOCAL_USER_ID),
                 payers = input.payers, splits = input.splits, createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
             )
             if (existing == null) list + row else list.map { if (it.id == input.id) row else it }

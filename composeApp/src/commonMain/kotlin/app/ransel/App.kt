@@ -649,6 +649,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             onBack = { navController.popBackStack() },
             onOpenTrip = { navController.navigate(TripRoute(it)) },
             onOpenRound = { tripId, roundId, showResult -> navController.navigate(VoteRoute(tripId, roundId, showResult)) },
+            onOpenMembers = { tripId, guestId, guestName, claimer -> navController.navigate(MembersRoute(tripId, guestId, guestName, claimer)) },
             onOpenSettings = { navController.navigate(NotificationSettingsRoute) },
         )
     }
@@ -721,6 +722,9 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
         val route = entry.toRoute<MembersRoute>()
         MembersScreen(
             tripId = route.tripId,
+            claimedGuestId = route.claimedGuestId,
+            claimedGuestName = route.claimedGuestName,
+            claimerName = route.claimerName,
             onBack = { navController.popBackStack() },
             // The trip is no longer ours: back to the list, skipping the trip screen.
             onLeft = { navController.popBackStack<TripRoute>(inclusive = true) },

@@ -306,7 +306,7 @@ class NamedMemberRoutesTest {
         val names = get("/trips/${trip.id}/members").data().jsonArray.map { it.jsonObject.str("displayName") }
         assertEquals(false, names.contains("Rina"))
         val inbox = get("/notifications").data().jsonObject.getValue("items").jsonArray.map { it.jsonObject }
-        assertEquals(true, inbox.any { it.str("type") == "MEMBER_CLAIMED" && it.getValue("params").jsonObject.str("guestName") == "Rina" })
+        assertEquals(true, inbox.any { it.str("type") == "MEMBER_CLAIMED" && it.getValue("params").jsonObject.str("guestName") == "Rina" && it.getValue("params").jsonObject.str("guestMemberId") == rina })
 
         // only the owner undoes it
         use(trip.guest)

@@ -1,5 +1,6 @@
 package app.ransel.feature.expenses
 
+import app.ransel.shared.domain.memberIdFor
 import app.ransel.data.analytics.Analytics
 import app.ransel.data.analytics.AnalyticsEvent
 import app.ransel.data.analytics.NoAnalytics
@@ -69,7 +70,8 @@ class ExpensesViewModel(
     val members: StateFlow<List<TripMemberDto>> = _members.asStateFlow()
 
     /** More than one member: the tab shows paid-by, split, the position card and the balances. */
-    val myUserId: String? get() = session.user?.id
+    /** My member in this trip (the id the apps compute offline); null for guests. */
+    val myMemberId: String? get() = session.user?.id?.let { memberIdFor(trip.id, it) }
 
     private val _balances = MutableStateFlow(BalancesUiState())
     val balances: StateFlow<BalancesUiState> = _balances.asStateFlow()
@@ -111,8 +113,8 @@ class ExpensesViewModel(
         viewModelScope.launch {
             val request = CreateSettlementRequest(
                 id = newId(),
-                fromUserId = transfer.fromUserId,
-                toUserId = transfer.toUserId,
+                fromMemberId = transfer.fromMemberId,
+                toMemberId = transfer.toMemberId,
                 amountMinor = transfer.amountMinor,
             )
             when (val result = api.createSettlement(trip.id, request)) {

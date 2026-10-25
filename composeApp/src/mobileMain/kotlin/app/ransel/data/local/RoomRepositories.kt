@@ -18,6 +18,7 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.LOCAL_USER_ID
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
@@ -207,7 +208,7 @@ class RoomExpenseRepository(
                 paymentMethod = input.paymentMethod.name, note = input.note?.trim()?.ifEmpty { null },
                 spentAt = input.spentAt.toMillis(),
                 // with several payers the first one is "who paid"
-                paidByUserId = input.payers.firstOrNull()?.userId ?: input.paidByUserId ?: currentUserId(),
+                paidByMemberId = input.payers.firstOrNull()?.memberId ?: input.paidByMemberId ?: memberIdFor(tripId, currentUserId()),
                 splitsJson = input.splits.toSplitsJson(), payersJson = input.payers.toPayersJson(),
                 createdAt = created, updatedAt = stamp, deletedAt = null,
             ),

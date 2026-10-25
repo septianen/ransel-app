@@ -149,7 +149,7 @@ object MemberService {
                 it[MemberClaims.moved] = moved
                 it[claimedAt] = now
             }
-            Notify.emit { memberClaimed(tripId, userId, guest[TripMembers.displayName].orEmpty()) }
+            Notify.emit { memberClaimed(tripId, userId, guestMemberId, guest[TripMembers.displayName].orEmpty()) }
         }
     }
 

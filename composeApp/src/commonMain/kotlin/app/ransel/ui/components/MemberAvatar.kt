@@ -1,6 +1,7 @@
 package app.ransel.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -16,29 +17,33 @@ import androidx.compose.ui.unit.dp
 import app.ransel.ui.theme.IrisTheme
 
 /**
- * Initial on a colored circle. The color is stable per person (hash of [userId]); the owner is always the brand
- * green like in the design. Decorative: the name is always next to it.
+ * Initial on a colored circle. The color is stable per person (hash of [key], e.g. the member id); the owner is always
+ * the brand green like in the design. A member without an account ([isGuest]) is grey and white. Decorative: the name
+ * is always next to it.
  */
 @Composable
 fun MemberAvatar(
     name: String,
-    userId: String,
+    key: String,
     modifier: Modifier = Modifier,
     isOwner: Boolean = false,
+    isGuest: Boolean = false,
     size: Dp = 40.dp,
 ) {
     val accents = IrisTheme.accents
     val palette = listOf(accents.purple, accents.brown, accents.magenta, accents.teal, accents.blue, accents.orange)
-    val color = if (isOwner) accents.green else palette[(userId.hashCode() and Int.MAX_VALUE) % palette.size]
+    val color = if (isOwner) accents.green else palette[(key.hashCode() and Int.MAX_VALUE) % palette.size]
+    val background = if (isGuest) MaterialTheme.colorScheme.surfaceVariant else color
     Box(
-        modifier.size(size).clip(CircleShape).background(color),
+        modifier.size(size).clip(CircleShape).background(background)
+            .then(if (isGuest) Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape) else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             name.trim().take(1).uppercase(),
             style = (if (size >= 40.dp) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelMedium)
                 .copy(fontWeight = FontWeight.ExtraBold),
-            color = accents.onAccent,
+            color = if (isGuest) MaterialTheme.colorScheme.onSurfaceVariant else accents.onAccent,
         )
     }
 }

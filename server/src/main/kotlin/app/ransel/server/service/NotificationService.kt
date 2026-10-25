@@ -117,14 +117,14 @@ class NotificationService(private val config: AppConfig, private val push: PushS
     }
 
     /** Someone took over a member added by name: tell the OWNER (unless the OWNER did it themselves). */
-    fun memberClaimed(tripId: UUID, claimer: UUID, guestName: String) {
+    fun memberClaimed(tripId: UUID, claimer: UUID, guestMemberId: UUID, guestName: String) {
         val title = tripTitle(tripId)
         val name = displayName(claimer)
         val owners = TripMembers.selectAll()
             .where { (TripMembers.tripId eq tripId) and TripMembers.active() and (TripMembers.role eq Role.OWNER) }
             .mapNotNull { it[TripMembers.userId] }.filter { it != claimer }
         notify(owners, NotificationType.MEMBER_CLAIMED, tripId, "claimed:$tripId:$claimer:${UUID.randomUUID()}") {
-            mapOf("tripTitle" to title, "actorName" to name, "guestName" to guestName)
+            mapOf("tripTitle" to title, "actorName" to name, "guestName" to guestName, "guestMemberId" to guestMemberId.toString())
         }
     }
 

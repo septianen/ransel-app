@@ -120,7 +120,7 @@ class RanselApiTest {
             if (request.method == HttpMethod.Patch) patchBody = request.body.toByteArray().decodeToString()
             when (request.method) {
                 HttpMethod.Get -> respond(
-                    """{"data":[{"tripId":"t1","userId":"u1","displayName":"Septian","email":"s@x.id","role":"OWNER","joinedAt":"2026-10-13T05:30:00Z"}]}""",
+                    """{"data":[{"tripId":"t1","memberId":"m1","userId":"u1","displayName":"Septian","email":"s@x.id","role":"OWNER","joinedAt":"2026-10-13T05:30:00Z"}]}""",
                     HttpStatusCode.OK, json,
                 )
                 else -> respond("", HttpStatusCode.NoContent)
