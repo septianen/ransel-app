@@ -173,12 +173,13 @@ fun apiTest(
     ai: app.ransel.server.ai.AiServices? = null,
     fx: app.ransel.server.ai.FxRates? = null,
     push: app.ransel.server.push.PushSender? = null,
+    linkFetcher: app.ransel.server.net.LinkFetcher? = null,
     block: suspend Api.() -> Unit,
 ) {
     TestDb.reset()
     TestEmails.sent.clear()
     testApplication {
-        application { module(config, TestEmails, ai, fx, push) }
+        application { module(config, TestEmails, ai, fx, push, linkFetcher) }
         val client = createClient { install(ContentNegotiation) { json(TestJson) } }
         runBlocking {
             val api = Api(client)

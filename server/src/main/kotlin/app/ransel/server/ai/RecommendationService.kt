@@ -1,5 +1,12 @@
 package app.ransel.server.ai
 
+import app.ransel.server.service.PollService
+import app.ransel.shared.dto.PollSearchRequest
+import app.ransel.shared.dto.PollSearchResponse
+import app.ransel.shared.dto.PollSearchResult
+import app.ransel.shared.model.PollKind
+import app.ransel.shared.model.TravelStyle
+import app.ransel.shared.model.PollPriceUnit
 import app.ransel.server.AppConfig
 import app.ransel.server.db.RecommendationCache
 import app.ransel.server.db.RecommendationFeedback
@@ -168,6 +175,76 @@ class RecommendationService(
             if (cached != null) "hit" else "miss", candidates.size, items.size, action, state.balance, state.dailyFreeLeft, roundId != null,
         )
         return RecommendationResponse(groups = group(items), credits = state, roundId = roundId?.toString())
+    }
+
+    /**
+     * Jelajah for a poll (PRD "Adding options"): the same pipeline as Explore, narrowed to lodging or food, with an
+     * optional area, budget and wishes. Nothing is cached or put in a round; the caller picks what becomes an option.
+     */
+    suspend fun searchForPoll(userId: UUID, pollId: UUID, body: PollSearchRequest, polls: PollService.SearchContext = PollService.searchContext(userId, pollId)): PollSearchResponse {
+        val area = body.area?.trim()?.takeIf { it.isNotEmpty() }
+        val needs = body.needs?.trim()?.takeIf { it.isNotEmpty() }
+        val lo = body.minMinor
+        val hi = body.maxMinor
+        requireValid(buildMap {
+            if ((area?.length ?: 0) > 200) put("area", "TOO_LONG")
+            if ((needs?.length ?: 0) > 200) put("needs", "TOO_LONG")
+            if (lo != null && lo < 0) put("minMinor", "NEGATIVE")
+            if (hi != null && hi < 0) put("maxMinor", "NEGATIVE")
+            if (lo != null && hi != null && lo > hi) put("minMinor", "ABOVE_MAX")
+        })
+        try {
+            credits.requireAffordable(userId, CreditAction.SEARCH)
+        } catch (e: ApiException) {
+            if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
+            throw e
+        }
+        val stay = polls.kind == PollKind.STAY
+        val unit = if (stay) PollPriceUnit.NIGHT else PollPriceUnit.PERSON
+        val query = LlmQuery(
+            destination = area ?: polls.destination.trim(),
+            priceGuide = null,
+            days = polls.startDate.daysUntil(polls.endDate) + 1,
+            startDate = polls.startDate.toString(),
+            priceLevel = PriceLevel.MEDIUM,
+            interests = emptyList(),
+            extraInterests = emptyList(),
+            style = TravelStyle.entries.first(),
+            notes = needs,
+            liked = emptyList(),
+            skipped = emptyList(),
+            count = CANDIDATES_ASKED,
+            onlyCategory = if (stay) Category.LODGING else Category.FOOD,
+            budget = budgetText(body.minMinor, body.maxMinor, polls.currency, if (stay) "night" else "person"),
+        )
+        metrics.searches.incrementAndGet()
+        val found = generate(query).filter { it.placeId !in polls.placeIds }
+        val wantedMin = body.minMinor?.let { (it * 0.7).toLong() }
+        val wantedMax = body.maxMinor?.let { (it * 1.3).toLong() }
+        val priced = found.map { it to it.costUsd?.let { usd -> fx.fromUsd(usd, polls.currency) } }
+        // The estimate is rough: keep what is within 30% of the range, and show everything when nothing fits rather than nothing.
+        val fitting = priced.filter { (_, minor) -> minor == null || ((wantedMin == null || minor >= wantedMin) && (wantedMax == null || minor <= wantedMax)) }
+        val results = (fitting.ifEmpty { priced }).take(MAX_CARDS).map { (place, minor) ->
+            PollSearchResult(
+                placeId = place.placeId, name = place.name, reason = place.reason, address = place.address,
+                priceMinor = minor, priceUnit = if (minor != null) unit else null,
+            )
+        }
+        val state = try {
+            credits.charge(userId, CreditAction.SEARCH, pollId.toString())
+        } catch (e: ApiException) {
+            if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
+            throw e
+        }
+        log.info("ai.pollsearch kind={} found={} returned={}", polls.kind, found.size, results.size)
+        return PollSearchResponse(results, state)
+    }
+
+    private fun budgetText(min: Long?, max: Long?, currency: String, per: String): String? = when {
+        min != null && max != null -> "about $min to $max minor units of $currency per $per (amounts in the smallest unit of the currency)"
+        max != null -> "up to about $max minor units of $currency per $per (amounts in the smallest unit of the currency)"
+        min != null -> "from about $min minor units of $currency per $per (amounts in the smallest unit of the currency)"
+        else -> null
     }
 
     fun saveFeedback(userId: UUID, body: FeedbackRequest) {

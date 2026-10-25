@@ -30,6 +30,10 @@ data class LlmQuery(
     val liked: List<String>,
     val skipped: List<String>,
     val count: Int,
+    /** Poll search (Jelajah): every suggestion is of this category, e.g. LODGING for a stay poll. */
+    val onlyCategory: Category? = null,
+    /** Poll search: a budget in words ("up to about 50 USD per night"); the model treats it as a wish, not a filter. */
+    val budget: String? = null,
 )
 
 /** One suggestion from the LLM. Nothing here is trusted until a place with that name is found. */

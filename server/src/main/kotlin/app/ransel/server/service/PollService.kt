@@ -202,6 +202,57 @@ object PollService {
         }
     }
 
+    /** The ticked Jelajah results, all or none: the same checks as [addOption] for each, and the limit for the total. */
+    fun addOptions(userId: UUID, pollId: UUID, options: List<PollOptionInput>): PollDto {
+        val row0 = loadRow(pollId)
+        val tripId = row0[Polls.tripId]
+        requireRole(tripId, userId, Role.EDITOR)
+        val kind = row0[Polls.kind]
+        if (options.isEmpty()) throw validationFailed(mapOf("options" to "REQUIRED"))
+        if (options.size > MAX_POLL_OPTIONS) throw validationFailed(mapOf("options" to "TOO_MANY"))
+        requireValid(options.withIndex().flatMap { (i, o) -> optionProblems(kind, o).map { (k, v) -> "options[$i].$k" to v } }.toMap())
+        val ids = options.map { uuid(it.id, "id") }
+        if (ids.toSet().size != ids.size) throw validationFailed(mapOf("options" to "DUPLICATE_ID"))
+        return transaction {
+            settleDue(pollId = pollId)
+            val row = loadRow(pollId)
+            if (row[Polls.status] != PollStatus.OPEN) throw closed()
+            val existing = PollOptions.selectAll().where { (PollOptions.pollId eq pollId) and PollOptions.deletedAt.isNull() }.count().toInt()
+            if (existing + options.size > MAX_POLL_OPTIONS) throw validationFailed(mapOf("options" to "TOO_MANY"))
+            if (PollOptions.select(PollOptions.id).where { PollOptions.id inList ids }.any()) throw conflict("Option id already exists")
+            options.forEachIndexed { i, option -> insertOption(pollId, kind, option, existing + i) }
+            toDto(loadRow(pollId), callerMemberId(tripId, userId))
+        }
+    }
+
+    /** What Jelajah needs to know about a poll, after the checks: who may search, which kinds, and that it is still open. */
+    class SearchContext(
+        val tripId: UUID,
+        val kind: PollKind,
+        val destination: String,
+        val startDate: kotlinx.datetime.LocalDate,
+        val endDate: kotlinx.datetime.LocalDate,
+        val currency: String,
+        val placeIds: Set<String>,
+    )
+
+    fun searchContext(userId: UUID, pollId: UUID): SearchContext {
+        val poll = loadRow(pollId)
+        val tripId = poll[Polls.tripId]
+        requireRole(tripId, userId, Role.EDITOR)
+        val kind = poll[Polls.kind]
+        if (kind != PollKind.STAY && kind != PollKind.FOOD) throw validationFailed(mapOf("kind" to "SEARCH_NOT_SUPPORTED"))
+        return transaction {
+            settleDue(pollId = pollId)
+            if (loadRow(pollId)[Polls.status] != PollStatus.OPEN) throw closed()
+            val trip = Trips.selectAll().where { Trips.id eq tripId }.single()
+            SearchContext(
+                tripId, kind, trip[Trips.destination], trip[Trips.startDate].toKotlinLocalDate(), trip[Trips.endDate].toKotlinLocalDate(),
+                trip[Trips.baseCurrency].trim(), activeOptions(pollId).mapNotNull { it[PollOptions.placeId] }.toSet(),
+            )
+        }
+    }
+
     /** Editing what people voted on clears the votes on that option and asks those voters to choose again. */
     fun updateOption(userId: UUID, pollId: UUID, optionId: UUID, option: PollOptionInput): PollDto {
         val row0 = loadRow(pollId)

@@ -3,7 +3,12 @@ package app.ransel.server.routes
 import app.ransel.server.service.PollService
 import app.ransel.server.service.userId
 import app.ransel.shared.api.ApiRoutes
+import app.ransel.server.service.requireVerifiedEmail
+import app.ransel.shared.dto.BulkPollOptionsRequest
 import app.ransel.shared.dto.CreatePollRequest
+import app.ransel.shared.dto.PollSearchRequest
+import app.ransel.shared.dto.PollSearchResponse
+import java.util.UUID
 import app.ransel.shared.dto.DecidePollRequest
 import app.ransel.shared.dto.PollOptionInput
 import app.ransel.shared.dto.ReopenPollRequest
@@ -19,7 +24,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-fun Route.pollRoutes() {
+fun Route.pollRoutes(search: suspend (UUID, UUID, PollSearchRequest) -> PollSearchResponse) {
     route("${ApiRoutes.TRIPS}/{id}/polls") {
         get { call.respondData(HttpStatusCode.OK, PollService.list(call.userId(), call.tripId())) }
         post {
@@ -51,6 +56,15 @@ fun Route.pollRoutes() {
                 val option = call.pathUuid("optionId", "Option")
                 call.respondData(HttpStatusCode.OK, PollService.deleteOption(call.userId(), call.pollUuid(), option))
             }
+        }
+        post("/options/bulk") {
+            val body = call.receive<BulkPollOptionsRequest>()
+            call.respondData(HttpStatusCode.Created, PollService.addOptions(call.userId(), call.pollUuid(), body.options))
+        }
+        post("/search") {
+            val body = call.receive<PollSearchRequest>()
+            requireVerifiedEmail(call.userId())
+            call.respondData(HttpStatusCode.OK, search(call.userId(), call.pollUuid(), body))
         }
         put("/votes") {
             val body = call.receive<VotePollRequest>()

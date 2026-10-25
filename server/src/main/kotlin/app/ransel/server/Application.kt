@@ -208,7 +208,7 @@ fun Application.module(
                 syncRoutes(SyncService())
                 memberRoutes(invites)
                 commentRoutes()
-                pollRoutes()
+                pollRoutes { user, poll, body -> recommendations.searchForPoll(user, poll, body) }
                 linkPreviewRoutes(linkPreviews)
                 balanceRoutes()
                 packingTemplateRoutes()
