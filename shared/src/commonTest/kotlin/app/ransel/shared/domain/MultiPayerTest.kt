@@ -11,14 +11,14 @@ class MultiPayerTest {
             memberIds = listOf("a", "b", "c"),
             expenses = listOf(
                 BalanceExpense(
-                    paidByUserId = "a",
+                    paidByMemberId = "a",
                     amountBaseMinor = 300_000,
                     payersBaseMinor = mapOf("a" to 200_000L, "b" to 100_000L),
                     sharesBaseMinor = mapOf("a" to 100_000L, "b" to 100_000L, "c" to 100_000L),
                 ),
             ),
             settlements = emptyList(),
-        ).associateBy { it.userId }
+        ).associateBy { it.memberId }
 
         assertEquals(100_000L, balances.getValue("a").balanceMinor)
         assertEquals(0L, balances.getValue("b").balanceMinor)
@@ -32,7 +32,7 @@ class MultiPayerTest {
             memberIds = listOf("a", "b"),
             expenses = listOf(BalanceExpense("a", 100_000, sharesBaseMinor = mapOf("a" to 50_000L, "b" to 50_000L))),
             settlements = emptyList(),
-        ).associateBy { it.userId }
+        ).associateBy { it.memberId }
         assertEquals(50_000L, balances.getValue("a").balanceMinor)
         assertEquals(-50_000L, balances.getValue("b").balanceMinor)
     }

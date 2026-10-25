@@ -10,14 +10,35 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TripMemberDto(
     val tripId: String,
-    val userId: String,
+    /**
+     * trip_members.id: what expenses, splits, payers and settlements point at. For an account it is
+     * `memberIdFor(tripId, userId)`; a member without an account has a random UUID.
+     */
+    val memberId: String,
+    /** Null = a member without an account ("Tanpa akun"), added by name by the OWNER. */
+    val userId: String? = null,
     val displayName: String,
     val email: String? = null,
     val role: Role,
     val joinedAt: Timestamp,
+    /** Digits with country code (domain.normalizePhone). Only the OWNER sees it, and only on members without an account. */
+    val phone: String? = null,
+    /** Set on a member without an account that someone has claimed (such a member is hidden from lists). */
+    val claimedAt: Timestamp? = null,
+) {
+    val isGuest: Boolean get() = userId == null
+}
+
+/** POST /trips/{id}/members (OWNER): add a person without an account. 201 TripMemberDto with role VIEWER. */
+@Serializable
+data class AddMemberRequest(
+    val id: String,
+    val displayName: String,
+    /** Optional WhatsApp number in any common format; the server stores domain.normalizePhone(it). */
+    val phone: String? = null,
 )
 
-/** PATCH /trips/{id}/members/{userId}. OWNER cannot be set here; use transfer-ownership. */
+/** PATCH /trips/{id}/members/{memberId}. OWNER cannot be set here; use transfer-ownership. */
 @Serializable
 data class UpdateMemberRoleRequest(
     val role: Role,
@@ -54,7 +75,11 @@ data class InviteDto(
     val createdAt: Timestamp,
 )
 
-/** GET /invites/{code} — for the "Gabung trip" screen. Failure codes: INVITE_EXPIRED, INVITE_REVOKED, INVITE_FULL. */
+/**
+ * GET /invites/{code} — public (no bearer, rate limited per IP) so the link opens in any browser; for the "Gabung trip"
+ * screen. Failure codes: INVITE_EXPIRED, INVITE_REVOKED, INVITE_FULL. Carries no amount per person, no phone numbers
+ * and no payment info.
+ */
 @Serializable
 data class InvitePreviewDto(
     val code: String,
@@ -66,6 +91,15 @@ data class InvitePreviewDto(
     val ownerName: String,
     val memberCount: Int,
     val role: Role,
+    /** One entry per member, e.g. "RP", for the avatar row. */
+    val memberInitials: List<String> = emptyList(),
+    /** Names of the members without an account, for "Kamu yang mana?". */
+    val guestNames: List<String> = emptyList(),
+    val activityCount: Int = 0,
+    /** Currency of [sharedSpendMinor]; null when the trip has no expenses yet. */
+    val baseCurrency: String? = null,
+    /** Total of the trip's shared expenses (all members together), in [baseCurrency] minor units. */
+    val sharedSpendMinor: Long = 0,
 )
 
 // ── Balances & settlements ──────────────────────────────────────────────────
@@ -81,7 +115,7 @@ data class BalancesDto(
 
 @Serializable
 data class MemberBalanceDto(
-    val userId: String,
+    val memberId: String,
     val displayName: String,
     val paidMinor: Long,
     val shareMinor: Long,
@@ -91,8 +125,8 @@ data class MemberBalanceDto(
 
 @Serializable
 data class TransferDto(
-    val fromUserId: String,
-    val toUserId: String,
+    val fromMemberId: String,
+    val toMemberId: String,
     val amountMinor: Long,
 )
 
@@ -100,8 +134,8 @@ data class TransferDto(
 @Serializable
 data class CreateSettlementRequest(
     val id: String,
-    val fromUserId: String,
-    val toUserId: String,
+    val fromMemberId: String,
+    val toMemberId: String,
     val amountMinor: Long,
     val settledAt: Timestamp? = null,
 )
@@ -110,8 +144,8 @@ data class CreateSettlementRequest(
 data class SettlementDto(
     val id: String,
     val tripId: String,
-    val fromUserId: String,
-    val toUserId: String,
+    val fromMemberId: String,
+    val toMemberId: String,
     val amountMinor: Long,
     val settledAt: Timestamp,
     val createdAt: Timestamp,

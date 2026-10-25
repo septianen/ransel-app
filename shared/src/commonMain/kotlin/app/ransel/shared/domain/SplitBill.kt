@@ -34,20 +34,20 @@ fun convertPayers(payers: List<Pair<String, Long>>, amountMinor: Long, amountBas
 fun splitDifference(amountMinor: Long, shares: Collection<Long>): Long = amountMinor - shares.sum()
 
 data class BalanceExpense(
-    val paidByUserId: String,
+    val paidByMemberId: String,
     /** Already converted to the trip base currency. */
     val amountBaseMinor: Long,
-    /** userId → share in base currency. Empty = carried fully by the payer. */
+    /** memberId → share in base currency. Empty = carried fully by the payer. */
     val sharesBaseMinor: Map<String, Long>,
-    /** userId → what they paid, in base currency, when several people paid. Empty = [paidByUserId] paid all. */
+    /** memberId → what they paid, in base currency, when several people paid. Empty = [paidByMemberId] paid all. */
     val payersBaseMinor: Map<String, Long> = emptyMap(),
 )
 
-data class BalanceSettlement(val fromUserId: String, val toUserId: String, val amountMinor: Long)
+data class BalanceSettlement(val fromMemberId: String, val toMemberId: String, val amountMinor: Long)
 
-data class MemberBalance(val userId: String, val paidMinor: Long, val shareMinor: Long, val balanceMinor: Long)
+data class MemberBalance(val memberId: String, val paidMinor: Long, val shareMinor: Long, val balanceMinor: Long)
 
-data class Transfer(val fromUserId: String, val toUserId: String, val amountMinor: Long)
+data class Transfer(val fromMemberId: String, val toMemberId: String, val amountMinor: Long)
 
 /** balance = Σ paid − Σ share + Σ settlements paid − Σ settlements received. Sums to zero. */
 fun computeBalances(
@@ -59,14 +59,14 @@ fun computeBalances(
     val share = HashMap<String, Long>()
     val settled = HashMap<String, Long>()
     for (e in expenses) {
-        val payers = e.payersBaseMinor.ifEmpty { mapOf(e.paidByUserId to e.amountBaseMinor) }
+        val payers = e.payersBaseMinor.ifEmpty { mapOf(e.paidByMemberId to e.amountBaseMinor) }
         for ((user, p) in payers) paid[user] = (paid[user] ?: 0) + p
-        val shares = e.sharesBaseMinor.ifEmpty { mapOf(e.paidByUserId to e.amountBaseMinor) }
+        val shares = e.sharesBaseMinor.ifEmpty { mapOf(e.paidByMemberId to e.amountBaseMinor) }
         for ((user, s) in shares) share[user] = (share[user] ?: 0) + s
     }
     for (s in settlements) {
-        settled[s.fromUserId] = (settled[s.fromUserId] ?: 0) + s.amountMinor
-        settled[s.toUserId] = (settled[s.toUserId] ?: 0) - s.amountMinor
+        settled[s.fromMemberId] = (settled[s.fromMemberId] ?: 0) + s.amountMinor
+        settled[s.toMemberId] = (settled[s.toMemberId] ?: 0) - s.amountMinor
     }
     val ids = (memberIds + paid.keys + share.keys + settled.keys).distinct()
     return ids.map { id ->
@@ -78,8 +78,8 @@ fun computeBalances(
 
 /** "Supaya lunas": greedy — largest debtor pays largest creditor until everything is zero. */
 fun fewestTransfers(balances: List<MemberBalance>): List<Transfer> {
-    val creditors = balances.filter { it.balanceMinor > 0 }.map { it.userId to it.balanceMinor }.toMutableList()
-    val debtors = balances.filter { it.balanceMinor < 0 }.map { it.userId to -it.balanceMinor }.toMutableList()
+    val creditors = balances.filter { it.balanceMinor > 0 }.map { it.memberId to it.balanceMinor }.toMutableList()
+    val debtors = balances.filter { it.balanceMinor < 0 }.map { it.memberId to -it.balanceMinor }.toMutableList()
     val result = mutableListOf<Transfer>()
     while (creditors.isNotEmpty() && debtors.isNotEmpty()) {
         creditors.sortByDescending { it.second }
@@ -87,7 +87,7 @@ fun fewestTransfers(balances: List<MemberBalance>): List<Transfer> {
         val (c, cAmt) = creditors[0]
         val (d, dAmt) = debtors[0]
         val amount = minOf(cAmt, dAmt)
-        result += Transfer(fromUserId = d, toUserId = c, amountMinor = amount)
+        result += Transfer(fromMemberId = d, toMemberId = c, amountMinor = amount)
         if (cAmt == amount) creditors.removeAt(0) else creditors[0] = c to cAmt - amount
         if (dAmt == amount) debtors.removeAt(0) else debtors[0] = d to dAmt - amount
     }
