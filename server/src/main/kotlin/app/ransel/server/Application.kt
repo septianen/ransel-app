@@ -30,6 +30,7 @@ import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
 import app.ransel.server.routes.commentRoutes
 import app.ransel.server.routes.invitePreviewRoutes
+import app.ransel.server.routes.linkPreviewRoutes
 import app.ransel.server.routes.memberRoutes
 import app.ransel.server.routes.pollRoutes
 import app.ransel.server.routes.meRoutes
@@ -51,7 +52,10 @@ import app.ransel.server.service.AdminService
 import app.ransel.server.service.AuthService
 import app.ransel.server.service.EmailVerificationService
 import app.ransel.server.service.CreditService
+import app.ransel.server.net.LinkFetcher
+import app.ransel.server.net.SafeLinkFetcher
 import app.ransel.server.service.InviteService
+import app.ransel.server.service.LinkPreviewService
 import app.ransel.server.service.PasswordResetService
 import app.ransel.server.service.TripEvents
 import app.ransel.server.service.SyncService
@@ -96,6 +100,8 @@ fun Application.module(
     fx: FxRates? = null,
     /** Null = FCM when it is configured, otherwise pushes are only logged. */
     push: PushSender? = null,
+    /** Null = the SSRF-safe fetcher; tests pass a fake so they need no network. */
+    linkFetcher: LinkFetcher? = null,
 ) {
     val pool = DatabaseFactory.connect(config)
     TemplateSeed.run()
@@ -109,6 +115,7 @@ fun Application.module(
     // Its own scope on a real dispatcher: it must not run on (and be sped up by) the host application's scheduler.
     val maintenance = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     monitor.subscribe(ApplicationStopped) { maintenance.cancel() }
+    val linkPreviews = LinkPreviewService(linkFetcher ?: SafeLinkFetcher())
 
     // Explore form: destination interests (cached per destination + month) and the price level from a trip budget.
     val fxHttp = if (fx == null && ai == null) HttpClient(OkHttp) else null
@@ -142,6 +149,7 @@ fun Application.module(
             runCatching { suggestions.purgeExpired() }
             runCatching { placeDetails.purgeExpired() }
             runCatching { Notify.service?.purge() }
+            runCatching { linkPreviews.purge() }
             recommendations.metrics.logSummary()
         }
     }
@@ -201,6 +209,7 @@ fun Application.module(
                 memberRoutes(invites)
                 commentRoutes()
                 pollRoutes()
+                linkPreviewRoutes(linkPreviews)
                 balanceRoutes()
                 packingTemplateRoutes()
                 recommendationRoutes(recommendations)

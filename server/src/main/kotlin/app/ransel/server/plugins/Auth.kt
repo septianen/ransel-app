@@ -24,6 +24,7 @@ const val JWT_AUTH = "jwt"
 val AuthRateLimit = RateLimitName("auth")
 val PhotoRateLimit = RateLimitName("photo")
 val InvitePreviewRateLimit = RateLimitName("invite-preview")
+val LinkPreviewRateLimit = RateLimitName("link-preview")
 val SuggestionsRateLimit = RateLimitName("suggestions")
 val RedeemRateLimit = RateLimitName("redeem")
 val AdminRateLimit = RateLimitName("admin")
@@ -71,6 +72,11 @@ fun Application.configureRateLimit(config: AppConfig) {
         // Per admin: Karung is a handful of people; this only stops a runaway script.
         register(AdminRateLimit) {
             rateLimiter(limit = 60, refillPeriod = 1.minutes)
+            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
+        }
+        // Each call makes the server fetch a page: per user, 30 a minute.
+        register(LinkPreviewRateLimit) {
+            rateLimiter(limit = 30, refillPeriod = 1.minutes)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
         }
         // The public invite preview needs no sign-in, so it is limited per address.

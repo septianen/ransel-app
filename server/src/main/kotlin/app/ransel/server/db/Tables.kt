@@ -156,6 +156,20 @@ object PollVotes : Table("poll_votes") {
     override val primaryKey = PrimaryKey(optionId, memberId)
 }
 
+object LinkPreviews : Table("link_previews") {
+    val urlHash = text("url_hash")
+    val url = text("url")
+    val finalUrl = text("final_url")
+    val title = text("title").nullable()
+    val imageUrl = text("image_url").nullable()
+    val siteName = text("site_name").nullable()
+    val address = text("address").nullable()
+    val ratingValue = double("rating_value").nullable()
+    val ratingCount = integer("rating_count").nullable()
+    val fetchedAt = timestamp("fetched_at")
+    override val primaryKey = PrimaryKey(urlHash)
+}
+
 object Comments : Table("comments") {
     val id = javaUUID("id")
     val tripId = javaUUID("trip_id")
