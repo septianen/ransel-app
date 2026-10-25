@@ -139,7 +139,12 @@ import app.ransel.feature.explore.ExplorePreferencesScreen
 import app.ransel.feature.explore.ExploreTripPickerScreen
 import app.ransel.feature.explore.SwipeScreen
 import app.ransel.data.explore.ExploreSessionStore
+import app.ransel.feature.polls.CreatePollScreen
+import app.ransel.feature.polls.PollScreen
+import app.ransel.navigation.CreatePollRoute
 import app.ransel.navigation.MembersRoute
+import app.ransel.navigation.PollRoute
+import app.ransel.shared.model.PollKind
 import app.ransel.feature.invite.JoinTripScreen
 import app.ransel.data.invite.InviteLinks
 import app.ransel.data.notification.NotificationTarget
@@ -650,6 +655,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             onOpenTrip = { navController.navigate(TripRoute(it)) },
             onOpenRound = { tripId, roundId, showResult -> navController.navigate(VoteRoute(tripId, roundId, showResult)) },
             onOpenMembers = { tripId, guestId, guestName, claimer -> navController.navigate(MembersRoute(tripId, guestId, guestName, claimer)) },
+            onOpenPoll = { tripId, pollId -> navController.navigate(PollRoute(tripId, pollId)) },
             onOpenSettings = { navController.navigate(NotificationSettingsRoute) },
         )
     }
@@ -705,6 +711,22 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
                 navController.navigate(PlaceDetailRoute(placeId, fromItinerary = true, name = name, currency = currency))
             },
             onOpenVoteList = { navController.navigate(VoteListRoute(route.tripId)) },
+            onCreatePoll = { kind -> navController.navigate(CreatePollRoute(route.tripId, kind.name)) },
+            onOpenPoll = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) },
+        )
+    }
+    page<PollRoute> { entry ->
+        val route = entry.toRoute<PollRoute>()
+        PollScreen(tripId = route.tripId, pollId = route.pollId, onBack = { navController.popBackStack() })
+    }
+    page<CreatePollRoute> { entry ->
+        val route = entry.toRoute<CreatePollRoute>()
+        CreatePollScreen(
+            tripId = route.tripId,
+            kind = PollKind.entries.firstOrNull { it.name == route.kind } ?: PollKind.CUSTOM,
+            onBack = { navController.popBackStack() },
+            // the new poll replaces the form, so back goes to the trip
+            onCreated = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) { popUpTo<CreatePollRoute> { inclusive = true } } },
         )
     }
     page<JoinTripRoute> { entry ->

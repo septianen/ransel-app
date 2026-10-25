@@ -83,7 +83,8 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | expense\_splits | expense\_id, member\_id (V15; was user\_id), share\_minor | V3 (4), V15 |
 | settlements | id, trip\_id, from\_member\_id, to\_member\_id (V15; were from/to user\_id), amount\_minor, settled\_at | V3 (4), V15 |
 | member\_claims | id, trip\_id, guest\_member\_id, claimed\_by\_member\_id, moved JSONB (ids of the rewritten rows, for undo), claimed\_at, undone\_at | V15 |
-| comments | id, trip\_id, target\_kind (ITINERARY\_ITEM/EXPENSE), target\_id, author\_member\_id, body (1–1,000), mentions JSONB, created\_at, edited\_at, deleted\_at | V15 |
+| polls, poll\_options, poll\_votes | polls: trip, kind (8), question, created\_by\_member\_id, closes\_at, multi\_choice, is\_anonymous, anonymity\_locked, apply\_winner, day\_date/start\_time (FOOD), status (OPEN/TIED/CLOSED/DECIDED), decided\_option\_id, tied\_at. Options: label, dates, place, url, price, min/max, `version`. Votes: (option, member, option\_version) | V16 |
+| comments | id, trip\_id, target\_kind (ITINERARY\_ITEM/EXPENSE/POLL\_OPTION), target\_id, author\_member\_id, body (1–1,000), mentions JSONB, created\_at, edited\_at, deleted\_at | V15 |
 | recommendation\_cache | query\_hash, destination, response JSONB, model, hit\_count, expires\_at | V4 (5) |
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
 | credit\_wallets, credit\_daily, credit\_ledger | wallet balance per user (created with the signup grant), free credits used per WIB day, append-only ledger (SPEND/SIGNUP\_GRANT/VOUCHER/TOPUP/...) | V8 (5) |
@@ -107,7 +108,9 @@ Notes:
 - `sort_order` is fractional so moving one item only changes one row (a value between its neighbours); an itinerary reorder also rewrites the times in the affected range.
 - The currency is stored per expense together with fx\_rate\_to\_base (the rate when the expense was recorded, so old totals stay fixed); conversion to `base_currency` happens when the summary is shown.
 - In Phase 1, `owner_id` holds a fixed local ID, replaced by the real user ID on sign-in.
-- **Members (V15, 25 Oct 2026).** People in a trip are `trip_members` rows with their own `id`, and a member does not need an account (the OWNER adds people by name; they are always VIEWER and have no inbox). Expenses, splits, payers and settlements point at `trip_members.id`. The id of an account's own row is `memberIdFor(tripId, userId)` (`shared/domain/MemberIds.kt`: the first 16 bytes of SHA-256 of `<tripId>:<userId>`, shaped like a UUID v5), so the apps write `paidByMemberId` offline without asking the server; guest data uses `memberIdFor(tripId, LOCAL_USER_ID)` and is rewritten at sign-in. V15 backfilled every id with the same function in SQL (`MemberIdMigrationTest` keeps the two equal). Removing, leaving or being claimed sets `removed_at`; the row stays so old expenses keep a name, and rejoining reuses the row. The TRD of 24 Oct said to fold this into V3; V1–V4 are live, so it is the new migration V15.
+- **Members (V15, 25 Oct 2026).** People in a trip are `trip_members` rows with their own `id`, and a member does not need an account (the OWNER adds people by name; they are always VIEWER and have no inbox). Expenses, splits, payers and settlements point at `trip_members.id`. The id of an account's own row is `memberIdFor(tripId, userId)` (`shared/domain/MemberIds.kt`: the first 16 bytes of SHA-256 of `<tripId>:<userId>`, shaped like a UUID v5), so the apps write `paidByMemberId` offline without asking the server; guest data uses `memberIdFor(tripId, LOCAL_USER_ID)` and is rewritten at sign-in. V15 backfilled every id with the same function in SQL (`MemberIdMigrationTest` keeps the two equal). **Polls (V16, 26 Oct 2026).** A poll is closed by the clock: whoever reads or votes first after `closes_at` turns OPEN into CLOSED (a winner can be confirmed) or TIED (the creator picks among the tied options; the minute job reopens a tie for 24 hours if nobody decided after 24 hours). Only the creator or the trip OWNER closes, confirms, reopens or deletes; a creator who leaves hands their polls to the owner. The winner action (`shared/domain/Polls.kt`) runs in the transaction that sets `decided_option_id`: DATE sets the trip dates (activities on removed days become unscheduled), DESTINATION the destination, PLACE adds an unscheduled place, FOOD an activity on the poll day and time. STAY, BUDGET, TRANSPORT and CUSTOM only record the result: the STAY estimate arrives with the group money step, and the budget range is not copied to the trip (Jelajah will read the decided BUDGET poll). A trip without dates is not supported yet, so a DATE poll replaces the dates the trip already has. Anonymous polls never return who chose what; the switch locks at the first vote (`anonymity_locked`, so taking the vote back does not unlock it). Members added by name cannot vote until the guest web page (step 8).
+
+Removing, leaving or being claimed sets `removed_at`; the row stays so old expenses keep a name, and rejoining reuses the row. The TRD of 24 Oct said to fold this into V3; V1–V4 are live, so it is the new migration V15.
 
 ## API
 
@@ -145,6 +148,12 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET, POST | /trips/{id}/comments | Comments of one item (`?targetKind=&targetId=`) / add one (any member with an account, any role) | 4 |
 | GET | /trips/{id}/comments/counts | Number of comments per target (`?targetKind=`), so lists can show a count without fetching the comments | 4 |
 | PATCH, DELETE | /comments/{id} | Edit / delete a comment (author only); a new @mention notifies that member | 4 |
+| GET, POST | /trips/{id}/polls | List polls (newest first) / create one (OWNER or EDITOR). Polls past `closes_at` are settled on the way | 4 |
+| GET, PATCH, DELETE | /polls/{id} | One poll / change question, closing time, choices, anonymous switch (creator or OWNER) / delete | 4 |
+| POST | /polls/{id}/options | Add an option (while OPEN) | 4 |
+| PATCH, DELETE | /polls/{id}/options/{optionId} | Edit (bumps `version` and clears the votes when label, dates, place, link or price change) / delete | 4 |
+| PUT | /polls/{id}/votes | Replace my votes; each vote carries the option version it saw (409 `VOTE_STALE`, 409 `POLL_CLOSED`) | 4 |
+| POST | /polls/{id}/close, /decide, /reopen | End voting now / confirm the winner and run its action (no option = dismiss) / reopen a closed or tied poll | 4 |
 | POST ★ | /trips/{id}/leave, /trips/{id}/transfer-ownership | Leave the trip / transfer ownership | 4 |
 | GET | /trips/{id}/balances | Balance per person + fewest transfers | 4 |
 | POST ★ | /trips/{id}/settlements | Mark as settled | 4 |

@@ -16,6 +16,9 @@ import kotlinx.serialization.Serializable
 /** Trip detail: header + Itinerary / Packing / Expenses tabs. [tab] is a `TripTab` name. */
 @Serializable data class TripRoute(val tripId: String, val tab: String = "ITINERARY")
 @Serializable data object CreateTripRoute
+@Serializable data class PollRoute(val tripId: String, val pollId: String)
+/** [kind] is a `PollKind` name. */
+@Serializable data class CreatePollRoute(val tripId: String, val kind: String)
 @Serializable data class EditTripRoute(val tripId: String)
 
 /** Add (`itemId == null`) or edit an activity. [dayDate] is an ISO date preselecting the day. */

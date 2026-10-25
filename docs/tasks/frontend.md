@@ -162,6 +162,10 @@ Design: Claude Design canvas "Karung" (code names in `docs/design/README.md` "Ad
 - [x] **F10.5 Comments.** `CommentsSheet` (mention chips insert `@Name`, `extractMentions` resolves the ids), `ProvideComments` and `CommentButton`, `COMMENT_MENTION` rows in the inbox. Online only. Owner decision 25 Oct: comments live in the Group tab only (polls, stage 2), not on itinerary, packing or expense rows, so nothing opens the sheet yet; the polls step wires `CommentButton` to each option.
 - Tests: `GroupFoundationTest` (countdown, comments, add member, send link, undo claim, claim step), `MemberIdJsonTest`, split tests on member ids. Deviations to review: the icon subset has no `chat_bubble`, `how_to_vote`, `upload_file`, `forum`, so comments use `edit_note`, polls `checklist`, documents `cloud_upload`; the designs for the group screens (TripGrup, TambahAnggotaNama, GabungPilihNama, WebTripGrup, ...) are not in `docs/design/screens/` yet, so these screens follow the PRD text. *Not seen on a device.* The wide web layout of the Group tab has no + button yet.
 
+## Polls (stage 2; server B11.1)
+
+- [x] **F11.1 Polls.** `feature/polls`: `PollKindSheet` (the + button), `CreatePollScreen`/`CreatePollViewModel` (question from the template, closing in 1/2/3/7 days, several choices, anonymous, apply winner, FOOD day and time, options), `PollOptionSheet` (fields per kind), `PollScreen`/`PollViewModel` (tap to vote, counts, voters when not anonymous, comments per option, creator and owner: close, confirm the winner with what it will do, tie picker, dismiss, reopen, delete). The Group tab lists polls and shows the ones that need the user under "Perlu tindakanmu" (vote, or decide). Inbox rows and taps for `POLL_REQUESTED` and `POLL_RESULT`. Comments now have their entry point: `CommentButton` on each option. Tests: `PollsTest`. Deviations: icons from the subset (`checklist`, `hotel`, ... no `how_to_vote`); no designs yet; the push tap opens the trip, not the poll.
+
 ## Integration checkpoints with the backend agent
 
 | When | Check together |

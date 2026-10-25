@@ -6,6 +6,8 @@ import app.ransel.data.auth.SessionManager
 import app.ransel.data.remote.ApiFailure
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
+import app.ransel.shared.domain.memberIdFor
+import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.feature.trips.TripPhase
@@ -37,6 +39,7 @@ fun countdownFor(trip: TripDto, today: LocalDate): Countdown = when (trip.phase(
 data class GroupUiState(
     val loading: Boolean = true,
     val members: List<TripMemberDto> = emptyList(),
+    val polls: List<PollDto> = emptyList(),
     val failure: ApiFailure? = null,
 ) {
     /** People added by name, without an account. */
@@ -58,6 +61,9 @@ class GroupViewModel(
     /** Account id of the signed-in user; null for a guest. */
     val myUserId: String? get() = session.user?.id
 
+    /** My member in this trip (the id the apps compute offline); null for a guest. */
+    val myMemberId: String? get() = session.user?.id?.let { memberIdFor(tripId, it) }
+
     init {
         load()
     }
@@ -72,6 +78,8 @@ class GroupViewModel(
                 is ApiResult.Success -> _state.update { it.copy(loading = false, members = result.value, failure = null) }
                 is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = result.error) }
             }
+            // polls are a convenience on this tab: if they fail to load the rest still shows
+            (api.polls(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(polls = r.value) } }
         }
     }
 }

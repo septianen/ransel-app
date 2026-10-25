@@ -61,6 +61,30 @@ fun notificationLine(n: NotificationDto): NotificationLine {
             stringResource(Res.string.notification_comment_mention, actor.orEmpty()).trim(),
             p["snippet"]?.takeIf { it.isNotBlank() } ?: trip,
         )
+        NotificationType.POLL_REQUESTED -> {
+            val question = p["question"].orEmpty()
+            when (p["stage"]) {
+                "CLOSING" -> NotificationLine(stringResource(Res.string.notification_poll_closing), question)
+                "RESET" -> NotificationLine(stringResource(Res.string.notification_poll_reset), listOfNotNull(p["optionLabel"], question).joinToString(" · "))
+                "REOPENED" -> NotificationLine(stringResource(Res.string.notification_poll_reopened), question)
+                else -> NotificationLine(
+                    actor?.let { stringResource(Res.string.notification_poll_open, it) } ?: stringResource(Res.string.notification_poll_open_someone),
+                    question,
+                )
+            }
+        }
+        NotificationType.POLL_RESULT -> {
+            val question = p["question"].orEmpty()
+            if (p["stage"] == "TIED") NotificationLine(stringResource(Res.string.notification_poll_tied), question)
+            else NotificationLine(
+                stringResource(Res.string.notification_poll_decided),
+                when {
+                    actor != null && p["winner"] != null -> stringResource(Res.string.notification_poll_decided_body, actor, p["winner"]!!)
+                    actor != null -> stringResource(Res.string.notification_poll_dismissed_body, actor)
+                    else -> question
+                },
+            )
+        }
         NotificationType.PACKING_REMINDER -> NotificationLine(
             stringResource(Res.string.notification_packing_reminder, trip),
             stringResource(Res.string.notification_packing_reminder_body, p["remaining"].orEmpty()),
@@ -124,6 +148,8 @@ fun notificationTile(type: NotificationType, params: Map<String, String> = empty
         NotificationType.SETTLEMENT_MARKED -> accents.green to Symbols.checkCircle
         NotificationType.MEMBER_CLAIMED -> accents.blue to Symbols.person
         NotificationType.COMMENT_MENTION -> accents.teal to Symbols.alternateEmail
+        NotificationType.POLL_REQUESTED -> accents.magenta to Symbols.checklist
+        NotificationType.POLL_RESULT -> accents.magenta to Symbols.checkCircle
         NotificationType.PACKING_REMINDER -> accents.orange to Symbols.luggage
         NotificationType.ACTIVITY_REMINDER -> accents.orange to Symbols.schedule
         NotificationType.VOTE_REQUESTED -> accents.magenta to (if (stage == VoteStage.CLOSING) Symbols.schedule else Symbols.favorite)

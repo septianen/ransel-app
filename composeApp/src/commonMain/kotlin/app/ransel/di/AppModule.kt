@@ -25,6 +25,8 @@ import app.ransel.feature.invite.InviteSheetViewModel
 import app.ransel.feature.invite.JoinTripViewModel
 import app.ransel.feature.comments.CommentsViewModel
 import app.ransel.feature.group.GroupViewModel
+import app.ransel.feature.polls.CreatePollViewModel
+import app.ransel.feature.polls.PollViewModel
 import app.ransel.feature.members.MembersViewModel
 import app.ransel.feature.packing.PackingTemplatesViewModel
 import app.ransel.feature.packing.PackingViewModel
@@ -97,6 +99,9 @@ val commonModule: Module = module {
     viewModel { params -> MembersViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> GroupViewModel(params.get(), get(), get()) }
     viewModel { params -> CommentsViewModel(params.get(), get(), get()) }
+    // two String parameters: take them by position
+    viewModel { params -> PollViewModel(params.get<String>(0), params.get<String>(1), get(), get(), get()) }
+    viewModel { params -> CreatePollViewModel(params.get(), params.get(), get(), get()) }
     viewModel { params -> ActivityFormViewModel(
             tripId = params.get<String>(0),
             itemId = params.get<String?>(1),

@@ -9,6 +9,13 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.data.auth.ApiAuth
 import app.ransel.shared.dto.AddMemberRequest
 import app.ransel.shared.dto.AuthSessionDto
+import app.ransel.shared.dto.CreatePollRequest
+import app.ransel.shared.dto.DecidePollRequest
+import app.ransel.shared.dto.PollDto
+import app.ransel.shared.dto.PollOptionInput
+import app.ransel.shared.dto.ReopenPollRequest
+import app.ransel.shared.dto.UpdatePollRequest
+import app.ransel.shared.dto.VotePollRequest
 import app.ransel.shared.dto.CommentCountDto
 import app.ransel.shared.dto.CommentDto
 import app.ransel.shared.dto.CreateCommentRequest
@@ -216,6 +223,29 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.memberClaim(tripId, memberId)) { }
     /** OWNER: undoes a wrong claim. */
     suspend fun undoClaim(tripId: String, memberId: String): ApiResult<Unit> = delete(ApiRoutes.memberClaim(tripId, memberId))
+
+    // ── polls (online only) ─────────────────────────────────────────────────
+    suspend fun polls(tripId: String): ApiResult<List<PollDto>> = get(ApiRoutes.polls(tripId))
+    suspend fun poll(pollId: String): ApiResult<PollDto> = get(ApiRoutes.poll(pollId))
+    suspend fun createPoll(tripId: String, request: CreatePollRequest): ApiResult<PollDto> =
+        send(HttpMethod.Post, ApiRoutes.polls(tripId), request)
+    suspend fun updatePoll(pollId: String, request: UpdatePollRequest): ApiResult<PollDto> =
+        send(HttpMethod.Patch, ApiRoutes.poll(pollId), request)
+    suspend fun deletePoll(pollId: String): ApiResult<Unit> = delete(ApiRoutes.poll(pollId))
+    suspend fun addPollOption(pollId: String, option: PollOptionInput): ApiResult<PollDto> =
+        send(HttpMethod.Post, ApiRoutes.pollOptions(pollId), option)
+    suspend fun updatePollOption(pollId: String, option: PollOptionInput): ApiResult<PollDto> =
+        send(HttpMethod.Patch, ApiRoutes.pollOption(pollId, option.id), option)
+    suspend fun deletePollOption(pollId: String, optionId: String): ApiResult<PollDto> =
+        call(HttpMethod.Delete, ApiRoutes.pollOption(pollId, optionId)) { it.body<ApiResponse<PollDto>>().data }
+    suspend fun votePoll(pollId: String, request: VotePollRequest): ApiResult<PollDto> =
+        send(HttpMethod.Put, ApiRoutes.pollVotes(pollId), request)
+    suspend fun closePoll(pollId: String): ApiResult<PollDto> =
+        call(HttpMethod.Post, ApiRoutes.pollClose(pollId)) { it.body<ApiResponse<PollDto>>().data }
+    suspend fun decidePoll(pollId: String, request: DecidePollRequest): ApiResult<PollDto> =
+        send(HttpMethod.Post, ApiRoutes.pollDecide(pollId), request)
+    suspend fun reopenPoll(pollId: String, request: ReopenPollRequest): ApiResult<PollDto> =
+        send(HttpMethod.Post, ApiRoutes.pollReopen(pollId), request)
 
     // ── comments (online only) ──────────────────────────────────────────────
     suspend fun comments(tripId: String, kind: CommentTarget, targetId: String): ApiResult<List<CommentDto>> = call(

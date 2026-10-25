@@ -39,16 +39,16 @@ import ransel.composeapp.generated.resources.group_action_soon
 import ransel.composeapp.generated.resources.group_sheet_title
 
 /**
- * What the + button on the Group tab offers (design: Buat polling, Ajak anggota, Unggah dokumen). Polls and documents
- * arrive in later steps: their rows show "Segera hadir" and do nothing.
+ * What the + button on the Group tab offers (design: Buat polling, Ajak anggota, Unggah dokumen). Documents arrive in a
+ * later step: that row shows "Segera hadir" and does nothing. Only the owner can invite.
  */
 @Composable
-fun GroupActionSheet(onInvite: () -> Unit, onDismiss: () -> Unit) {
-    AdaptiveSheet(onDismiss = onDismiss) { GroupActionContent(onInvite) }
+fun GroupActionSheet(canInvite: Boolean, onPoll: () -> Unit, onInvite: () -> Unit, onDismiss: () -> Unit) {
+    AdaptiveSheet(onDismiss = onDismiss) { GroupActionContent(canInvite, onPoll, onInvite) }
 }
 
 @Composable
-private fun GroupActionContent(onInvite: () -> Unit) {
+private fun GroupActionContent(canInvite: Boolean, onPoll: () -> Unit, onInvite: () -> Unit) {
     val accents = IrisTheme.accents
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -56,8 +56,10 @@ private fun GroupActionContent(onInvite: () -> Unit) {
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 8.dp),
         )
-        ActionRow(Symbols.checklist, accents.magenta, Res.string.group_action_poll, Res.string.group_action_poll_hint, soon = true, onClick = {})
-        ActionRow(Symbols.personAdd, accents.green, Res.string.group_action_invite, Res.string.group_action_invite_hint, soon = false, onClick = onInvite)
+        ActionRow(Symbols.checklist, accents.magenta, Res.string.group_action_poll, Res.string.group_action_poll_hint, soon = false, onClick = onPoll)
+        if (canInvite) {
+            ActionRow(Symbols.personAdd, accents.green, Res.string.group_action_invite, Res.string.group_action_invite_hint, soon = false, onClick = onInvite)
+        }
         ActionRow(Symbols.cloudUpload, accents.blue, Res.string.group_action_document, Res.string.group_action_document_hint, soon = true, onClick = {})
     }
 }
@@ -110,5 +112,5 @@ private fun ActionRow(
 @Preview
 @Composable
 private fun GroupActionSheetPreview() = IrisPreview {
-    Box(Modifier.padding(20.dp)) { GroupActionContent(onInvite = {}) }
+    Box(Modifier.padding(20.dp)) { GroupActionContent(canInvite = true, onPoll = {}, onInvite = {}) }
 }

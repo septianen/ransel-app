@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import app.ransel.data.repository.TripRepository
 import app.ransel.feature.expenses.ExpensesTab
 import app.ransel.feature.group.GroupActionSheet
+import app.ransel.feature.polls.PollKindSheet
+import app.ransel.shared.model.PollKind
 import app.ransel.feature.group.GroupTab
 import app.ransel.feature.invite.InviteMembersSheet
 import app.ransel.ui.components.IconFab
@@ -68,6 +70,9 @@ fun TripScreen(
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
     /** Opens the list of all voting rounds of this trip, the one place the banner leads to. */
     onOpenVoteList: (() -> Unit)? = null,
+    /** Polls live on their own screens: create one of a kind, or open one. */
+    onCreatePoll: (PollKind) -> Unit = {},
+    onOpenPoll: (pollId: String) -> Unit = {},
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
 ) {
@@ -90,9 +95,12 @@ fun TripScreen(
     val tripRounds = if (signedIn) rounds[tripId].orEmpty() else emptyList()
     val isOwner = current?.myRole == app.ransel.shared.model.Role.OWNER
     val actionRounds = tripRounds.actionRounds(isOwner)
-    // The + button of the Group tab: Buat polling / Ajak anggota / Unggah dokumen (owner only until polls arrive).
+    // The + button of the Group tab: Buat polling / Ajak anggota / Unggah dokumen.
     var actionSheetOpen by remember { mutableStateOf(false) }
     var inviteSheetOpen by remember { mutableStateOf(false) }
+    var kindSheetOpen by remember { mutableStateOf(false) }
+    // The OWNER and EDITORs ask the group; viewers vote.
+    val canAsk = current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true
 
     // Pull to refresh (signed in only: a guest's trip lives on this phone alone). Mobile syncs, web fetches again;
     // then the server-only parts (voting rounds, members and balances in Expenses) are asked for again.
@@ -166,6 +174,7 @@ fun TripScreen(
                                 }
                             },
                             onOpenMembers = onMembers,
+                            onOpenPoll = onOpenPoll,
                             refreshKey = refreshCount,
                         )
                         TripTab.ITINERARY -> ItineraryTab(
@@ -179,7 +188,7 @@ fun TripScreen(
                     }
                 }
             }
-            if (tab == TripTab.GROUP && signedIn && isOwner && !expanded) {
+            if (tab == TripTab.GROUP && signedIn && canAsk && !expanded) {
                 IconFab(
                     Symbols.add,
                     label = stringResource(Res.string.group_fab_description),
@@ -193,9 +202,14 @@ fun TripScreen(
 
     if (actionSheetOpen) {
         GroupActionSheet(
+            canInvite = isOwner,
+            onPoll = { actionSheetOpen = false; kindSheetOpen = true },
             onInvite = { actionSheetOpen = false; inviteSheetOpen = true },
             onDismiss = { actionSheetOpen = false },
         )
+    }
+    if (kindSheetOpen) {
+        PollKindSheet(onPick = { kindSheetOpen = false; onCreatePoll(it) }, onDismiss = { kindSheetOpen = false })
     }
     if (inviteSheetOpen && current != null) {
         InviteMembersSheet(tripId = tripId, tripTitle = current.title, onDismiss = { inviteSheetOpen = false })

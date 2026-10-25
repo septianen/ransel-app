@@ -1,0 +1,82 @@
+### Polls (PRD "Polling with templates"). Any member with an account votes; OWNER and EDITOR create.
+
+### List the polls of a trip (newest first). Polls whose time ran out are settled on the way (CLOSED or TIED)
+GET {{host}}/trips/{{tripId}}/polls
+Authorization: Bearer {{token}}
+
+### Create. kind: DATE PLACE STAY FOOD BUDGET DESTINATION TRANSPORT CUSTOM. BUDGET is always anonymous.
+### DATE options need startDate/endDate; BUDGET options minMinor/maxMinor; the others a label.
+POST {{host}}/trips/{{tripId}}/polls
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "id": "11111111-1111-1111-1111-111111111111",
+  "kind": "STAY",
+  "question": "Menginap di mana?",
+  "closesAt": "2026-12-31T00:00:00Z",
+  "multiChoice": false,
+  "anonymous": false,
+  "applyWinner": true,
+  "options": [
+    { "id": "22222222-2222-2222-2222-222222222222", "label": "Villa Ubud", "priceMinor": 750000, "priceUnit": "NIGHT", "url": "https://example.com/villa" }
+  ]
+}
+
+### One poll. On an anonymous poll voterIds is always empty; votedMemberIds says who has voted
+GET {{host}}/polls/11111111-1111-1111-1111-111111111111
+Authorization: Bearer {{token}}
+
+### Vote (replaces your votes). version = the version of the option you saw; 409 VOTE_STALE if it changed, 409 POLL_CLOSED after closesAt
+PUT {{host}}/polls/11111111-1111-1111-1111-111111111111/votes
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "votes": [ { "optionId": "22222222-2222-2222-2222-222222222222", "version": 1 } ] }
+
+### Add an option (also after votes), edit it (clears its votes when label, dates, link or price change), delete it
+POST {{host}}/polls/11111111-1111-1111-1111-111111111111/options
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "id": "33333333-3333-3333-3333-333333333333", "label": "Hotel Kuta", "priceMinor": 500000, "priceUnit": "NIGHT" }
+
+###
+PATCH {{host}}/polls/11111111-1111-1111-1111-111111111111/options/33333333-3333-3333-3333-333333333333
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "id": "33333333-3333-3333-3333-333333333333", "label": "Hotel Kuta", "priceMinor": 550000, "priceUnit": "NIGHT" }
+
+###
+DELETE {{host}}/polls/11111111-1111-1111-1111-111111111111/options/33333333-3333-3333-3333-333333333333
+Authorization: Bearer {{token}}
+
+### Creator or OWNER: change the poll. anonymous can change only before the first vote (409 POLL_LOCKED)
+PATCH {{host}}/polls/11111111-1111-1111-1111-111111111111
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "question": "Menginap di mana, tanggal 20?", "closesAt": "2027-01-05T00:00:00Z" }
+
+### Close voting now
+POST {{host}}/polls/11111111-1111-1111-1111-111111111111/close
+Authorization: Bearer {{token}}
+
+### Confirm the winner and run its action (DATE: trip dates, DESTINATION: destination, PLACE: Belum dijadwalkan, FOOD: an activity). Send {} to close without choosing
+POST {{host}}/polls/11111111-1111-1111-1111-111111111111/decide
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "optionId": "22222222-2222-2222-2222-222222222222" }
+
+### Reopen a closed or tied poll
+POST {{host}}/polls/11111111-1111-1111-1111-111111111111/reopen
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "closesAt": "2027-01-05T00:00:00Z" }
+
+### Delete
+DELETE {{host}}/polls/11111111-1111-1111-1111-111111111111
+Authorization: Bearer {{token}}

@@ -28,7 +28,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.trips.countdownLabel
+import app.ransel.feature.polls.PollNeed
+import app.ransel.feature.polls.forDisplay
+import app.ransel.feature.polls.needFor
+import app.ransel.feature.polls.symbol
+import app.ransel.feature.polls.tileColor
+import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.model.PollKind
+import app.ransel.shared.model.PollStatus
+import app.ransel.ui.symbols.Symbol
+import app.ransel.ui.theme.IrisTheme
+import androidx.compose.foundation.layout.heightIn
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
 import app.ransel.ui.components.MemberAvatar
@@ -51,6 +62,15 @@ import ransel.composeapp.generated.resources.group_countdown_ongoing
 import ransel.composeapp.generated.resources.group_guest_tag
 import ransel.composeapp.generated.resources.group_members_title
 import ransel.composeapp.generated.resources.group_needs_empty
+import ransel.composeapp.generated.resources.group_polls_empty
+import ransel.composeapp.generated.resources.group_polls_title
+import ransel.composeapp.generated.resources.poll_need_decide
+import ransel.composeapp.generated.resources.poll_need_vote
+import ransel.composeapp.generated.resources.poll_status_closed
+import ransel.composeapp.generated.resources.poll_status_decided
+import ransel.composeapp.generated.resources.poll_status_open
+import ransel.composeapp.generated.resources.poll_status_tied
+import ransel.composeapp.generated.resources.poll_voted_summary
 import ransel.composeapp.generated.resources.group_needs_title
 import ransel.composeapp.generated.resources.group_signin_body
 import ransel.composeapp.generated.resources.group_signin_title
@@ -72,6 +92,7 @@ fun GroupTab(
     hasNeeds: Boolean,
     needs: @Composable () -> Unit,
     onOpenMembers: () -> Unit,
+    onOpenPoll: (pollId: String) -> Unit,
     refreshKey: Int,
     modifier: Modifier = Modifier,
     viewModel: GroupViewModel = koinViewModel(key = "group-${trip.id}") { parametersOf(trip.id) },
@@ -84,9 +105,13 @@ fun GroupTab(
         members = state.members,
         signedIn = signedIn,
         myUserId = viewModel.myUserId,
+        polls = state.polls,
+        myMemberId = viewModel.myMemberId,
+        isOwner = trip.myRole == Role.OWNER,
         hasNeeds = hasNeeds,
         needs = needs,
         onOpenMembers = onOpenMembers,
+        onOpenPoll = onOpenPoll,
         modifier = modifier,
     )
 }
@@ -98,12 +123,17 @@ fun GroupContent(
     members: List<TripMemberDto>,
     signedIn: Boolean,
     myUserId: String?,
+    polls: List<PollDto>,
+    myMemberId: String?,
+    isOwner: Boolean,
     hasNeeds: Boolean,
     needs: @Composable () -> Unit,
     onOpenMembers: () -> Unit,
+    onOpenPoll: (pollId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dates = rememberDateFormatter()
+    val pollNeeds = polls.mapNotNull { poll -> poll.needFor(myMemberId, isOwner)?.let { poll to it } }
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 72.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -117,11 +147,26 @@ fun GroupContent(
 
         Section(stringResource(Res.string.group_needs_title)) {
             if (hasNeeds) needs()
-            else Text(
+            pollNeeds.forEach { (poll, need) -> PollNeedCard(poll, need) { onOpenPoll(poll.id) } }
+            if (!hasNeeds && pollNeeds.isEmpty()) Text(
                 stringResource(Res.string.group_needs_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        Section(stringResource(Res.string.group_polls_title)) {
+            if (polls.isEmpty()) {
+                Text(
+                    stringResource(Res.string.group_polls_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    polls.forDisplay().forEach { PollRow(it) { onOpenPoll(it.id) } }
+                }
+            }
         }
 
         Section(
@@ -134,6 +179,73 @@ fun GroupContent(
                 members.forEach { MemberLine(it, isMe = it.userId != null && it.userId == myUserId) }
             }
         }
+    }
+}
+
+/** A poll that asks something of the user: vote, or (creator and owner) confirm the result. */
+@Composable
+private fun PollNeedCard(poll: PollDto, need: PollNeed, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(IrisShape.lg)
+            .background(MaterialTheme.colorScheme.tertiaryContainer)
+            .clickable(role = SemanticsRole.Button, onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PollTile(poll.kind)
+        Column(Modifier.weight(1f)) {
+            Text(poll.question, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onTertiaryContainer, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                stringResource(if (need == PollNeed.VOTE) Res.string.poll_need_vote else Res.string.poll_need_decide),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PollRow(poll: PollDto, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clip(IrisShape.lg)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable(role = SemanticsRole.Button, onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PollTile(poll.kind)
+        Column(Modifier.weight(1f)) {
+            Text(poll.question, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                stringResource(Res.string.poll_voted_summary, poll.votedMemberIds.size, poll.memberCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Tag(
+            stringResource(
+                when (poll.status) {
+                    PollStatus.OPEN -> Res.string.poll_status_open
+                    PollStatus.CLOSED -> Res.string.poll_status_closed
+                    PollStatus.TIED -> Res.string.poll_status_tied
+                    PollStatus.DECIDED -> Res.string.poll_status_decided
+                },
+            ),
+        )
+    }
+}
+
+@Composable
+private fun PollTile(kind: PollKind) {
+    Box(Modifier.size(40.dp).clip(IrisShape.md).background(kind.tileColor()), contentAlignment = Alignment.Center) {
+        Symbol(kind.symbol, size = 22.dp, tint = IrisTheme.accents.onAccent)
     }
 }
 
@@ -249,14 +361,33 @@ private val previewMembers = listOf(
     TripMemberDto("t", "m3", null, "Rina", null, Role.VIEWER, Instant.parse("2026-10-03T00:00:00Z")),
 )
 
+private val previewPolls = listOf(
+    PollDto(
+        id = "p1", tripId = "t", kind = PollKind.DATE, question = "Kapan berangkat?", createdByMemberId = "m2", createdByName = "Dinda",
+        createdAt = Instant.parse("2026-10-25T00:00:00Z"), closesAt = Instant.parse("2026-10-27T00:00:00Z"),
+        status = PollStatus.OPEN, memberCount = 3, votedMemberIds = listOf("m2"),
+    ),
+    PollDto(
+        id = "p2", tripId = "t", kind = PollKind.FOOD, question = "Makan malam di mana?", createdByMemberId = "m1", createdByName = "Septian",
+        createdAt = Instant.parse("2026-10-24T00:00:00Z"), closesAt = Instant.parse("2026-10-25T00:00:00Z"),
+        status = PollStatus.DECIDED, memberCount = 3, votedMemberIds = listOf("m1", "m2", "m3"), myVotes = listOf("o"),
+    ),
+)
+
 @Preview
 @Composable
 private fun GroupTabPreview() = IrisPreview {
-    GroupContent(previewTrip, LocalDate(2026, 11, 2), previewMembers, signedIn = true, myUserId = "u1", hasNeeds = false, needs = {}, onOpenMembers = {})
+    GroupContent(
+        previewTrip, LocalDate(2026, 11, 2), previewMembers, signedIn = true, myUserId = "u1", polls = previewPolls, myMemberId = "m1", isOwner = true,
+        hasNeeds = false, needs = {}, onOpenMembers = {}, onOpenPoll = {},
+    )
 }
 
 @Preview
 @Composable
 private fun GroupTabGuestPreview() = IrisPreview {
-    GroupContent(previewTrip, LocalDate(2026, 11, 22), emptyList(), signedIn = false, myUserId = null, hasNeeds = false, needs = {}, onOpenMembers = {})
+    GroupContent(
+        previewTrip, LocalDate(2026, 11, 22), emptyList(), signedIn = false, myUserId = null, polls = emptyList(), myMemberId = null, isOwner = false,
+        hasNeeds = false, needs = {}, onOpenMembers = {}, onOpenPoll = {},
+    )
 }
