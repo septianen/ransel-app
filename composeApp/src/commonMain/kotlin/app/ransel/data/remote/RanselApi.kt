@@ -12,7 +12,12 @@ import app.ransel.shared.dto.AuthSessionDto
 import app.ransel.shared.dto.CreatePollRequest
 import app.ransel.shared.dto.DecidePollRequest
 import app.ransel.shared.dto.PollDto
+import app.ransel.shared.dto.BulkPollOptionsRequest
+import app.ransel.shared.dto.LinkPreviewDto
+import app.ransel.shared.dto.LinkPreviewRequest
 import app.ransel.shared.dto.PollOptionInput
+import app.ransel.shared.dto.PollSearchRequest
+import app.ransel.shared.dto.PollSearchResponse
 import app.ransel.shared.dto.ReopenPollRequest
 import app.ransel.shared.dto.UpdatePollRequest
 import app.ransel.shared.dto.VotePollRequest
@@ -234,6 +239,12 @@ class RanselApi(
     suspend fun deletePoll(pollId: String): ApiResult<Unit> = delete(ApiRoutes.poll(pollId))
     suspend fun addPollOption(pollId: String, option: PollOptionInput): ApiResult<PollDto> =
         send(HttpMethod.Post, ApiRoutes.pollOptions(pollId), option)
+    suspend fun addPollOptionsBulk(pollId: String, options: List<PollOptionInput>): ApiResult<PollDto> =
+        send(HttpMethod.Post, ApiRoutes.pollOptionsBulk(pollId), BulkPollOptionsRequest(options))
+    suspend fun searchPoll(pollId: String, request: PollSearchRequest): ApiResult<PollSearchResponse> =
+        send(HttpMethod.Post, ApiRoutes.pollSearch(pollId), request)
+    suspend fun linkPreview(url: String): ApiResult<LinkPreviewDto> =
+        send(HttpMethod.Post, ApiRoutes.LINK_PREVIEW, LinkPreviewRequest(url))
     suspend fun updatePollOption(pollId: String, option: PollOptionInput): ApiResult<PollDto> =
         send(HttpMethod.Patch, ApiRoutes.pollOption(pollId, option.id), option)
     suspend fun deletePollOption(pollId: String, optionId: String): ApiResult<PollDto> =

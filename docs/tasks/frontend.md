@@ -165,6 +165,7 @@ Design: Claude Design canvas "Karung" (code names in `docs/design/README.md` "Ad
 ## Polls (stage 2; server B11.1)
 
 - [x] **F11.1 Polls.** `feature/polls`: `PollKindSheet` (the + button), `CreatePollScreen`/`CreatePollViewModel` (question from the template, closing in 1/2/3/7 days, several choices, anonymous, apply winner, FOOD day and time, options), `PollOptionSheet` (fields per kind), `PollScreen`/`PollViewModel` (tap to vote, counts, voters when not anonymous, comments per option, creator and owner: close, confirm the winner with what it will do, tie picker, dismiss, reopen, delete). The Group tab lists polls and shows the ones that need the user under "Perlu tindakanmu" (vote, or decide). Inbox rows and taps for `POLL_REQUESTED` and `POLL_RESULT`. Comments now have their entry point: `CommentButton` on each option. Tests: `PollsTest`. Deviations: icons from the subset (`checklist`, `hotel`, ... no `how_to_vote`); no designs yet; the push tap opens the trip, not the poll.
+- [x] **F11.2 Poll options (stage 3).** `PollOptionSheet`: link field for stay, food and place options with "Ambil info" (title fills an empty name, picture is kept; failure says to fill in by hand). `PollSearchSheet` + search state in `PollViewModel`: Jelajah button on open STAY and FOOD polls (area, budget range, wishes, tick results, add in one request; no credits, unverified email, busy and closed states). Tests: `PollsTest`. Deviation: the link picture is hotlinked, not re-hosted.
 
 ## Integration checkpoints with the backend agent
 

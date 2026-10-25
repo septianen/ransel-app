@@ -14,6 +14,7 @@ import app.ransel.feature.polls.PollDialog
 import app.ransel.feature.polls.PollEvent
 import app.ransel.feature.polls.PollNeed
 import app.ransel.feature.polls.PollNotice
+import app.ransel.feature.polls.PollSearchError
 import app.ransel.feature.polls.PollViewModel
 import app.ransel.feature.polls.forDisplay
 import app.ransel.feature.polls.leaders
@@ -153,6 +154,18 @@ class PollUiTest {
     }
 
     @Test
+    fun aLinkAndItsPictureTravelWithStayFoodAndPlaceOptionsOnly() {
+        val draft = OptionDraft(label = "Warung", url = "https://x.example/w", imageUrl = "https://img.example/w.jpg")
+        for (kind in listOf(PollKind.STAY, PollKind.FOOD, PollKind.PLACE)) {
+            val (input, problems) = draft.toInput(kind, "IDR", "o")
+            assertEquals(emptySet(), problems)
+            assertEquals("https://x.example/w" to "https://img.example/w.jpg", input.url to input.imageUrl)
+        }
+        val (other, _) = draft.toInput(PollKind.CUSTOM, "IDR", "o")
+        assertEquals(null, other.url)
+    }
+
+    @Test
     fun missingOrBrokenFieldsAreReportedByName() {
         assertTrue("label" in OptionDraft().toInput(PollKind.PLACE, "IDR", "o").second)
         assertEquals(setOf("startDate", "endDate"), OptionDraft().toInput(PollKind.DATE, "IDR", "o").second)
@@ -172,6 +185,7 @@ class PollViewModelTest {
     private val log = MutableStateFlow<List<Pair<String, String>>>(emptyList())
     private var current = poll()
     private var voteStatus = HttpStatusCode.OK
+    private var searchError: String? = null
 
     private fun api() = RanselApi(
         createApiHttpClient(
@@ -190,6 +204,18 @@ class PollViewModelTest {
                             respond(pollJson(current.copy(myVotes = chosen)), HttpStatusCode.OK, json)
                         } else respond("""{"error":{"code":"VOTE_STALE","message":"x"}}""", voteStatus, json)
                     request.method == HttpMethod.Delete && path.endsWith("/polls/$POLL") -> respond("", HttpStatusCode.NoContent)
+                    path.endsWith("/search") ->
+                        if (searchError != null) respond("""{"error":{"code":"$searchError","message":"x"}}""", HttpStatusCode.PaymentRequired, json)
+                        else respond(
+                            """{"data":{"results":[{"placeId":"p-1","name":"Villa Pas","reason":"Dekat pantai","priceMinor":900000,"priceUnit":"NIGHT"},
+                                {"placeId":"p-2","name":"Hotel Dua","reason":"Ada kolam"}],
+                                "credits":{"balance":30,"dailyFreeLeft":0,"dailyFreeLimit":3,"resetsAt":"$stamp","costs":{"search":3,"nextBatch":1,"placeDetail":0}}}}""",
+                            HttpStatusCode.OK, json,
+                        )
+                    path.endsWith("/options/bulk") ->
+                        respond(pollJson(current.copy(options = current.options + option("c", "Villa Pas"))), HttpStatusCode.Created, json)
+                    path.endsWith("/link-preview") ->
+                        respond("""{"data":{"url":"https://x.example/v","title":"Villa Sunset","imageUrl":"https://img.example/v.jpg"}}""", HttpStatusCode.OK, json)
                     path.endsWith("/decide") -> respond(pollJson(current.copy(status = PollStatus.DECIDED)), HttpStatusCode.OK, json)
                     path.endsWith("/close") -> respond(pollJson(current.copy(status = PollStatus.CLOSED)), HttpStatusCode.OK, json)
                     path.endsWith("/polls/$POLL") -> respond(pollJson(current), HttpStatusCode.OK, json)
@@ -281,6 +307,55 @@ class PollViewModelTest {
         vm.confirmDialog()
         eventually { requests.any { it.first.endsWith("/decide") } }
         assertTrue("optionId" !in requests.last { it.first.endsWith("/decide") }.second)
+    }
+
+    @Test
+    fun searchRunsOnTheFormAndTheTickedResultsBecomeOptions() = runTest {
+        val vm = vm()
+        eventually { vm.state.value.poll != null }
+        vm.openSearch()
+        vm.onSearchArea(" Ubud ")
+        vm.onSearchMin("500000")
+        vm.onSearchMax("1200000")
+        vm.onSearchNeeds("kolam renang")
+        vm.runSearch()
+        eventually { vm.state.value.search?.results != null }
+        val sent = requests.last { it.first.endsWith("/search") }.second
+        assertTrue("\"area\":\"Ubud\"" in sent && "\"minMinor\":500000" in sent && "\"maxMinor\":1200000" in sent, sent)
+
+        vm.togglePicked("p-1")
+        assertEquals(setOf("p-1"), vm.state.value.search!!.picked)
+        vm.addPicked()
+        eventually { vm.state.value.search == null }
+        val bulk = requests.last { it.first.endsWith("/options/bulk") }.second
+        assertTrue("\"label\":\"Villa Pas\"" in bulk && "\"placeId\":\"p-1\"" in bulk && "\"priceUnit\":\"NIGHT\"" in bulk, bulk)
+        assertEquals(3, vm.state.value.poll!!.options.size)
+    }
+
+    @Test
+    fun searchNeedsCreditsAndGoodNumbers() = runTest {
+        val vm = vm()
+        eventually { vm.state.value.poll != null }
+        vm.openSearch()
+        vm.onSearchMin("abc")
+        vm.runSearch()
+        assertTrue(vm.state.value.search!!.badInput)
+        assertTrue(requests.none { it.first.endsWith("/search") })
+
+        vm.onSearchMin("")
+        searchError = "INSUFFICIENT_CREDITS"
+        vm.runSearch()
+        eventually { vm.state.value.search?.error != null }
+        assertEquals(PollSearchError.NO_CREDITS, vm.state.value.search!!.error)
+        assertEquals(null, vm.state.value.search!!.results)
+    }
+
+    @Test
+    fun aPastedLinkGivesTitleAndPicture() = runTest {
+        val vm = vm()
+        val page = vm.previewLink("https://x.example/v")
+        assertEquals("Villa Sunset", page?.title)
+        assertEquals("https://img.example/v.jpg", page?.imageUrl)
     }
 
     @Test

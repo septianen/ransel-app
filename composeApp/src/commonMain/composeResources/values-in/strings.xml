@@ -1127,4 +1127,24 @@
     <plurals name="poll_votes_count">
         <item quantity="other">%1$d suara</item>
     </plurals>
+    <string name="poll_link_fetch">Ambil info</string>
+    <string name="poll_link_error">Link ini tidak bisa dibaca. Isi manual ya.</string>
+    <string name="poll_search_action">Cari dengan Jelajah</string>
+    <string name="poll_search_title">Cari dengan Jelajah</string>
+    <string name="poll_search_area">Area</string>
+    <string name="poll_search_budget_stay">Budget per malam</string>
+    <string name="poll_search_budget_food">Budget per orang</string>
+    <string name="poll_search_min">Dari</string>
+    <string name="poll_search_max">Sampai</string>
+    <string name="poll_search_needs">Keinginan</string>
+    <string name="poll_search_needs_hint">kolam renang, dekat pantai</string>
+    <string name="poll_search_go">Cari</string>
+    <string name="poll_search_cost">Memakai kredit Jelajah, seperti pencarian baru.</string>
+    <string name="poll_search_empty">Tidak ada yang cocok. Coba area atau budget lain.</string>
+    <string name="poll_search_estimate">Perkiraan: %1$s</string>
+    <string name="poll_search_add">Tambah %1$d opsi</string>
+    <string name="poll_search_error_credits">Kredit tidak cukup.</string>
+    <string name="poll_search_error_verify">Verifikasi emailmu dulu.</string>
+    <string name="poll_search_error_unavailable">Jelajah sedang sibuk. Coba lagi nanti.</string>
+    <string name="poll_search_error_failed">Gagal. Cek koneksimu lalu coba lagi.</string>
 </resources>

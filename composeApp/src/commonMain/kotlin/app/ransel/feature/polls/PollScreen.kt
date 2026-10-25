@@ -72,6 +72,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.poll_search_action
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.poll_action_close
@@ -158,6 +159,7 @@ fun PollScreen(
                 onRetry = viewModel::load,
                 onToggle = viewModel::toggle,
                 onAddOption = { viewModel.openOptionSheet(null) },
+                onSearch = viewModel::openSearch,
                 onEditOption = { viewModel.openOptionSheet(it) },
                 onDeleteOption = { viewModel.ask(PollDialog.DeleteOption(it)) },
                 onClose = viewModel::close,
@@ -180,6 +182,26 @@ fun PollScreen(
                 tripEnd = null,
                 onSave = viewModel::saveOption,
                 onDismiss = viewModel::closeOptionSheet,
+                onPreview = viewModel::previewLink,
+            )
+        }
+    }
+    state.search?.let { search ->
+        if (poll != null) {
+            PollSearchSheet(
+                kind = poll.kind,
+                state = search,
+                currency = state.currency,
+                destination = state.destination,
+                onArea = viewModel::onSearchArea,
+                onMin = viewModel::onSearchMin,
+                onMax = viewModel::onSearchMax,
+                onNeeds = viewModel::onSearchNeeds,
+                onSearch = viewModel::runSearch,
+                onToggle = viewModel::togglePicked,
+                onAdd = viewModel::addPicked,
+                onRetry = viewModel::backToSearchForm,
+                onDismiss = viewModel::closeSearch,
             )
         }
     }
@@ -258,6 +280,7 @@ fun PollContent(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     now: Instant = Clock.System.now(),
+    onSearch: () -> Unit = {},
 ) {
     val poll = state.poll
     Column(modifier.fillMaxSize()) {
@@ -305,6 +328,12 @@ fun PollContent(
                     TextButton(onClick = onAddOption) {
                         Symbol(Symbols.add, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
                         Text(stringResource(Res.string.poll_add_option), Modifier.padding(start = 8.dp))
+                    }
+                    if (state.canSearch) {
+                        TextButton(onClick = onSearch) {
+                            Symbol(Symbols.autoAwesome, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(Res.string.poll_search_action), Modifier.padding(start = 8.dp))
+                        }
                     }
                 }
             }

@@ -80,3 +80,24 @@ Authorization: Bearer {{token}}
 ### Delete
 DELETE {{host}}/polls/11111111-1111-1111-1111-111111111111
 Authorization: Bearer {{token}}
+
+### Paste a link (title and picture of the page)
+POST {{host}}/link-preview
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "url": "https://www.example.com/hotel/villa-sunset" }
+
+### Add several options at once
+POST {{host}}/polls/11111111-1111-1111-1111-111111111111/options/bulk
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "options": [ { "id": "44444444-4444-4444-4444-444444444444", "label": "Villa Pas", "placeId": "ChIJ-example", "priceMinor": 900000, "priceUnit": "NIGHT" } ] }
+
+### Jelajah for a stay or food poll (costs a new search)
+POST {{host}}/polls/11111111-1111-1111-1111-111111111111/search
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "area": "Ubud", "minMinor": 500000, "maxMinor": 1200000, "needs": "kolam renang" }

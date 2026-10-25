@@ -19,6 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.ButtonDefaults
+import app.ransel.shared.dto.LinkPreviewDto
+import kotlinx.coroutines.launch
+import ransel.composeapp.generated.resources.poll_link_error
+import ransel.composeapp.generated.resources.poll_link_fetch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,11 +77,16 @@ import ransel.composeapp.generated.resources.poll_price_night
 import ransel.composeapp.generated.resources.poll_price_person
 import app.ransel.ui.components.LoadingButton
 
+/** Options that can come from a pasted link. */
+private val LINK_KINDS = setOf(PollKind.STAY, PollKind.FOOD, PollKind.PLACE)
+
 /** The fields of one option, as typed. Which of them count depends on the poll kind. */
 data class OptionDraft(
     val label: String = "",
     val price: String = "",
     val url: String = "",
+    /** From a pasted link; sent with the option so the poll can show the picture. */
+    val imageUrl: String = "",
     val start: LocalDate? = null,
     val end: LocalDate? = null,
     val min: String = "",
@@ -86,6 +97,7 @@ private fun PollOptionDto.toDraft(currency: String) = OptionDraft(
     label = label,
     price = priceMinor?.let { amountToInput(it, currency) }.orEmpty(),
     url = url.orEmpty(),
+    imageUrl = imageUrl.orEmpty(),
     start = startDate,
     end = endDate,
     min = minMinor?.let { amountToInput(it, currency) }.orEmpty(),
@@ -106,8 +118,8 @@ fun OptionDraft.toInput(kind: PollKind, currency: String, id: String, keep: Poll
         startDate = start.takeIf { kind == PollKind.DATE },
         endDate = end.takeIf { kind == PollKind.DATE },
         placeId = keep?.placeId,
-        url = url.trim().ifEmpty { null }.takeIf { kind == PollKind.STAY },
-        imageUrl = keep?.imageUrl,
+        url = url.trim().ifEmpty { null }.takeIf { kind in LINK_KINDS },
+        imageUrl = imageUrl.ifEmpty { null }.takeIf { kind in LINK_KINDS } ?: keep?.imageUrl,
         priceMinor = priceMinor.takeIf { kind == PollKind.STAY || kind == PollKind.FOOD },
         priceUnit = when (kind) {
             PollKind.STAY -> PollPriceUnit.NIGHT
@@ -134,7 +146,12 @@ fun PollOptionSheet(
     tripEnd: LocalDate?,
     onSave: (PollOptionInput) -> Unit,
     onDismiss: () -> Unit,
+    /** Reads a pasted link (title and picture); null = the link cannot be read. Null parameter = no "fetch" button. */
+    onPreview: (suspend (String) -> LinkPreviewDto?)? = null,
 ) {
+    var fetching by remember { mutableStateOf(false) }
+    var fetchFailed by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     var draft by remember { mutableStateOf(initial?.toDraft(currency) ?: OptionDraft()) }
     var wrong by remember { mutableStateOf(emptySet<String>()) }
     var pickRange by remember { mutableStateOf(false) }
@@ -188,6 +205,43 @@ fun PollOptionSheet(
                     MoneyField(stringResource(Res.string.poll_option_budget_max), draft.max, currency, error("maxMinor", true)) { draft = draft.copy(max = it); wrong = wrong - "maxMinor" }
                 }
                 else -> {
+                    if (kind in LINK_KINDS) {
+                        IrisTextField(
+                            label = stringResource(Res.string.poll_option_link),
+                            labelSuffix = stringResource(Res.string.poll_option_optional),
+                            value = draft.url,
+                            onValueChange = { draft = draft.copy(url = it); wrong = wrong - "url"; fetchFailed = false },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                            error = error("url"),
+                        )
+                        if (onPreview != null && draft.url.isNotBlank()) {
+                            LoadingButton(
+                                onClick = {
+                                    scope.launch {
+                                        fetching = true
+                                        val page = onPreview(draft.url.trim())
+                                        fetching = false
+                                        if (page == null) {
+                                            fetchFailed = true
+                                        } else {
+                                            fetchFailed = false
+                                            draft = draft.copy(
+                                                label = draft.label.ifBlank { page.title.orEmpty() },
+                                                imageUrl = page.imageUrl ?: draft.imageUrl,
+                                                url = page.url,
+                                            )
+                                        }
+                                    }
+                                },
+                                loading = fetching,
+                                modifier = Modifier.fillMaxWidth().height(40.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(),
+                            ) { Text(stringResource(Res.string.poll_link_fetch)) }
+                        }
+                        if (fetchFailed) {
+                            Text(stringResource(Res.string.poll_link_error), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
                     IrisTextField(
                         label = stringResource(Res.string.poll_option_label),
                         value = draft.label,
@@ -202,16 +256,6 @@ fun PollOptionSheet(
                             error = error("priceMinor"),
                             optional = true,
                         ) { draft = draft.copy(price = it); wrong = wrong - "priceMinor" }
-                    }
-                    if (kind == PollKind.STAY) {
-                        IrisTextField(
-                            label = stringResource(Res.string.poll_option_link),
-                            labelSuffix = stringResource(Res.string.poll_option_optional),
-                            value = draft.url,
-                            onValueChange = { draft = draft.copy(url = it); wrong = wrong - "url" },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                            error = error("url"),
-                        )
                     }
                 }
             }
@@ -237,7 +281,7 @@ fun PollOptionSheet(
 }
 
 @Composable
-private fun MoneyField(label: String, value: String, currency: String, error: String?, optional: Boolean = false, onChange: (String) -> Unit) {
+internal fun MoneyField(label: String, value: String, currency: String, error: String?, optional: Boolean = false, onChange: (String) -> Unit) {
     IrisTextField(
         label = label,
         labelSuffix = if (optional) stringResource(Res.string.poll_option_optional) else null,

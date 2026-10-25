@@ -129,6 +129,7 @@ fun CreatePollScreen(
             tripEnd = state.tripEnd,
             onSave = viewModel::saveOption,
             onDismiss = viewModel::closeOptionSheet,
+            onPreview = viewModel::previewLink,
         )
     }
 }

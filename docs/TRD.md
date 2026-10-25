@@ -151,6 +151,9 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET, POST | /trips/{id}/polls | List polls (newest first) / create one (OWNER or EDITOR). Polls past `closes_at` are settled on the way | 4 |
 | GET, PATCH, DELETE | /polls/{id} | One poll / change question, closing time, choices, anonymous switch (creator or OWNER) / delete | 4 |
 | POST | /polls/{id}/options | Add an option (while OPEN) | 4 |
+| POST | /polls/{id}/options/bulk | Add several options at once (all or none; the ticked Jelajah results) | 4 |
+| POST | /polls/{id}/search | Jelajah for a STAY or FOOD poll: AI places for an area, budget and wishes; costs a new search | 4 |
+| POST | /link-preview | Title and picture of a pasted link (SSRF-safe fetch, cached 7 days, no price); 422 LINK_UNREADABLE | 4 |
 | PATCH, DELETE | /polls/{id}/options/{optionId} | Edit (bumps `version` and clears the votes when label, dates, place, link or price change) / delete | 4 |
 | PUT | /polls/{id}/votes | Replace my votes; each vote carries the option version it saw (409 `VOTE_STALE`, 409 `POLL_CLOSED`) | 4 |
 | POST | /polls/{id}/close, /decide, /reopen | End voting now / confirm the winner and run its action (no option = dismiss) / reopen a closed or tied poll | 4 |

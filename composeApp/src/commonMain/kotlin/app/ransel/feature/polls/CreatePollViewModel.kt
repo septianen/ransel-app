@@ -97,6 +97,9 @@ class CreatePollViewModel(
     fun onFoodDay(day: LocalDate?) = _state.update { it.copy(foodDay = day, foodTime = if (day == null) null else it.foodTime ?: LocalTime(19, 0)) }
     fun onFoodTime(time: LocalTime) = _state.update { it.copy(foodTime = time) }
 
+    /** The title and picture behind a pasted link, or null when it cannot be read. */
+    suspend fun previewLink(url: String): app.ransel.shared.dto.LinkPreviewDto? = (api.linkPreview(url) as? ApiResult.Success)?.value
+
     fun openOptionSheet(editingId: String? = null) = _state.update { it.copy(optionSheet = true, editingId = editingId) }
     fun closeOptionSheet() = _state.update { it.copy(optionSheet = false, editingId = null) }
 

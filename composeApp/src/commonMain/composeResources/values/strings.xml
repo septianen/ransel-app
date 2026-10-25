@@ -1135,4 +1135,24 @@
         <item quantity="one">%1$d vote</item>
         <item quantity="other">%1$d votes</item>
     </plurals>
+    <string name="poll_link_fetch">Fetch info</string>
+    <string name="poll_link_error">This link can\'t be read. Fill it in by hand.</string>
+    <string name="poll_search_action">Find with Jelajah</string>
+    <string name="poll_search_title">Find with Jelajah</string>
+    <string name="poll_search_area">Area</string>
+    <string name="poll_search_budget_stay">Budget per night</string>
+    <string name="poll_search_budget_food">Budget per person</string>
+    <string name="poll_search_min">From</string>
+    <string name="poll_search_max">Up to</string>
+    <string name="poll_search_needs">Wishes</string>
+    <string name="poll_search_needs_hint">pool, near the beach</string>
+    <string name="poll_search_go">Search</string>
+    <string name="poll_search_cost">Uses Jelajah credits, like a new search.</string>
+    <string name="poll_search_empty">Nothing matched. Try another area or budget.</string>
+    <string name="poll_search_estimate">Estimate: %1$s</string>
+    <string name="poll_search_add">Add %1$d options</string>
+    <string name="poll_search_error_credits">Not enough credits.</string>
+    <string name="poll_search_error_verify">Verify your email first.</string>
+    <string name="poll_search_error_unavailable">Jelajah is busy. Try again later.</string>
+    <string name="poll_search_error_failed">That did not work. Check your connection and try again.</string>
 </resources>
