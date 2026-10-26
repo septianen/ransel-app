@@ -25,6 +25,7 @@ import app.ransel.data.repository.PreferencesRepository
 import app.ransel.shared.dto.TransferDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.util.newId
+import app.ransel.feature.trip.zone
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -281,7 +282,7 @@ class ExpensesViewModel(
 
     val state: StateFlow<ExpensesUiState> = repository.observe(trip.id)
         .map { list ->
-            val tz = TimeZone.currentSystemDefault()
+            val tz = trip.zone()
             ExpensesUiState(
                 loading = false,
                 summary = summarizeExpenses(trip.baseCurrency, trip.budgetMinor, list, tz),

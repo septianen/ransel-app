@@ -1305,4 +1305,15 @@
     <string name="near_other">Cari tempat lain</string>
     <string name="near_other_hint">Ketik nama daerah atau tempat</string>
     <string name="near_note">Lokasi saat ini hanya disarankan selama trip berlangsung dan kamu berada di dekat destinasi.</string>
+    <string name="overseas_auto">Otomatis dari destinasi</string>
+    <string name="overseas_currency_title">Mata uang di lokasi: %1$s</string>
+    <string name="overseas_currency_body">Pengeluaran baru otomatis dalam %1$s, dikonversi ke %2$s</string>
+    <string name="overseas_time_title">Waktu %1$s (%2$s)</string>
+    <string name="zone_ahead">%1$s jam lebih cepat dari WIB</string>
+    <string name="zone_behind">%1$s jam lebih lambat dari WIB</string>
+    <string name="zone_same">sama dengan WIB</string>
+    <string name="zone_local_note">jam itinerary pakai waktu lokal</string>
+    <string name="expense_rate_daily">Kurs 1 %1$s = %2$s · %3$s</string>
+    <string name="expense_rate_own">Pakai kurs sendiri</string>
+    <string name="expense_foreign_note">Total dan patungan tetap dalam %1$s. Nilai aslinya disimpan, jadi kurs bisa diperbaiki nanti.</string>
 </resources>

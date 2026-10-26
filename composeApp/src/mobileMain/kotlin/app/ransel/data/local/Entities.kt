@@ -42,6 +42,10 @@ data class TripEntity(
     val destLng: Double? = null,
     /** JSON of `ViewportDto`. */
     val destViewportJson: String? = null,
+    /** Destination country, its currency and IANA zone (DB v8); null = home. */
+    val countryCode: String? = null,
+    val localCurrency: String? = null,
+    val timeZone: String? = null,
 )
 
 @Entity(tableName = "itinerary_items", indices = [Index("tripId")])
@@ -110,6 +114,9 @@ data class ExpenseEntity(
     @ColumnInfo(defaultValue = "0") val isEstimate: Boolean = false,
     /** JSON list of `ExpenseItemDto` (DB v6): the receipt lines of a "per item" split; null = none. */
     val itemsJson: String? = null,
+    /** Where the rate came from, `FxSource` name (DB v8), and the day of the reference rate as ISO text. */
+    val fxSource: String? = null,
+    val fxDate: String? = null,
 )
 
 /** Key/value store for per-device preferences (theme, default currency, ...). Never synced. */

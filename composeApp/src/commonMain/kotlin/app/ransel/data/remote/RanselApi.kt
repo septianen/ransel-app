@@ -59,6 +59,7 @@ import app.ransel.shared.dto.RedeemVoucherRequest
 import app.ransel.shared.dto.RedeemVoucherResponse
 import app.ransel.shared.dto.CreateSettlementRequest
 import app.ransel.shared.dto.SettlementDto
+import app.ransel.shared.dto.FxRateDto
 import app.ransel.shared.dto.PlaceDto
 import app.ransel.shared.dto.PlaceSuggestionsDto
 import app.ransel.shared.dto.PopularDestinationDto
@@ -325,6 +326,13 @@ class RanselApi(
             parameter("lng", lng)
         }) { it.body<ApiResponse<ReverseGeocodeDto>>().data }
     suspend fun popularDestinations(): ApiResult<List<PopularDestinationDto>> = get(ApiRoutes.PLACES_POPULAR)
+    /** 1 [from] in [to] on [date] (the latest earlier day when that one has no rate). */
+    suspend fun fxRate(from: String, to: String, date: LocalDate): ApiResult<FxRateDto> =
+        call(HttpMethod.Get, ApiRoutes.FX_RATE, bodyOf = {
+            parameter("from", from)
+            parameter("to", to)
+            parameter("date", date.toString())
+        }) { it.body<ApiResponse<FxRateDto>>().data }
 
     // ── group money: kitty, payment info, receipts ──────────────────────────
     suspend fun kitty(tripId: String): ApiResult<KittyOverviewDto> = get(ApiRoutes.kitty(tripId))

@@ -52,6 +52,7 @@ import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.destination_hint
 import app.ransel.feature.destination.DestinationField
+import app.ransel.shared.domain.isOverseas
 import ransel.composeapp.generated.resources.currency_locked_hint
 import ransel.composeapp.generated.resources.currency_sheet_title
 import ransel.composeapp.generated.resources.delete_trip_activities
@@ -140,6 +141,9 @@ fun TripFormScreen(
             picked = state.destinationPlace != null,
             placeholder = stringResource(Res.string.destination_hint),
         )
+        if (isOverseas(state.countryCode)) {
+            app.ransel.feature.trip.OverseasCard(state.currency, state.localCurrency, state.timeZone)
+        }
 
         // Dates
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

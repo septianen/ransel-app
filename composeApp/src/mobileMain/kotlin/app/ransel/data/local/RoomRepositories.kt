@@ -72,6 +72,7 @@ class RoomTripRepository(
             endDate = request.endDate.toString(), baseCurrency = request.baseCurrency,
             budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
             createdAt = stamp, updatedAt = stamp, deletedAt = null,
+            countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone,
         ).withPlace(request.destinationPlace)
         db.tripDao().upsert(entity)
     }
@@ -89,6 +90,11 @@ class RoomTripRepository(
                 ).let {
                     // same rule as the server: no place keeps the stored one while the name stays
                     if (request.destinationPlace != null || current.destination != request.destination.trim()) it.withPlace(request.destinationPlace) else it
+                }.let {
+                    val sent = request.countryCode != null || request.localCurrency != null || request.timeZone != null
+                    if (sent || current.destination != request.destination.trim()) {
+                        it.copy(countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone)
+                    } else it
                 },
             )
             // Shortened dates never delete activities: they go back to "Belum dijadwalkan".
@@ -214,6 +220,7 @@ class RoomExpenseRepository(
                 paidByMemberId = input.payers.firstOrNull()?.memberId ?: input.paidByMemberId ?: memberIdFor(tripId, currentUserId()),
                 splitsJson = input.splits.toSplitsJson(), payersJson = input.payers.toPayersJson(),
                 paidFromKitty = input.paidFromKitty, isEstimate = input.isEstimate, itemsJson = input.items.toItemsJson(),
+                fxSource = input.fxSource?.name.takeIf { input.fxRateToBase != null }, fxDate = input.fxDate?.toString().takeIf { input.fxRateToBase != null },
                 createdAt = created, updatedAt = stamp, deletedAt = null,
             ),
         )

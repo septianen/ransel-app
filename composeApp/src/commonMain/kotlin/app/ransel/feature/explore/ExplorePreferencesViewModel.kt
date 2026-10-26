@@ -60,6 +60,8 @@ data class ExplorePreferencesState(
     val destination: String = "",
     /** A new trip's destination picked from the suggestions (stored on the trip). */
     val destinationPlace: TripPlaceDto? = null,
+    /** Country, local currency and zone of the picked destination (new trip). */
+    val locale: app.ransel.shared.domain.TripLocale? = null,
     val startDate: LocalDate,
     val endDate: LocalDate,
     /** null = follow the default "Trip ke <destination>". */
@@ -224,13 +226,18 @@ class ExplorePreferencesViewModel(
     // ── form ───────────────────────────────────────────────────────────────
 
     fun setDestination(value: String) {
-        _state.update { it.copy(destination = value.take(200), destinationPlace = null) }
+        _state.update { it.copy(destination = value.take(200), destinationPlace = null, locale = null) }
         requestSuggestions(debounce = true)
     }
 
     /** Picked in the destination picker: the chips load right away. */
     fun pickDestination(choice: DestinationChoice) {
-        _state.update { it.copy(destination = choice.name.take(200), destinationPlace = choice.place) }
+        _state.update {
+            it.copy(
+                destination = choice.name.take(200), destinationPlace = choice.place,
+                locale = app.ransel.shared.domain.localeForPlace(choice.countryCode, choice.timeZone),
+            )
+        }
         requestSuggestions(debounce = false)
     }
 
@@ -283,6 +290,7 @@ class ExplorePreferencesViewModel(
                             id = id, title = title, destination = s.destination.trim(), startDate = s.startDate,
                             endDate = s.endDate, baseCurrency = preferences.observe().first().defaultCurrency,
                             destinationPlace = s.destinationPlace,
+                            countryCode = s.locale?.countryCode, localCurrency = s.locale?.localCurrency, timeZone = s.locale?.timeZone,
                         ),
                     )
                 }

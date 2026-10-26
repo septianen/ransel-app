@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import app.ransel.feature.destination.DestinationChoice
+import app.ransel.shared.domain.localeForPlace
 import app.ransel.shared.dto.TripPlaceDto
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -34,6 +35,10 @@ data class TripFormState(
     val destination: String = "",
     /** Where [destination] is, when it was picked from the suggestions. */
     val destinationPlace: TripPlaceDto? = null,
+    /** From the picked destination (overseas trips); null = home. */
+    val countryCode: String? = null,
+    val localCurrency: String? = null,
+    val timeZone: String? = null,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val currency: String = "IDR",
@@ -86,6 +91,9 @@ class TripFormViewModel(
                             title = trip.title,
                             destination = trip.destination,
                             destinationPlace = trip.destinationPlace,
+                            countryCode = trip.countryCode,
+                            localCurrency = trip.localCurrency,
+                            timeZone = trip.timeZone,
                             startDate = trip.startDate,
                             endDate = trip.endDate,
                             currency = trip.baseCurrency,
@@ -99,10 +107,19 @@ class TripFormViewModel(
     }
 
     fun onTitleChange(value: String) = _state.update { it.copy(title = value) }
-    fun onDestinationChange(value: String) = _state.update { it.copy(destination = value, destinationPlace = null) }
+    fun onDestinationChange(value: String) =
+        _state.update { it.copy(destination = value, destinationPlace = null, countryCode = null, localCurrency = null, timeZone = null) }
 
-    fun onDestinationPicked(choice: DestinationChoice) =
-        _state.update { it.copy(destination = choice.name, destinationPlace = choice.place) }
+    /** The place sets its country, the local currency and the zone; the main currency stays as chosen (IDR by default). */
+    fun onDestinationPicked(choice: DestinationChoice) {
+        val locale = localeForPlace(choice.countryCode, choice.timeZone)
+        _state.update {
+            it.copy(
+                destination = choice.name, destinationPlace = choice.place,
+                countryCode = locale.countryCode, localCurrency = locale.localCurrency, timeZone = locale.timeZone,
+            )
+        }
+    }
     fun onBudgetChange(value: String) = _state.update { it.copy(budgetDigits = value.filter(Char::isDigit).take(12)) }
     fun onCurrencyChange(code: String) = _state.update { it.copy(currency = code) }
 
@@ -127,6 +144,7 @@ class TripFormViewModel(
                         id = id, title = s.title, destination = s.destination, startDate = s.startDate,
                         endDate = s.endDate, baseCurrency = s.currency, budgetMinor = budgetMinor,
                         destinationPlace = s.destinationPlace,
+                        countryCode = s.countryCode, localCurrency = s.localCurrency, timeZone = s.timeZone,
                     ),
                 )
                 analytics.event(AnalyticsEvent.TripCreated)
@@ -137,6 +155,7 @@ class TripFormViewModel(
                         title = s.title, destination = s.destination, startDate = s.startDate,
                         endDate = s.endDate, baseCurrency = s.currency, budgetMinor = budgetMinor,
                         destinationPlace = s.destinationPlace,
+                        countryCode = s.countryCode, localCurrency = s.localCurrency, timeZone = s.timeZone,
                     ),
                 )
             }

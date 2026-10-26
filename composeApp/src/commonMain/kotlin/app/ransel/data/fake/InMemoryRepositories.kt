@@ -71,6 +71,7 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
             startDate = request.startDate, endDate = request.endDate, baseCurrency = request.baseCurrency,
             budgetMinor = request.budgetMinor, coverUrl = request.coverUrl, createdAt = stamp, updatedAt = stamp,
             destinationPlace = request.destinationPlace,
+            countryCode = request.countryCode, localCurrency = request.localCurrency, timeZone = request.timeZone,
         )
         store.trips.update { it + trip }
     }
@@ -99,7 +100,12 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
                     endDate = request.endDate, baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor,
                     coverUrl = request.coverUrl, updatedAt = now(),
                     destinationPlace = if (request.destinationPlace != null || it.destination != request.destination) request.destinationPlace else it.destinationPlace,
-                )
+                ).let { t ->
+                    val sent = request.countryCode != null || request.localCurrency != null || request.timeZone != null
+                    if (sent || it.destination != request.destination) {
+                        t.copy(countryCode = request.countryCode, localCurrency = request.localCurrency, timeZone = request.timeZone)
+                    } else t
+                }
             }
         }
     }
@@ -207,7 +213,7 @@ class InMemoryExpenseRepository(private val store: InMemoryStore) : ExpenseRepos
                 note = input.note, spentAt = input.spentAt,
                 paidByMemberId = input.payers.firstOrNull()?.memberId ?: input.paidByMemberId ?: memberIdFor(tripId, LOCAL_USER_ID),
                 payers = input.payers, splits = input.splits, paidFromKitty = input.paidFromKitty, isEstimate = input.isEstimate,
-                items = input.items, createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
+                items = input.items, fxSource = input.fxSource, fxDate = input.fxDate, createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
             )
             if (existing == null) list + row else list.map { if (it.id == input.id) row else it }
         }

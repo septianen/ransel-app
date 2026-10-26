@@ -12,6 +12,7 @@ import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripPlaceDto
 import app.ransel.shared.dto.ViewportDto
 import app.ransel.shared.model.Category
+import app.ransel.shared.model.FxSource
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.PackingCategory
 import app.ransel.shared.model.PaymentMethod
@@ -31,6 +32,7 @@ fun TripEntity.toDto() = TripDto(
     startDate = LocalDate.parse(startDate), endDate = LocalDate.parse(endDate),
     baseCurrency = baseCurrency, budgetMinor = budgetMinor, coverUrl = coverUrl, myRole = enumOr(myRole, Role.OWNER),
     destinationPlace = tripPlace(),
+    countryCode = countryCode, localCurrency = localCurrency, timeZone = timeZone,
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
 
@@ -72,6 +74,7 @@ fun ExpenseEntity.toDto() = ExpenseDto(
     payers = payersJson.toPayers(),
     splits = splitsJson.toSplits(),
     paidFromKitty = paidFromKitty, isEstimate = isEstimate, items = itemsJson.toItems(),
+    fxSource = fxSource?.let { s -> FxSource.entries.firstOrNull { it.name == s } }, fxDate = fxDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
 
@@ -84,6 +87,7 @@ fun TripDto.toEntity() = TripEntity(
     budgetMinor = budgetMinor, coverUrl = coverUrl,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED, myRole = myRole.name,
+    countryCode = countryCode, localCurrency = localCurrency, timeZone = timeZone,
 ).withPlace(destinationPlace)
 
 fun ItineraryItemDto.toEntity() = ItineraryItemEntity(
@@ -107,6 +111,7 @@ fun ExpenseDto.toEntity() = ExpenseEntity(
     category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
     paidByMemberId = paidByMemberId, splitsJson = splits.toSplitsJson(), payersJson = payers.toPayersJson(),
     paidFromKitty = paidFromKitty, isEstimate = isEstimate, itemsJson = items.toItemsJson(),
+    fxSource = fxSource?.name, fxDate = fxDate?.toString(),
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
 )

@@ -50,7 +50,15 @@ import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.TripDto
+import app.ransel.data.remote.ApiResult
+import app.ransel.data.remote.RanselApi
+import app.ransel.feature.trip.zone
+import app.ransel.shared.domain.convertMinor
+import app.ransel.shared.domain.isOverseas
 import app.ransel.shared.model.Category
+import app.ransel.shared.model.FxSource
+import app.ransel.ui.format.formatMoney
+import org.koin.compose.koinInject
 import app.ransel.shared.model.PaymentMethod
 import app.ransel.ui.category.expenseLabel
 import app.ransel.ui.category.expenseSymbol
@@ -79,6 +87,8 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.expense_rate_daily
+import ransel.composeapp.generated.resources.expense_rate_own
 import ransel.composeapp.generated.resources.expense_estimate_banner
 import ransel.composeapp.generated.resources.expense_estimate_save
 import ransel.composeapp.generated.resources.expense_from_kitty
@@ -131,25 +141,34 @@ fun ExpenseSheet(
     /** Trip members (empty = solo: no paid-by / split section). */
     members: List<TripMemberDto> = emptyList(),
     myMemberId: String? = null,
+    api: RanselApi = koinInject(),
     /** Non-null when the trip has a kitty: the "Ambil dari kas" switch shows. */
     kitty: KittyChoice? = null,
     /** "Bayar dari kas" opened the sheet: the switch starts on. */
     startFromKitty: Boolean = false,
 ) {
-    val tz = remember { TimeZone.currentSystemDefault() }
+    val tz = remember(trip.timeZone) { trip.zone() }
     val dates = rememberDateFormatter()
     val defaultDate = remember {
         today().takeIf { it >= trip.startDate && it <= trip.endDate } ?: trip.startDate
     }
     val existingLocal = remember(existing) { existing?.spentAt?.toLocalDateTime(tz) }
 
-    var currency by remember { mutableStateOf(existing?.currency ?: trip.baseCurrency) }
+    // abroad a new expense starts in the local currency (PRD "Overseas trips")
+    var currency by remember {
+        mutableStateOf(existing?.currency ?: trip.localCurrency?.takeIf { isOverseas(trip.countryCode) } ?: trip.baseCurrency)
+    }
     var amountText by remember { mutableStateOf(existing?.let { amountToInput(it.amountMinor, it.currency) }.orEmpty()) }
     var category by remember { mutableStateOf(existing?.category ?: Category.FOOD) }
     var note by remember { mutableStateOf(existing?.note.orEmpty()) }
     var date by remember { mutableStateOf(existingLocal?.date ?: defaultDate) }
     var method by remember { mutableStateOf(existing?.paymentMethod ?: PaymentMethod.CASH) }
     var rateText by remember { mutableStateOf(existing?.fxRateToBase.orEmpty()) }
+    var fxSource by remember { mutableStateOf(existing?.fxSource) }
+    var fxDate by remember { mutableStateOf(existing?.fxDate) }
+    var dailyRate by remember { mutableStateOf<app.ransel.shared.dto.FxRateDto?>(null) }
+    // a typed rate stays; otherwise the day's reference rate fills it (signed in and online only)
+    var showRateField by remember { mutableStateOf(existing?.fxSource == FxSource.MANUAL) }
     var showErrors by remember { mutableStateOf(false) }
     var pickCurrency by remember { mutableStateOf(false) }
     var pickDate by remember { mutableStateOf(false) }
@@ -164,6 +183,19 @@ fun ExpenseSheet(
     }
 
     val foreign = !currency.equals(trip.baseCurrency, ignoreCase = true)
+    androidx.compose.runtime.LaunchedEffect(currency, date, foreign) {
+        if (!foreign || fxSource == FxSource.MANUAL) return@LaunchedEffect
+        when (val r = api.fxRate(currency, trip.baseCurrency, date)) {
+            is ApiResult.Success -> {
+                dailyRate = r.value
+                rateText = r.value.rate
+                fxSource = FxSource.DAILY
+                fxDate = r.value.date
+            }
+            // offline or signed out: the rate is typed by hand
+            is ApiResult.Failure -> if (rateText.isBlank()) showRateField = true
+        }
+    }
     val amountMinor = parseAmountMinor(amountText, currency)
     val rate = rateText.trim().replace(',', '.').toDoubleOrNull()
     val amountError = showErrors && (amountMinor == null || amountMinor <= 0)
@@ -198,6 +230,8 @@ fun ExpenseSheet(
                 amountMinor = amountMinor,
                 currency = currency,
                 fxRateToBase = if (foreign) rateText.trim().replace(',', '.') else null,
+                fxSource = if (foreign) fxSource ?: FxSource.MANUAL else null,
+                fxDate = if (foreign && fxSource == FxSource.DAILY) fxDate else null,
                 category = category,
                 paymentMethod = method,
                 note = note.trim().ifEmpty { null },
@@ -275,11 +309,33 @@ fun ExpenseSheet(
                     }
                 },
             )
-            if (foreign) {
+            if (foreign && rate != null && rate > 0.0 && amountMinor != null) {
+                val inBase = convertMinor(amountMinor, currency, trip.baseCurrency, rateText.trim().replace(',', '.'))
+                Text("≈ " + formatMoney(inBase, trip.baseCurrency), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            if (foreign && !showRateField && fxSource == FxSource.DAILY && rate != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(
+                            Res.string.expense_rate_daily, currency, formatMoney(kotlin.math.round(rate).toLong(), trip.baseCurrency),
+                            fxDate?.let { dates.dayMonthYear(it) }.orEmpty(),
+                        ),
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = { showRateField = true }) { Text(stringResource(Res.string.expense_rate_own)) }
+                }
+            }
+            if (foreign && showRateField) {
                 IrisTextField(
                     label = stringResource(Res.string.expense_rate, trip.baseCurrency),
                     value = rateText,
-                    onValueChange = { rateText = it.filter { c -> c.isDigit() || c == ',' || c == '.' } },
+                    onValueChange = {
+                        rateText = it.filter { c -> c.isDigit() || c == ',' || c == '.' }
+                        fxSource = FxSource.MANUAL
+                        fxDate = null
+                    },
                     prefix = currencySymbol(trip.baseCurrency),
                     placeholder = stringResource(Res.string.expense_rate_hint, currency, trip.baseCurrency),
                     error = if (rateError) stringResource(Res.string.expense_error_rate) else null,

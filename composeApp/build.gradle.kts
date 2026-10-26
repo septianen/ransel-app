@@ -127,7 +127,11 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
         val wasmJsMain by getting {
-            dependencies { implementation(libs.ktor.client.js) }
+            dependencies {
+                implementation(libs.ktor.client.js)
+                // named time zones (a trip's "Asia/Tokyo") for kotlinx-datetime in the browser
+                implementation(npm("@js-joda/timezone", "2.26.0"))
+            }
         }
     }
 }

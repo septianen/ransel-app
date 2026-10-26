@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.expenses.receipt.AddExpenseChooserSheet
 import app.ransel.feature.expenses.receipt.ReceiptFlow
+import app.ransel.feature.trip.zone
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripMemberDto
@@ -118,7 +119,7 @@ fun ExpensesTab(
     var receipt by remember { mutableStateOf(false) }
     val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
     val dates = rememberDateFormatter()
-    val tz = remember { TimeZone.currentSystemDefault() }
+    val tz = remember(trip.timeZone) { trip.zone() }
     val eventTexts = MoneyEventTexts.load()
     LaunchedEffect(viewModel) {
         viewModel.events.collect { event -> snackbar.showSnackbar(eventTexts.of(event)) }

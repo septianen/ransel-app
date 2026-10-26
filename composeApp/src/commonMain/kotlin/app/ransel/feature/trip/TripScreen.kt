@@ -127,7 +127,11 @@ fun TripScreen(
         Column(modifier) {
             TripHeader(
                 title = current?.title.orEmpty(),
-                dates = current?.let { dates.range(it.startDate, it.endDate) }.orEmpty(),
+                // abroad or in WITA/WIT the header says how far local time is from WIB
+                dates = current?.let { trip ->
+                    val zone = trip.timeZone?.takeIf { z -> (app.ransel.shared.domain.minutesFromWib(z, kotlin.time.Clock.System.now()) ?: 0) != 0 }
+                    dates.range(trip.startDate, trip.endDate) + (zone?.let { z -> " · " + zoneCity(z) + ", " + zoneDifferenceText(z).orEmpty() } ?: "")
+                }.orEmpty(),
                 selectedTab = tab,
                 onTabSelected = { tab = it },
                 onBack = onBack,

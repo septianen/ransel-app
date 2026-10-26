@@ -1313,4 +1313,15 @@
     <string name="near_other">Search another place</string>
     <string name="near_other_hint">Type an area or a place</string>
     <string name="near_note">The current location is only suggested while the trip is on and you are near the destination.</string>
+    <string name="overseas_auto">Set from the destination</string>
+    <string name="overseas_currency_title">Local currency: %1$s</string>
+    <string name="overseas_currency_body">New expenses start in %1$s and are converted to %2$s</string>
+    <string name="overseas_time_title">%1$s time (%2$s)</string>
+    <string name="zone_ahead">%1$s h ahead of WIB</string>
+    <string name="zone_behind">%1$s h behind WIB</string>
+    <string name="zone_same">same as WIB</string>
+    <string name="zone_local_note">itinerary times are local</string>
+    <string name="expense_rate_daily">1 %1$s = %2$s · %3$s</string>
+    <string name="expense_rate_own">Use my own rate</string>
+    <string name="expense_foreign_note">Totals and splits stay in %1$s. The original amount is kept, so the rate can be corrected later.</string>
 </resources>

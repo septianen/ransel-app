@@ -34,8 +34,10 @@ import kotlinx.serialization.builtins.ListSerializer
 data class DestinationChoice(
     val name: String,
     val place: TripPlaceDto? = null,
-    /** ISO country of the place, for overseas trips (stage 6). */
+    /** ISO country of the place, for overseas trips. */
     val countryCode: String? = null,
+    /** IANA zone of the place. */
+    val timeZone: String? = null,
 )
 
 /** One of the last ten destinations picked on this device ("Terakhir dipakai"). */
@@ -173,7 +175,7 @@ class DestinationPickerViewModel(
             val place = (api.place(placeId, sessionToken) as? ApiResult.Success)?.value
             _state.update { it.copy(resolving = false) }
             finish(
-                DestinationChoice(name, place?.let { TripPlaceDto(it.placeId, it.lat, it.lng, it.viewport) }, place?.countryCode),
+                DestinationChoice(name, place?.let { TripPlaceDto(it.placeId, it.lat, it.lng, it.viewport) }, place?.countryCode, place?.timeZone),
                 secondary,
             )
         }
