@@ -31,6 +31,8 @@ data class CreatePackingItemRequest(
     val name: String,
     val quantity: Int = 1,
     val sortOrder: Double = 0.0,
+    /** Bersama, "Siapa yang bawa?": an active member of the trip, or null = "Belum ditentukan". */
+    val assigneeMemberId: String? = null,
 )
 
 /** PATCH /trips/{id}/packing/{itemId}. null = leave unchanged. Ticking = {"isPacked": true}. */
