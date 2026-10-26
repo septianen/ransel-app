@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.ransel.feature.expenses.receipt.AddExpenseChooserSheet
+import app.ransel.feature.expenses.receipt.ReceiptFlow
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripMemberDto
@@ -61,6 +63,15 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.expenses_estimated_line
+import ransel.composeapp.generated.resources.expense_estimate_chip
+import ransel.composeapp.generated.resources.expense_kitty_chip
+import ransel.composeapp.generated.resources.money_event_claimed
+import ransel.composeapp.generated.resources.money_event_confirmed
+import ransel.composeapp.generated.resources.money_event_deposit
+import ransel.composeapp.generated.resources.money_event_failed
+import ransel.composeapp.generated.resources.money_event_kitty
+import ransel.composeapp.generated.resources.money_event_rejected
 import ransel.composeapp.generated.resources.ic_expenses_empty
 import ransel.composeapp.generated.resources.expenses_by_category
 import ransel.composeapp.generated.resources.expenses_donut_description
@@ -85,19 +96,43 @@ fun ExpensesTab(
     modifier: Modifier = Modifier,
     /** Bumped by the trip screen's pull to refresh: members and balances are asked for again. */
     refreshKey: Int = 0,
+    /** Account → Info pembayaran, from the Saldo view. */
+    onOpenPaymentMethods: () -> Unit = {},
     viewModel: ExpensesViewModel = koinViewModel(key = "expenses-${trip.id}") { parametersOf(trip) },
 ) {
     LaunchedEffect(refreshKey) { if (refreshKey > 0) viewModel.loadMembers() }
     val state by viewModel.state.collectAsState()
     val members by viewModel.members.collectAsState()
     val balances by viewModel.balances.collectAsState()
+    val money by viewModel.money.collectAsState()
     val shared = members.size > 1
     val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
+    val isOwner = trip.myRole == app.ransel.shared.model.Role.OWNER
     val myMemberId = viewModel.myMemberId
     var sharedTab by rememberSaveable { mutableStateOf(SharedTab.SUMMARY) }
     var sheet by remember { mutableStateOf<ExpenseSheetTarget?>(null) }
+    var remind by remember { mutableStateOf<RemindTarget?>(null) }
+    var kittySetup by remember { mutableStateOf(false) }
+    var depositSheet by remember { mutableStateOf(false) }
+    var chooser by remember { mutableStateOf(false) }
+    var receipt by remember { mutableStateOf(false) }
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
     val dates = rememberDateFormatter()
     val tz = remember { TimeZone.currentSystemDefault() }
+    val eventTexts = MoneyEventTexts.load()
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event -> snackbar.showSnackbar(eventTexts.of(event)) }
+    }
+    val kittyOverview = money.kitty
+    val kittyChoice = kittyOverview?.kitty?.let { k ->
+        KittyChoice(
+            treasurerId = k.treasurerMemberId,
+            holderName = members.firstOrNull { it.memberId == k.treasurerMemberId }?.displayName ?: "?",
+            leftMinor = kittyOverview.summary.leftMinor,
+            shareIds = app.ransel.shared.domain.kittyShareMemberIds(kittyOverview.deposits, members.map { it.memberId }),
+        )
+    }
+    val myName = members.firstOrNull { it.memberId == myMemberId }?.displayName.orEmpty()
 
     Box(modifier.fillMaxSize()) {
         when {
@@ -118,12 +153,37 @@ fun ExpensesTab(
                 ) {
                     if (shared) SharedTabSwitch(sharedTab, onSelect = { sharedTab = it })
                     if (shared && sharedTab == SharedTab.BALANCES) {
-                        BalancesContent(
-                            state = balances,
+                        LaunchedEffect(Unit) { viewModel.loadMyMethods() }
+                        SaldoContent(
+                            balances = balances,
+                            money = money,
                             members = members,
                             myMemberId = myMemberId,
                             onRetry = viewModel::loadBalances,
                             onSettle = viewModel::settle,
+                            onRemind = { t -> remind = RemindTarget(t, kitty = false) },
+                            onPay = viewModel::openPayTo,
+                            onConfirm = { viewModel.confirm(it.id) },
+                            onReject = { viewModel.reject(it.id) },
+                            onOpenPayInfo = onOpenPaymentMethods,
+                        )
+                        return@Column
+                    }
+                    if (shared && sharedTab == SharedTab.KITTY) {
+                        val treasurer = kittyOverview?.kitty?.treasurerMemberId
+                        KittyContent(
+                            overview = kittyOverview,
+                            members = members,
+                            myMemberId = myMemberId,
+                            currency = trip.baseCurrency,
+                            isOwner = isOwner,
+                            canRecord = canEdit || (treasurer != null && treasurer == myMemberId),
+                            onSetup = { kittySetup = true },
+                            onRecordDeposit = { depositSheet = true },
+                            onPayFromKitty = if (canEdit) ({ sheet = ExpenseSheetTarget.New(fromKitty = true) }) else null,
+                            onRemind = { member, amount ->
+                                remind = RemindTarget(app.ransel.shared.dto.TransferDto(member.memberId, treasurer ?: "", amount), kitty = true)
+                            },
                         )
                         return@Column
                     }
@@ -132,6 +192,13 @@ fun ExpensesTab(
                         budgetMinor = trip.budgetMinor,
                         currency = trip.baseCurrency,
                     )
+                    if (summary.estimatedMinor > 0) {
+                        Text(
+                            stringResource(Res.string.expenses_estimated_line, formatMoney(summary.estimatedMinor, trip.baseCurrency)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     val mine = balances.balances?.members?.firstOrNull { it.memberId == myMemberId }
                     if (shared && mine != null) {
                         PositionCard(mine, balances.balances!!.baseCurrency, onOpen = { sharedTab = SharedTab.BALANCES })
@@ -174,10 +241,95 @@ fun ExpensesTab(
             IconFab(
                 Symbols.add,
                 label = stringResource(Res.string.expenses_record),
-                onClick = { sheet = ExpenseSheetTarget.New },
+                // signed in: "Foto struk" or "Catat manual"; a guest can only type it
+                onClick = { if (myMemberId != null) chooser = true else sheet = ExpenseSheetTarget.New() },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             )
         }
+        androidx.compose.material3.SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 88.dp))
+    }
+
+    if (chooser) {
+        AddExpenseChooserSheet(
+            tripTitle = trip.title,
+            onReceipt = {
+                chooser = false
+                receipt = true
+            },
+            onManual = {
+                chooser = false
+                sheet = ExpenseSheetTarget.New()
+            },
+            onDismiss = { chooser = false },
+        )
+    }
+    if (receipt) {
+        ReceiptFlow(
+            trip = trip,
+            members = members,
+            myMemberId = myMemberId,
+            onSave = {
+                viewModel.save(it)
+                receipt = false
+            },
+            onDismiss = { receipt = false },
+            onManual = {
+                receipt = false
+                sheet = ExpenseSheetTarget.New()
+            },
+        )
+    }
+    remind?.let { target ->
+        val member = members.firstOrNull { it.memberId == target.transfer.fromMemberId }
+        RemindSheet(
+            transfer = target.transfer,
+            member = member,
+            myName = myName,
+            tripTitle = trip.title,
+            currency = trip.baseCurrency,
+            myMethods = money.myMethods,
+            includePayInfo = money.includePayInfo,
+            onIncludePayInfo = viewModel::setIncludePayInfo,
+            onDismiss = { remind = null },
+            kittyHolder = if (target.kitty) members.firstOrNull { it.memberId == target.transfer.toMemberId }?.displayName else null,
+        )
+    }
+    money.payTo?.let { payTo ->
+        PayToSheet(
+            state = payTo,
+            members = members,
+            currency = trip.baseCurrency,
+            busy = money.busy,
+            onClaim = { viewModel.claim(payTo.transfer) },
+            onDismiss = viewModel::closePayTo,
+        )
+    }
+    if (kittySetup) {
+        KittySetupSheet(
+            members = members,
+            currency = trip.baseCurrency,
+            current = kittyOverview,
+            myMemberId = myMemberId,
+            busy = money.busy,
+            onSave = { amount, treasurer ->
+                viewModel.setKitty(amount, treasurer)
+                kittySetup = false
+            },
+            onDismiss = { kittySetup = false },
+        )
+    }
+    if (depositSheet && kittyOverview != null) {
+        DepositSheet(
+            members = members,
+            overview = kittyOverview,
+            currency = trip.baseCurrency,
+            busy = money.busy,
+            onSave = { member, amount ->
+                viewModel.addDeposit(member, amount)
+                depositSheet = false
+            },
+            onDismiss = { depositSheet = false },
+        )
     }
 
     sheet?.let { target ->
@@ -185,6 +337,8 @@ fun ExpensesTab(
             state.groups.flatMap { it.items }.firstOrNull { it.id == edit.id }
         }
         if (target is ExpenseSheetTarget.New || existing != null) {
+            // kitty expenses are in the base currency; a foreign or unshared expense never offers the kitty
+            val offerKitty = kittyChoice.takeIf { existing == null || existing.paidFromKitty || existing.currency == trip.baseCurrency }
             ExpenseSheet(
                 trip = trip,
                 existing = existing,
@@ -201,14 +355,49 @@ fun ExpensesTab(
                 onDismiss = { sheet = null },
                 members = members,
                 myMemberId = myMemberId,
+                kitty = offerKitty,
+                startFromKitty = (target as? ExpenseSheetTarget.New)?.fromKitty == true,
             )
         }
     }
 }
 
 sealed interface ExpenseSheetTarget {
-    data object New : ExpenseSheetTarget
+    data class New(val fromKitty: Boolean = false) : ExpenseSheetTarget
     data class Edit(val id: String) : ExpenseSheetTarget
+}
+
+/** "Ingatkan": a transfer to me, or a kitty contribution ([kitty]: `toMemberId` is the treasurer). */
+data class RemindTarget(val transfer: app.ransel.shared.dto.TransferDto, val kitty: Boolean)
+
+/** Snackbar texts for [MoneyEvent], read once per composition. */
+class MoneyEventTexts(
+    private val claimed: String,
+    private val confirmed: String,
+    private val deposit: String,
+    private val kitty: String,
+    private val rejected: String,
+    private val failed: String,
+) {
+    fun of(event: MoneyEvent): String = when (event) {
+        MoneyEvent.Claimed -> claimed
+        MoneyEvent.Confirmed -> confirmed
+        MoneyEvent.DepositSaved -> deposit
+        MoneyEvent.KittySaved -> kitty
+        is MoneyEvent.Failed -> if (event.code == ExpensesViewModel.REJECTED) rejected else failed.replace("%1\$s", event.code)
+    }
+
+    companion object {
+        @Composable
+        fun load() = MoneyEventTexts(
+            stringResource(Res.string.money_event_claimed),
+            stringResource(Res.string.money_event_confirmed),
+            stringResource(Res.string.money_event_deposit),
+            stringResource(Res.string.money_event_kitty),
+            stringResource(Res.string.money_event_rejected),
+            stringResource(Res.string.money_event_failed, "%1\$s"),
+        )
+    }
 }
 
 @Composable
@@ -305,6 +494,17 @@ private fun ExpenseRow(
                 subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (expense.isEstimate || expense.paidFromKitty) {
+            Text(
+                stringResource(if (expense.isEstimate) Res.string.expense_estimate_chip else Res.string.expense_kitty_chip),
+                Modifier
+                    .clip(IrisShape.sm)
+                    .background(if (expense.isEstimate) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.primaryContainer)
+                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (expense.isEstimate) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
         app.ransel.ui.components.PendingMarker(expense.id)

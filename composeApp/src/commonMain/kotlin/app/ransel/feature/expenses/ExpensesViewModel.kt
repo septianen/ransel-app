@@ -12,7 +12,16 @@ import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.shared.dto.BalancesDto
+import app.ransel.shared.dto.ClaimSettlementRequest
 import app.ransel.shared.dto.CreateSettlementRequest
+import app.ransel.shared.dto.KittyDepositInput
+import app.ransel.shared.dto.KittyInput
+import app.ransel.shared.dto.KittyOverviewDto
+import app.ransel.shared.dto.PayInfoDto
+import app.ransel.shared.dto.PaymentMethodDto
+import app.ransel.shared.dto.SettlementDto
+import app.ransel.shared.model.SettlementStatus
+import app.ransel.data.repository.PreferencesRepository
 import app.ransel.shared.dto.TransferDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.util.newId
@@ -58,11 +67,50 @@ data class BalancesUiState(
     val settling: Boolean = false,
 )
 
+/** Kitty, open claims and the "Bayar ke" sheet (server data, signed-in only). */
+data class MoneyUiState(
+    /** Null until loaded; `kitty.kitty == null` = the trip has no kitty yet. */
+    val kitty: KittyOverviewDto? = null,
+    /** Settlements of the trip; the CLAIMED_PAID ones wait for their receiver. */
+    val settlements: List<SettlementDto> = emptyList(),
+    /** A kitty, deposit, claim or confirmation request is in flight. */
+    val busy: Boolean = false,
+    /** "Bayar ke": the receiver's info for the open transfer, while the sheet loads or shows it. */
+    val payTo: PayToState? = null,
+    /** The caller's own payment info, for "Ingatkan" messages; null until asked for. */
+    val myMethods: List<PaymentMethodDto>? = null,
+    /** "Sertakan di pengingat bayar" (per device). */
+    val includePayInfo: Boolean = true,
+) {
+    /** Claims that wait for [memberId] to confirm. */
+    fun claimsTo(memberId: String?) = settlements.filter { it.status == SettlementStatus.CLAIMED_PAID && it.toMemberId == memberId }
+
+    /** Claims [memberId] made that are not confirmed yet. */
+    fun claimsFrom(memberId: String?) = settlements.filter { it.status == SettlementStatus.CLAIMED_PAID && it.fromMemberId == memberId }
+}
+
+data class PayToState(
+    val transfer: TransferDto,
+    val loading: Boolean = true,
+    val info: PayInfoDto? = null,
+    val failure: ApiFailure? = null,
+)
+
+/** One-off results of money actions, shown as a snackbar. */
+sealed interface MoneyEvent {
+    data class Failed(val code: String) : MoneyEvent
+    data object Claimed : MoneyEvent
+    data object Confirmed : MoneyEvent
+    data object DepositSaved : MoneyEvent
+    data object KittySaved : MoneyEvent
+}
+
 class ExpensesViewModel(
     private val trip: TripDto,
     private val repository: ExpenseRepository,
     private val api: RanselApi,
     private val session: SessionManager,
+    private val preferences: PreferencesRepository? = null,
     private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
     /** Members of the trip; empty for guests, offline, or before the first answer (the tab then behaves as solo). */
@@ -80,8 +128,18 @@ class ExpensesViewModel(
     /** `ErrorCode` of a failed "Tandai lunas". */
     val problems = _problems.receiveAsFlow()
 
+    private val _money = MutableStateFlow(MoneyUiState())
+    val money: StateFlow<MoneyUiState> = _money.asStateFlow()
+
+    private val _events = Channel<MoneyEvent>(Channel.BUFFERED)
+    val events = _events.receiveAsFlow()
+
     init {
         loadMembers()
+        viewModelScope.launch {
+            val saved = preferences?.getString(PAY_INFO_IN_REMINDERS)
+            _money.update { it.copy(includePayInfo = saved != "false") }
+        }
     }
 
     fun loadMembers() {
@@ -90,9 +148,101 @@ class ExpensesViewModel(
             val result = api.members(trip.id)
             if (result is ApiResult.Success) {
                 _members.value = result.value
-                if (result.value.size > 1) loadBalances()
+                if (result.value.size > 1) {
+                    loadBalances()
+                    loadMoney()
+                }
             }
         }
+    }
+
+    /** Kitty and settlements; both are needed by the Saldo and Kas views. */
+    fun loadMoney() {
+        if (session.user == null) return
+        viewModelScope.launch {
+            (api.kitty(trip.id) as? ApiResult.Success)?.let { r -> _money.update { it.copy(kitty = r.value) } }
+            (api.settlements(trip.id) as? ApiResult.Success)?.let { r -> _money.update { it.copy(settlements = r.value) } }
+        }
+    }
+
+    private fun refreshAfterMoneyChange() {
+        loadBalances()
+        loadMoney()
+    }
+
+    private fun moneyAction(block: suspend () -> ApiResult<*>, done: MoneyEvent, after: () -> Unit = {}) {
+        if (_money.value.busy) return
+        _money.update { it.copy(busy = true) }
+        viewModelScope.launch {
+            when (val result = block()) {
+                is ApiResult.Success -> {
+                    _events.send(done)
+                    after()
+                }
+                is ApiResult.Failure -> _events.send(MoneyEvent.Failed(result.error.code))
+            }
+            _money.update { it.copy(busy = false) }
+            refreshAfterMoneyChange()
+        }
+    }
+
+    /** OWNER: contribution per person and who holds the money. */
+    fun setKitty(amountPerMemberMinor: Long, treasurerMemberId: String) = moneyAction(
+        { api.setKitty(trip.id, KittyInput(amountPerMemberMinor, treasurerMemberId)) },
+        MoneyEvent.KittySaved,
+    ) { analytics.event(AnalyticsEvent.KittySet) }
+
+    /** "Catat setoran": [memberId] put [amountMinor] into the kitty (received by the current treasurer). */
+    fun addDeposit(memberId: String, amountMinor: Long) = moneyAction(
+        { api.addDeposit(trip.id, KittyDepositInput(newId(), memberId, amountMinor)) },
+        MoneyEvent.DepositSaved,
+    ) { analytics.event(AnalyticsEvent.KittyDeposit) }
+
+    /** "Saya sudah bayar" for my open transfer; it counts once the receiver confirms. */
+    fun claim(transfer: TransferDto) = moneyAction(
+        { api.claimSettlement(trip.id, ClaimSettlementRequest(newId(), transfer.toMemberId, transfer.amountMinor)) },
+        MoneyEvent.Claimed,
+    ) {
+        analytics.event(AnalyticsEvent.SettlementClaimed)
+        _money.update { it.copy(payTo = null) }
+    }
+
+    fun confirm(settlementId: String) = moneyAction(
+        { api.confirmSettlement(trip.id, settlementId) },
+        MoneyEvent.Confirmed,
+    ) { analytics.event(AnalyticsEvent.SettlementConfirmed) }
+
+    /** The receiver did not get the money: the claim goes away. */
+    fun reject(settlementId: String) = moneyAction({ api.deleteSettlement(trip.id, settlementId) }, MoneyEvent.Failed(REJECTED))
+
+    /** Opens "Bayar ke" for [transfer] (which must be mine) and loads the receiver's payment info. */
+    fun openPayTo(transfer: TransferDto) {
+        _money.update { it.copy(payTo = PayToState(transfer)) }
+        viewModelScope.launch {
+            val result = api.payInfo(trip.id, transfer.fromMemberId, transfer.toMemberId)
+            _money.update { state ->
+                if (state.payTo?.transfer != transfer) return@update state
+                when (result) {
+                    is ApiResult.Success -> state.copy(payTo = state.payTo.copy(loading = false, info = result.value))
+                    is ApiResult.Failure -> state.copy(payTo = state.payTo.copy(loading = false, failure = result.error))
+                }
+            }
+        }
+    }
+
+    fun closePayTo() = _money.update { it.copy(payTo = null) }
+
+    /** My own payment info, for the reminder message. */
+    fun loadMyMethods() {
+        if (session.user == null || _money.value.myMethods != null) return
+        viewModelScope.launch {
+            (api.paymentMethods() as? ApiResult.Success)?.let { r -> _money.update { it.copy(myMethods = r.value) } }
+        }
+    }
+
+    fun setIncludePayInfo(include: Boolean) {
+        _money.update { it.copy(includePayInfo = include) }
+        viewModelScope.launch { preferences?.putString(PAY_INFO_IN_REMINDERS, include.toString()) }
     }
 
     fun loadBalances() {
@@ -151,9 +301,24 @@ class ExpensesViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExpensesUiState())
 
     fun save(input: ExpenseInput) {
-        val isNew = state.value.groups.none { group -> group.items.any { it.id == input.id } }
-        viewModelScope.launch { repository.save(trip.id, input) }
-        if (isNew) analytics.event(AnalyticsEvent.ExpenseAdded(input.category, shared = input.splits.isNotEmpty()))
+        val before = state.value.groups.flatMap { it.items }.firstOrNull { it.id == input.id }
+        viewModelScope.launch {
+            repository.save(trip.id, input)
+            // the kitty and the balances move with kitty expenses and paid estimates
+            if (input.paidFromKitty || before?.paidFromKitty == true || before?.isEstimate == true) refreshAfterMoneyChange()
+        }
+        if (before == null) analytics.event(AnalyticsEvent.ExpenseAdded(input.category, shared = input.splits.isNotEmpty()))
+    }
+
+    /** The treasurer a kitty expense is paid by; null without a kitty (the toggle is then hidden). */
+    val treasurerId: String? get() = _money.value.kitty?.kitty?.treasurerMemberId
+
+    companion object {
+        /** Per-device preference behind "Sertakan di pengingat bayar". */
+        const val PAY_INFO_IN_REMINDERS = "pay_info_in_reminders"
+
+        /** Not an error: the claim was turned down by its receiver. */
+        const val REJECTED = "REJECTED"
     }
 
     fun delete(expenseId: String) {

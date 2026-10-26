@@ -16,12 +16,13 @@ import kotlinx.coroutines.Dispatchers
         ExpenseEntity::class,
         PreferenceEntity::class,
     ],
-    version = 5,
+    version = 6,
     autoMigrations = [
         AutoMigration(from = 1, to = 2), // expenses.splitsJson
         AutoMigration(from = 2, to = 3), // trips.myRole
         AutoMigration(from = 3, to = 4), // expenses.payersJson
         AutoMigration(from = 4, to = 5, spec = Migration4To5::class), // paidByUserId -> paidByMemberId, member ids in the JSON
+        AutoMigration(from = 5, to = 6), // expenses.paidFromKitty, isEstimate, itemsJson
     ],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)

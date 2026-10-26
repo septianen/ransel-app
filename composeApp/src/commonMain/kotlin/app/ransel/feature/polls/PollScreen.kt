@@ -47,6 +47,9 @@ import app.ransel.feature.comments.CommentButton
 import app.ransel.feature.comments.ProvideComments
 import app.ransel.shared.domain.PollAction
 import app.ransel.shared.domain.actionFor
+import app.ransel.shared.domain.stayEstimateMinor
+import app.ransel.shared.model.PollPriceUnit
+import app.ransel.ui.format.formatMoney
 import app.ransel.shared.domain.pollHoursLeft
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.PollOptionDto
@@ -72,6 +75,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.poll_decide_estimate_no_price
+import ransel.composeapp.generated.resources.poll_decide_estimate_total
+import ransel.composeapp.generated.resources.poll_decide_estimate
 import ransel.composeapp.generated.resources.poll_search_action
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_cancel
@@ -253,6 +259,14 @@ private fun DecideDialog(poll: PollDto, dialog: PollDialog.Decide, state: PollUi
             PollAction.SET_DESTINATION -> stringResource(Res.string.poll_decide_destination, option.label)
             PollAction.ADD_UNSCHEDULED_PLACE -> stringResource(Res.string.poll_decide_place, option.label)
             PollAction.ADD_ACTIVITY -> stringResource(Res.string.poll_decide_food, option.label)
+            PollAction.ADD_ESTIMATE -> option.priceMinor?.takeIf { it > 0 }?.let { price ->
+                val estimate = stayEstimateMinor(price, option.priceUnit, state.tripNights, state.members.size)
+                if (option.priceUnit == null || option.priceUnit == PollPriceUnit.NIGHT) {
+                    stringResource(Res.string.poll_decide_estimate, formatMoney(estimate, state.currency), state.tripNights.coerceAtLeast(1))
+                } else {
+                    stringResource(Res.string.poll_decide_estimate_total, formatMoney(estimate, state.currency))
+                }
+            } ?: stringResource(Res.string.poll_decide_estimate_no_price)
             PollAction.NONE -> stringResource(Res.string.poll_decide_none)
         }
     }

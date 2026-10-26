@@ -71,6 +71,8 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.shared)
             implementation(projects.iris)
+            // receipt photos: image picker everywhere, camera and compression on Android/iOS
+            implementation(libs.filekit.dialogs.compose)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)

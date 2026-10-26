@@ -34,6 +34,9 @@ import app.ransel.feature.polls.needFor
 import app.ransel.feature.polls.symbol
 import app.ransel.feature.polls.tileColor
 import app.ransel.shared.dto.PollDto
+import app.ransel.ui.format.formatMoney
+import app.ransel.shared.dto.TransferDto
+import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.model.PollKind
 import app.ransel.shared.model.PollStatus
@@ -62,6 +65,8 @@ import ransel.composeapp.generated.resources.group_countdown_ongoing
 import ransel.composeapp.generated.resources.group_guest_tag
 import ransel.composeapp.generated.resources.group_members_title
 import ransel.composeapp.generated.resources.group_needs_empty
+import ransel.composeapp.generated.resources.group_need_confirm
+import ransel.composeapp.generated.resources.group_need_pay
 import ransel.composeapp.generated.resources.group_polls_empty
 import ransel.composeapp.generated.resources.group_polls_title
 import ransel.composeapp.generated.resources.poll_need_decide
@@ -95,6 +100,8 @@ fun GroupTab(
     onOpenPoll: (pollId: String) -> Unit,
     refreshKey: Int,
     modifier: Modifier = Modifier,
+    /** A money item in "Perlu tindakanmu" opens the Pengeluaran tab. */
+    onOpenMoney: () -> Unit = {},
     viewModel: GroupViewModel = koinViewModel(key = "group-${trip.id}") { parametersOf(trip.id) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -113,6 +120,10 @@ fun GroupTab(
         onOpenMembers = onOpenMembers,
         onOpenPoll = onOpenPoll,
         modifier = modifier,
+        owes = state.owes,
+        claimsToConfirm = state.claimsToConfirm,
+        currency = state.currency,
+        onOpenMoney = onOpenMoney,
     )
 }
 
@@ -131,6 +142,10 @@ fun GroupContent(
     onOpenMembers: () -> Unit,
     onOpenPoll: (pollId: String) -> Unit,
     modifier: Modifier = Modifier,
+    owes: List<TransferDto> = emptyList(),
+    claimsToConfirm: List<SettlementDto> = emptyList(),
+    currency: String = trip.baseCurrency,
+    onOpenMoney: () -> Unit = {},
 ) {
     val dates = rememberDateFormatter()
     val pollNeeds = polls.mapNotNull { poll -> poll.needFor(myMemberId, isOwner)?.let { poll to it } }
@@ -148,7 +163,14 @@ fun GroupContent(
         Section(stringResource(Res.string.group_needs_title)) {
             if (hasNeeds) needs()
             pollNeeds.forEach { (poll, need) -> PollNeedCard(poll, need) { onOpenPoll(poll.id) } }
-            if (!hasNeeds && pollNeeds.isEmpty()) Text(
+            fun nameOf(id: String) = members.firstOrNull { it.memberId == id }?.displayName ?: "?"
+            claimsToConfirm.forEach { claim ->
+                MoneyNeedCard(stringResource(Res.string.group_need_confirm, nameOf(claim.fromMemberId), formatMoney(claim.amountMinor, currency)), onOpenMoney)
+            }
+            owes.forEach { t ->
+                MoneyNeedCard(stringResource(Res.string.group_need_pay, formatMoney(t.amountMinor, currency), nameOf(t.toMemberId)), onOpenMoney)
+            }
+            if (!hasNeeds && pollNeeds.isEmpty() && owes.isEmpty() && claimsToConfirm.isEmpty()) Text(
                 stringResource(Res.string.group_needs_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -183,6 +205,24 @@ fun GroupContent(
 }
 
 /** A poll that asks something of the user: vote, or (creator and owner) confirm the result. */
+@Composable
+private fun MoneyNeedCard(text: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(IrisShape.lg)
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable(role = SemanticsRole.Button, onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Symbol(Symbols.payments, filled = true, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+        Text(text, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+        Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+    }
+}
+
 @Composable
 private fun PollNeedCard(poll: PollDto, need: PollNeed, onClick: () -> Unit) {
     Row(

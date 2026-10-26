@@ -28,6 +28,13 @@ sealed class AnalyticsEvent(val name: String, val params: Map<String, Any> = emp
         AnalyticsEvent("expense_added", mapOf("category" to category.name, "shared" to shared))
     data object BalanceSettled : AnalyticsEvent("balance_settled")
 
+    // Group money (stage 4).
+    data object KittySet : AnalyticsEvent("kitty_set")
+    data object KittyDeposit : AnalyticsEvent("kitty_deposit")
+    data object SettlementClaimed : AnalyticsEvent("settlement_claimed")
+    data object SettlementConfirmed : AnalyticsEvent("settlement_confirmed")
+    data class ReceiptScanned(val readable: Boolean) : AnalyticsEvent("receipt_scanned", mapOf("readable" to readable))
+
     // Explore AI is useful.
     data class ExploreSearch(val newSearch: Boolean, val results: Int) :
         AnalyticsEvent("explore_search", mapOf("new_search" to newSearch, "results" to results))

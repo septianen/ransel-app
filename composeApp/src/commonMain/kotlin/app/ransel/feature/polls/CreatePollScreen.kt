@@ -57,6 +57,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.poll_apply_estimate
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_ok
 import ransel.composeapp.generated.resources.poll_add_option
@@ -205,6 +206,7 @@ private fun applyHint(kind: PollKind): String = stringResource(
         PollAction.SET_DESTINATION -> Res.string.poll_apply_destination
         PollAction.ADD_UNSCHEDULED_PLACE -> Res.string.poll_apply_place
         PollAction.ADD_ACTIVITY -> Res.string.poll_apply_food
+        PollAction.ADD_ESTIMATE -> Res.string.poll_apply_estimate
         PollAction.NONE -> Res.string.poll_apply_winner
     },
 )

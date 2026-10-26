@@ -98,6 +98,12 @@ data class ExpenseEntity(
     val splitsJson: String? = null,
     /** JSON list of `ExpensePayerDto` (DB v4) when several people paid; null = `paidByMemberId` paid all. */
     val payersJson: String? = null,
+    /** "Ambil dari kas" (DB v6): `paidByMemberId` is then the treasurer. */
+    @ColumnInfo(defaultValue = "0") val paidFromKitty: Boolean = false,
+    /** A planned cost (DB v6), e.g. the stay chosen in a poll: not in balances, not in "spent". */
+    @ColumnInfo(defaultValue = "0") val isEstimate: Boolean = false,
+    /** JSON list of `ExpenseItemDto` (DB v6): the receipt lines of a "per item" split; null = none. */
+    val itemsJson: String? = null,
 )
 
 /** Key/value store for per-device preferences (theme, default currency, ...). Never synced. */

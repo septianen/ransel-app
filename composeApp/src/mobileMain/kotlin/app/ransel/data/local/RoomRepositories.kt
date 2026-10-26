@@ -210,6 +210,7 @@ class RoomExpenseRepository(
                 // with several payers the first one is "who paid"
                 paidByMemberId = input.payers.firstOrNull()?.memberId ?: input.paidByMemberId ?: memberIdFor(tripId, currentUserId()),
                 splitsJson = input.splits.toSplitsJson(), payersJson = input.payers.toPayersJson(),
+                paidFromKitty = input.paidFromKitty, isEstimate = input.isEstimate, itemsJson = input.items.toItemsJson(),
                 createdAt = created, updatedAt = stamp, deletedAt = null,
             ),
         )

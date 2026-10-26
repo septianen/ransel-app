@@ -48,6 +48,7 @@ import app.ransel.ui.theme.IrisShape
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.kitty_tab
 import ransel.composeapp.generated.resources.shared_balance_collect
 import ransel.composeapp.generated.resources.shared_balance_collect_short
 import ransel.composeapp.generated.resources.shared_balance_even_short
@@ -88,9 +89,9 @@ private fun List<TripMemberDto>.nameOf(memberId: String, myMemberId: String?, yo
 
 // ── Summary / Balances switch ───────────────────────────────────────────────
 
-enum class SharedTab { SUMMARY, BALANCES }
+enum class SharedTab { SUMMARY, BALANCES, KITTY }
 
-/** The two-segment switch at the top of the shared Expenses tab (design "Ringkasan | Saldo"). */
+/** The switch at the top of the shared Expenses tab (design "Ringkasan | Saldo | Kas"). */
 @Composable
 fun SharedTabSwitch(selected: SharedTab, onSelect: (SharedTab) -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -110,7 +111,13 @@ fun SharedTabSwitch(selected: SharedTab, onSelect: (SharedTab) -> Unit, modifier
             ) {
                 if (isSelected) Symbol(Symbols.check, size = 18.dp, tint = scheme.onPrimaryContainer)
                 Text(
-                    stringResource(if (tab == SharedTab.SUMMARY) Res.string.shared_tab_summary else Res.string.shared_tab_balances),
+                    stringResource(
+                        when (tab) {
+                            SharedTab.SUMMARY -> Res.string.shared_tab_summary
+                            SharedTab.BALANCES -> Res.string.shared_tab_balances
+                            SharedTab.KITTY -> Res.string.kitty_tab
+                        },
+                    ),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
                 )
@@ -323,12 +330,14 @@ fun SplitSection(
     currency: String,
     myMemberId: String?,
     modifier: Modifier = Modifier,
+    /** Shown instead of "Dibayar oleh" (the kitty pays). */
+    payerSlot: (@Composable () -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val you = stringResource(Res.string.shared_you)
     val shares = split.shares(amountMinor, currency)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (payerSlot != null) payerSlot() else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(Res.string.shared_paid_by), style = MaterialTheme.typography.labelLarge)
                 Text(

@@ -59,6 +59,15 @@ import app.ransel.shared.dto.RedeemVoucherRequest
 import app.ransel.shared.dto.RedeemVoucherResponse
 import app.ransel.shared.dto.CreateSettlementRequest
 import app.ransel.shared.dto.SettlementDto
+import app.ransel.shared.dto.ClaimSettlementRequest
+import app.ransel.shared.dto.KittyDepositDto
+import app.ransel.shared.dto.KittyDepositInput
+import app.ransel.shared.dto.KittyInput
+import app.ransel.shared.dto.KittyOverviewDto
+import app.ransel.shared.dto.PayInfoDto
+import app.ransel.shared.dto.PaymentMethodDto
+import app.ransel.shared.dto.PaymentMethodInput
+import app.ransel.shared.dto.ReceiptDraftDto
 import app.ransel.shared.dto.InviteDto
 import app.ransel.shared.dto.InvitePreviewDto
 import app.ransel.shared.dto.TransferOwnershipRequest
@@ -283,6 +292,38 @@ class RanselApi(
     suspend fun settlements(tripId: String): ApiResult<List<SettlementDto>> = get(ApiRoutes.settlements(tripId))
     suspend fun createSettlement(tripId: String, request: CreateSettlementRequest): ApiResult<SettlementDto> =
         send(HttpMethod.Post, ApiRoutes.settlements(tripId), request)
+    /** "Saya sudah bayar": the caller's own member paid; the receiver confirms later. */
+    suspend fun claimSettlement(tripId: String, request: ClaimSettlementRequest): ApiResult<SettlementDto> =
+        send(HttpMethod.Post, ApiRoutes.settlementClaim(tripId), request)
+    suspend fun confirmSettlement(tripId: String, settlementId: String): ApiResult<SettlementDto> =
+        call(HttpMethod.Post, ApiRoutes.settlementConfirm(tripId, settlementId)) { it.body<ApiResponse<SettlementDto>>().data }
+    suspend fun deleteSettlement(tripId: String, settlementId: String): ApiResult<Unit> =
+        delete(ApiRoutes.settlement(tripId, settlementId))
+    suspend fun payInfo(tripId: String, fromMemberId: String, toMemberId: String): ApiResult<PayInfoDto> =
+        get(ApiRoutes.payInfo(tripId, fromMemberId, toMemberId))
+
+    // ── group money: kitty, payment info, receipts ──────────────────────────
+    suspend fun kitty(tripId: String): ApiResult<KittyOverviewDto> = get(ApiRoutes.kitty(tripId))
+    suspend fun setKitty(tripId: String, request: KittyInput): ApiResult<KittyOverviewDto> =
+        send(HttpMethod.Put, ApiRoutes.kitty(tripId), request)
+    suspend fun addDeposit(tripId: String, request: KittyDepositInput): ApiResult<KittyDepositDto> =
+        send(HttpMethod.Post, ApiRoutes.kittyDeposits(tripId), request)
+    suspend fun deleteDeposit(tripId: String, depositId: String): ApiResult<Unit> = delete(ApiRoutes.kittyDeposit(tripId, depositId))
+    suspend fun paymentMethods(): ApiResult<List<PaymentMethodDto>> = get(ApiRoutes.ME_PAYMENT_METHODS)
+    suspend fun addPaymentMethod(request: PaymentMethodInput): ApiResult<PaymentMethodDto> =
+        send(HttpMethod.Post, ApiRoutes.ME_PAYMENT_METHODS, request)
+    suspend fun updatePaymentMethod(id: String, request: PaymentMethodInput): ApiResult<PaymentMethodDto> =
+        send(HttpMethod.Patch, ApiRoutes.mePaymentMethod(id), request)
+    suspend fun deletePaymentMethod(id: String): ApiResult<Unit> = delete(ApiRoutes.mePaymentMethod(id))
+
+    /** A receipt photo ([mimeType] image/jpeg, png or webp) read by the server's AI; costs credits. */
+    suspend fun parseReceipt(tripId: String, image: ByteArray, mimeType: String): ApiResult<ReceiptDraftDto> =
+        call(HttpMethod.Post, ApiRoutes.RECEIPTS_PARSE, bodyOf = {
+            parameter("tripId", tripId)
+            contentType(ContentType.parse(mimeType))
+            setBody(image)
+            timeout { requestTimeoutMillis = RECOMMENDATION_TIMEOUT_MILLIS }
+        }) { it.body<ApiResponse<ReceiptDraftDto>>().data }
 
     // ── packing templates (Phase 4) ─────────────────────────────────────────
     suspend fun packingTemplates(): ApiResult<List<PackingTemplateDto>> = get(ApiRoutes.PACKING_TEMPLATES)

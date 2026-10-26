@@ -48,6 +48,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.paymethod_title
 import ransel.composeapp.generated.resources.account_about
 import ransel.composeapp.generated.resources.account_confirm_reorder
 import ransel.composeapp.generated.resources.account_confirm_reorder_hint
@@ -109,6 +110,7 @@ fun AccountScreen(
     modifier: Modifier = Modifier,
     debugContent: (@Composable () -> Unit)? = null,
     onOpenCredits: () -> Unit = {},
+    onOpenPaymentMethods: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onSignIn: () -> Unit = {},
     onSignUp: () -> Unit = {},
@@ -162,6 +164,7 @@ fun AccountScreen(
                     val credits by rememberCredits()
                     SettingRow(Symbols.notifications, stringResource(Res.string.account_notifications), null, onClick = onOpenNotifications)
                     SettingRow(Symbols.autoAwesome, stringResource(Res.string.account_credits), credits?.available?.toString(), onClick = onOpenCredits)
+                    SettingRow(Symbols.accountBalance, stringResource(Res.string.paymethod_title), null, onClick = onOpenPaymentMethods)
                     SettingRow(Symbols.logout, stringResource(Res.string.account_sign_out), null, onClick = { confirmSignOut = true })
                 } else if (!requiresAccount) {
                     Text(

@@ -204,7 +204,8 @@ class InMemoryExpenseRepository(private val store: InMemoryStore) : ExpenseRepos
                 fxRateToBase = input.fxRateToBase, category = input.category, paymentMethod = input.paymentMethod,
                 note = input.note, spentAt = input.spentAt,
                 paidByMemberId = input.payers.firstOrNull()?.memberId ?: input.paidByMemberId ?: memberIdFor(tripId, LOCAL_USER_ID),
-                payers = input.payers, splits = input.splits, createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
+                payers = input.payers, splits = input.splits, paidFromKitty = input.paidFromKitty, isEstimate = input.isEstimate,
+                items = input.items, createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
             )
             if (existing == null) list + row else list.map { if (it.id == input.id) row else it }
         }

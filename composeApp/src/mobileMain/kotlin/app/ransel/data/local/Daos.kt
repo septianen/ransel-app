@@ -195,12 +195,13 @@ interface SyncDao {
 
     /**
      * In one trip the guest's member (`memberIdFor(trip, LOCAL_USER_ID)`) becomes the account's: who paid, and the
-     * id inside the splits and payers JSON. SQL `replace` keeps a NULL column NULL.
+     * id inside the splits, payers and receipt items JSON. SQL `replace` keeps a NULL column NULL.
      */
     @Query(
         "UPDATE expenses SET " +
             "paidByMemberId = CASE WHEN paidByMemberId = :oldId THEN :newId ELSE paidByMemberId END, " +
-            "splitsJson = replace(splitsJson, :oldId, :newId), payersJson = replace(payersJson, :oldId, :newId) " +
+            "splitsJson = replace(splitsJson, :oldId, :newId), payersJson = replace(payersJson, :oldId, :newId), " +
+            "itemsJson = replace(itemsJson, :oldId, :newId) " +
             "WHERE tripId = :tripId",
     )
     suspend fun reownExpenseMember(tripId: String, oldId: String, newId: String)

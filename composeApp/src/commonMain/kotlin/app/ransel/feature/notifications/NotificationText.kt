@@ -49,7 +49,12 @@ fun notificationLine(n: NotificationDto): NotificationLine {
         NotificationType.SETTLEMENT_MARKED -> {
             val amount = money("amountMinor")
             NotificationLine(
-                if (amount != null) stringResource(Res.string.notification_settlement_marked, actor ?: "", amount).trim() else stringResource(Res.string.notification_unknown),
+                when {
+                    amount == null -> stringResource(Res.string.notification_unknown)
+                    // "Saya sudah bayar": the receiver is asked to confirm
+                    p["stage"] == "CLAIMED" -> stringResource(Res.string.notification_settlement_claimed, actor ?: "", amount).trim()
+                    else -> stringResource(Res.string.notification_settlement_marked, actor ?: "", amount).trim()
+                },
                 trip,
             )
         }

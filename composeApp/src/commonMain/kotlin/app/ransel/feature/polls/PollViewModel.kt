@@ -25,6 +25,7 @@ import app.ransel.shared.dto.VotePollRequest
 import app.ransel.shared.model.Role
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlinx.datetime.daysUntil
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -76,6 +77,8 @@ data class PollUiState(
     val search: PollSearchState? = null,
     val destination: String = "",
     val currency: String = "IDR",
+    /** Nights of the trip, for the estimate a STAY winner becomes. */
+    val tripNights: Int = 0,
     val myMemberId: String? = null,
     val myRole: Role = Role.VIEWER,
 ) {
@@ -110,7 +113,14 @@ class PollViewModel(
     init {
         viewModelScope.launch {
             trips.observeTrip(tripId).collect { trip ->
-                if (trip != null) _state.update { it.copy(currency = trip.baseCurrency, myRole = trip.myRole, destination = trip.destination) }
+                if (trip != null) {
+                    _state.update {
+                        it.copy(
+                            currency = trip.baseCurrency, myRole = trip.myRole, destination = trip.destination,
+                            tripNights = trip.startDate.daysUntil(trip.endDate),
+                        )
+                    }
+                }
             }
         }
         load()

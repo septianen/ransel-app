@@ -8,6 +8,9 @@ import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.PollDto
+import app.ransel.shared.dto.SettlementDto
+import app.ransel.shared.dto.TransferDto
+import app.ransel.shared.model.SettlementStatus
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.feature.trips.TripPhase
@@ -41,6 +44,10 @@ data class GroupUiState(
     val members: List<TripMemberDto> = emptyList(),
     val polls: List<PollDto> = emptyList(),
     val failure: ApiFailure? = null,
+    /** "Perlu tindakanmu" money: my open transfers and claims that wait for me (shared trips only). */
+    val owes: List<TransferDto> = emptyList(),
+    val claimsToConfirm: List<SettlementDto> = emptyList(),
+    val currency: String = "IDR",
 ) {
     /** People added by name, without an account. */
     val guests: List<TripMemberDto> get() = members.filter { it.isGuest }
@@ -80,6 +87,22 @@ class GroupViewModel(
             }
             // polls are a convenience on this tab: if they fail to load the rest still shows
             (api.polls(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(polls = r.value) } }
+            // so is money: what I owe and what waits for my confirmation
+            if (_state.value.members.size > 1) {
+                val me = myMemberId
+                val claims = (api.settlements(tripId) as? ApiResult.Success)?.value.orEmpty()
+                    .filter { it.status == SettlementStatus.CLAIMED_PAID }
+                val claimed = claims.map { it.fromMemberId to it.toMemberId }.toSet()
+                (api.balances(tripId) as? ApiResult.Success)?.value?.let { b ->
+                    _state.update { state ->
+                        state.copy(
+                            owes = b.transfers.filter { it.fromMemberId == me && (it.fromMemberId to it.toMemberId) !in claimed },
+                            claimsToConfirm = claims.filter { it.toMemberId == me },
+                            currency = b.baseCurrency,
+                        )
+                    }
+                }
+            }
         }
     }
 }

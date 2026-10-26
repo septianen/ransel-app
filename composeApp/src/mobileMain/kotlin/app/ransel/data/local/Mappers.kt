@@ -2,6 +2,7 @@ package app.ransel.data.local
 
 import app.ransel.data.remote.ApiJson
 import app.ransel.shared.dto.ExpenseDto
+import app.ransel.shared.dto.ExpenseItemDto
 import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import kotlinx.serialization.builtins.ListSerializer
@@ -51,6 +52,7 @@ fun ExpenseEntity.toDto() = ExpenseDto(
     note = note, spentAt = spentAt.toInstant(), paidByMemberId = paidByMemberId,
     payers = payersJson.toPayers(),
     splits = splitsJson.toSplits(),
+    paidFromKitty = paidFromKitty, isEstimate = isEstimate, items = itemsJson.toItems(),
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
 
@@ -85,12 +87,21 @@ fun ExpenseDto.toEntity() = ExpenseEntity(
     id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
     category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
     paidByMemberId = paidByMemberId, splitsJson = splits.toSplitsJson(), payersJson = payers.toPayersJson(),
+    paidFromKitty = paidFromKitty, isEstimate = isEstimate, itemsJson = items.toItemsJson(),
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
 )
 
 private val splitsSerializer = ListSerializer(ExpenseSplitDto.serializer())
 private val payersSerializer = ListSerializer(ExpensePayerDto.serializer())
+private val itemsSerializer = ListSerializer(ExpenseItemDto.serializer())
+
+/** Receipt lines, one JSON column like the splits; null = no items. */
+fun List<ExpenseItemDto>.toItemsJson(): String? =
+    takeIf { it.isNotEmpty() }?.let { ApiJson.encodeToString(itemsSerializer, it) }
+
+fun String?.toItems(): List<ExpenseItemDto> =
+    if (isNullOrEmpty()) emptyList() else runCatching { ApiJson.decodeFromString(itemsSerializer, this) }.getOrDefault(emptyList())
 
 /** Payers are one JSON column too, written and read with their expense; null = one payer. */
 fun List<ExpensePayerDto>.toPayersJson(): String? =

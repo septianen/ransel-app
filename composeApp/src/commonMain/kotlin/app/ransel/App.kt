@@ -106,6 +106,7 @@ import app.ransel.feature.tripform.TripFormScreen
 import app.ransel.feature.trips.TripListScreen
 import app.ransel.navigation.AccountRoute
 import app.ransel.navigation.CreditsRoute
+import app.ransel.navigation.PaymentMethodsRoute
 import app.ransel.navigation.NotificationSettingsRoute
 import app.ransel.navigation.NotificationsRoute
 import app.ransel.feature.notifications.NotificationPermissionSheet
@@ -649,6 +650,9 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
     page<CreditsRoute> {
         CreditsScreen(onBack = { navController.popBackStack() })
     }
+    page<PaymentMethodsRoute> {
+        app.ransel.feature.account.PaymentMethodsScreen(onBack = { navController.popBackStack() })
+    }
     page<NotificationsRoute> {
         NotificationsScreen(
             onBack = { navController.popBackStack() },
@@ -657,6 +661,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             onOpenMembers = { tripId, guestId, guestName, claimer -> navController.navigate(MembersRoute(tripId, guestId, guestName, claimer)) },
             onOpenPoll = { tripId, pollId -> navController.navigate(PollRoute(tripId, pollId)) },
             onOpenSettings = { navController.navigate(NotificationSettingsRoute) },
+            onOpenExpenses = { navController.navigate(TripRoute(it, TripTab.EXPENSES.name)) },
         )
     }
     page<NotificationSettingsRoute> {
@@ -666,6 +671,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenCredits = { navController.navigate(CreditsRoute) },
+            onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenNotifications = { navController.navigate(NotificationSettingsRoute) },
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
@@ -713,6 +719,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onOpenVoteList = { navController.navigate(VoteListRoute(route.tripId)) },
             onCreatePoll = { kind -> navController.navigate(CreatePollRoute(route.tripId, kind.name)) },
             onOpenPoll = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) },
+            onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
         )
     }
     page<PollRoute> { entry ->

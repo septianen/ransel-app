@@ -202,348 +202,348 @@ Canvas **Karung** (https://claude.ai/artifact/GJbx3VCHbQUVPgkHzmnHbu), not expor
 
 ## Boards added after 14 Oct 2026
 
-Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit in. They have no **Code name** yet: the agent that builds a screen adds the English code name to this table in the same commit. Web boards are 1280 wide (`Width` column); `Og*` boards are 1200 × 630 Open Graph images, not screens. Illustrations follow the mobile board of the same screen; the web sign-in boards use an illustration the old export did not have, written as `../illustrations/canvas-2475ebc2.png` (ask the product owner which IRIS illustration it is). Six older files are no longer on the canvas and are kept as they were: `DaftarTripVoting`, `DetailTempatVoting`, `JelajahTanpaTrip`, `NotifikasiVoting`, `PreferensiAIGrup`, `VotingDitutupMenunggu`.
+Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit in. The **Code name** column is filled in by the agent that builds a screen, in the same commit; empty = not built yet. Web boards are 1280 wide (`Width` column); `Og*` boards are 1200 × 630 Open Graph images, not screens. Illustrations follow the mobile board of the same screen; the web sign-in boards use an illustration the old export did not have, written as `../illustrations/canvas-2475ebc2.png` (ask the product owner which IRIS illustration it is). Six older files are no longer on the canvas and are kept as they were: `DaftarTripVoting`, `DetailTempatVoting`, `JelajahTanpaTrip`, `NotifikasiVoting`, `PreferensiAIGrup`, `VotingDitutupMenunggu`.
 
 ### Rekomendasi AI
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/PreferensiAITokyo.html` | Jelajah: cari untuk trip yang ada, contoh Tokyo tanpa budget (konten penuh) | 390 |
-| `screens/JelajahTripBaru.html` | Jelajah: trip baru (konten penuh) | 390 |
-| `screens/JelajahTripBaruMemuat.html` | Jelajah: trip baru, minat khas sedang dimuat (konten penuh) | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/PreferensiAITokyo.html` |  | Jelajah: cari untuk trip yang ada, contoh Tokyo tanpa budget (konten penuh) | 390 |
+| `screens/JelajahTripBaru.html` |  | Jelajah: trip baru (konten penuh) | 390 |
+| `screens/JelajahTripBaruMemuat.html` |  | Jelajah: trip baru, minat khas sedang dimuat (konten penuh) | 390 |
 
 ### Web · Beranda dan trip
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebBeranda.html` | Web: Beranda | 1280 |
-| `screens/WebBerandaKosong.html` | Web: Beranda kosong (belum ada trip) | 1280 |
-| `screens/WebTripSaya.html` | Web: Trip saya | 1280 |
-| `screens/WebTripSayaKosong.html` | Web: Trip saya kosong | 1280 |
-| `screens/WebTripSelesaiSaja.html` | Web: Trip saya tanpa trip mendatang | 1280 |
-| `screens/WebGelapBeranda.html` | Web: Tema gelap Beranda | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebBeranda.html` |  | Web: Beranda | 1280 |
+| `screens/WebBerandaKosong.html` |  | Web: Beranda kosong (belum ada trip) | 1280 |
+| `screens/WebTripSaya.html` |  | Web: Trip saya | 1280 |
+| `screens/WebTripSayaKosong.html` |  | Web: Trip saya kosong | 1280 |
+| `screens/WebTripSelesaiSaja.html` |  | Web: Trip saya tanpa trip mendatang | 1280 |
+| `screens/WebGelapBeranda.html` |  | Web: Tema gelap Beranda | 1280 |
 
 ### Web · Buat, edit, dan hapus trip
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebBuatTrip.html` | Web: Buat trip (dialog) | 1280 |
-| `screens/WebPilihRentangTanggal.html` | Web: Pilih tanggal trip (date range picker) | 1280 |
-| `screens/WebEditTrip.html` | Web: Edit trip (dialog) | 1280 |
-| `screens/WebDialogHapusTrip.html` | Web: Dialog hapus trip | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebBuatTrip.html` |  | Web: Buat trip (dialog) | 1280 |
+| `screens/WebPilihRentangTanggal.html` |  | Web: Pilih tanggal trip (date range picker) | 1280 |
+| `screens/WebEditTrip.html` |  | Web: Edit trip (dialog) | 1280 |
+| `screens/WebDialogHapusTrip.html` |  | Web: Dialog hapus trip | 1280 |
 
 ### Web · Itinerary
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebItineraryKosong.html` | Web: Itinerary kosong | 1280 |
-| `screens/WebTambahAktivitas.html` | Web: Tambah aktivitas (side sheet) | 1280 |
-| `screens/WebPilihJam.html` | Web: Pilih jam (time picker) | 1280 |
-| `screens/WebSeretAktivitas.html` | Web: Seret aktivitas (sedang digeser) | 1280 |
-| `screens/WebDialogUbahUrutan.html` | Web: Dialog konfirmasi ubah urutan | 1280 |
-| `screens/WebHasilUrutan.html` | Web: Setelah urutan diubah (snackbar) | 1280 |
-| `screens/WebBelumDijadwalkanSemua.html` | Web: Belum dijadwalkan, semua (dialog) | 1280 |
-| `screens/WebJadwalkanTempat.html` | Web: Jadwalkan tempat (dialog) | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebItineraryKosong.html` |  | Web: Itinerary kosong | 1280 |
+| `screens/WebTambahAktivitas.html` |  | Web: Tambah aktivitas (side sheet) | 1280 |
+| `screens/WebPilihJam.html` |  | Web: Pilih jam (time picker) | 1280 |
+| `screens/WebSeretAktivitas.html` |  | Web: Seret aktivitas (sedang digeser) | 1280 |
+| `screens/WebDialogUbahUrutan.html` |  | Web: Dialog konfirmasi ubah urutan | 1280 |
+| `screens/WebHasilUrutan.html` |  | Web: Setelah urutan diubah (snackbar) | 1280 |
+| `screens/WebBelumDijadwalkanSemua.html` |  | Web: Belum dijadwalkan, semua (dialog) | 1280 |
+| `screens/WebJadwalkanTempat.html` |  | Web: Jadwalkan tempat (dialog) | 1280 |
 
 ### Web · Packing
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebPacking.html` | Web: Packing | 1280 |
-| `screens/WebPackingKosong.html` | Web: Packing kosong | 1280 |
-| `screens/WebTambahBarang.html` | Web: Tambah barang (dialog) | 1280 |
-| `screens/WebMenuPacking.html` | Web: Menu packing | 1280 |
-| `screens/WebPilihTemplate.html` | Web: Pakai template packing (dialog) | 1280 |
-| `screens/WebSimpanTemplate.html` | Web: Simpan sebagai template (dialog) | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebPacking.html` |  | Web: Packing | 1280 |
+| `screens/WebPackingKosong.html` |  | Web: Packing kosong | 1280 |
+| `screens/WebTambahBarang.html` |  | Web: Tambah barang (dialog) | 1280 |
+| `screens/WebMenuPacking.html` |  | Web: Menu packing | 1280 |
+| `screens/WebPilihTemplate.html` |  | Web: Pakai template packing (dialog) | 1280 |
+| `screens/WebSimpanTemplate.html` |  | Web: Simpan sebagai template (dialog) | 1280 |
 
 ### Web · Pengeluaran
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebPengeluaran.html` | Web: Pengeluaran | 1280 |
-| `screens/WebPengeluaranKosong.html` | Web: Pengeluaran kosong | 1280 |
-| `screens/WebCatatPengeluaran.html` | Web: Catat pengeluaran (side sheet) | 1280 |
-| `screens/WebPilihTanggal.html` | Web: Pilih tanggal (date picker) | 1280 |
-| `screens/WebGelapPengeluaran.html` | Web: Tema gelap Pengeluaran | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebPengeluaran.html` |  | Web: Pengeluaran | 1280 |
+| `screens/WebPengeluaranKosong.html` |  | Web: Pengeluaran kosong | 1280 |
+| `screens/WebCatatPengeluaran.html` |  | Web: Catat pengeluaran (side sheet) | 1280 |
+| `screens/WebPilihTanggal.html` |  | Web: Pilih tanggal (date picker) | 1280 |
+| `screens/WebGelapPengeluaran.html` |  | Web: Tema gelap Pengeluaran | 1280 |
 
 ### Web · Rekomendasi AI
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebJelajah.html` | Web: Jelajah, pilih trip | 1280 |
-| `screens/WebJelajahLanjut.html` | Web: Jelajah, ada sesi belum selesai | 1280 |
-| `screens/WebJelajahPreferensi.html` | Web: Jelajah, cari untuk trip yang ada (konten penuh) | 1280 |
-| `screens/WebJelajahTripBaru.html` | Web: Jelajah, trip baru (konten penuh) | 1280 |
-| `screens/WebSwipe.html` | Web: Swipe rekomendasi | 1280 |
-| `screens/WebSwipeKanan.html` | Web: Swipe geser kanan (simpan) | 1280 |
-| `screens/WebSwipeKiri.html` | Web: Swipe geser kiri (lewati) | 1280 |
-| `screens/WebSwipeTersimpan.html` | Web: Swipe snackbar setelah simpan | 1280 |
-| `screens/WebMemuatRekomendasi.html` | Web: Swipe memuat | 1280 |
-| `screens/WebSwipeHabis.html` | Web: Swipe rekomendasi habis | 1280 |
-| `screens/WebSwipeError.html` | Web: Jelajah AI error | 1280 |
-| `screens/WebSwipeTidakAda.html` | Web: Jelajah AI tidak ada hasil | 1280 |
-| `screens/WebSwipeKuota.html` | Web: Jelajah AI kuota habis | 1280 |
-| `screens/WebGelapSwipe.html` | Web: Tema gelap Swipe | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebJelajah.html` |  | Web: Jelajah, pilih trip | 1280 |
+| `screens/WebJelajahLanjut.html` |  | Web: Jelajah, ada sesi belum selesai | 1280 |
+| `screens/WebJelajahPreferensi.html` |  | Web: Jelajah, cari untuk trip yang ada (konten penuh) | 1280 |
+| `screens/WebJelajahTripBaru.html` |  | Web: Jelajah, trip baru (konten penuh) | 1280 |
+| `screens/WebSwipe.html` |  | Web: Swipe rekomendasi | 1280 |
+| `screens/WebSwipeKanan.html` |  | Web: Swipe geser kanan (simpan) | 1280 |
+| `screens/WebSwipeKiri.html` |  | Web: Swipe geser kiri (lewati) | 1280 |
+| `screens/WebSwipeTersimpan.html` |  | Web: Swipe snackbar setelah simpan | 1280 |
+| `screens/WebMemuatRekomendasi.html` |  | Web: Swipe memuat | 1280 |
+| `screens/WebSwipeHabis.html` |  | Web: Swipe rekomendasi habis | 1280 |
+| `screens/WebSwipeError.html` |  | Web: Jelajah AI error | 1280 |
+| `screens/WebSwipeTidakAda.html` |  | Web: Jelajah AI tidak ada hasil | 1280 |
+| `screens/WebSwipeKuota.html` |  | Web: Jelajah AI kuota habis | 1280 |
+| `screens/WebGelapSwipe.html` |  | Web: Tema gelap Swipe | 1280 |
 
 ### Web · Akun dan masuk
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebMasuk.html` | Web: Masuk (tanpa opsi tamu) | 1280 |
-| `screens/WebDaftar.html` | Web: Daftar | 1280 |
-| `screens/WebLupaSandi.html` | Web: Lupa kata sandi | 1280 |
-| `screens/WebCekEmail.html` | Web: Lupa kata sandi, cek email | 1280 |
-| `screens/WebSandiBaru.html` | Web: Kata sandi baru | 1280 |
-| `screens/WebSesiBerakhir.html` | Web: Sesi berakhir | 1280 |
-| `screens/WebAkun.html` | Web: Akun | 1280 |
-| `screens/WebSheetMataUang.html` | Web: Akun, pilih mata uang (dialog) | 1280 |
-| `screens/WebSheetTema.html` | Web: Akun, pilih tema (dialog) | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebMasuk.html` |  | Web: Masuk (tanpa opsi tamu) | 1280 |
+| `screens/WebDaftar.html` |  | Web: Daftar | 1280 |
+| `screens/WebLupaSandi.html` |  | Web: Lupa kata sandi | 1280 |
+| `screens/WebCekEmail.html` |  | Web: Lupa kata sandi, cek email | 1280 |
+| `screens/WebSandiBaru.html` |  | Web: Kata sandi baru | 1280 |
+| `screens/WebSesiBerakhir.html` |  | Web: Sesi berakhir | 1280 |
+| `screens/WebAkun.html` |  | Web: Akun | 1280 |
+| `screens/WebSheetMataUang.html` |  | Web: Akun, pilih mata uang (dialog) | 1280 |
+| `screens/WebSheetTema.html` |  | Web: Akun, pilih tema (dialog) | 1280 |
 
 ### Web · Anggota dan bagi biaya
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebAnggotaTrip.html` | Web: Anggota trip (pemilik) | 1280 |
-| `screens/WebMenuAnggota.html` | Web: Anggota, menu ubah peran | 1280 |
-| `screens/WebDialogKeluarkan.html` | Web: Anggota, keluarkan dari trip | 1280 |
-| `screens/WebAnggotaEditor.html` | Web: Anggota trip (dilihat editor) | 1280 |
-| `screens/WebDialogKeluarTrip.html` | Web: Anggota, keluar dari trip | 1280 |
-| `screens/WebUndangAnggota.html` | Web: Undang anggota (dialog) | 1280 |
-| `screens/WebGabungTrip.html` | Web: Gabung trip (dari link undangan) | 1280 |
-| `screens/WebUndanganTidakBerlaku.html` | Web: Undangan tidak berlaku | 1280 |
-| `screens/WebPengeluaranBersama.html` | Web: Pengeluaran bersama, Ringkasan | 1280 |
-| `screens/WebCatatPengeluaranBersama.html` | Web: Catat pengeluaran bersama (side sheet) | 1280 |
-| `screens/WebCatatPengeluaranNominal.html` | Web: Atur nominal, belum pas | 1280 |
-| `screens/WebCatatPengeluaranNominalPas.html` | Web: Atur nominal, pas | 1280 |
-| `screens/WebSaldoTrip.html` | Web: Saldo dan pelunasan | 1280 |
-| `screens/WebCatatPengeluaranPembayar.html` | Web · Catat pengeluaran bersama: dibayar beberapa orang | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebAnggotaTrip.html` |  | Web: Anggota trip (pemilik) | 1280 |
+| `screens/WebMenuAnggota.html` |  | Web: Anggota, menu ubah peran | 1280 |
+| `screens/WebDialogKeluarkan.html` |  | Web: Anggota, keluarkan dari trip | 1280 |
+| `screens/WebAnggotaEditor.html` |  | Web: Anggota trip (dilihat editor) | 1280 |
+| `screens/WebDialogKeluarTrip.html` |  | Web: Anggota, keluar dari trip | 1280 |
+| `screens/WebUndangAnggota.html` |  | Web: Undang anggota (dialog) | 1280 |
+| `screens/WebGabungTrip.html` |  | Web: Gabung trip (dari link undangan) | 1280 |
+| `screens/WebUndanganTidakBerlaku.html` |  | Web: Undangan tidak berlaku | 1280 |
+| `screens/WebPengeluaranBersama.html` |  | Web: Pengeluaran bersama, Ringkasan | 1280 |
+| `screens/WebCatatPengeluaranBersama.html` |  | Web: Catat pengeluaran bersama (side sheet) | 1280 |
+| `screens/WebCatatPengeluaranNominal.html` |  | Web: Atur nominal, belum pas | 1280 |
+| `screens/WebCatatPengeluaranNominalPas.html` |  | Web: Atur nominal, pas | 1280 |
+| `screens/WebSaldoTrip.html` |  | Web: Saldo dan pelunasan | 1280 |
+| `screens/WebCatatPengeluaranPembayar.html` |  | Web · Catat pengeluaran bersama: dibayar beberapa orang | 1280 |
 
 ### Web · State umum
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebStateError.html` | Web: State error koneksi | 1280 |
-| `screens/WebStateServerError.html` | Web: State error server | 1280 |
-| `screens/WebStateComingSoon.html` | Web: State segera hadir | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebStateError.html` |  | Web: State error koneksi | 1280 |
+| `screens/WebStateServerError.html` |  | Web: State error server | 1280 |
+| `screens/WebStateComingSoon.html` |  | Web: State segera hadir | 1280 |
 
 ### Web · Detail tempat dan voting (usulan)
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebDetailTempat.html` | Web · Detail tempat | 1280 |
-| `screens/WebGelapDetailTempat.html` | Web · Tema gelap: Detail tempat | 1280 |
-| `screens/WebVotingBanner.html` | Web · Voting: banner di itinerary | 1280 |
-| `screens/WebVoting.html` | Web · Voting: swipe pilihan teman | 1280 |
-| `screens/WebVotingMenunggu.html` | Web · Voting: suaramu sudah masuk | 1280 |
-| `screens/WebVotingHasil.html` | Web · Voting: hasil untuk owner | 1280 |
-| `screens/WebVotingDitutup.html` | Web · Voting: ditutup (anggota) | 1280 |
-| `screens/WebItineraryLihatDetail.html` | Web · Itinerary: lihat detail tempat AI | 1280 |
-| `screens/WebDetailTempatItinerary.html` | Web · Detail tempat dari itinerary | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebDetailTempat.html` |  | Web · Detail tempat | 1280 |
+| `screens/WebGelapDetailTempat.html` |  | Web · Tema gelap: Detail tempat | 1280 |
+| `screens/WebVotingBanner.html` |  | Web · Voting: banner di itinerary | 1280 |
+| `screens/WebVoting.html` |  | Web · Voting: swipe pilihan teman | 1280 |
+| `screens/WebVotingMenunggu.html` |  | Web · Voting: suaramu sudah masuk | 1280 |
+| `screens/WebVotingHasil.html` |  | Web · Voting: hasil untuk owner | 1280 |
+| `screens/WebVotingDitutup.html` |  | Web · Voting: ditutup (anggota) | 1280 |
+| `screens/WebItineraryLihatDetail.html` |  | Web · Itinerary: lihat detail tempat AI | 1280 |
+| `screens/WebDetailTempatItinerary.html` |  | Web · Detail tempat dari itinerary | 1280 |
 
 ### Verifikasi email (usulan)
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebVerifikasiEmail.html` | Web: Verifikasi email, cek email | 1280 |
-| `screens/WebEmailTerverifikasi.html` | Web: Email terverifikasi | 1280 |
-| `screens/WebVerifikasiTidakBerlaku.html` | Web: Link verifikasi tidak berlaku | 1280 |
-| `screens/WebJelajahBelumVerifikasi.html` | Web: Jelajah, email belum diverifikasi | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebVerifikasiEmail.html` |  | Web: Verifikasi email, cek email | 1280 |
+| `screens/WebEmailTerverifikasi.html` |  | Web: Email terverifikasi | 1280 |
+| `screens/WebVerifikasiTidakBerlaku.html` |  | Web: Link verifikasi tidak berlaku | 1280 |
+| `screens/WebJelajahBelumVerifikasi.html` |  | Web: Jelajah, email belum diverifikasi | 1280 |
 
 ### Trip grup · P0: anggota tanpa akun, gabung, onboarding, menagih
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/OnboardingGrup1.html` | Onboarding grup 1: rencana bareng | 390 |
-| `screens/OnboardingGrup2.html` | Onboarding grup 2: patungan | 390 |
-| `screens/OnboardingGrup3.html` | Onboarding grup 3: siapa bawa apa | 390 |
-| `screens/AjakTeman.html` | Setelah buat trip: ajak teman | 390 |
-| `screens/AnggotaTanpaAkun.html` | Anggota trip: ada anggota tanpa akun | 390 |
-| `screens/TambahAnggotaNama.html` | Tambah anggota tanpa akun (bottom sheet) | 390 |
-| `screens/WebGabungPratinjau.html` | Web di HP: pratinjau trip dari link, tanpa login | 390 |
-| `screens/GabungPilihNama.html` | Gabung trip: klaim nama tanpa akun | 390 |
-| `screens/SaldoTagih.html` | Saldo: ingatkan dan tandai lunas | 390 |
-| `screens/IngatkanWA.html` | Pengingat bayar lewat WhatsApp (bottom sheet) | 390 |
-| `screens/BayarKe.html` | Bayar ke anggota (yang perlu bayar) | 390 |
-| `screens/InfoPembayaran.html` | Akun: info pembayaran | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/OnboardingGrup1.html` |  | Onboarding grup 1: rencana bareng | 390 |
+| `screens/OnboardingGrup2.html` |  | Onboarding grup 2: patungan | 390 |
+| `screens/OnboardingGrup3.html` |  | Onboarding grup 3: siapa bawa apa | 390 |
+| `screens/AjakTeman.html` |  | Setelah buat trip: ajak teman | 390 |
+| `screens/AnggotaTanpaAkun.html` |  | Anggota trip: ada anggota tanpa akun | 390 |
+| `screens/TambahAnggotaNama.html` |  | Tambah anggota tanpa akun (bottom sheet) | 390 |
+| `screens/WebGabungPratinjau.html` |  | Web di HP: pratinjau trip dari link, tanpa login | 390 |
+| `screens/GabungPilihNama.html` |  | Gabung trip: klaim nama tanpa akun | 390 |
+| `screens/SaldoTagih.html` | `SaldoContent` | Saldo: ingatkan dan tandai lunas | 390 |
+| `screens/IngatkanWA.html` | `RemindSheet` | Pengingat bayar lewat WhatsApp (bottom sheet) | 390 |
+| `screens/BayarKe.html` | `PayToSheet` | Bayar ke anggota (yang perlu bayar) | 390 |
+| `screens/InfoPembayaran.html` | `PaymentMethodsScreen` | Akun: info pembayaran | 390 |
 
 ### Trip grup · P1: polling tanggal, barang bersama, kas bersama
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/BuatTripTanggalBelumPasti.html` | Buat trip: tanggal belum pasti | 390 |
-| `screens/BuatPolling.html` | Atur polling tanggal (bottom sheet) | 390 |
-| `screens/PollingTanggal.html` | Polling tanggal: pilih dan tetapkan | 390 |
-| `screens/PackingBersama.html` | Packing: barang bersama | 390 |
-| `screens/TambahBarangBersama.html` | Tambah barang bersama (bottom sheet) | 390 |
-| `screens/KasBersama.html` | Pengeluaran: kas bersama | 390 |
-| `screens/CatatSetoran.html` | Catat setoran kas (bottom sheet) | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/BuatTripTanggalBelumPasti.html` |  | Buat trip: tanggal belum pasti | 390 |
+| `screens/BuatPolling.html` |  | Atur polling tanggal (bottom sheet) | 390 |
+| `screens/PollingTanggal.html` |  | Polling tanggal: pilih dan tetapkan | 390 |
+| `screens/PackingBersama.html` |  | Packing: barang bersama | 390 |
+| `screens/TambahBarangBersama.html` |  | Tambah barang bersama (bottom sheet) | 390 |
+| `screens/KasBersama.html` | `KittyContent` (Expenses tab, Kas) | Pengeluaran: kas bersama | 390 |
+| `screens/CatatSetoran.html` | `DepositSheet` | Catat setoran kas (bottom sheet) | 390 |
 
 ### Trip grup · P2: foto struk, dokumen trip, rekap
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/FotoStruk.html` | Foto struk: kamera | 390 |
-| `screens/HasilStruk.html` | Foto struk: hasil dan bagi per item | 390 |
-| `screens/DokumenTrip.html` | Dokumen trip | 390 |
-| `screens/RekapTrip.html` | Rekap trip untuk dibagikan | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/FotoStruk.html` | `ReceiptFlow` (pick) | Foto struk: kamera | 390 |
+| `screens/HasilStruk.html` | `ReceiptFlow` (result, `ReceiptFormState`) | Foto struk: hasil dan bagi per item | 390 |
+| `screens/DokumenTrip.html` |  | Dokumen trip | 390 |
+| `screens/RekapTrip.html` |  | Rekap trip untuk dibagikan | 390 |
 
 ### Trip grup · titik masuk: polling, foto struk, dokumen, rekap
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/NotifikasiGrup.html` | Notifikasi: polling, bayar, dokumen, rekap | 390 |
-| `screens/ItineraryPolling.html` | Itinerary: tanggal masih dipolling (anggota) | 390 |
-| `screens/PollingTanggalAnggota.html` | Polling tanggal: tampilan anggota | 390 |
-| `screens/WebPollingTamu.html` | Web di HP: polling dari link WhatsApp, tanpa akun | 390 |
-| `screens/TambahPengeluaranPilih.html` | Tambah pengeluaran: pilih cara (tombol +) | 390 |
-| `screens/MenuTrip.html` | Menu trip: tinggal pengaturan trip | 390 |
-| `screens/BerandaRekap.html` | Beranda setelah trip selesai: kartu rekap | 390 |
-| `screens/CatatPengeluaranKas.html` | Catat pengeluaran: toggle ambil dari kas aktif | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/NotifikasiGrup.html` |  | Notifikasi: polling, bayar, dokumen, rekap | 390 |
+| `screens/ItineraryPolling.html` |  | Itinerary: tanggal masih dipolling (anggota) | 390 |
+| `screens/PollingTanggalAnggota.html` |  | Polling tanggal: tampilan anggota | 390 |
+| `screens/WebPollingTamu.html` |  | Web di HP: polling dari link WhatsApp, tanpa akun | 390 |
+| `screens/TambahPengeluaranPilih.html` | `AddExpenseChooserSheet` | Tambah pengeluaran: pilih cara (tombol +) | 390 |
+| `screens/MenuTrip.html` |  | Menu trip: tinggal pengaturan trip | 390 |
+| `screens/BerandaRekap.html` |  | Beranda setelah trip selesai: kartu rekap | 390 |
+| `screens/CatatPengeluaranKas.html` | `ExpenseSheet` ("Ambil dari kas" on) | Catat pengeluaran: toggle ambil dari kas aktif | 390 |
 
 ### Tab Grup · pusat polling, tindakan, dan dokumen (+ komentar)
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/TripGrup.html` | Tab Grup: pusat trip | 390 |
-| `screens/TambahDiGrup.html` | Tab Grup: tombol + dibuka | 390 |
-| `screens/PilihJenisPolling.html` | Buat polling: pilih jenis | 390 |
-| `screens/BuatPollingPenginapan.html` | Buat polling penginapan: sudah ada opsi | 390 |
-| `screens/PollingPenginapanAnggota.html` | Polling penginapan: tampilan anggota | 390 |
-| `screens/KomentarOpsi.html` | Komentar pada opsi polling | 390 |
-| `screens/PollingPenginapanHasil.html` | Polling penginapan: hasil untuk pembuat | 390 |
-| `screens/PollingBudgetAnonim.html` | Polling budget anonim (P2) | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/TripGrup.html` |  | Tab Grup: pusat trip | 390 |
+| `screens/TambahDiGrup.html` |  | Tab Grup: tombol + dibuka | 390 |
+| `screens/PilihJenisPolling.html` |  | Buat polling: pilih jenis | 390 |
+| `screens/BuatPollingPenginapan.html` |  | Buat polling penginapan: sudah ada opsi | 390 |
+| `screens/PollingPenginapanAnggota.html` |  | Polling penginapan: tampilan anggota | 390 |
+| `screens/KomentarOpsi.html` |  | Komentar pada opsi polling | 390 |
+| `screens/PollingPenginapanHasil.html` | `PollScreen` (decide: estimate) | Polling penginapan: hasil untuk pembuat | 390 |
+| `screens/PollingBudgetAnonim.html` |  | Polling budget anonim (P2) | 390 |
 
 ### Polling · tambah opsi lewat Jelajah, link, atau manual
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/BuatPollingPenginapanKosong.html` | Polling penginapan: belum ada opsi | 390 |
-| `screens/JelajahPenginapan.html` | Jelajah penginapan dari polling | 390 |
-| `screens/JelajahPenginapanHasil.html` | Jelajah penginapan: hasil untuk polling | 390 |
-| `screens/TambahOpsiManual.html` | Tambah opsi: link atau manual | 390 |
-| `screens/BuatPollingMakan.html` | Polling tempat makan: belum ada opsi | 390 |
-| `screens/JelajahMakan.html` | Jelajah tempat makan dari polling | 390 |
-| `screens/JelajahMakanHasil.html` | Jelajah tempat makan: hasil untuk polling | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/BuatPollingPenginapanKosong.html` |  | Polling penginapan: belum ada opsi | 390 |
+| `screens/JelajahPenginapan.html` |  | Jelajah penginapan dari polling | 390 |
+| `screens/JelajahPenginapanHasil.html` |  | Jelajah penginapan: hasil untuk polling | 390 |
+| `screens/TambahOpsiManual.html` |  | Tambah opsi: link atau manual | 390 |
+| `screens/BuatPollingMakan.html` |  | Polling tempat makan: belum ada opsi | 390 |
+| `screens/JelajahMakan.html` |  | Jelajah tempat makan dari polling | 390 |
+| `screens/JelajahMakanHasil.html` |  | Jelajah tempat makan: hasil untuk polling | 390 |
 
 ### Bagikan ke WhatsApp · preview link dan web untuk tamu
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/BagikanPolling.html` | Polling terkirim: bagikan ke grup | 390 |
-| `screens/PreviewWA.html` | Preview link di grup WhatsApp (ilustrasi) | 390 |
-| `screens/WebPollingPenginapanTamu.html` | Web di HP: polling penginapan tanpa akun | 390 |
-| `screens/OgPolling.html` | Gambar preview link: polling (1200×630) | 1200 |
-| `screens/OgUndangan.html` | Gambar preview link: undangan trip (1200×630) | 1200 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/BagikanPolling.html` |  | Polling terkirim: bagikan ke grup | 390 |
+| `screens/PreviewWA.html` |  | Preview link di grup WhatsApp (ilustrasi) | 390 |
+| `screens/WebPollingPenginapanTamu.html` |  | Web di HP: polling penginapan tanpa akun | 390 |
+| `screens/OgPolling.html` |  | Gambar preview link: polling (1200×630) | 1200 |
+| `screens/OgUndangan.html` |  | Gambar preview link: undangan trip (1200×630) | 1200 |
 
 ### Polling · edge case: seri, opsi diubah, offline, pembuat keluar, suara ganda
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/PollingSeri.html` | Polling: hasil seri, pembuat memilih | 390 |
-| `screens/DialogHapusOpsiPolling.html` | Dialog: hapus opsi yang sudah dipilih | 390 |
-| `screens/PollingPilihanDireset.html` | Polling: pilihan direset karena opsi diubah | 390 |
-| `screens/PollingOffline.html` | Polling: vote saat offline | 390 |
-| `screens/PollingTerlambat.html` | Dialog: vote offline tiba setelah polling ditutup | 390 |
-| `screens/DialogKeluarAdaPolling.html` | Dialog: pembuat polling keluar dari trip | 390 |
-| `screens/WebPilihNamaPolling.html` | Web di HP: pilih nama sebelum vote | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/PollingSeri.html` |  | Polling: hasil seri, pembuat memilih | 390 |
+| `screens/DialogHapusOpsiPolling.html` |  | Dialog: hapus opsi yang sudah dipilih | 390 |
+| `screens/PollingPilihanDireset.html` |  | Polling: pilihan direset karena opsi diubah | 390 |
+| `screens/PollingOffline.html` |  | Polling: vote saat offline | 390 |
+| `screens/PollingTerlambat.html` |  | Dialog: vote offline tiba setelah polling ditutup | 390 |
+| `screens/DialogKeluarAdaPolling.html` |  | Dialog: pembuat polling keluar dari trip | 390 |
+| `screens/WebPilihNamaPolling.html` |  | Web di HP: pilih nama sebelum vote | 390 |
 
 ### Web · tab Grup dan polling
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebTripGrup.html` | Web: tab Grup | 1280 |
-| `screens/WebPilihJenisPolling.html` | Web: buat polling, pilih jenis | 1280 |
-| `screens/WebBuatPollingPenginapan.html` | Web: buat polling penginapan | 1280 |
-| `screens/WebJelajahPenginapan.html` | Web: Jelajah penginapan dari polling | 1280 |
-| `screens/WebBagikanPolling.html` | Web: polling terkirim, bagikan | 1280 |
-| `screens/WebPollingPenginapan.html` | Web: vote penginapan + komentar | 1280 |
-| `screens/WebPollingHasilSeri.html` | Web: hasil seri untuk pembuat | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebTripGrup.html` |  | Web: tab Grup | 1280 |
+| `screens/WebPilihJenisPolling.html` |  | Web: buat polling, pilih jenis | 1280 |
+| `screens/WebBuatPollingPenginapan.html` |  | Web: buat polling penginapan | 1280 |
+| `screens/WebJelajahPenginapan.html` |  | Web: Jelajah penginapan dari polling | 1280 |
+| `screens/WebBagikanPolling.html` |  | Web: polling terkirim, bagikan | 1280 |
+| `screens/WebPollingPenginapan.html` |  | Web: vote penginapan + komentar | 1280 |
+| `screens/WebPollingHasilSeri.html` |  | Web: hasil seri untuk pembuat | 1280 |
 
 ### Web · uang, struk, dokumen, rekap, packing, dan anggota grup
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebSaldoTagih.html` | Web: saldo, yang perlu bayar ke kamu | 1280 |
-| `screens/WebIngatkanWA.html` | Web: ingatkan lewat WhatsApp | 1280 |
-| `screens/WebBayarKe.html` | Web: bayar ke anggota | 1280 |
-| `screens/WebKasBersama.html` | Web: kas bersama | 1280 |
-| `screens/WebCatatSetoran.html` | Web: catat setoran kas | 1280 |
-| `screens/WebFotoStruk.html` | Web: unggah foto struk | 1280 |
-| `screens/WebHasilStruk.html` | Web: cek hasil struk | 1280 |
-| `screens/WebDokumenTrip.html` | Web: dokumen trip | 1280 |
-| `screens/WebRekapTrip.html` | Web: rekap trip | 1280 |
-| `screens/WebPackingBersama.html` | Web: packing bersama | 1280 |
-| `screens/WebAnggotaTanpaAkun.html` | Web: anggota, termasuk tanpa akun | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebSaldoTagih.html` | `SaldoContent` (expanded) | Web: saldo, yang perlu bayar ke kamu | 1280 |
+| `screens/WebIngatkanWA.html` | `RemindSheet` (dialog) | Web: ingatkan lewat WhatsApp | 1280 |
+| `screens/WebBayarKe.html` | `PayToSheet` (dialog) | Web: bayar ke anggota | 1280 |
+| `screens/WebKasBersama.html` | `KittyContent` (expanded) | Web: kas bersama | 1280 |
+| `screens/WebCatatSetoran.html` | `DepositSheet` (dialog) | Web: catat setoran kas | 1280 |
+| `screens/WebFotoStruk.html` | `ReceiptFlow` (pick, file only) | Web: unggah foto struk | 1280 |
+| `screens/WebHasilStruk.html` | `ReceiptFlow` (result, dialog) | Web: cek hasil struk | 1280 |
+| `screens/WebDokumenTrip.html` |  | Web: dokumen trip | 1280 |
+| `screens/WebRekapTrip.html` |  | Web: rekap trip | 1280 |
+| `screens/WebPackingBersama.html` |  | Web: packing bersama | 1280 |
+| `screens/WebAnggotaTanpaAkun.html` |  | Web: anggota, termasuk tanpa akun | 1280 |
 
 ### Web · polling tanggal, tempat makan, budget, dan edge case
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebBuatPollingTanggal.html` | Web: buat polling tanggal | 1280 |
-| `screens/WebPollingTanggal.html` | Web: vote polling tanggal | 1280 |
-| `screens/WebJelajahMakan.html` | Web: Jelajah tempat makan dari polling | 1280 |
-| `screens/WebPollingBudgetAnonim.html` | Web: polling budget anonim (P2) | 1280 |
-| `screens/WebPollingPilihanDireset.html` | Web: pilihan direset karena opsi diubah | 1280 |
-| `screens/WebDialogHapusOpsiPolling.html` | Web: hapus opsi yang sudah dipilih | 1280 |
-| `screens/WebDialogKeluarAdaPolling.html` | Web: pembuat polling keluar dari trip | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebBuatPollingTanggal.html` |  | Web: buat polling tanggal | 1280 |
+| `screens/WebPollingTanggal.html` |  | Web: vote polling tanggal | 1280 |
+| `screens/WebJelajahMakan.html` |  | Web: Jelajah tempat makan dari polling | 1280 |
+| `screens/WebPollingBudgetAnonim.html` |  | Web: polling budget anonim (P2) | 1280 |
+| `screens/WebPollingPilihanDireset.html` |  | Web: pilihan direset karena opsi diubah | 1280 |
+| `screens/WebDialogHapusOpsiPolling.html` |  | Web: hapus opsi yang sudah dipilih | 1280 |
+| `screens/WebDialogKeluarAdaPolling.html` |  | Web: pembuat polling keluar dari trip | 1280 |
 
 ### Destinasi · saran saat mengetik dan lokasi GPS
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/DestinasiKosong.html` | Destinasi: belum diketik | 390 |
-| `screens/DestinasiSaran.html` | Destinasi: saran saat mengetik | 390 |
-| `screens/DestinasiGPS.html` | Destinasi: dari lokasi saat ini | 390 |
-| `screens/DestinasiIzinDitolak.html` | Destinasi: izin lokasi ditolak | 390 |
-| `screens/PilihLokasiDekat.html` | Jelajah: pilih lokasi dekat (GPS) | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/DestinasiKosong.html` |  | Destinasi: belum diketik | 390 |
+| `screens/DestinasiSaran.html` |  | Destinasi: saran saat mengetik | 390 |
+| `screens/DestinasiGPS.html` |  | Destinasi: dari lokasi saat ini | 390 |
+| `screens/DestinasiIzinDitolak.html` |  | Destinasi: izin lokasi ditolak | 390 |
+| `screens/PilihLokasiDekat.html` |  | Jelajah: pilih lokasi dekat (GPS) | 390 |
 
 ### Trip luar negeri · destinasi, mata uang, dan zona waktu
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/DestinasiSaranLuarNegeri.html` | Destinasi: saran luar negeri | 390 |
-| `screens/BuatTripLuarNegeri.html` | Buat trip: destinasi luar negeri | 390 |
-| `screens/PilihMataUangTrip.html` | Buat trip: pilih mata uang utama (luar negeri) | 390 |
-| `screens/CatatPengeluaranLuarNegeri.html` | Catat pengeluaran: mata uang luar negeri | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/DestinasiSaranLuarNegeri.html` |  | Destinasi: saran luar negeri | 390 |
+| `screens/BuatTripLuarNegeri.html` |  | Buat trip: destinasi luar negeri | 390 |
+| `screens/PilihMataUangTrip.html` |  | Buat trip: pilih mata uang utama (luar negeri) | 390 |
+| `screens/CatatPengeluaranLuarNegeri.html` |  | Catat pengeluaran: mata uang luar negeri | 390 |
 
 ### Daftar bawaan dari owner trip · disusun sendiri, dikirim ke semua anggota
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/MulaiDaftarAnggota.html` | Packing: owner mulai daftar bawaan anggota | 390 |
-| `screens/SusunDaftarAnggota.html` | Packing: owner menyusun daftar bawaan anggota | 390 |
-| `screens/KirimDaftarAnggota.html` | Packing: kirim daftar bawaan ke anggota | 390 |
-| `screens/PackingOwnerGunung.html` | Packing pribadi owner: progres anggota | 390 |
-| `screens/PackingPribadiGunung.html` | Packing pribadi anggota: daftar dari owner trip | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/MulaiDaftarAnggota.html` |  | Packing: owner mulai daftar bawaan anggota | 390 |
+| `screens/SusunDaftarAnggota.html` |  | Packing: owner menyusun daftar bawaan anggota | 390 |
+| `screens/KirimDaftarAnggota.html` |  | Packing: kirim daftar bawaan ke anggota | 390 |
+| `screens/PackingOwnerGunung.html` |  | Packing pribadi owner: progres anggota | 390 |
+| `screens/PackingPribadiGunung.html` |  | Packing pribadi anggota: daftar dari owner trip | 390 |
 
 ### Polling anonim · toggle saat membuat, hasil tanpa nama pemilih
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/BuatPollingAnonim.html` | Buat polling: anonim aktif | 390 |
-| `screens/PollingAnonimAnggota.html` | Polling anonim: anggota memilih | 390 |
-| `screens/PollingAnonimHasil.html` | Polling anonim: hasil untuk pembuat | 390 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/BuatPollingAnonim.html` |  | Buat polling: anonim aktif | 390 |
+| `screens/PollingAnonimAnggota.html` |  | Polling anonim: anggota memilih | 390 |
+| `screens/PollingAnonimHasil.html` |  | Polling anonim: hasil untuk pembuat | 390 |
 
 ### Web · saran destinasi, lokasi saat ini, dan trip luar negeri
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebDestinasiSaran.html` | Web: saran destinasi saat mengetik | 1280 |
-| `screens/WebDestinasiGPS.html` | Web: destinasi dari lokasi saat ini | 1280 |
-| `screens/WebDestinasiIzinDitolak.html` | Web: izin lokasi diblokir | 1280 |
-| `screens/WebBuatTripLuarNegeri.html` | Web: buat trip ke luar negeri | 1280 |
-| `screens/WebCatatPengeluaranLuarNegeri.html` | Web: catat pengeluaran dalam yen | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebDestinasiSaran.html` |  | Web: saran destinasi saat mengetik | 1280 |
+| `screens/WebDestinasiGPS.html` |  | Web: destinasi dari lokasi saat ini | 1280 |
+| `screens/WebDestinasiIzinDitolak.html` |  | Web: izin lokasi diblokir | 1280 |
+| `screens/WebBuatTripLuarNegeri.html` |  | Web: buat trip ke luar negeri | 1280 |
+| `screens/WebCatatPengeluaranLuarNegeri.html` |  | Web: catat pengeluaran dalam yen | 1280 |
 
 ### Web · daftar bawaan dari owner dan polling anonim
 
-| File | Board title | Width |
-| --- | --- | --- |
-| `screens/WebMulaiDaftarAnggota.html` | Web: mulai daftar bawaan anggota | 1280 |
-| `screens/WebSusunDaftarAnggota.html` | Web: susun dan kirim daftar bawaan anggota | 1280 |
-| `screens/WebPackingOwner.html` | Web: packing owner dengan progres anggota | 1280 |
-| `screens/WebPackingAnggota.html` | Web: packing anggota dari daftar owner | 1280 |
-| `screens/WebBuatPollingAnonim.html` | Web: buat polling anonim | 1280 |
-| `screens/WebPollingAnonim.html` | Web: polling anonim, anggota memilih | 1280 |
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/WebMulaiDaftarAnggota.html` |  | Web: mulai daftar bawaan anggota | 1280 |
+| `screens/WebSusunDaftarAnggota.html` |  | Web: susun dan kirim daftar bawaan anggota | 1280 |
+| `screens/WebPackingOwner.html` |  | Web: packing owner dengan progres anggota | 1280 |
+| `screens/WebPackingAnggota.html` |  | Web: packing anggota dari daftar owner | 1280 |
+| `screens/WebBuatPollingAnonim.html` |  | Web: buat polling anonim | 1280 |
+| `screens/WebPollingAnonim.html` |  | Web: polling anonim, anggota memilih | 1280 |
 
 ## Not designed yet
 

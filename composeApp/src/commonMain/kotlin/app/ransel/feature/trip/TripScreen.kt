@@ -73,6 +73,7 @@ fun TripScreen(
     /** Polls live on their own screens: create one of a kind, or open one. */
     onCreatePoll: (PollKind) -> Unit = {},
     onOpenPoll: (pollId: String) -> Unit = {},
+    onOpenPaymentMethods: () -> Unit = {},
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
 ) {
@@ -157,6 +158,7 @@ fun TripScreen(
                 if (current != null) {
                     when (tab) {
                         TripTab.GROUP -> GroupTab(
+                            onOpenMoney = { tab = TripTab.EXPENSES },
                             trip = current,
                             signedIn = signedIn,
                             hasNeeds = actionRounds.isNotEmpty(),
@@ -184,11 +186,11 @@ fun TripScreen(
                             onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
                         )
                         TripTab.PACKING -> PackingTab(current)
-                        TripTab.EXPENSES -> ExpensesTab(current, refreshKey = refreshCount)
+                        TripTab.EXPENSES -> ExpensesTab(current, refreshKey = refreshCount, onOpenPaymentMethods = onOpenPaymentMethods)
                     }
                 }
             }
-            if (tab == TripTab.GROUP && signedIn && canAsk && !expanded) {
+            if (tab == TripTab.GROUP && signedIn && canAsk) {
                 IconFab(
                     Symbols.add,
                     label = stringResource(Res.string.group_fab_description),
