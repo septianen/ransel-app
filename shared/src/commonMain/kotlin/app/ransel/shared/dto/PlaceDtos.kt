@@ -55,6 +55,8 @@ data class NearbyAreaDto(
     val name: String,
     val secondary: String? = null,
     val kind: PlaceKind,
+    /** "Sekitar <name>": the whole area around [name] (the app writes the words in its own language). */
+    val around: Boolean = false,
 )
 
 /** GET /places/reverse: 2–3 levels from the most precise to the widest. */
