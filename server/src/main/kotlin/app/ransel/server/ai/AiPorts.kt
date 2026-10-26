@@ -90,7 +90,32 @@ interface LlmClient {
     /** Detail text for one known place (name and address come from Google or our cache). Default: not supported. */
     suspend fun describe(name: String, address: String?): LlmPlaceText =
         throw UnsupportedOperationException("describe is not supported")
+
+    /** Reads a receipt photo. Throws on transport errors or unparseable output. Default: not supported. */
+    suspend fun readReceipt(image: ByteArray, mimeType: String): LlmReceipt =
+        throw UnsupportedOperationException("readReceipt is not supported")
 }
+
+/** What the model read from a receipt; amounts in major units of [currency] as printed. [total] null = not readable. */
+@kotlinx.serialization.Serializable
+data class LlmReceipt(
+    val placeName: String? = null,
+    /** yyyy-MM-dd */
+    val date: String? = null,
+    val currency: String? = null,
+    val items: List<LlmReceiptLine> = emptyList(),
+    val tax: Double? = null,
+    val service: Double? = null,
+    val total: Double? = null,
+)
+
+@kotlinx.serialization.Serializable
+data class LlmReceiptLine(
+    val name: String = "",
+    val quantity: Int? = null,
+    /** The line total, quantity already included. */
+    val amount: Double? = null,
+)
 
 data class PlaceDetails(
     val placeId: String,

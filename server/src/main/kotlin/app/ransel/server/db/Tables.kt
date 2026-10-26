@@ -31,9 +31,11 @@ import app.ransel.shared.model.Vote
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import app.ransel.shared.model.AdminAction
+import app.ransel.shared.model.PaymentMethodKind
+import app.ransel.shared.model.SettlementStatus
 
 /*
- * Exposed mappings of the Flyway schema (V1..V15). Flyway owns the DDL; these objects only describe it.
+ * Exposed mappings of the Flyway schema (V1..V18). Flyway owns the DDL; these objects only describe it.
  * `updated_at` is set by the DB trigger, so writers never set it.
  */
 
@@ -232,10 +234,23 @@ object Expenses : Table("expenses") {
     val note = text("note").nullable()
     val spentAt = timestamp("spent_at")
     val paidByMemberId = javaUUID("paid_by_member_id")
+    val paidFromKitty = bool("paid_from_kitty")
+    /** A planned cost (V18), e.g. the stay chosen in a poll; left out of balances. */
+    val isEstimate = bool("is_estimate")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
     override val primaryKey = PrimaryKey(id)
+}
+
+/** Receipt lines of an expense, for the "per item" split (V18). The splits stay the source of truth. */
+object ExpenseItems : Table("expense_items") {
+    val expenseId = javaUUID("expense_id")
+    val sortOrder = integer("sort_order")
+    val name = text("name")
+    val amountMinor = long("amount_minor")
+    val memberIds = jsonb<List<String>>("member_ids", Json)
+    override val primaryKey = PrimaryKey(expenseId, sortOrder)
 }
 
 object ExpenseSplits : Table("expense_splits") {
@@ -304,6 +319,47 @@ object Settlements : Table("settlements") {
     val toMemberId = javaUUID("to_member_id")
     val amountMinor = long("amount_minor")
     val settledAt = timestamp("settled_at")
+    val status = enumerationByName<SettlementStatus>("status", 16)
+    val claimedAt = timestamp("claimed_at").nullable()
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** One kitty per trip (V18): contribution per person and the treasurer who holds the money. */
+object Kitties : Table("kitty") {
+    val tripId = javaUUID("trip_id")
+    val amountPerMemberMinor = long("amount_per_member_minor")
+    val treasurerMemberId = javaUUID("treasurer_member_id")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(tripId)
+}
+
+object KittyDeposits : Table("kitty_deposits") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val memberId = javaUUID("member_id")
+    val amountMinor = long("amount_minor")
+    val receivedByMemberId = javaUUID("received_by_member_id")
+    val receivedAt = timestamp("received_at")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** Account → Info pembayaran (V18). */
+object PaymentMethods : Table("payment_methods") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val kind = enumerationByName<PaymentMethodKind>("kind", 16)
+    val provider = text("provider")
+    val accountNumber = text("account_number")
+    val holderName = text("holder_name")
+    val isPrimary = bool("is_primary")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()

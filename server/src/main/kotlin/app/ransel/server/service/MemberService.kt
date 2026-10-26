@@ -1,9 +1,12 @@
 package app.ransel.server.service
 
+import app.ransel.server.db.ExpenseItems
 import app.ransel.server.db.ExpensePayers
 import app.ransel.server.db.ExpenseSplits
 import app.ransel.server.db.Expenses
 import app.ransel.server.db.MemberClaims
+import app.ransel.server.db.Kitties
+import app.ransel.server.db.KittyDeposits
 import app.ransel.server.db.Settlements
 import app.ransel.server.db.TripMembers
 import app.ransel.server.db.Users
@@ -221,6 +224,11 @@ internal object MemberMoves {
     private const val SETTLEMENTS_FROM = "settlementsFrom"
     private const val SETTLEMENTS_TO = "settlementsTo"
     private const val SETTLEMENTS_DROPPED = "settlementsDropped"
+    private const val ITEMS = "items"
+    private const val ITEMS_MERGED = "itemsMerged"
+    private const val DEPOSITS = "deposits"
+    private const val DEPOSITS_RECEIVED = "depositsReceived"
+    private const val TREASURER = "treasurer"
 
     fun move(tripId: UUID, from: UUID, to: UUID): Map<String, List<String>> {
         val log = linkedMapOf<String, List<String>>()
@@ -298,6 +306,39 @@ internal object MemberMoves {
             log[SETTLEMENTS_TO] = toRows.map(UUID::toString)
         }
 
+        // receipt lines name members inside JSON: "expenseId:sortOrder", merged when the claimer was on the line already
+        if (tripExpenses.isNotEmpty()) {
+            val replaced = mutableListOf<String>()
+            val mergedItems = mutableListOf<String>()
+            ExpenseItems.selectAll().where { ExpenseItems.expenseId inList tripExpenses }.forEach { row ->
+                val ids = row[ExpenseItems.memberIds]
+                if (from.toString() !in ids) return@forEach
+                val key = "${row[ExpenseItems.expenseId]}:${row[ExpenseItems.sortOrder]}"
+                val next = if (to.toString() in ids) ids - from.toString() else ids.map { if (it == from.toString()) to.toString() else it }
+                if (to.toString() in ids) mergedItems += key else replaced += key
+                ExpenseItems.update({ (ExpenseItems.expenseId eq row[ExpenseItems.expenseId]) and (ExpenseItems.sortOrder eq row[ExpenseItems.sortOrder]) }) {
+                    it[memberIds] = next
+                }
+                touched += row[ExpenseItems.expenseId]
+            }
+            if (replaced.isNotEmpty()) log[ITEMS] = replaced
+            if (mergedItems.isNotEmpty()) log[ITEMS_MERGED] = mergedItems
+        }
+
+        val deposits = KittyDeposits.selectAll().where { (KittyDeposits.tripId eq tripId) and (KittyDeposits.memberId eq from) }.map { it[KittyDeposits.id] }
+        if (deposits.isNotEmpty()) {
+            KittyDeposits.update({ KittyDeposits.id inList deposits }) { it[memberId] = to }
+            log[DEPOSITS] = deposits.map(UUID::toString)
+        }
+        val received = KittyDeposits.selectAll().where { (KittyDeposits.tripId eq tripId) and (KittyDeposits.receivedByMemberId eq from) }.map { it[KittyDeposits.id] }
+        if (received.isNotEmpty()) {
+            KittyDeposits.update({ KittyDeposits.id inList received }) { it[receivedByMemberId] = to }
+            log[DEPOSITS_RECEIVED] = received.map(UUID::toString)
+        }
+        if (Kitties.update({ (Kitties.tripId eq tripId) and (Kitties.treasurerMemberId eq from) }) { it[treasurerMemberId] = to } > 0) {
+            log[TREASURER] = listOf(tripId.toString())
+        }
+
         bump(touched)
         return log
     }
@@ -344,6 +385,30 @@ internal object MemberMoves {
         }
         ids(SETTLEMENTS_DROPPED).takeIf { it.isNotEmpty() }?.let { list ->
             Settlements.update({ Settlements.id inList list }) { it[deletedAt] = null }
+        }
+        fun itemRow(entry: String) = entry.split(":").let { UUID.fromString(it[0]) to it[1].toInt() }
+        moved[ITEMS].orEmpty().forEach { entry ->
+            val (expense, order) = itemRow(entry)
+            val where = (ExpenseItems.expenseId eq expense) and (ExpenseItems.sortOrder eq order)
+            val ids = ExpenseItems.selectAll().where { where }.singleOrNull()?.get(ExpenseItems.memberIds) ?: return@forEach
+            ExpenseItems.update({ where }) { it[memberIds] = ids.map { id -> if (id == claimer.toString()) guest.toString() else id } }
+            touched += expense
+        }
+        moved[ITEMS_MERGED].orEmpty().forEach { entry ->
+            val (expense, order) = itemRow(entry)
+            val where = (ExpenseItems.expenseId eq expense) and (ExpenseItems.sortOrder eq order)
+            val ids = ExpenseItems.selectAll().where { where }.singleOrNull()?.get(ExpenseItems.memberIds) ?: return@forEach
+            if (guest.toString() !in ids) ExpenseItems.update({ where }) { it[memberIds] = ids + guest.toString() }
+            touched += expense
+        }
+        ids(DEPOSITS).takeIf { it.isNotEmpty() }?.let { list ->
+            KittyDeposits.update({ (KittyDeposits.id inList list) and (KittyDeposits.memberId eq claimer) }) { it[memberId] = guest }
+        }
+        ids(DEPOSITS_RECEIVED).takeIf { it.isNotEmpty() }?.let { list ->
+            KittyDeposits.update({ (KittyDeposits.id inList list) and (KittyDeposits.receivedByMemberId eq claimer) }) { it[receivedByMemberId] = guest }
+        }
+        if (moved[TREASURER] != null) {
+            Kitties.update({ (Kitties.tripId eq tripId) and (Kitties.treasurerMemberId eq claimer) }) { it[treasurerMemberId] = guest }
         }
         bump(touched)
     }

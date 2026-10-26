@@ -1,5 +1,6 @@
 package app.ransel.server.service
 
+import app.ransel.server.db.Expenses
 import app.ransel.server.db.ItineraryItems
 import app.ransel.server.db.PollOptions
 import app.ransel.server.db.PollVotes
@@ -27,10 +28,13 @@ import app.ransel.shared.domain.isAnonymousForced
 import app.ransel.shared.domain.optionChangesVotes
 import app.ransel.shared.domain.pollOptionLabel
 import app.ransel.shared.domain.pollOutcome
+import app.ransel.shared.domain.splitEqually
+import app.ransel.shared.domain.stayEstimateMinor
 import app.ransel.shared.domain.validatePollOption
 import app.ransel.shared.domain.validatePollQuestion
 import app.ransel.shared.dto.CreatePollRequest
 import app.ransel.shared.dto.DecidePollRequest
+import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.PollOptionDto
 import app.ransel.shared.dto.PollOptionInput
@@ -40,6 +44,7 @@ import app.ransel.shared.dto.VotePollRequest
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.NotificationType
+import app.ransel.shared.model.PaymentMethod
 import app.ransel.shared.model.PollKind
 import app.ransel.shared.model.PollStatus
 import app.ransel.shared.model.Role
@@ -663,8 +668,43 @@ object PollService {
             PollAction.SET_DESTINATION -> Trips.update({ Trips.id eq tripId }) { it[destination] = option[PollOptions.label] }
             PollAction.ADD_UNSCHEDULED_PLACE -> addItem(tripId, option, Category.ATTRACTION, day = null, time = null)
             PollAction.ADD_ACTIVITY -> addItem(tripId, option, Category.FOOD, poll[Polls.dayDate], poll[Polls.startTime])
+            PollAction.ADD_ESTIMATE -> addEstimate(poll, option)
             PollAction.NONE -> Unit
         }
+    }
+
+    /**
+     * STAY: an estimated lodging expense (price × nights by default), paid by the poll creator and split equally between
+     * the members, left out of balances until someone records the real payment. An option without a price adds nothing.
+     */
+    private fun addEstimate(poll: ResultRow, option: ResultRow) {
+        val price = option[PollOptions.priceMinor]?.takeIf { it > 0 } ?: return
+        val tripId = poll[Polls.tripId]
+        val trip = Trips.selectAll().where { Trips.id eq tripId }.single()
+        val start = trip[Trips.startDate]
+        val nights = java.time.temporal.ChronoUnit.DAYS.between(start, trip[Trips.endDate]).toInt()
+        val members = TripMembers.select(TripMembers.id)
+            .where { (TripMembers.tripId eq tripId) and TripMembers.active() }
+            .orderBy(TripMembers.joinedAt)
+            .map { it[TripMembers.id].toString() }
+        val amount = stayEstimateMinor(price, option[PollOptions.priceUnit], nights, members.size)
+        val payer = poll[Polls.createdByMemberId]
+        val expenseId = UUID.randomUUID()
+        Expenses.insert {
+            it[id] = expenseId
+            it[Expenses.tripId] = tripId
+            it[amountMinor] = amount
+            it[currency] = trip[Trips.baseCurrency]
+            it[category] = Category.LODGING
+            it[paymentMethod] = PaymentMethod.TRANSFER
+            it[note] = option[PollOptions.label]
+            it[spentAt] = start.atStartOfDay(java.time.ZoneId.of("Asia/Jakarta")).toInstant()
+            it[paidByMemberId] = payer
+            it[paidFromKitty] = false
+            it[isEstimate] = true
+        }
+        val shares = splitEqually(amount, members.ifEmpty { listOf(payer.toString()) }, payer.toString())
+        ExpenseService.replaceSplits(expenseId, shares.map { ExpenseSplitDto(it.key, it.value) })
     }
 
     private fun addItem(tripId: UUID, option: ResultRow, category: Category, day: java.time.LocalDate?, time: java.time.LocalTime?) {

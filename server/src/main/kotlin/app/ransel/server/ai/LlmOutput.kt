@@ -47,6 +47,26 @@ object LlmOutput {
         )
     }
 
+    /** The receipt JSON; names are trimmed and cut, lines without a usable amount are dropped. */
+    fun parseReceipt(content: String): LlmReceipt {
+        val cleaned = content.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val receipt = lenient.decodeFromJsonElement(LlmReceipt.serializer(), lenient.parseToJsonElement(cleaned))
+        return receipt.copy(
+            placeName = receipt.placeName?.trim()?.take(MAX_RECEIPT_NAME)?.ifEmpty { null },
+            currency = receipt.currency?.trim()?.uppercase()?.takeIf { it.length == 3 },
+            items = receipt.items
+                .filter { it.name.isNotBlank() && (it.amount ?: -1.0) >= 0 }
+                .map { it.copy(name = it.name.trim().take(MAX_RECEIPT_NAME), quantity = it.quantity?.takeIf { q -> q in 1..999 }) }
+                .take(MAX_RECEIPT_LINES),
+            tax = receipt.tax?.takeIf { it >= 0 },
+            service = receipt.service?.takeIf { it >= 0 },
+            total = receipt.total?.takeIf { it > 0 },
+        )
+    }
+
+    const val MAX_RECEIPT_NAME = 120
+    const val MAX_RECEIPT_LINES = 100
+
     /** `{"interests":["Sakura",...],"priceGuide":{"lowMaxUsd":30,"midMaxUsd":90}}`; interests are cleaned, 3–5 kept. */
     fun parseInterests(content: String, coreLabels: Set<String> = emptySet()): InterestSuggestions {
         val cleaned = content.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()

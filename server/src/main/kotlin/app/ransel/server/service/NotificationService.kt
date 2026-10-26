@@ -24,6 +24,7 @@ import app.ransel.shared.dto.NotificationsDto
 import app.ransel.shared.dto.RegisterDeviceRequest
 import app.ransel.shared.dto.UpdateNotificationSettingsRequest
 import app.ransel.shared.model.NotificationType
+import app.ransel.shared.model.SettlementStatus
 import app.ransel.shared.model.Role
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
@@ -167,16 +168,24 @@ class NotificationService(private val config: AppConfig, private val push: PushS
     }
 
     /** A recorded payment: the other people on it (normally the one who is paid back). */
+    /**
+     * A settlement was claimed ("Saya sudah bayar": the receiver is asked to confirm) or confirmed (both people, minus
+     * the actor, hear it). The stage is part of the dedupe key, so the confirmation after a claim is a new row.
+     */
     fun settlementMarked(tripId: UUID, settlementId: UUID, actor: UUID) {
         val settlement = Settlements.selectAll().where { Settlements.id eq settlementId }.singleOrNull() ?: return
         if (settlement[Settlements.deletedAt] != null) return
-        val audience = userIdsOfMembers(listOf(settlement[Settlements.fromMemberId], settlement[Settlements.toMemberId])).values.filter { it != actor }
+        val claimed = settlement[Settlements.status] == SettlementStatus.CLAIMED_PAID
+        val people = if (claimed) listOf(settlement[Settlements.toMemberId]) else listOf(settlement[Settlements.fromMemberId], settlement[Settlements.toMemberId])
+        val audience = userIdsOfMembers(people).values.filter { it != actor }
         val trip = Trips.selectAll().where { Trips.id eq tripId }.singleOrNull() ?: return
         val name = displayName(actor)
-        notify(audience, NotificationType.SETTLEMENT_MARKED, tripId, "settlement:$settlementId") {
+        val stage = if (claimed) "CLAIMED" else "CONFIRMED"
+        notify(audience, NotificationType.SETTLEMENT_MARKED, tripId, "settlement:$settlementId:$stage") {
             mapOf(
                 "tripTitle" to trip[Trips.title], "actorName" to name,
                 "amountMinor" to settlement[Settlements.amountMinor].toString(), "currency" to trip[Trips.baseCurrency].trim(),
+                "settlementId" to settlementId.toString(), "stage" to stage,
             )
         }
     }

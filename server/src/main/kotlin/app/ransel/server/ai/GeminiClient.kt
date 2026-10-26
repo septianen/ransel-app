@@ -50,8 +50,29 @@ class GeminiClient(
     override suspend fun describe(name: String, address: String?): LlmPlaceText =
         LlmOutput.parsePlaceText(generate(Prompt.detailSystem(), Prompt.detailUser(name, address), temperature = 0.4))
 
+    override suspend fun readReceipt(image: ByteArray, mimeType: String): LlmReceipt {
+        val user = buildJsonArray {
+            add(
+                buildJsonObject {
+                    put(
+                        "inlineData",
+                        buildJsonObject {
+                            put("mimeType", mimeType)
+                            put("data", java.util.Base64.getEncoder().encodeToString(image))
+                        },
+                    )
+                },
+            )
+            add(buildJsonObject { put("text", Prompt.receiptUser()) })
+        }
+        return LlmOutput.parseReceipt(generate(Prompt.receiptSystem(), user, temperature = 0.0, maxTokens = RECEIPT_MAX_TOKENS))
+    }
+
+    private suspend fun generate(system: String, user: String, temperature: Double, maxTokens: Int = DEFAULT_MAX_TOKENS): String =
+        generate(system, parts(user), temperature, maxTokens)
+
     /** Tries the primary model, then the fallback when the first is overloaded (429/5xx). Returns the raw JSON text. */
-    private suspend fun generate(system: String, user: String, temperature: Double, maxTokens: Int = DEFAULT_MAX_TOKENS): String {
+    private suspend fun generate(system: String, user: kotlinx.serialization.json.JsonArray, temperature: Double, maxTokens: Int): String {
         val models = listOfNotNull(modelName, fallbackModel?.takeIf { it.isNotBlank() && it != modelName })
         var last: Overloaded? = null
         for (model in models) {
@@ -65,7 +86,7 @@ class GeminiClient(
         throw last ?: IllegalStateException("no LLM model configured")
     }
 
-    private suspend fun generateWith(model: String, system: String, user: String, temperature: Double, maxTokens: Int): String {
+    private suspend fun generateWith(model: String, system: String, user: kotlinx.serialization.json.JsonArray, temperature: Double, maxTokens: Int): String {
         val request = buildJsonObject {
             put("systemInstruction", buildJsonObject { put("parts", parts(system)) })
             put(
@@ -74,7 +95,7 @@ class GeminiClient(
                     add(
                         buildJsonObject {
                             put("role", "user")
-                            put("parts", parts(user))
+                            put("parts", user)
                         },
                     )
                 },
@@ -117,6 +138,7 @@ class GeminiClient(
     private companion object {
         const val DEFAULT_MAX_TOKENS = 8192
         const val SUGGEST_MAX_TOKENS = 16384
+        const val RECEIPT_MAX_TOKENS = 4096
 
         /** Core interest names in both languages: the model is told to skip them, this is the safety net. */
         val CORE_LABELS = setOf(

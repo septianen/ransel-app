@@ -3,6 +3,8 @@ package app.ransel.server.service
 import app.ransel.server.db.ExpenseSplits
 import app.ransel.server.db.Expenses
 import app.ransel.server.db.ItineraryItems
+import app.ransel.server.db.Kitties
+import app.ransel.server.db.KittyDeposits
 import app.ransel.server.db.PackingItems
 import app.ransel.server.db.Settlements
 import app.ransel.server.db.toSettlementDto
@@ -11,6 +13,8 @@ import app.ransel.server.db.Trips
 import app.ransel.server.db.Users
 import app.ransel.server.db.toExpenseDto
 import app.ransel.server.db.toItineraryItemDto
+import app.ransel.server.db.toKittyDepositDto
+import app.ransel.server.db.toKittyDto
 import app.ransel.server.db.toPackingItemDto
 import app.ransel.server.db.toTimestamp
 import app.ransel.server.db.toTripDto
@@ -22,6 +26,8 @@ import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.KittyDepositDto
+import app.ransel.shared.dto.KittyDto
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.SyncChanges
@@ -32,6 +38,7 @@ import app.ransel.shared.dto.SyncRowRef
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
+import app.ransel.shared.model.SettlementStatus
 import io.ktor.http.HttpStatusCode
 import kotlinx.datetime.toJavaLocalDate
 import org.jetbrains.exposed.v1.core.JoinType
@@ -64,7 +71,7 @@ import kotlin.time.toJavaInstant
 class SyncService {
     fun push(userId: UUID, changes: SyncChanges): SyncPushResponse {
         val total = changes.trips.size + changes.itineraryItems.size + changes.packingItems.size +
-            changes.expenses.size + changes.settlements.size
+            changes.expenses.size + changes.settlements.size + changes.kitties.size + changes.kittyDeposits.size
         if (total > MAX_ROWS) {
             throw ApiException(
                 HttpStatusCode.UnprocessableEntity, ErrorCode.VALIDATION_FAILED, "Too many rows in one batch",
@@ -94,6 +101,9 @@ class SyncService {
             }
             changes.itineraryItems.forEach { dto -> attempt(ENTITY_ITEM, dto.id) { pushItem(userId, dto) } }
             changes.packingItems.forEach { dto -> attempt(ENTITY_PACKING, dto.id) { pushPacking(userId, dto) } }
+            // the kitty before its deposits and before expenses paid from it
+            changes.kitties.forEach { dto -> attempt(ENTITY_KITTY, dto.tripId) { pushKitty(userId, dto) } }
+            changes.kittyDeposits.forEach { dto -> attempt(ENTITY_DEPOSIT, dto.id) { pushDeposit(userId, dto) } }
             changes.expenses.forEach { dto -> attempt(ENTITY_EXPENSE, dto.id) { pushExpense(userId, dto) } }
             changes.settlements.forEach { dto -> attempt(ENTITY_SETTLEMENT, dto.id) { pushSettlement(userId, dto) } }
 
@@ -157,7 +167,10 @@ class SyncService {
             .where { ExpenseSplits.expenseId inList expenseRows.map { it[Expenses.id] } }
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) })
         val payers = ExpenseService.loadPayers(expenseRows.map { it[Expenses.id] })
-        val expenses = expenseRows.map { it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty()) }
+        val expenseItems = ExpenseService.loadItems(expenseRows.map { it[Expenses.id] })
+        val expenses = expenseRows.map {
+            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), expenseItems[it[Expenses.id]].orEmpty())
+        }
 
         val settlements = if (allTripIds.isEmpty()) emptyList() else Settlements.selectAll()
             .where {
@@ -165,6 +178,20 @@ class SyncService {
                 if (sinceJava == null) inTrips
                 else inTrips and ((Settlements.updatedAt greater sinceJava) or (Settlements.tripId inList newTripIds))
             }.map { it.toSettlementDto() }
+
+        val kitties = if (allTripIds.isEmpty()) emptyList() else Kitties.selectAll()
+            .where {
+                val inTrips = Kitties.tripId inList allTripIds
+                if (sinceJava == null) inTrips
+                else inTrips and ((Kitties.updatedAt greater sinceJava) or (Kitties.tripId inList newTripIds))
+            }.map { it.toKittyDto() }
+
+        val deposits = if (allTripIds.isEmpty()) emptyList() else KittyDeposits.selectAll()
+            .where {
+                val inTrips = KittyDeposits.tripId inList allTripIds
+                if (sinceJava == null) inTrips
+                else inTrips and ((KittyDeposits.updatedAt greater sinceJava) or (KittyDeposits.tripId inList newTripIds))
+            }.map { it.toKittyDepositDto() }
 
         // Membership rows of my trips (current members only; the OWNER also gets the phone of members added by name).
         // A removed member leaves no tombstone: that user simply stops receiving the trip, and their next push of its
@@ -191,7 +218,10 @@ class SyncService {
             }
 
         SyncPullResponse(
-            changes = SyncChanges(trips = trips, itineraryItems = items, packingItems = packing, expenses = expenses, settlements = settlements, members = members),
+            changes = SyncChanges(
+                trips = trips, itineraryItems = items, packingItems = packing, expenses = expenses, settlements = settlements,
+                kitties = kitties, kittyDeposits = deposits, members = members,
+            ),
             serverTime = serverTime.toTimestamp(),
         )
     }
@@ -322,13 +352,20 @@ class SyncService {
         val id = uuid(dto.id, "id")
         val tripId = uuid(dto.tripId, "tripId")
         requireEditorOnLiveTrip(tripId, userId)
-        val payer = uuid(dto.paidByMemberId, "paidByMemberId")
-        val input = ExpenseInput(
+        val sent = ExpenseInput(
             id = dto.id, amountMinor = dto.amountMinor, currency = dto.currency, fxRateToBase = dto.fxRateToBase,
             category = dto.category, paymentMethod = dto.paymentMethod, note = dto.note, spentAt = dto.spentAt,
             paidByMemberId = dto.paidByMemberId, payers = dto.payers, splits = dto.splits,
+            paidFromKitty = dto.paidFromKitty, isEstimate = dto.isEstimate, items = dto.items,
         )
         val existing = Expenses.selectAll().where { Expenses.id eq id }.singleOrNull()
+        // A kitty expense is paid by the treasurer whatever the device thought; the stored payer stays on later edits.
+        val payer = when {
+            !dto.paidFromKitty -> uuid(dto.paidByMemberId, "paidByMemberId")
+            existing != null && existing[Expenses.paidFromKitty] -> existing[Expenses.paidByMemberId]
+            else -> ExpenseService.kittyPayer(tripId, sent, before = null)
+        }
+        val input = ExpenseService.withItemSplits(sent.copy(paidByMemberId = payer.toString()), payer)
         val keep = if (existing == null) emptySet() else buildSet {
             add(existing[Expenses.paidByMemberId])
             ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq id }.forEach { add(it[ExpenseSplits.memberId]) }
@@ -352,10 +389,12 @@ class SyncService {
                 ExpenseService.fill(it, input, payer)
             }
         }
-        ExpenseService.replaceSplits(id, dto.splits)
-        ExpenseService.replacePayers(id, dto.payers)
-        // Only a new expense notifies; the same row sent again (a retry) or edited does not.
-        if (existing == null) Notify.emit { expenseAdded(tripId, id, userId) }
+        ExpenseService.replaceSplits(id, input.splits)
+        ExpenseService.replacePayers(id, input.payers)
+        ExpenseService.replaceItems(id, input.items)
+        // Only a new expense notifies (or an estimate that became a payment); a retry or another edit does not.
+        val wasEstimate = existing?.get(Expenses.isEstimate) == true
+        if (dto.deletedAt == null && !input.isEstimate && (existing == null || wasEstimate)) Notify.emit { expenseAdded(tripId, id, userId) }
     }
 
     private fun pushSettlement(userId: UUID, dto: SettlementDto) {
@@ -375,8 +414,11 @@ class SyncService {
         }
         if (problems.isNotEmpty()) throw validation(problems)
 
+        val role = memberRole(tripId, userId)!!
         val existing = Settlements.selectAll().where { Settlements.id eq id }.singleOrNull()
         if (existing == null) {
+            // "Saya sudah bayar" is only said by the payer themselves
+            if (dto.status == SettlementStatus.CLAIMED_PAID && from != callerMemberId(tripId, userId)) throw forbidden()
             Settlements.insert {
                 it[Settlements.id] = id
                 it[Settlements.tripId] = tripId
@@ -384,18 +426,102 @@ class SyncService {
                 it[toMemberId] = to
                 it[amountMinor] = dto.amountMinor
                 it[settledAt] = dto.settledAt.toJavaInstant()
+                it[status] = dto.status
+                it[claimedAt] = if (dto.status == SettlementStatus.CLAIMED_PAID) (dto.claimedAt ?: dto.createdAt).toJavaInstant() else null
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
-            Notify.emit { settlementMarked(tripId, id, userId) }
+            if (dto.deletedAt == null) Notify.emit { settlementMarked(tripId, id, userId) }
         } else {
             if (existing[Settlements.tripId] != tripId) throw conflict("Settlement belongs to another trip")
             requireNewer(dto.updatedAt, existing[Settlements.updatedAt])
+            val before = existing[Settlements.status]
+            if (before == SettlementStatus.CONFIRMED && dto.status == SettlementStatus.CLAIMED_PAID) throw conflict("Settlement is already confirmed")
+            val confirming = before == SettlementStatus.CLAIMED_PAID && dto.status == SettlementStatus.CONFIRMED
+            if (confirming && !BalanceService.mayConfirm(tripId, userId, role, existing[Settlements.toMemberId])) throw forbidden()
+            // the people and the amount of a claim are fixed; only its status and deletion change
+            val claim = before == SettlementStatus.CLAIMED_PAID
             Settlements.update({ Settlements.id eq id }) {
-                it[fromMemberId] = from
-                it[toMemberId] = to
-                it[amountMinor] = dto.amountMinor
+                if (!claim) {
+                    it[fromMemberId] = from
+                    it[toMemberId] = to
+                    it[amountMinor] = dto.amountMinor
+                }
                 it[settledAt] = dto.settledAt.toJavaInstant()
+                it[status] = dto.status
+                it[deletedAt] = dto.deletedAt?.toJavaInstant()
+            }
+            if (confirming && dto.deletedAt == null) Notify.emit { settlementMarked(tripId, id, userId) }
+        }
+    }
+
+    /** The kitty settings: OWNER only, last write wins like other rows. */
+    private fun pushKitty(userId: UUID, dto: KittyDto) {
+        val tripId = uuid(dto.tripId, "tripId")
+        val trip = Trips.select(Trips.deletedAt).where { Trips.id eq tripId }.singleOrNull()
+        val role = memberRole(tripId, userId)
+        if (trip == null || role == null || trip[Trips.deletedAt] != null) {
+            throw ApiException(HttpStatusCode.NotFound, ErrorCode.TRIP_NOT_FOUND, "Trip not found")
+        }
+        if (role != Role.OWNER) throw forbidden()
+        val treasurer = uuid(dto.treasurerMemberId, "treasurerMemberId")
+        val problems = buildMap {
+            if (dto.amountPerMemberMinor <= 0) put("amountPerMemberMinor", "MUST_BE_POSITIVE")
+            val active = TripMembers.select(TripMembers.id)
+                .where { (TripMembers.tripId eq tripId) and (TripMembers.id eq treasurer) and TripMembers.active() }.any()
+            if (!active) put("treasurerMemberId", "NOT_A_MEMBER")
+        }
+        if (problems.isNotEmpty()) throw validation(problems)
+        val existing = Kitties.selectAll().where { Kitties.tripId eq tripId }.singleOrNull()
+        if (existing == null) {
+            Kitties.insert {
+                it[Kitties.tripId] = tripId
+                it[amountPerMemberMinor] = dto.amountPerMemberMinor
+                it[treasurerMemberId] = treasurer
+                it[createdAt] = dto.createdAt.toJavaInstant()
+                it[deletedAt] = dto.deletedAt?.toJavaInstant()
+            }
+        } else {
+            requireNewer(dto.updatedAt, existing[Kitties.updatedAt])
+            Kitties.update({ Kitties.tripId eq tripId }) {
+                it[amountPerMemberMinor] = dto.amountPerMemberMinor
+                it[treasurerMemberId] = treasurer
+                it[deletedAt] = dto.deletedAt?.toJavaInstant()
+            }
+        }
+    }
+
+    /** A deposit: EDITOR+ or the treasurer. The receiver is the treasurer the server knows, set once on insert. */
+    private fun pushDeposit(userId: UUID, dto: KittyDepositDto) {
+        val id = uuid(dto.id, "id")
+        val tripId = uuid(dto.tripId, "tripId")
+        val member = uuid(dto.memberId, "memberId")
+        val treasurer = KittyService.requireDepositRecorder(tripId, userId)
+        if (dto.amountMinor <= 0) throw validation(mapOf("amountMinor" to "MUST_BE_POSITIVE"))
+        val existing = KittyDeposits.selectAll().where { KittyDeposits.id eq id }.singleOrNull()
+        if (existing == null || existing[KittyDeposits.memberId] != member) {
+            val active = TripMembers.select(TripMembers.id)
+                .where { (TripMembers.tripId eq tripId) and (TripMembers.id eq member) and TripMembers.active() }.any()
+            if (!active) throw validation(mapOf("memberId" to "NOT_A_MEMBER"))
+        }
+        if (existing == null) {
+            KittyDeposits.insert {
+                it[KittyDeposits.id] = id
+                it[KittyDeposits.tripId] = tripId
+                it[memberId] = member
+                it[amountMinor] = dto.amountMinor
+                it[receivedByMemberId] = treasurer
+                it[receivedAt] = dto.receivedAt.toJavaInstant()
+                it[createdAt] = dto.createdAt.toJavaInstant()
+                it[deletedAt] = dto.deletedAt?.toJavaInstant()
+            }
+        } else {
+            if (existing[KittyDeposits.tripId] != tripId) throw conflict("Deposit belongs to another trip")
+            requireNewer(dto.updatedAt, existing[KittyDeposits.updatedAt])
+            KittyDeposits.update({ KittyDeposits.id eq id }) {
+                it[memberId] = member
+                it[amountMinor] = dto.amountMinor
+                it[receivedAt] = dto.receivedAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
         }
@@ -440,5 +566,7 @@ class SyncService {
         const val ENTITY_PACKING = "packingItem"
         const val ENTITY_EXPENSE = "expense"
         const val ENTITY_SETTLEMENT = "settlement"
+        const val ENTITY_KITTY = "kitty"
+        const val ENTITY_DEPOSIT = "kittyDeposit"
     }
 }

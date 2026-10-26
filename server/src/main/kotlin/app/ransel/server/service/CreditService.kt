@@ -61,6 +61,7 @@ class CreditService(private val config: AppConfig) {
         CreditAction.SEARCH -> config.creditCostSearch
         CreditAction.NEXT_BATCH -> config.creditCostNextBatch
         CreditAction.PLACE_DETAIL -> config.creditCostPlaceDetail
+        CreditAction.RECEIPT -> config.creditCostReceipt
     }
 
     fun credits(userId: UUID): CreditsDto = transaction { snapshot(userId) }
@@ -256,7 +257,7 @@ class CreditService(private val config: AppConfig) {
             dailyFreeLeft = (config.creditDailyFree - used).coerceAtLeast(0),
             dailyFreeLimit = config.creditDailyFree,
             resetsAt = resetsAt(),
-            costs = CreditCostsDto(config.creditCostSearch, config.creditCostNextBatch, config.creditCostPlaceDetail),
+            costs = CreditCostsDto(config.creditCostSearch, config.creditCostNextBatch, config.creditCostPlaceDetail, config.creditCostReceipt),
         )
     }
 

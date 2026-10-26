@@ -1,0 +1,90 @@
+### Group money (stage 4): kitty, claims, payment info, receipts. Kitty amounts are in the trip base currency.
+
+### Kitty overview: settings, deposits (newest first), collected / spent / left, who has paid the contribution
+GET {{host}}/trips/{{tripId}}/kitty
+Authorization: Bearer {{token}}
+
+### Set the contribution and the treasurer (OWNER)
+PUT {{host}}/trips/{{tripId}}/kitty
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "amountPerMemberMinor": 500000, "treasurerMemberId": "paste member id" }
+
+### Record a deposit (EDITOR+ or the treasurer); the receiver is the current treasurer
+POST {{host}}/trips/{{tripId}}/kitty/deposits
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "id": "77777777-7777-4777-8777-777777777771", "memberId": "paste member id", "amountMinor": 500000 }
+
+### Pay from the kitty: the server makes the treasurer the payer
+POST {{host}}/trips/{{tripId}}/expenses
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "id": "77777777-7777-4777-8777-777777777772",
+  "amountMinor": 600000,
+  "currency": "IDR",
+  "spentAt": "2026-11-21T12:00:00Z",
+  "paidFromKitty": true,
+  "splits": [
+    { "memberId": "paste member id", "shareMinor": 300000 },
+    { "memberId": "paste other member id", "shareMinor": 300000 }
+  ]
+}
+
+### Per item from a receipt: the server derives the splits; an item without members (tax) is spread in proportion
+POST {{host}}/trips/{{tripId}}/expenses
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "id": "77777777-7777-4777-8777-777777777773",
+  "amountMinor": 286000,
+  "currency": "IDR",
+  "spentAt": "2026-11-21T12:00:00Z",
+  "items": [
+    { "name": "Nasi campur", "amountMinor": 130000, "memberIds": ["paste member id", "paste other member id"] },
+    { "name": "Sate lilit", "amountMinor": 130000, "memberIds": ["paste third member id"] },
+    { "name": "Pajak", "amountMinor": 26000 }
+  ]
+}
+
+### "Saya sudah bayar": the caller's member paid the receiver; counts once confirmed
+POST {{host}}/trips/{{tripId}}/settlements/claim
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "id": "77777777-7777-4777-8777-777777777774", "toMemberId": "paste member id", "amountMinor": 300000 }
+
+### The receiver confirms (or the OWNER for a receiver without an account)
+POST {{host}}/trips/{{tripId}}/settlements/77777777-7777-4777-8777-777777777774/confirm
+Authorization: Bearer {{token}}
+
+### The money never arrived: the receiver removes the claim
+DELETE {{host}}/trips/{{tripId}}/settlements/77777777-7777-4777-8777-777777777774
+Authorization: Bearer {{token}}
+
+### "Bayar ke": amount and the receiver's payment info, only while the caller's member owes them
+GET {{host}}/trips/{{tripId}}/settlements/{{myMemberId}}/paste-receiver-member-id/pay-info
+Authorization: Bearer {{token}}
+
+### Account → Info pembayaran
+GET {{host}}/me/payment-methods
+Authorization: Bearer {{token}}
+
+###
+POST {{host}}/me/payment-methods
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "kind": "BANK", "provider": "BCA", "accountNumber": "1234 5678 90", "holderName": "Septian Nugraha", "isPrimary": true }
+
+### Read a receipt photo (1 credit; nothing when unreadable). Body = the image, at most 5 MB
+POST {{host}}/receipts/parse?tripId={{tripId}}
+Content-Type: image/jpeg
+Authorization: Bearer {{token}}
+
+< ./receipt.jpg
