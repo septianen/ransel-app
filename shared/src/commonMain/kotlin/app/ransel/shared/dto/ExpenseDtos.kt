@@ -1,6 +1,7 @@
 package app.ransel.shared.dto
 
 import app.ransel.shared.model.Category
+import app.ransel.shared.model.FxSource
 import app.ransel.shared.model.PaymentMethod
 import app.ransel.shared.serialization.Timestamp
 import kotlinx.datetime.LocalDate
@@ -38,6 +39,10 @@ data class ExpenseDto(
     val isEstimate: Boolean = false,
     /** "Per item" split from a receipt, in list order. Empty = no items; the splits are then the whole truth. */
     val items: List<ExpenseItemDto> = emptyList(),
+    /** Where [fxRateToBase] came from: the day's reference rate or the member's own (money changer). Null = not foreign, or older rows. */
+    val fxSource: FxSource? = null,
+    /** The day of the reference rate that was used (DAILY), which may be earlier than the expense when that day had none. */
+    val fxDate: LocalDate? = null,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
     val deletedAt: Timestamp? = null,
@@ -93,6 +98,8 @@ data class ExpenseInput(
     val paidFromKitty: Boolean = false,
     val isEstimate: Boolean = false,
     val items: List<ExpenseItemDto> = emptyList(),
+    val fxSource: FxSource? = null,
+    val fxDate: LocalDate? = null,
 )
 
 /** GET /trips/{id}/expenses/summary. Everything in baseCurrency. */

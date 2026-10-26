@@ -139,6 +139,10 @@ enum class DevicePlatform { ANDROID, IOS }
 @Serializable
 enum class SettlementStatus { CLAIMED_PAID, CONFIRMED }
 
+/** Where an expense's exchange rate came from: the day's reference rate (ECB, through the server) or typed by the member. */
+@Serializable
+enum class FxSource { DAILY, MANUAL }
+
 /** Account → Info pembayaran: a bank account or an e-wallet. */
 @Serializable
 enum class PaymentMethodKind { BANK, EWALLET }

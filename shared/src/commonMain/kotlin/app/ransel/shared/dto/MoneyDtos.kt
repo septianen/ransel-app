@@ -151,3 +151,18 @@ data class ReceiptLineDto(
     val quantity: Int? = null,
     val amountMinor: Long,
 )
+
+/**
+ * GET /fx/rate?from=JPY&to=IDR&date=2026-12-06: 1 [from] = [rate] [to], from the ECB reference rates crossed through EUR.
+ * [date] is the day the rate is from: the latest on or before the asked day ([stale] = it is earlier, e.g. a weekend).
+ */
+@Serializable
+data class FxRateDto(
+    val from: String,
+    val to: String,
+    /** Decimal as a string, like `ExpenseDto.fxRateToBase`. */
+    val rate: String,
+    val date: LocalDate,
+    val stale: Boolean = false,
+    val source: String = "ECB",
+)

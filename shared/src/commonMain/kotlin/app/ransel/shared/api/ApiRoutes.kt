@@ -82,6 +82,7 @@ object ApiRoutes {
         "/trips/$tripId/kitty/deposits/$depositId"                 // DELETE (EDITOR+ or the treasurer) → 204
     const val ME_PAYMENT_METHODS = "/me/payment-methods"           // GET → List<PaymentMethodDto>, POST PaymentMethodInput → 201 PaymentMethodDto
     fun mePaymentMethod(id: String) = "/me/payment-methods/$id"    // PATCH PaymentMethodInput → PaymentMethodDto, DELETE → 204
+    const val FX_RATE = "/fx/rate"                                 // GET ?from=&to=&date= → FxRateDto (bearer); 404 NOT_FOUND for a currency the ECB does not quote
     const val RECEIPTS_PARSE = "/receipts/parse"                   // POST ?tripId= with the photo as the body (image/jpeg|png|webp, ≤ 5 MB) → ReceiptDraftDto; costs credits
     const val PACKING_TEMPLATES = "/packing-templates"             // GET list (built-in + own + shared), POST CreatePackingTemplateRequest
     fun applyTemplate(tripId: String) = "/trips/$tripId/packing/apply-template" // POST ApplyTemplateRequest → List<PackingItemDto>

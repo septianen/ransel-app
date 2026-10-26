@@ -28,6 +28,12 @@ data class TripDto(
     val myRole: Role = Role.OWNER,
     /** Where [destination] is, when it was picked from the suggestions; null for a typed name. */
     val destinationPlace: TripPlaceDto? = null,
+    /** Destination country, ISO 3166-1 alpha-2 ("JP"); null = unknown (treated as Indonesia). */
+    val countryCode: String? = null,
+    /** Currency spent at the destination (ISO 4217, "JPY"); new expenses default to it. Null = [baseCurrency]. */
+    val localCurrency: String? = null,
+    /** IANA zone of the destination ("Asia/Tokyo"); itinerary times are local to it. Null = the device's zone. */
+    val timeZone: String? = null,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
     val deletedAt: Timestamp? = null,
@@ -71,11 +77,15 @@ data class CreateTripRequest(
     val budgetMinor: Long? = null,
     val coverUrl: String? = null,
     val destinationPlace: TripPlaceDto? = null,
+    val countryCode: String? = null,
+    val localCurrency: String? = null,
+    val timeZone: String? = null,
 )
 
 /**
  * PUT /trips/{id} — full replacement of the editable fields. EDITOR or above. [destinationPlace] null keeps the stored place
- * while [destination] is unchanged (older apps do not send it) and clears it when the name changed.
+ * while [destination] is unchanged (older apps do not send it) and clears it when the name changed; the same goes for
+ * [countryCode], [localCurrency] and [timeZone] together.
  */
 @Serializable
 data class UpdateTripRequest(
@@ -87,4 +97,7 @@ data class UpdateTripRequest(
     val budgetMinor: Long? = null,
     val coverUrl: String? = null,
     val destinationPlace: TripPlaceDto? = null,
+    val countryCode: String? = null,
+    val localCurrency: String? = null,
+    val timeZone: String? = null,
 )
