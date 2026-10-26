@@ -26,6 +26,8 @@ data class TripDto(
     val coverUrl: String? = null,
     /** Role of the calling user. Always OWNER before Phase 4. */
     val myRole: Role = Role.OWNER,
+    /** Where [destination] is, when it was picked from the suggestions; null for a typed name. */
+    val destinationPlace: TripPlaceDto? = null,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
     val deletedAt: Timestamp? = null,
@@ -57,7 +59,7 @@ data class TripDetailDto(
     val summary: TripSummaryDto,
 )
 
-/** POST /trips. Validation: title not blank, endDate >= startDate, budgetMinor >= 0, currency ^[A-Z]{3}$. */
+/** POST /trips. Validation: title not blank, endDate >= startDate, budgetMinor >= 0, currency ^[A-Z]{3}$; lat -90..90, lng -180..180. */
 @Serializable
 data class CreateTripRequest(
     val id: String,
@@ -68,9 +70,13 @@ data class CreateTripRequest(
     val baseCurrency: String,
     val budgetMinor: Long? = null,
     val coverUrl: String? = null,
+    val destinationPlace: TripPlaceDto? = null,
 )
 
-/** PUT /trips/{id} — full replacement of the editable fields. EDITOR or above. */
+/**
+ * PUT /trips/{id} — full replacement of the editable fields. EDITOR or above. [destinationPlace] null keeps the stored place
+ * while [destination] is unchanged (older apps do not send it) and clears it when the name changed.
+ */
 @Serializable
 data class UpdateTripRequest(
     val title: String,
@@ -80,4 +86,5 @@ data class UpdateTripRequest(
     val baseCurrency: String,
     val budgetMinor: Long? = null,
     val coverUrl: String? = null,
+    val destinationPlace: TripPlaceDto? = null,
 )

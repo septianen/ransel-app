@@ -50,6 +50,8 @@ object ErrorCode {
     // client-only (never sent by the server)
     const val NETWORK_TIMEOUT = "NETWORK_TIMEOUT"
     const val NETWORK_UNAVAILABLE = "NETWORK_UNAVAILABLE"
+    const val LOCATION_DENIED = "LOCATION_DENIED"          // the user (or the system settings) refused the location permission
+    const val LOCATION_TIMEOUT = "LOCATION_TIMEOUT"        // no location fix within 10 s
 
     // generic
     const val INTERNAL_ERROR = "INTERNAL_ERROR"            // 500
@@ -97,6 +99,7 @@ object ErrorCode {
 
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down
+    const val PLACES_UNAVAILABLE = "PLACES_UNAVAILABLE"    // 503 on /places/{id} and /places/reverse when Google fails (autocomplete falls back instead)
 
     // Itinerary voting
     const val ROUND_NOT_FOUND = "ROUND_NOT_FOUND"          // 404, unknown or expired round, or a place that is not in it

@@ -97,6 +97,12 @@ object ApiRoutes {
     /** Bearer. Query: `name` (the item title, needed only when the server has no saved text to rebuild from) and `currency` (the trip currency for the cost estimate). For opening a place again from the itinerary. */
     fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended
 
+    // Destination search (bearer; 60 autocomplete requests per user per minute). The static paths win over {placeId}.
+    const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] → PlaceSuggestionsDto
+    const val PLACES_REVERSE = "/places/reverse"                   // GET ?lat=&lng= → ReverseGeocodeDto (coordinates are not logged or stored)
+    const val PLACES_POPULAR = "/places/popular"                   // GET → List<PopularDestinationDto>
+    fun place(placeId: String) = "/places/$placeId"                // GET ?session= → PlaceDto, 404 NOT_FOUND
+
     // Itinerary voting (docs/specs/voting-spec.md). Any member reads and votes; only the OWNER decides.
     fun rounds(tripId: String) = "/trips/$tripId/rounds"           // GET → List<RoundSummaryDto> (open and recent, newest first)
     fun round(tripId: String, roundId: String) =
