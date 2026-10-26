@@ -39,7 +39,11 @@ object TestDb {
         corsOrigins = listOf("http://localhost:8081"),
         bcryptCost = 4,
         authRateLimitPerMinute = 1000,
+        documentsDir = documentsDir,
     )
+
+    /** Trip document files of the tests: a fresh temporary folder per run. */
+    val documentsDir: String by lazy { java.nio.file.Files.createTempDirectory("ransel-docs").toString() }
 
     /** Runs raw SQL against the test database (to age invites, etc.). */
     fun exec(sql: String) {

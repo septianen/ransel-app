@@ -753,6 +753,8 @@ object PollService {
         }
         val shares = splitEqually(amount, members.ifEmpty { listOf(payer.toString()) }, payer.toString())
         ExpenseService.replaceSplits(expenseId, shares.map { ExpenseSplitDto(it.key, it.value) })
+        // the booking page goes to "Dokumen trip" (Menginap)
+        option[PollOptions.url]?.let { url -> DocumentService.addPollLink(tripId, payer, option[PollOptions.label], url) }
     }
 
     private fun addItem(tripId: UUID, option: ResultRow, category: Category, day: java.time.LocalDate?, time: java.time.LocalTime?) {

@@ -8,6 +8,8 @@ import app.ransel.server.db.Trips
 import app.ransel.shared.model.NotificationType
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -26,10 +28,15 @@ import java.util.UUID
 class ReminderScheduler(private val config: AppConfig, private val notifications: NotificationService) {
     private val zone = ZoneId.of("Asia/Jakarta")
 
+    private companion object {
+        const val RECAP_HOUR = 9
+    }
+
     fun tick(now: Instant = Instant.now()) {
         val local = LocalDateTime.ofInstant(now, zone)
         packing(local)
         activities(now)
+        recaps(local)
         PollService.tick(now)
     }
 
@@ -74,6 +81,20 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
                             "time" to "%02d:%02d".format(time.hour, time.minute), "date" to day.toString(),
                         )
                     }
+                }
+        }
+    }
+
+    /** "Rekap siap": from 09.00 WIB the day after a trip ended (within a week, so a late deploy still sends it once). */
+    private fun recaps(local: LocalDateTime) {
+        if (local.hour < RECAP_HOUR) return
+        val today = local.toLocalDate()
+        transaction {
+            Trips.selectAll()
+                .where { (Trips.endDate less today) and (Trips.endDate greaterEq today.minusDays(7)) and Trips.deletedAt.isNull() }
+                .forEach { trip ->
+                    val tripId = trip[Trips.id]
+                    notifications.notify(members(tripId), NotificationType.RECAP_READY, tripId, "recap:$tripId") { mapOf("tripTitle" to trip[Trips.title]) }
                 }
         }
     }

@@ -83,6 +83,12 @@ object PushText {
                     }
                 }
             }
+            NotificationType.DOCUMENT_ADDED ->
+                (if (en) "$actor added a document" else "$actor menambah dokumen") to
+                    listOf(params["title"].orEmpty(), trip).filter { it.isNotBlank() }.joinToString(" · ")
+            NotificationType.RECAP_READY ->
+                (if (en) "The $trip recap is ready" else "Rekap $trip sudah jadi") to
+                    (if (en) "See it and share it with the group." else "Lihat dan bagikan ke grup.")
             NotificationType.PACKING_LIST -> {
                 val left = params["requiredLeft"]?.toIntOrNull() ?: 0
                 when (params["stage"]) {

@@ -50,6 +50,8 @@ data class AppConfig(
     val placesApiKey: String = "",
     /** HMAC key for the signed place-photo links. Required in production, separate from [jwtSecret]. */
     val photoSigningSecret: String = DEV_PHOTO_SIGNING_SECRET,
+    /** Where trip document files live (a Docker volume in production). */
+    val documentsDir: String = "./data/documents",
     /** Photo proxy requests per client address per minute (a card stack loads several at once). */
     val photoRateLimitPerMinute: Int = 120,
     /** `GET /explore/suggestions` per user per hour (soft limit; it never uses the daily search quota). */
@@ -192,6 +194,7 @@ data class AppConfig(
                 llmFallbackModel = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.5-flash",
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 photoSigningSecret = photoSecret,
+                documentsDir = env["DOCUMENTS_DIR"]?.takeIf { it.isNotBlank() } ?: "./data/documents",
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),
                 iosAppIds = env["IOS_APP_IDS"].csv(),

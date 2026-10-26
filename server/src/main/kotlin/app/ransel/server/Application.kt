@@ -52,6 +52,9 @@ import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
 import app.ransel.server.routes.wellKnownRoutes
 import app.ransel.server.routes.guestRoutes
+import app.ransel.server.routes.documentRoutes
+import app.ransel.server.routes.documentFileRoutes
+import app.ransel.server.service.DocumentService
 import app.ransel.server.routes.ogRoutes
 import app.ransel.server.security.EmailSender
 import app.ransel.server.security.LoggingEmailSender
@@ -187,6 +190,10 @@ fun Application.module(
         while (isActive) {
             runCatching { reminders.tick() }.onFailure { environment.log.warn("reminder tick failed: {}", it.javaClass.simpleName) }
             runCatching { rounds.tick() }.onFailure { environment.log.warn("voting tick failed: {}", it.javaClass.simpleName) }
+            // files of deleted documents and trips leave the disk, once an hour
+            if (java.time.LocalTime.now().minute == 0) {
+                runCatching { DocumentService(config).purge() }.onFailure { environment.log.warn("document purge failed: {}", it.javaClass.simpleName) }
+            }
             delay(60_000)
         }
     }
@@ -215,6 +222,8 @@ fun Application.module(
             val invites = InviteService(config)
             invitePreviewRoutes(invites)
             guestRoutes()
+            val documents = DocumentService(config)
+            documentFileRoutes(documents)
             ogRoutes(invites, config.appBaseUrl)
             authenticate(JWT_AUTH) {
                 meRoutes(verification)
@@ -232,6 +241,7 @@ fun Application.module(
                 paymentMethodRoutes()
                 receiptRoutes(ReceiptService(aiServices, credits))
                 packingTemplateRoutes()
+                documentRoutes(documents)
                 recommendationRoutes(recommendations)
                 votingRoutes(rounds)
                 creditRoutes(credits)

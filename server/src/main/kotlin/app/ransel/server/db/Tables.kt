@@ -468,6 +468,40 @@ object PaymentMethods : Table("payment_methods") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** Trip documents (V23): a file on disk (DOCUMENTS_DIR/<trip>/<id>) or a link. */
+object TripDocuments : Table("trip_documents") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val title = text("title")
+    val category = enumerationByName<app.ransel.shared.model.DocumentCategory>("category", 16)
+    val kind = enumerationByName<app.ransel.shared.model.DocumentKind>("kind", 8)
+    val url = text("url").nullable()
+    val fileName = text("file_name").nullable()
+    val mime = text("mime").nullable()
+    val sizeBytes = long("size_bytes").nullable()
+    val itineraryItemId = javaUUID("itinerary_item_id").nullable()
+    val uploadedByMemberId = javaUUID("uploaded_by_member_id")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    /** The file left the disk (document or trip deleted). */
+    val fileRemovedAt = timestamp("file_removed_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** A user's trip templates (V23). */
+object TripTemplates : Table("trip_templates") {
+    val id = javaUUID("id")
+    val ownerId = javaUUID("owner_id")
+    val name = text("name")
+    val dayCount = integer("day_count")
+    val destination = text("destination")
+    val items = jsonb<List<app.ransel.shared.dto.TripTemplateItem>>("items", Json)
+    val packing = jsonb<List<TemplateItem>>("packing", Json)
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
 object PackingTemplates : Table("packing_templates") {
     val id = javaUUID("id")
     /** Null = built-in. */

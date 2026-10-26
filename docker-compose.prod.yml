@@ -7,11 +7,15 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:${HOST_PORT:-8080}:8080"   # loopback only; nginx is the public entry (staging: 8090)
+    volumes:
+      - ransel-documents:/data/documents
     environment:
       PORT: 8080
       APP_ENV: ${APP_ENV:-production}   # staging stack: staging (same secret checks, shown as a badge in Karung)
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ characters)}
       PHOTO_SIGNING_SECRET: ${PHOTO_SIGNING_SECRET:?set PHOTO_SIGNING_SECRET (32+ characters)}
+      # Trip document files (PDF, images): on the documents volume
+      DOCUMENTS_DIR: /data/documents
       JWT_ISSUER: ${JWT_ISSUER:-ransel}
       APP_BASE_URL: ${APP_BASE_URL:-https://ransel.mietek.tech}
       DATABASE_URL: jdbc:postgresql://db:5432/ransel
@@ -78,3 +82,4 @@ services:
 
 volumes:
   ransel-db:
+  ransel-documents:
