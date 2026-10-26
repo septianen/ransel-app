@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import app.ransel.feature.trip.zone
 
 /** A confirmation over the poll screen. */
 sealed interface PollDialog {
@@ -64,7 +65,10 @@ data class PollSearchState(
 )
 
 /** Something the user should know, shown once as a snackbar. */
-enum class PollNotice { STALE, CLOSED, VOTE_FAILED, ACTION_FAILED }
+enum class PollNotice { STALE, CLOSED, VOTE_FAILED, ACTION_FAILED, SHARE_FAILED, LINK_OFF }
+
+/** The share sheet: [link] once the server made it; [justCreated] = "Polling sudah dibuat". */
+data class ShareState(val link: app.ransel.shared.dto.PollShareDto? = null, val justCreated: Boolean = false)
 
 data class PollUiState(
     val loading: Boolean = true,
@@ -85,7 +89,12 @@ data class PollUiState(
     val tripPlace: app.ransel.shared.dto.TripPlaceDto? = null,
     val myMemberId: String? = null,
     val myRole: Role = Role.VIEWER,
+    val tripTitle: String = "",
+    val tripZone: kotlinx.datetime.TimeZone = kotlinx.datetime.TimeZone.of("Asia/Jakarta"),
+    val share: ShareState? = null,
 ) {
+    /** Members without an account, named in the share sheet: they vote in a browser. */
+    val guestNames: List<String> get() = members.filter { it.userId == null }.map { it.displayName }
     val isOwner: Boolean get() = myRole == Role.OWNER
     val canEditOptions: Boolean get() = myRole.atLeast(Role.EDITOR) && poll?.isOpen == true
     val canSearch: Boolean get() = canEditOptions && (poll?.kind == PollKind.STAY || poll?.kind == PollKind.FOOD)
@@ -123,6 +132,7 @@ class PollViewModel(
                             currency = trip.baseCurrency, myRole = trip.myRole, destination = trip.destination,
                             tripNights = trip.startDate.daysUntil(trip.endDate),
                             tripStart = trip.startDate, tripEnd = trip.endDate, tripPlace = trip.destinationPlace,
+                            tripTitle = trip.title, tripZone = trip.zone(),
                         )
                     }
                 }
@@ -140,6 +150,35 @@ class PollViewModel(
             }
             // names for the voters; the poll is usable without them
             (api.members(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(members = r.value) } }
+        }
+    }
+
+    /** "Bagikan": the guest link is made (or fetched) when the sheet opens. */
+    fun openShare(justCreated: Boolean = false) {
+        _state.update { it.copy(share = ShareState(it.share?.link, justCreated)) }
+        if (_state.value.share?.link != null) return
+        viewModelScope.launch {
+            when (val result = api.sharePoll(pollId)) {
+                is ApiResult.Success -> _state.update { it.copy(share = it.share?.copy(link = result.value)) }
+                is ApiResult.Failure -> {
+                    _state.update { it.copy(share = null) }
+                    events.send(PollEvent.Notice(PollNotice.SHARE_FAILED))
+                }
+            }
+        }
+    }
+
+    fun closeShare() = _state.update { it.copy(share = null) }
+
+    /** "Matikan link" (creator or owner): the old link stops working; sharing again makes a new one. */
+    fun turnOffLink() {
+        viewModelScope.launch {
+            if (api.unsharePoll(pollId) is ApiResult.Success) {
+                _state.update { it.copy(share = null) }
+                events.send(PollEvent.Notice(PollNotice.LINK_OFF))
+            } else {
+                events.send(PollEvent.Notice(PollNotice.ACTION_FAILED))
+            }
         }
     }
 

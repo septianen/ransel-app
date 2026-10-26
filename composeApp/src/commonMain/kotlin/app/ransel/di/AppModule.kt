@@ -83,6 +83,8 @@ val commonModule: Module = module {
     viewModel { app.ransel.feature.account.PaymentMethodsViewModel(get(), get()) }
     viewModel { app.ransel.feature.destination.DestinationPickerViewModel(get(), get(), get()) }
     single { InviteLinks() }
+    single { app.ransel.feature.guest.PendingPollLink() }
+    viewModel { params -> app.ransel.feature.guest.GuestPageViewModel(params.get(), get(), get(), get()) }
     single { CreditsStore() }
     single { PushRegistration(get(), get(), get()) }
     single { NotificationsStore() }

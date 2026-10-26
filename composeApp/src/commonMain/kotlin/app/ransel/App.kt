@@ -61,6 +61,7 @@ import app.ransel.navigation.SignInRoute
 import app.ransel.navigation.SignUpRoute
 import app.ransel.platform.clearResetTokenFromUrl
 import app.ransel.platform.initialInviteCode
+import app.ransel.platform.initialGuestPollCode
 import app.ransel.platform.initialResetToken
 import app.ransel.data.auth.EmailVerification
 import app.ransel.feature.auth.EmailVerifiedScreen
@@ -278,8 +279,27 @@ private fun SessionGate(openSignIn: Boolean) {
     LaunchedEffect(state is SessionState.Loading) {
         if (state !is SessionState.Loading) explainPermission = registrar.shouldExplainPermission()
     }
+    // Web: a poll link (/p/<code>) opens the guest page whoever is signed in; an invite link opened while signed out
+    // offers "Lihat tanpa akun" next to joining with an account.
+    var guest by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    var guestChecked by remember { mutableStateOf(false) }
+    LaunchedEffect(state is SessionState.Loading) {
+        if (state is SessionState.Loading || guestChecked) return@LaunchedEffect
+        guestChecked = true
+        guest = initialGuestPollCode()?.let { it to false }
+            ?: initialInviteCode()?.takeIf { requiresAccount && state !is SessionState.SignedIn }?.let { it to true }
+    }
+    val pendingPoll: app.ransel.feature.guest.PendingPollLink = koinInject()
     when {
         state is SessionState.Loading -> SplashScreen()
+        guest != null -> guest?.let { (code, invite) ->
+            app.ransel.feature.guest.GuestPageScreen(
+                code = code,
+                invite = invite,
+                onSignIn = { guest = null },
+                onOpenPoll = { tripId, pollId -> pendingPoll.offer(tripId, pollId); guest = null },
+            )
+        }
         requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
         else -> RanselNavigation(openSignIn = openSignIn)
     }
@@ -336,6 +356,15 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
             NewPasswordRoute::class, SessionExpiredRoute::class, VerifyEmailRoute::class, EmailVerifiedRoute::class,
         ).any { here.hasRoute(it) }
         if (!onJoin && !onAuth) navController.navigate(JoinTripRoute(code)) { launchSingleTop = true }
+    }
+    // "Buka di RANSEL" on the guest page: a member opened their own poll link.
+    val pendingPoll: app.ransel.feature.guest.PendingPollLink = koinInject()
+    val pollLink by pendingPoll.poll.collectAsState()
+    LaunchedEffect(pollLink, sessionState) {
+        val (tripId, pollId) = pollLink ?: return@LaunchedEffect
+        if (sessionState !is SessionState.SignedIn) return@LaunchedEffect
+        pendingPoll.clear()
+        navController.navigate(PollRoute(tripId, pollId)) { launchSingleTop = true }
     }
     // A verification link was opened (App Link, or /verify-email on the web while signed in).
     val verification: EmailVerification = koinInject()
@@ -724,7 +753,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
     }
     page<PollRoute> { entry ->
         val route = entry.toRoute<PollRoute>()
-        PollScreen(tripId = route.tripId, pollId = route.pollId, onBack = { navController.popBackStack() })
+        PollScreen(tripId = route.tripId, pollId = route.pollId, openShare = route.share, onBack = { navController.popBackStack() })
     }
     page<CreatePollRoute> { entry ->
         val route = entry.toRoute<CreatePollRoute>()
@@ -733,7 +762,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             kind = PollKind.entries.firstOrNull { it.name == route.kind } ?: PollKind.CUSTOM,
             onBack = { navController.popBackStack() },
             // the new poll replaces the form, so back goes to the trip
-            onCreated = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) { popUpTo<CreatePollRoute> { inclusive = true } } },
+            onCreated = { pollId -> navController.navigate(PollRoute(route.tripId, pollId, share = true)) { popUpTo<CreatePollRoute> { inclusive = true } } },
         )
     }
     page<JoinTripRoute> { entry ->

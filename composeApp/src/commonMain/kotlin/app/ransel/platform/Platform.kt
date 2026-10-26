@@ -30,6 +30,9 @@ expect fun clearResetTokenFromUrl()
 /** The invite code in the page URL (`/j/<code>`), web only; null elsewhere (apps get it from the link intent). */
 expect fun initialInviteCode(): String?
 
+/** Web: the code of an opened poll link (`/p/<code>`), shown as the guest page; null elsewhere. */
+expect fun initialGuestPollCode(): String?
+
 /** Opens the system share sheet with [text] (web: the Web Share API, else copies it). */
 @Composable
 expect fun rememberShareText(): (String) -> Unit

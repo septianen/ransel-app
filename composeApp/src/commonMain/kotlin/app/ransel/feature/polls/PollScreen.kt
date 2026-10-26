@@ -76,6 +76,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.poll_share
+import ransel.composeapp.generated.resources.poll_share_failed
+import ransel.composeapp.generated.resources.poll_share_off_done
 import ransel.composeapp.generated.resources.poll_decide_estimate_no_price
 import ransel.composeapp.generated.resources.poll_decide_estimate_total
 import ransel.composeapp.generated.resources.poll_decide_estimate
@@ -133,11 +136,20 @@ fun PollScreen(
     pollId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    openShare: Boolean = false,
     viewModel: PollViewModel = koinViewModel(key = "poll-$pollId") { parametersOf(tripId, pollId) },
     itinerary: app.ransel.data.repository.ItineraryRepository = org.koin.compose.koinInject(),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    // right after creating: "Polling sudah dibuat" with the share buttons, once
+    var shareOffered by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(openShare) {
+        if (openShare && !shareOffered) {
+            shareOffered = true
+            viewModel.openShare(justCreated = true)
+        }
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
@@ -151,6 +163,8 @@ fun PollScreen(
                                 PollNotice.STALE -> Res.string.poll_stale
                                 PollNotice.CLOSED -> Res.string.poll_closed_notice
                                 PollNotice.VOTE_FAILED, PollNotice.ACTION_FAILED -> Res.string.poll_vote_error
+                                PollNotice.SHARE_FAILED -> Res.string.poll_share_failed
+                                PollNotice.LINK_OFF -> Res.string.poll_share_off_done
                             },
                         ),
                     )
@@ -174,12 +188,26 @@ fun PollScreen(
                 onDecide = { viewModel.ask(PollDialog.Decide(it)) },
                 onReopen = viewModel::reopen,
                 onDelete = { viewModel.ask(PollDialog.Delete) },
+                onShare = { viewModel.openShare() },
             )
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp))
     }
 
     val poll = state.poll
+    val share = state.share
+    if (share != null && poll != null) {
+        SharePollSheet(
+            poll = poll,
+            share = share,
+            tripTitle = state.tripTitle,
+            zone = state.tripZone,
+            guestNames = state.guestNames,
+            canTurnOff = state.isManager,
+            onTurnOff = viewModel::turnOffLink,
+            onDismiss = viewModel::closeShare,
+        )
+    }
     state.optionSheet?.let { sheet ->
         if (poll != null) {
             PollOptionSheet(
@@ -330,10 +358,11 @@ fun PollContent(
     modifier: Modifier = Modifier,
     now: Instant = Clock.System.now(),
     onSearch: () -> Unit = {},
+    onShare: () -> Unit = {},
 ) {
     val poll = state.poll
     Column(modifier.fillMaxSize()) {
-        TopBar(poll, state, onBack, onClose, onDecide, onReopen, onDelete)
+        TopBar(poll, state, onBack, onClose, onDecide, onReopen, onDelete, onShare)
         when {
             poll == null && state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             poll == null -> Column(
@@ -393,7 +422,7 @@ fun PollContent(
 @Composable
 private fun TopBar(
     poll: PollDto?, state: PollUiState, onBack: () -> Unit,
-    onClose: () -> Unit, onDecide: (PollOptionDto?) -> Unit, onReopen: () -> Unit, onDelete: () -> Unit,
+    onClose: () -> Unit, onDecide: (PollOptionDto?) -> Unit, onReopen: () -> Unit, onDelete: () -> Unit, onShare: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -401,6 +430,11 @@ private fun TopBar(
             Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
         }
         Text(stringResource(Res.string.poll_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).padding(start = 4.dp))
+        if (poll != null) {
+            Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onShare), contentAlignment = Alignment.Center) {
+                Symbol(Symbols.share, contentDescription = stringResource(Res.string.poll_share))
+            }
+        }
         if (poll != null && state.isManager) {
             Box {
                 Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button) { menu = true }, contentAlignment = Alignment.Center) {

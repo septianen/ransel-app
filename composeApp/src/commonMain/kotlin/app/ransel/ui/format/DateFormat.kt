@@ -4,8 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringArrayResource
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.deadline_time
 import ransel.composeapp.generated.resources.months_full
 import ransel.composeapp.generated.resources.months_short
 import ransel.composeapp.generated.resources.weekdays_full
@@ -25,7 +27,7 @@ class DateFormatter(
     private val weekdaysFull: List<String>,
 ) {
     private fun month(d: LocalDate) = monthsShort.getOrNull(d.month.ordinal) ?: (d.month.ordinal + 1).toString()
-    private fun weekdayShort(d: LocalDate) = weekdaysShort.getOrNull(d.dayOfWeek.ordinal) ?: ""
+    fun weekdayShort(d: LocalDate) = weekdaysShort.getOrNull(d.dayOfWeek.ordinal) ?: ""
     private fun weekdayFull(d: LocalDate) = weekdaysFull.getOrNull(d.dayOfWeek.ordinal) ?: ""
 
     /** "20 Nov" */
@@ -61,4 +63,15 @@ fun rememberDateFormatter(): DateFormatter {
     return remember(monthsShort, monthsFull, weekdaysShort, weekdaysFull) {
         DateFormatter(monthsShort, monthsFull, weekdaysShort, weekdaysFull)
     }
+}
+
+/** "Sen 21.00" / "Mon 21:00": a deadline in [zone]. */
+@androidx.compose.runtime.Composable
+fun deadlineText(at: kotlin.time.Instant, zone: kotlinx.datetime.TimeZone): String {
+    val dates = rememberDateFormatter()
+    val local = at.toLocalDateTime(zone)
+    return org.jetbrains.compose.resources.stringResource(
+        Res.string.deadline_time,
+        dates.weekdayShort(local.date), local.hour.toString().padStart(2, '0'), local.minute.toString().padStart(2, '0'),
+    )
 }

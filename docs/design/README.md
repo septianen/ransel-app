@@ -359,7 +359,7 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/AjakTeman.html` |  | Setelah buat trip: ajak teman | 390 |
 | `screens/AnggotaTanpaAkun.html` |  | Anggota trip: ada anggota tanpa akun | 390 |
 | `screens/TambahAnggotaNama.html` |  | Tambah anggota tanpa akun (bottom sheet) | 390 |
-| `screens/WebGabungPratinjau.html` |  | Web di HP: pratinjau trip dari link, tanpa login | 390 |
+| `screens/WebGabungPratinjau.html` | `GuestPageContent` (invite link, signed out) | Web di HP: pratinjau trip dari link, tanpa login | 390 |
 | `screens/GabungPilihNama.html` |  | Gabung trip: klaim nama tanpa akun | 390 |
 | `screens/SaldoTagih.html` | `SaldoContent` | Saldo: ingatkan dan tandai lunas | 390 |
 | `screens/IngatkanWA.html` | `RemindSheet` | Pengingat bayar lewat WhatsApp (bottom sheet) | 390 |
@@ -394,7 +394,7 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/NotifikasiGrup.html` |  | Notifikasi: polling, bayar, dokumen, rekap | 390 |
 | `screens/ItineraryPolling.html` |  | Itinerary: tanggal masih dipolling (anggota) | 390 |
 | `screens/PollingTanggalAnggota.html` |  | Polling tanggal: tampilan anggota | 390 |
-| `screens/WebPollingTamu.html` |  | Web di HP: polling dari link WhatsApp, tanpa akun | 390 |
+| `screens/WebPollingTamu.html` | `GuestPageContent` | Web di HP: polling dari link WhatsApp, tanpa akun | 390 |
 | `screens/TambahPengeluaranPilih.html` | `AddExpenseChooserSheet` | Tambah pengeluaran: pilih cara (tombol +) | 390 |
 | `screens/MenuTrip.html` |  | Menu trip: tinggal pengaturan trip | 390 |
 | `screens/BerandaRekap.html` |  | Beranda setelah trip selesai: kartu rekap | 390 |
@@ -429,11 +429,11 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 
 | File | Code name | Board title | Width |
 | --- | --- | --- | --- |
-| `screens/BagikanPolling.html` |  | Polling terkirim: bagikan ke grup | 390 |
+| `screens/BagikanPolling.html` | `SharePollSheet` | Polling terkirim: bagikan ke grup | 390 |
 | `screens/PreviewWA.html` |  | Preview link di grup WhatsApp (ilustrasi) | 390 |
-| `screens/WebPollingPenginapanTamu.html` |  | Web di HP: polling penginapan tanpa akun | 390 |
-| `screens/OgPolling.html` |  | Gambar preview link: polling (1200×630) | 1200 |
-| `screens/OgUndangan.html` |  | Gambar preview link: undangan trip (1200×630) | 1200 |
+| `screens/WebPollingPenginapanTamu.html` | `GuestPageContent` (STAY poll) | Web di HP: polling penginapan tanpa akun | 390 |
+| `screens/OgPolling.html` | `og/poll.png` (static, owner decision) | Gambar preview link: polling (1200×630) | 1200 |
+| `screens/OgUndangan.html` | `og/invite.png` (static, owner decision) | Gambar preview link: undangan trip (1200×630) | 1200 |
 
 ### Polling · edge case: seri, opsi diubah, offline, pembuat keluar, suara ganda
 

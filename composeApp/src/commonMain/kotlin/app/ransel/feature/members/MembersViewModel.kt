@@ -199,6 +199,9 @@ class MembersViewModel(
         }
     }
 
+    /** "Lepas dari browser": the guest's name can be picked on another device (their new phone). */
+    fun releaseGuest(member: TripMemberDto) = change { api.releaseGuestName(tripId, member.memberId) }
+
     // ── undo a claim (the OWNER, after the MEMBER_CLAIMED notification) ─────
 
     fun showClaimUndo(guestMemberId: String, guestName: String, claimerName: String?) =

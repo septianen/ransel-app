@@ -79,5 +79,10 @@ private external fun shareOrCopy(text: String)
 
 actual fun initialInviteCode(): String? = invitePathCode().takeIf { it.isNotBlank() }
 
+@JsFun("() => { const m = window.location.pathname.match(/^\\/p\\/([^/]+)\\/?$/); return m ? decodeURIComponent(m[1]) : ''; }")
+private external fun pollPathCode(): String
+
+actual fun initialGuestPollCode(): String? = pollPathCode().takeIf { it.isNotBlank() }?.uppercase()
+
 @androidx.compose.runtime.Composable
 actual fun rememberShareText(): (String) -> Unit = { shareOrCopy(it) }

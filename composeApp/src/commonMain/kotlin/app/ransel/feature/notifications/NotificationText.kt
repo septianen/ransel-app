@@ -25,7 +25,12 @@ fun notificationLine(n: NotificationDto): NotificationLine {
     fun money(key: String) = p[key]?.toLongOrNull()?.let { amount -> p["currency"]?.let { formatMoney(amount, it) } }
     return when (n.type) {
         NotificationType.MEMBER_JOINED -> NotificationLine(
-            actor?.let { stringResource(Res.string.notification_member_joined, it) } ?: stringResource(Res.string.notification_member_joined_someone),
+            when {
+                // a guest wrote their name on the guest page
+                actor != null && p["via"] == "LINK" -> stringResource(Res.string.notification_member_joined_link, actor)
+                actor != null -> stringResource(Res.string.notification_member_joined, actor)
+                else -> stringResource(Res.string.notification_member_joined_someone)
+            },
             trip,
         )
         NotificationType.MEMBER_REMOVED -> NotificationLine(stringResource(Res.string.notification_member_removed), trip)

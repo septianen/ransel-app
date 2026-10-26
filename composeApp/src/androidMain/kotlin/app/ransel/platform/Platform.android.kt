@@ -69,6 +69,8 @@ actual fun clearResetTokenFromUrl() = Unit
 
 actual fun initialInviteCode(): String? = null
 
+actual fun initialGuestPollCode(): String? = null
+
 @androidx.compose.runtime.Composable
 actual fun rememberShareText(): (String) -> Unit {
     val context = androidx.compose.ui.platform.LocalContext.current

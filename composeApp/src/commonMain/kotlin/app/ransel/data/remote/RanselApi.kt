@@ -97,6 +97,11 @@ import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
+import app.ransel.shared.dto.PollShareDto
+import app.ransel.shared.dto.GuestPageDto
+import app.ransel.shared.dto.GuestIdentityRequest
+import app.ransel.shared.dto.GuestIdentityDto
+import app.ransel.shared.dto.GuestTickRequest
 import app.ransel.shared.dto.CreatePersonalItemRequest
 import app.ransel.shared.dto.PatchPersonalItemRequest
 import app.ransel.shared.dto.PersonalItemDto
@@ -231,6 +236,32 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.packingBring(tripId, itemId)) { it.body<ApiResponse<PackingItemDto>>().data }
     suspend fun giveBackPackingItem(tripId: String, itemId: String): ApiResult<PackingItemDto> =
         call(HttpMethod.Delete, ApiRoutes.packingBring(tripId, itemId)) { it.body<ApiResponse<PackingItemDto>>().data }
+
+    // ── sharing and the guest page (stage 8) ────────────────────────────────
+    suspend fun sharePoll(pollId: String): ApiResult<PollShareDto> =
+        call(HttpMethod.Post, ApiRoutes.pollShare(pollId)) { it.body<ApiResponse<PollShareDto>>().data }
+    suspend fun unsharePoll(pollId: String): ApiResult<Unit> = delete(ApiRoutes.pollShare(pollId))
+    suspend fun releaseGuestName(tripId: String, memberId: String): ApiResult<Unit> = delete(ApiRoutes.memberGuestSession(tripId, memberId))
+
+    /** Public: no bearer; the browser's guest token for the trip, if it has one. */
+    suspend fun guestPage(code: String, token: String?): ApiResult<GuestPageDto> =
+        call(HttpMethod.Get, ApiRoutes.guestPage(code), bodyOf = { guestToken(token) }) { it.body<ApiResponse<GuestPageDto>>().data }
+    suspend fun guestIdentity(code: String, token: String?, request: GuestIdentityRequest): ApiResult<GuestIdentityDto> =
+        call(HttpMethod.Post, ApiRoutes.guestIdentity(code), bodyOf = { guestToken(token); contentType(ContentType.Application.Json); setBody(request) }) {
+            it.body<ApiResponse<GuestIdentityDto>>().data
+        }
+    suspend fun guestVote(code: String, token: String?, pollId: String, request: VotePollRequest): ApiResult<PollDto> =
+        call(HttpMethod.Post, ApiRoutes.guestVotes(code, pollId), bodyOf = { guestToken(token); contentType(ContentType.Application.Json); setBody(request) }) {
+            it.body<ApiResponse<PollDto>>().data
+        }
+    suspend fun guestTick(code: String, token: String?, itemId: String, isPacked: Boolean): ApiResult<PersonalItemDto> =
+        call(HttpMethod.Patch, ApiRoutes.guestPersonalItem(code, itemId), bodyOf = { guestToken(token); contentType(ContentType.Application.Json); setBody(GuestTickRequest(isPacked)) }) {
+            it.body<ApiResponse<PersonalItemDto>>().data
+        }
+
+    private fun io.ktor.client.request.HttpRequestBuilder.guestToken(token: String?) {
+        token?.let { header(ApiRoutes.GUEST_TOKEN_HEADER, it) }
+    }
 
     // ── group packing (stage 7) ─────────────────────────────────────────────
     suspend fun personalItems(tripId: String): ApiResult<List<PersonalItemDto>> = get(ApiRoutes.personalItems(tripId))

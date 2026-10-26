@@ -76,6 +76,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.member_guest_browser
+import ransel.composeapp.generated.resources.member_release_guest
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.group_guest_tag
@@ -174,6 +176,7 @@ fun MembersScreen(
             onRevokeInvite = viewModel::revokeInvite,
             onAddByName = viewModel::openAddForm,
             onSendLink = viewModel::sendLink,
+            onReleaseGuest = viewModel::releaseGuest,
             onUndoClaim = viewModel::undoClaim,
         )
         SnackbarHost(
@@ -248,6 +251,7 @@ fun MembersContent(
     onAddByName: () -> Unit = {},
     onSendLink: (TripMemberDto) -> Unit = {},
     onUndoClaim: () -> Unit = {},
+    onReleaseGuest: (TripMemberDto) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize()) {
         MembersTopBar(state, onBack)
@@ -304,6 +308,7 @@ fun MembersContent(
                             showDivider = index != state.members.lastIndex,
                             onChangeRole = { onChangeRole(member, it) },
                             onSendLink = { onSendLink(member) },
+                            onReleaseGuest = { onReleaseGuest(member) },
                             onMakeOwner = { onAsk(MembersDialog.MakeOwner(member)) },
                             onRemove = { onAsk(MembersDialog.Remove(member)) },
                         )
@@ -387,6 +392,7 @@ private fun MemberRow(
     onSendLink: () -> Unit,
     onMakeOwner: () -> Unit,
     onRemove: () -> Unit,
+    onReleaseGuest: () -> Unit = {},
 ) {
     Column {
         Row(
@@ -414,7 +420,11 @@ private fun MemberRow(
                 }
                 if (member.isGuest) {
                     Text(
-                        listOfNotNull(stringResource(Res.string.group_guest_tag), member.phone?.let { "+$it" }).joinToString(" · "),
+                        listOfNotNull(
+                            stringResource(Res.string.group_guest_tag),
+                            member.phone?.let { "+$it" },
+                            if (member.guestBrowser) stringResource(Res.string.member_guest_browser) else null,
+                        ).joinToString(" · "),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -432,7 +442,7 @@ private fun MemberRow(
                 }
             }
             if (canManage && member.isGuest) {
-                GuestMenu(member, enabled, onSendLink, onRemove)
+                GuestMenu(member, enabled, onSendLink, onRemove, onReleaseGuest)
             } else if (canManage) {
                 RoleMenuChip(member, enabled, onChangeRole, onMakeOwner, onRemove)
             } else {
@@ -474,7 +484,7 @@ private fun RoleChip(role: Role) {
 
 /** Menu of a person added by name: send them the trip link, or remove them. They have no role to change. */
 @Composable
-private fun GuestMenu(member: TripMemberDto, enabled: Boolean, onSendLink: () -> Unit, onRemove: () -> Unit) {
+private fun GuestMenu(member: TripMemberDto, enabled: Boolean, onSendLink: () -> Unit, onRemove: () -> Unit, onRelease: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     val description = stringResource(Res.string.members_change_role, member.displayName)
     Box {
@@ -494,6 +504,12 @@ private fun GuestMenu(member: TripMemberDto, enabled: Boolean, onSendLink: () ->
         ) {
             ActionOption(Symbols.share, stringResource(Res.string.member_send_link), danger = false) {
                 open = false; onSendLink()
+            }
+            // a browser holds this name on the guest page
+            if (member.guestBrowser) {
+                ActionOption(Symbols.refresh, stringResource(Res.string.member_release_guest), danger = false) {
+                    open = false; onRelease()
+                }
             }
             ActionOption(Symbols.personRemove, stringResource(Res.string.members_remove), danger = true) {
                 open = false; onRemove()
