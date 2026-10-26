@@ -14,7 +14,8 @@ import kotlinx.serialization.Serializable
  *   MEMBER_REMOVED      tripTitle
  *   ROLE_CHANGED        tripTitle, role (Role name)
  *   EXPENSE_ADDED       tripTitle, actorName, amountMinor, currency, shareMinor (your share, in `currency`; absent if none)
- *   SETTLEMENT_MARKED   tripTitle, actorName, amountMinor, currency (in the trip's base currency)
+ *   SETTLEMENT_MARKED   tripTitle, actorName, amountMinor, currency (in the trip's base currency), settlementId,
+ *                       stage (CLAIMED = actorName says they paid you, waiting for your confirmation; CONFIRMED; missing = CONFIRMED)
  *   PACKING_REMINDER    tripTitle, date (trip start), remaining (items not packed yet)
  *   ACTIVITY_REMINDER   tripTitle, title (activity), time (HH:mm), date
  *   VOTE_REQUESTED      tripTitle, roundId, stage (VoteStage.OPEN | CLOSING; missing = OPEN), actorName (who searched),

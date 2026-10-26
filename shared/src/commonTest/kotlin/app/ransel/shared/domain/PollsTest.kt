@@ -33,7 +33,8 @@ class PollsTest {
         assertEquals(PollAction.SET_DESTINATION, actionFor(PollKind.DESTINATION))
         assertEquals(PollAction.ADD_UNSCHEDULED_PLACE, actionFor(PollKind.PLACE))
         assertEquals(PollAction.ADD_ACTIVITY, actionFor(PollKind.FOOD))
-        listOf(PollKind.STAY, PollKind.BUDGET, PollKind.TRANSPORT, PollKind.CUSTOM).forEach { assertEquals(PollAction.NONE, actionFor(it)) }
+        assertEquals(PollAction.ADD_ESTIMATE, actionFor(PollKind.STAY))
+        listOf(PollKind.BUDGET, PollKind.TRANSPORT, PollKind.CUSTOM).forEach { assertEquals(PollAction.NONE, actionFor(it)) }
     }
 
     @Test fun questionNeedsTextOfSensibleLength() {

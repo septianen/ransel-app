@@ -159,8 +159,16 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST | /polls/{id}/close, /decide, /reopen | End voting now / confirm the winner and run its action (no option = dismiss) / reopen a closed or tied poll | 4 |
 | POST ★ | /trips/{id}/leave, /trips/{id}/transfer-ownership | Leave the trip / transfer ownership | 4 |
 | GET | /trips/{id}/balances | Balance per person + fewest transfers | 4 |
-| POST ★ | /trips/{id}/settlements | Mark as settled | 4 |
-| GET ★ | /trips/{id}/settlements | List settlements | 4 |
+| POST ★ | /trips/{id}/settlements | Mark as settled (CONFIRMED at once) | 4 |
+| GET ★ | /trips/{id}/settlements | List settlements (with `status`: CLAIMED\_PAID waits for the receiver) | 4 |
+| POST | /trips/{id}/settlements/claim | "Saya sudah bayar": the caller's member claims a payment → CLAIMED\_PAID, the receiver is notified | 4 |
+| POST | /trips/{id}/settlements/{id}/confirm | The receiver (or the OWNER for a receiver without an account) confirms; only then it counts in balances (409 `SETTLEMENT_NOT_CLAIMED`) | 4 |
+| DELETE | /trips/{id}/settlements/{id} | Remove a settlement (payer, receiver or OWNER), e.g. a claim that never arrived | 4 |
+| GET | /trips/{id}/settlements/{from}/{to}/pay-info | "Bayar ke": amount and the receiver's payment info, only for the caller's member while it owes the receiver (else 403) | 4 |
+| GET, PUT, DELETE | /trips/{id}/kitty | Kitty overview (settings, deposits, totals) / set contribution and treasurer (OWNER) / remove | 4 |
+| POST, DELETE | /trips/{id}/kitty/deposits[/{id}] | Record / delete a deposit (EDITOR+ or the treasurer); amounts in the base currency | 4 |
+| GET, POST, PATCH, DELETE | /me/payment-methods[/{id}] | Account → Info pembayaran (bank accounts and e-wallets, at most 10) | 4 |
+| POST | /receipts/parse?tripId= | Receipt photo (body = image, ≤ 5 MB) → `ReceiptDraftDto`; Gemini reads it; costs `CREDIT_COST_RECEIPT` (default 1), nothing when unreadable (422 `RECEIPT_UNREADABLE`, 413 `FILE_TOO_LARGE`) | 4 |
 | GET, POST ★ | /packing-templates | Built-in + user templates / save a template | 4 |
 | POST ★ | /trips/{id}/packing/apply-template | Use a template (option to skip items already there) | 4 |
 | POST, DELETE ★ | /devices | Register / refresh this phone's push token; remove it on sign-out | 5 |

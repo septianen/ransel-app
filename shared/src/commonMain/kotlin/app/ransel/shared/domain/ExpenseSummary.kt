@@ -11,7 +11,7 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * Totals for the Expenses screen / `GET /trips/{id}/expenses/summary`, in the trip's base currency.
  * Each expense is converted with its own stored `fxRateToBase` ([convertMinor]), so old totals do not
- * move when rates change. Deleted expenses are ignored.
+ * move when rates change. Deleted expenses are ignored; estimates only count in `estimatedMinor`.
  *
  * [timeZone] decides which calendar day an expense belongs to (`spentAt` is UTC): the device zone on
  * mobile, the trip owner's zone on the server.
@@ -23,7 +23,8 @@ fun summarizeExpenses(
     timeZone: TimeZone,
 ): ExpenseSummaryDto {
     val live = expenses.filter { it.deletedAt == null }
-    val converted = live.map { it to convertMinor(it.amountMinor, it.currency, baseCurrency, it.fxRateToBase) }
+    val estimated = live.filter { it.isEstimate }.sumOf { convertMinor(it.amountMinor, it.currency, baseCurrency, it.fxRateToBase) }
+    val converted = live.filter { !it.isEstimate }.map { it to convertMinor(it.amountMinor, it.currency, baseCurrency, it.fxRateToBase) }
     val spent = converted.sumOf { it.second }
 
     val byCategory = Category.entries.map { category ->
@@ -39,6 +40,7 @@ fun summarizeExpenses(
         budgetMinor = budgetMinor,
         spentMinor = spent,
         remainingMinor = budgetMinor?.let { it - spent },
+        estimatedMinor = estimated,
         byCategory = byCategory,
         byDay = byDay,
     )

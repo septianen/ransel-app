@@ -34,6 +34,8 @@ data class CreditCostsDto(
     val search: Int,
     val nextBatch: Int,
     val placeDetail: Int,
+    /** Reading one receipt photo (POST /receipts/parse). Not charged when the receipt cannot be read. */
+    val receipt: Int = 0,
 )
 
 /** GET /credits/ledger, newest first. [delta] is negative for a spend, and for an ADJUSTMENT that took credits away ("Penyesuaian admin"). */

@@ -66,7 +66,23 @@ object ApiRoutes {
     fun leave(tripId: String) = "/trips/$tripId/leave"             // POST → 204 (OWNER → OWNER_CANNOT_LEAVE)
     fun transferOwnership(tripId: String) = "/trips/$tripId/transfer-ownership" // POST TransferOwnershipRequest
     fun balances(tripId: String) = "/trips/$tripId/balances"       // GET BalancesDto
-    fun settlements(tripId: String) = "/trips/$tripId/settlements" // GET list, POST CreateSettlementRequest
+    fun settlements(tripId: String) = "/trips/$tripId/settlements" // GET list, POST CreateSettlementRequest ("Tandai lunas", CONFIRMED at once)
+    fun settlement(tripId: String, settlementId: String) =
+        "/trips/$tripId/settlements/$settlementId"                 // DELETE → 204 (the payer, the receiver, or the OWNER): a claim the receiver did not get, or a mistake
+    fun settlementClaim(tripId: String) = "/trips/$tripId/settlements/claim" // POST ClaimSettlementRequest → 201 SettlementDto (CLAIMED_PAID), from = the caller's member
+    fun settlementConfirm(tripId: String, settlementId: String) =
+        "/trips/$tripId/settlements/$settlementId/confirm"         // POST → SettlementDto (CONFIRMED): the receiver, or the OWNER for a receiver without an account; 409 SETTLEMENT_NOT_CLAIMED
+    fun payInfo(tripId: String, fromMemberId: String, toMemberId: String) =
+        "/trips/$tripId/settlements/$fromMemberId/$toMemberId/pay-info" // GET → PayInfoDto, only for the caller's own member as [fromMemberId] while they owe [toMemberId]; else 403
+
+    // Group money: kitty (iuran), payment info, receipts. Amounts of the kitty are in the trip's base currency.
+    fun kitty(tripId: String) = "/trips/$tripId/kitty"             // GET → KittyOverviewDto, PUT KittyInput (OWNER) → KittyOverviewDto, DELETE (OWNER) → 204
+    fun kittyDeposits(tripId: String) = "/trips/$tripId/kitty/deposits" // POST KittyDepositInput (EDITOR+ or the treasurer) → 201 KittyDepositDto
+    fun kittyDeposit(tripId: String, depositId: String) =
+        "/trips/$tripId/kitty/deposits/$depositId"                 // DELETE (EDITOR+ or the treasurer) → 204
+    const val ME_PAYMENT_METHODS = "/me/payment-methods"           // GET → List<PaymentMethodDto>, POST PaymentMethodInput → 201 PaymentMethodDto
+    fun mePaymentMethod(id: String) = "/me/payment-methods/$id"    // PATCH PaymentMethodInput → PaymentMethodDto, DELETE → 204
+    const val RECEIPTS_PARSE = "/receipts/parse"                   // POST ?tripId= with the photo as the body (image/jpeg|png|webp, ≤ 5 MB) → ReceiptDraftDto; costs credits
     const val PACKING_TEMPLATES = "/packing-templates"             // GET list (built-in + own + shared), POST CreatePackingTemplateRequest
     fun applyTemplate(tripId: String) = "/trips/$tripId/packing/apply-template" // POST ApplyTemplateRequest → List<PackingItemDto>
 

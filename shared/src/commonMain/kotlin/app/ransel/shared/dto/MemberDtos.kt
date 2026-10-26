@@ -1,6 +1,7 @@
 package app.ransel.shared.dto
 
 import app.ransel.shared.model.Role
+import app.ransel.shared.model.SettlementStatus
 import app.ransel.shared.serialization.Timestamp
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -130,7 +131,7 @@ data class TransferDto(
     val amountMinor: Long,
 )
 
-/** POST /trips/{id}/settlements ("Tandai lunas"). Amount in baseCurrency. */
+/** POST /trips/{id}/settlements ("Tandai lunas"): CONFIRMED at once. Amount in baseCurrency. */
 @Serializable
 data class CreateSettlementRequest(
     val id: String,
@@ -138,6 +139,14 @@ data class CreateSettlementRequest(
     val toMemberId: String,
     val amountMinor: Long,
     val settledAt: Timestamp? = null,
+)
+
+/** POST /trips/{id}/settlements/claim ("Saya sudah bayar"). The payer is the caller's own member. Amount in baseCurrency. */
+@Serializable
+data class ClaimSettlementRequest(
+    val id: String,
+    val toMemberId: String,
+    val amountMinor: Long,
 )
 
 @Serializable
@@ -148,6 +157,10 @@ data class SettlementDto(
     val toMemberId: String,
     val amountMinor: Long,
     val settledAt: Timestamp,
+    /** Rows from before claims existed are CONFIRMED. Only CONFIRMED rows count in balances. */
+    val status: SettlementStatus = SettlementStatus.CONFIRMED,
+    /** When the payer said they paid; null for a direct "Tandai lunas". */
+    val claimedAt: Timestamp? = null,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
     val deletedAt: Timestamp? = null,

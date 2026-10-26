@@ -92,7 +92,7 @@ enum class TravelStyle { SANTAI, PADAT }
 
 /** What an Explore credit was spent on (`CreditLedgerEntryDto.action`). */
 @Serializable
-enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL }
+enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL, RECEIPT }
 
 /** Why a ledger row exists. SPEND is negative; ADJUSTMENT (an admin's correction) may be either sign; every other kind adds credits. */
 @Serializable
@@ -131,3 +131,14 @@ enum class NotificationType {
 
 @Serializable
 enum class DevicePlatform { ANDROID, IOS }
+
+/**
+ * A settlement between two members. CLAIMED_PAID = the payer tapped "Saya sudah bayar" and waits for the receiver;
+ * CONFIRMED = the money arrived (confirmed claim, or "Tandai lunas"). Balances count CONFIRMED only.
+ */
+@Serializable
+enum class SettlementStatus { CLAIMED_PAID, CONFIRMED }
+
+/** Account → Info pembayaran: a bank account or an e-wallet. */
+@Serializable
+enum class PaymentMethodKind { BANK, EWALLET }

@@ -27,7 +27,15 @@ data class SyncChanges(
     val packingItems: List<PackingItemDto> = emptyList(),
     /** Splits travel inside each expense and are replaced whole. */
     val expenses: List<ExpenseDto> = emptyList(),
+    /**
+     * A new row may be CONFIRMED ("Tandai lunas") or CLAIMED_PAID (only by its payer). CLAIMED_PAID → CONFIRMED only by
+     * the receiver, or by the OWNER when the receiver has no account; otherwise the row is rejected with FORBIDDEN.
+     */
     val settlements: List<SettlementDto> = emptyList(),
+    /** One per trip at most (the trip id is its key). OWNER only. */
+    val kitties: List<KittyDto> = emptyList(),
+    /** EDITOR+ or the trip's treasurer. */
+    val kittyDeposits: List<KittyDepositDto> = emptyList(),
     /** Pull only: membership of the user's trips (Phase 4). Ignored on push. */
     val members: List<TripMemberDto> = emptyList(),
 )
@@ -47,7 +55,7 @@ data class SyncPushResponse(
 
 @Serializable
 data class SyncRowRef(
-    /** "trip", "itineraryItem", "packingItem", "expense", "settlement" */
+    /** "trip", "itineraryItem", "packingItem", "expense", "settlement", "kitty", "kittyDeposit" */
     val entity: String,
     val id: String,
 )

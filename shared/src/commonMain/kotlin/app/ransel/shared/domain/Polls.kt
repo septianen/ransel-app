@@ -48,7 +48,10 @@ enum class PollAction {
     /** FOOD: an activity on the poll's day and time. */
     ADD_ACTIVITY,
 
-    /** STAY, BUDGET, TRANSPORT, CUSTOM: only the result is recorded. */
+    /** STAY: an estimated expense of the price for the stay (stayEstimateMinor), left out of balances until paid. */
+    ADD_ESTIMATE,
+
+    /** BUDGET, TRANSPORT, CUSTOM: only the result is recorded. */
     NONE,
 }
 
@@ -57,7 +60,8 @@ fun actionFor(kind: PollKind): PollAction = when (kind) {
     PollKind.DESTINATION -> PollAction.SET_DESTINATION
     PollKind.PLACE -> PollAction.ADD_UNSCHEDULED_PLACE
     PollKind.FOOD -> PollAction.ADD_ACTIVITY
-    PollKind.STAY, PollKind.BUDGET, PollKind.TRANSPORT, PollKind.CUSTOM -> PollAction.NONE
+    PollKind.STAY -> PollAction.ADD_ESTIMATE
+    PollKind.BUDGET, PollKind.TRANSPORT, PollKind.CUSTOM -> PollAction.NONE
 }
 
 /** Field name → reason code, for ApiError.details. Empty = valid. */

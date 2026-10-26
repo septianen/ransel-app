@@ -91,6 +91,9 @@ object ErrorCode {
     // expenses
     const val SPLIT_TOTAL_MISMATCH = "SPLIT_TOTAL_MISMATCH" // 422, sum(shares) != amount
     const val PAYER_TOTAL_MISMATCH = "PAYER_TOTAL_MISMATCH" // 422, sum(payers) != amount
+    const val SETTLEMENT_NOT_CLAIMED = "SETTLEMENT_NOT_CLAIMED" // 409 on confirm: the settlement is not waiting for confirmation
+    const val RECEIPT_UNREADABLE = "RECEIPT_UNREADABLE"    // 422 on /receipts/parse: no total could be read (no credits are charged)
+    const val FILE_TOO_LARGE = "FILE_TOO_LARGE"            // 413, details: maxBytes
 
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down
