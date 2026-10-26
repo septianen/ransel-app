@@ -34,8 +34,13 @@ object PushText {
             }
             NotificationType.SETTLEMENT_MARKED -> {
                 val amount = money(params["amountMinor"], params["currency"])
-                (if (en) "Payment recorded in $trip" else "Pembayaran dicatat di $trip") to
-                    (if (en) "$actor marked $amount as settled." else "$actor menandai $amount lunas.")
+                if (params["stage"] == "CLAIMED") {
+                    (if (en) "$actor says they paid you" else "$actor bilang sudah bayar") to
+                        (if (en) "$amount for $trip. Confirm once it has arrived." else "$amount untuk $trip. Konfirmasi kalau sudah masuk.")
+                } else {
+                    (if (en) "Payment recorded in $trip" else "Pembayaran dicatat di $trip") to
+                        (if (en) "$actor marked $amount as settled." else "$actor menandai $amount lunas.")
+                }
             }
             NotificationType.MEMBER_CLAIMED -> {
                 val guest = params["guestName"].orEmpty()
