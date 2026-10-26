@@ -88,6 +88,7 @@ object ErrorCode {
     const val POLL_LOCKED = "POLL_LOCKED"                  // 409, the anonymous switch changed after the first vote
     const val VOTE_STALE = "VOTE_STALE"                    // 409, the option was edited since the voter saw it: load the poll again
 
+    const val LIST_STALE = "LIST_STALE"                    // 409, the member list was saved by someone else since: load it again
     const val LINK_UNREADABLE = "LINK_UNREADABLE"          // 422 on /link-preview: not a public web page, too big or slow, or nothing to show
 
     // expenses

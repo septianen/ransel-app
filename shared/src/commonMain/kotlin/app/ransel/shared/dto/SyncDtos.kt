@@ -32,6 +32,8 @@ data class SyncChanges(
      * the receiver, or by the OWNER when the receiver has no account; otherwise the row is rejected with FORBIDDEN.
      */
     val settlements: List<SettlementDto> = emptyList(),
+    /** The caller's own packing lines only, both ways; lines from the owner's list may only change their check mark. */
+    val personalItems: List<PersonalItemDto> = emptyList(),
     /** One per trip at most (the trip id is its key). OWNER only. */
     val kitties: List<KittyDto> = emptyList(),
     /** EDITOR+ or the trip's treasurer. */
@@ -55,7 +57,7 @@ data class SyncPushResponse(
 
 @Serializable
 data class SyncRowRef(
-    /** "trip", "itineraryItem", "packingItem", "expense", "settlement", "kitty", "kittyDeposit" */
+    /** "trip", "itineraryItem", "packingItem", "personalItem", "expense", "settlement", "kitty", "kittyDeposit" */
     val entity: String,
     val id: String,
 )
