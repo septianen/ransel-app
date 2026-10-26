@@ -15,7 +15,11 @@ object PushText {
         return when (type) {
             NotificationType.MEMBER_JOINED ->
                 (if (en) "New member in $trip" else "Anggota baru di $trip") to
-                    (if (en) "$actor joined the trip." else "$actor bergabung ke trip.")
+                    when {
+                        params["via"] == "LINK" -> if (en) "$actor joined through a link." else "$actor bergabung lewat link."
+                        en -> "$actor joined the trip."
+                        else -> "$actor bergabung ke trip."
+                    }
             NotificationType.MEMBER_REMOVED ->
                 (if (en) "Removed from $trip" else "Kamu dikeluarkan dari $trip") to
                     (if (en) "You are no longer a member of this trip." else "Kamu tidak lagi jadi anggota trip ini.")

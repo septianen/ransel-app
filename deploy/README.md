@@ -143,6 +143,8 @@ notifications"); staging then uses the same `FCM_*` values from the repository. 
 
 ## Web host and invite links (`ransel.mietek.tech`)
 
+**Link previews and the guest page (stage 8).** `/p/<code>` (poll links) opens the web app like `/j/<code>`. WhatsApp and other crawlers must get Open Graph tags from the API instead: copy `deploy/nginx/ransel-preview-bots.conf` to `/etc/nginx/conf.d/` once, then add the `location ~ ^/(p|j)/...` and `location /og/` blocks from `deploy/nginx/ransel.mietek.tech.conf` (and the `-dev` file, port 8090) to the **live** site files: certbot rewrote those, so copying the repo files over them would drop the 443 block. `sudo nginx -t && sudo systemctl reload nginx`. Check with `curl -A WhatsApp https://ransel.mietek.tech/p/<code>` (HTML with `og:title`) and a browser (the app). The preview images `og/poll.png` and `og/invite.png` ship with the web build.
+
 One-time, like the API host: copy `deploy/nginx/ransel.mietek.tech.conf` to `sites-available`, enable it, `nginx -t`, reload, then `sudo certbot --nginx -d ransel.mietek.tech`. It serves the web app from `/opt/ransel/web` (single-page fallback, so `/j/<code>` opens the app) and forwards `/.well-known/` to the API.
 
 Gotchas from the first setup:
