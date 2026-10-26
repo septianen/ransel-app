@@ -25,6 +25,7 @@ import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ExpenseSummaryDto
 import app.ransel.shared.model.Role
 import io.ktor.http.HttpStatusCode
+import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toKotlinLocalDate
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
@@ -242,6 +243,9 @@ object ExpenseService {
         it[Expenses.paidByMemberId] = payer
         it[Expenses.paidFromKitty] = body.paidFromKitty
         it[Expenses.isEstimate] = body.isEstimate
+        // a rate source only means something for a foreign amount
+        it[Expenses.fxSource] = body.fxSource.takeIf { body.fxRateToBase != null }
+        it[Expenses.fxDate] = body.fxDate.takeIf { body.fxRateToBase != null }?.toJavaLocalDate()
     }
 
     private const val MAX_ITEMS = 100

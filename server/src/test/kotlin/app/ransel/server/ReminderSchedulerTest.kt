@@ -68,6 +68,17 @@ class ReminderSchedulerTest {
     }
 
     @Test
+    fun anActivityInTokyoIsRemindedOnTokyoTime() = apiTest {
+        val tripId = tripWithItem("2026-11-20", "2026-11-20", "10:00")
+        TestDb.exec("UPDATE trips SET time_zone = 'Asia/Tokyo', country_code = 'JP', local_currency = 'JPY' WHERE id = '$tripId'")
+        // 10:00 in Tokyo is 08:00 in Jakarta: a tick at 09:35 WIB is too late, at 07:35 WIB just right
+        scheduler().tick(at("2026-11-20", "09:35"))
+        assertEquals(emptyList(), inboxTypes())
+        scheduler().tick(at("2026-11-20", "07:35"))
+        assertEquals(listOf("ACTIVITY_REMINDER"), inboxTypes())
+    }
+
+    @Test
     fun theEveningBeforeDepartureUnpackedItemsGetOnePackingReminder() = apiTest {
         val tripId = UUID.randomUUID().toString()
         post("/trips", tripJson(tripId, start = "2026-11-20", end = "2026-11-23"))

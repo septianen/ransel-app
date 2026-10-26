@@ -37,6 +37,9 @@ fun ResultRow.toTripDto(role: Role) = TripDto(
         val lng = this[Trips.destLng]
         if (lat == null || lng == null) null else TripPlaceDto(placeId, lat, lng, this[Trips.destViewport])
     },
+    countryCode = this[Trips.countryCode],
+    localCurrency = this[Trips.localCurrency],
+    timeZone = this[Trips.timeZone],
     createdAt = this[Trips.createdAt].toTimestamp(),
     updatedAt = this[Trips.updatedAt].toTimestamp(),
     deletedAt = this[Trips.deletedAt]?.toTimestamp(),
@@ -102,6 +105,8 @@ fun ResultRow.toExpenseDto(
     paidFromKitty = this[Expenses.paidFromKitty],
     isEstimate = this[Expenses.isEstimate],
     items = items,
+    fxSource = this[Expenses.fxSource],
+    fxDate = this[Expenses.fxDate]?.toKotlinLocalDate(),
     createdAt = this[Expenses.createdAt].toTimestamp(),
     updatedAt = this[Expenses.updatedAt].toTimestamp(),
     deletedAt = this[Expenses.deletedAt]?.toTimestamp(),

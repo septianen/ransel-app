@@ -21,6 +21,7 @@ import app.ransel.server.db.toTripDto
 import app.ransel.server.plugins.ApiException
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.domain.validateTrip
+import app.ransel.shared.domain.validateTripLocale
 import app.ransel.shared.domain.validateTripPlace
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
@@ -231,7 +232,8 @@ class SyncService {
 
     private fun pushTrip(userId: UUID, dto: TripDto) {
         val id = uuid(dto.id, "id")
-        val problems = validateTrip(dto.title, dto.startDate, dto.endDate, dto.baseCurrency, dto.budgetMinor) + validateTripPlace(dto.destinationPlace)
+        val problems = validateTrip(dto.title, dto.startDate, dto.endDate, dto.baseCurrency, dto.budgetMinor) + validateTripPlace(dto.destinationPlace) +
+            validateTripLocale(dto.countryCode, dto.localCurrency, dto.timeZone)
         if (problems.isNotEmpty()) throw validation(problems)
 
         val existing = Trips.selectAll().where { Trips.id eq id }.singleOrNull()
@@ -247,6 +249,7 @@ class SyncService {
                 it[budgetMinor] = dto.budgetMinor
                 it[coverUrl] = dto.coverUrl
                 TripService.fillPlace(it, dto.destinationPlace)
+                TripService.fillLocale(it, dto.countryCode, dto.localCurrency, dto.timeZone)
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
@@ -267,6 +270,7 @@ class SyncService {
 
         Trips.update({ Trips.id eq id }) {
             TripService.placeUpdate(it, dto.destinationPlace, nameChanged = existing[Trips.destination] != dto.destination)
+            TripService.localeUpdate(it, dto.countryCode, dto.localCurrency, dto.timeZone, nameChanged = existing[Trips.destination] != dto.destination)
             it[title] = dto.title.trim()
             it[destination] = dto.destination
             it[startDate] = dto.startDate.toJavaLocalDate()
@@ -360,6 +364,7 @@ class SyncService {
             category = dto.category, paymentMethod = dto.paymentMethod, note = dto.note, spentAt = dto.spentAt,
             paidByMemberId = dto.paidByMemberId, payers = dto.payers, splits = dto.splits,
             paidFromKitty = dto.paidFromKitty, isEstimate = dto.isEstimate, items = dto.items,
+            fxSource = dto.fxSource, fxDate = dto.fxDate,
         )
         val existing = Expenses.selectAll().where { Expenses.id eq id }.singleOrNull()
         // A kitty expense is paid by the treasurer whatever the device thought; the stored payer stays on later edits.

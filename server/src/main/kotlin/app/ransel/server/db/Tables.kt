@@ -34,6 +34,7 @@ import app.ransel.shared.model.AdminAction
 import app.ransel.shared.dto.PlaceDto
 import app.ransel.shared.dto.PlaceSuggestionDto
 import app.ransel.shared.dto.ViewportDto
+import app.ransel.shared.model.FxSource
 import app.ransel.shared.model.PaymentMethodKind
 import app.ransel.shared.model.SettlementStatus
 
@@ -73,6 +74,10 @@ object Trips : Table("trips") {
     val destLat = double("dest_lat").nullable()
     val destLng = double("dest_lng").nullable()
     val destViewport = jsonb<ViewportDto>("dest_viewport", Json).nullable()
+    /** V20: destination country, its currency and zone; null = home (Indonesia, base currency, WIB). */
+    val countryCode = char("country_code", 2).nullable()
+    val localCurrency = char("local_currency", 3).nullable()
+    val timeZone = text("time_zone").nullable()
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
@@ -245,6 +250,9 @@ object Expenses : Table("expenses") {
     val paidFromKitty = bool("paid_from_kitty")
     /** A planned cost (V18), e.g. the stay chosen in a poll; left out of balances. */
     val isEstimate = bool("is_estimate")
+    /** V20: where fx_rate_to_base came from and the day of the reference rate. */
+    val fxSource = enumerationByName<FxSource>("fx_source", 8).nullable()
+    val fxDate = date("fx_date").nullable()
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
@@ -357,6 +365,14 @@ object KittyDeposits : Table("kitty_deposits") {
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
     override val primaryKey = PrimaryKey(id)
+}
+
+/** ECB reference rates: units of [currency] per 1 EUR, per day (V20). */
+object FxRates : Table("fx_rates") {
+    val rateDate = date("rate_date")
+    val currency = char("currency", 3)
+    val perEuro = decimal("per_euro", 20, 8)
+    override val primaryKey = PrimaryKey(rateDate, currency)
 }
 
 /** Suggestions per normalised query, 24 hours (V19). */

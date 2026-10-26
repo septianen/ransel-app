@@ -51,6 +51,7 @@ class GooglePlaceSearch(
     private val apiKey: String,
     private val placesUrl: String = "https://places.googleapis.com/v1",
     private val geocodeUrl: String = "https://maps.googleapis.com/maps/api/geocode/json",
+    private val timeZoneUrl: String = "https://maps.googleapis.com/maps/api/timezone/json",
 ) : PlaceSearch {
     override suspend fun autocomplete(input: String, sessionToken: String?, near: Pair<Double, Double>?): List<PlaceSuggestionDto> {
         val response = http.post("$placesUrl/places:autocomplete") {
@@ -97,7 +98,22 @@ class GooglePlaceSearch(
         }
         if (response.status == HttpStatusCode.NotFound || response.status == HttpStatusCode.BadRequest) return null
         if (!response.status.isSuccess()) error("Places details HTTP ${response.status.value}")
-        return parseDetails(placeId, response.body<String>())
+        val place = parseDetails(placeId, response.body<String>()) ?: return null
+        // the zone only drives the trip's local time: a failed lookup leaves it empty, the place still counts
+        val zone = runCatching { timeZone(place.lat, place.lng) }.getOrNull()
+        return place.copy(timeZone = zone)
+    }
+
+    /** Google Time Zone API: the IANA id at a point ($5 per 1,000; once per picked place thanks to the details cache). */
+    private suspend fun timeZone(lat: Double, lng: Double): String? {
+        val response = http.get(timeZoneUrl) {
+            parameter("location", "$lat,$lng")
+            parameter("timestamp", System.currentTimeMillis() / 1000)
+            parameter("key", apiKey)
+        }
+        if (!response.status.isSuccess()) return null
+        val root = json.parseToJsonElement(response.body<String>()).jsonObject
+        return root["timeZoneId"]?.jsonPrimitive?.content?.takeIf { root["status"]?.jsonPrimitive?.content == "OK" }
     }
 
     override suspend fun reverse(lat: Double, lng: Double): List<NearbyAreaDto> {

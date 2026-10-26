@@ -20,7 +20,8 @@ import java.util.UUID
 /**
  * Packing and activity reminders. Run [tick] about once a minute. A tick is safe to repeat or to miss: the unique
  * (user, dedupe key) means a reminder is written once, and the windows are "from now until X", not "exactly at X".
- * Trips have no timezone yet, so everything is Asia/Jakarta (WIB); a trip in WITA/WIT gets reminders 1-2 hours off.
+ * Packing reminders follow WIB (the members are at home the evening before); activity times are local to the trip's
+ * zone (V20), WIB when the trip has none.
  */
 class ReminderScheduler(private val config: AppConfig, private val notifications: NotificationService) {
     private val zone = ZoneId.of("Asia/Jakarta")
@@ -28,7 +29,7 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
     fun tick(now: Instant = Instant.now()) {
         val local = LocalDateTime.ofInstant(now, zone)
         packing(local)
-        activities(local)
+        activities(now)
         PollService.tick(now)
     }
 
@@ -51,9 +52,11 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
     }
 
     /** Scheduled activities starting within the next [AppConfig.notifyActivityLeadMinutes] minutes. */
-    private fun activities(local: LocalDateTime) {
-        val until = local.plusMinutes(config.notifyActivityLeadMinutes.toLong())
-        val days = listOf(local.toLocalDate(), until.toLocalDate()).distinct()
+    private fun activities(now: Instant) {
+        val until = now.plusSeconds(config.notifyActivityLeadMinutes * 60L)
+        // zones are at most a day apart from WIB: look at yesterday, today and tomorrow in WIB
+        val today = LocalDateTime.ofInstant(now, zone).toLocalDate()
+        val days = listOf(today.minusDays(1), today, today.plusDays(1))
         transaction {
             ItineraryItems.join(Trips, org.jetbrains.exposed.v1.core.JoinType.INNER, ItineraryItems.tripId, Trips.id)
                 .selectAll()
@@ -61,8 +64,9 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
                 .forEach { row ->
                     val day = row[ItineraryItems.dayDate] ?: return@forEach
                     val time = row[ItineraryItems.startTime] ?: return@forEach
-                    val start = LocalDateTime.of(day, time)
-                    if (!start.isAfter(local) || start.isAfter(until)) return@forEach
+                    val tripZone = row[Trips.timeZone]?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: zone
+                    val start = LocalDateTime.of(day, time).atZone(tripZone).toInstant()
+                    if (!start.isAfter(now) || start.isAfter(until)) return@forEach
                     val tripId = row[ItineraryItems.tripId]
                     notifications.notify(members(tripId), NotificationType.ACTIVITY_REMINDER, tripId, "activity:${row[ItineraryItems.id]}") {
                         mapOf(

@@ -27,6 +27,8 @@ import app.ransel.server.routes.balanceRoutes
 import app.ransel.server.routes.kittyRoutes
 import app.ransel.server.routes.paymentMethodRoutes
 import app.ransel.server.routes.placeRoutes
+import app.ransel.server.routes.fxRoutes
+import app.ransel.server.service.FxRateService
 import app.ransel.server.service.PlaceSearchService
 import app.ransel.server.routes.receiptRoutes
 import app.ransel.server.service.ReceiptService
@@ -76,6 +78,8 @@ import app.ransel.server.service.Notify
 import app.ransel.server.service.ReminderScheduler
 import app.ransel.server.service.RoundService
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
@@ -133,10 +137,13 @@ fun Application.module(
     val credits = CreditService(config)
     val rounds = RoundService(config, photoSigner)
     val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits, rounds)
+    // Expense rates: the ECB 90-day history, once a day (tests have no network: they insert rows).
+    val fxDaily = FxRateService(fxHttp?.let { http -> suspend { http.get(FxRateService.HISTORY_URL).body<String>() } })
     if (ecb != null) {
         maintenance.launch {
             while (isActive) {
                 ecb.refresh()
+                fxDaily.refresh()
                 delay(24.hours)
             }
         }
@@ -227,6 +234,7 @@ fun Application.module(
                 notificationRoutes(notifications)
                 exploreRoutes(suggestions)
                 placeRoutes(PlaceSearchService(aiServices.placeSearch))
+                fxRoutes(fxDaily)
                 placeDetailRoutes(placeDetails)
                 adminRoutes(admin)
             }
