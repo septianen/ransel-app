@@ -21,6 +21,7 @@ import app.ransel.server.db.toTripDto
 import app.ransel.server.plugins.ApiException
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.domain.validateTrip
+import app.ransel.shared.domain.validateTripPlace
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ExpenseSplitDto
@@ -230,7 +231,7 @@ class SyncService {
 
     private fun pushTrip(userId: UUID, dto: TripDto) {
         val id = uuid(dto.id, "id")
-        val problems = validateTrip(dto.title, dto.startDate, dto.endDate, dto.baseCurrency, dto.budgetMinor)
+        val problems = validateTrip(dto.title, dto.startDate, dto.endDate, dto.baseCurrency, dto.budgetMinor) + validateTripPlace(dto.destinationPlace)
         if (problems.isNotEmpty()) throw validation(problems)
 
         val existing = Trips.selectAll().where { Trips.id eq id }.singleOrNull()
@@ -245,6 +246,7 @@ class SyncService {
                 it[baseCurrency] = dto.baseCurrency
                 it[budgetMinor] = dto.budgetMinor
                 it[coverUrl] = dto.coverUrl
+                TripService.fillPlace(it, dto.destinationPlace)
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
@@ -264,6 +266,7 @@ class SyncService {
         requireNewer(dto.updatedAt, existing[Trips.updatedAt])
 
         Trips.update({ Trips.id eq id }) {
+            TripService.placeUpdate(it, dto.destinationPlace, nameChanged = existing[Trips.destination] != dto.destination)
             it[title] = dto.title.trim()
             it[destination] = dto.destination
             it[startDate] = dto.startDate.toJavaLocalDate()

@@ -45,5 +45,6 @@ fun aiServicesFrom(config: AppConfig): Pair<AiServices, HttpClient?> {
     return AiServices(
         llm = GeminiClient(http, config.llmBaseUrl, config.llmApiKey, config.llmModel, config.llmFallbackModel),
         places = GooglePlacesClient(http, config.placesApiKey),
+        placeSearch = GooglePlaceSearch(http, config.placesApiKey),
     ) to http
 }

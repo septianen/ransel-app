@@ -91,7 +91,11 @@ class RecommendationService(
         // Liked places become itinerary items, so only people who can edit the trip may search.
         requireRole(tripId, userId, Role.EDITOR)
         // A destination in the request replaces the trip's for this search only (a Yogyakarta trip exploring Solo).
-        val trip = loadTrip(tripId).let { t -> body.destination?.trim()?.takeIf { it.isNotEmpty() }?.let { t.copy(destination = it) } ?: t }
+        // another destination for this search loses the trip's map point; the same name keeps it
+        val trip = loadTrip(tripId).let { t ->
+            body.destination?.trim()?.takeIf { it.isNotEmpty() && !it.equals(t.destination.trim(), ignoreCase = true) }
+                ?.let { t.copy(destination = it, center = null) } ?: t
+        }
         if (todayWib() > trip.endDate) throw validationFailed(mapOf("tripId" to "TRIP_ENDED"))
 
         // A trip with 2+ members turns the search into a voting round (docs/specs/voting-spec.md).
@@ -129,6 +133,7 @@ class RecommendationService(
             cached
         } else {
             val query = LlmQuery(
+                center = trip.center,
                 destination = trip.destination.trim(),
                 priceGuide = guide,
                 days = trip.startDate.daysUntil(trip.endDate) + 1,
@@ -300,7 +305,7 @@ class RecommendationService(
                     gate.withPermit {
                         try {
                             metrics.placesSearchCalls.incrementAndGet()
-                            val id = ai.places.findPlaceId(candidate.name, query.destination) ?: return@withPermit null
+                            val id = ai.places.findPlaceIdNear(candidate.name, query.destination, query.center) ?: return@withPermit null
                             metrics.placesDetailsCalls.incrementAndGet()
                             val details = ai.places.details(id, withPhotoCredit = false) ?: return@withPermit null
                             candidate to details
@@ -439,11 +444,22 @@ class RecommendationService(
         return MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
-    internal data class TripFacts(val destination: String, val startDate: LocalDate, val endDate: LocalDate, val baseCurrency: String = "IDR")
+    internal data class TripFacts(
+        val destination: String,
+        val startDate: LocalDate,
+        val endDate: LocalDate,
+        val baseCurrency: String = "IDR",
+        val center: Pair<Double, Double>? = null,
+    )
 
     private fun loadTrip(tripId: UUID): TripFacts = transaction {
         val row = Trips.selectAll().where { (Trips.id eq tripId) and Trips.deletedAt.isNull() }.single()
-        TripFacts(row[Trips.destination], row[Trips.startDate].toKotlinLocalDate(), row[Trips.endDate].toKotlinLocalDate(), row[Trips.baseCurrency].trim())
+        val lat = row[Trips.destLat]
+        val lng = row[Trips.destLng]
+        TripFacts(
+            row[Trips.destination], row[Trips.startDate].toKotlinLocalDate(), row[Trips.endDate].toKotlinLocalDate(), row[Trips.baseCurrency].trim(),
+            center = if (lat != null && lng != null) lat to lng else null,
+        )
     }
 
     /**

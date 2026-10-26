@@ -72,7 +72,7 @@ object TestDb {
             if (exists) {
                 conn.createStatement().use { it.execute("TRUNCATE trips CASCADE") }
                 // not tied to a trip, but it would leak results from one test into the next
-                conn.createStatement().use { it.execute("TRUNCATE recommendation_cache, explore_suggestions_cache, place_detail_cache") }
+                conn.createStatement().use { it.execute("TRUNCATE recommendation_cache, explore_suggestions_cache, place_detail_cache, place_autocomplete_cache, place_details_cache") }
                 conn.createStatement().use { it.execute("TRUNCATE credit_vouchers CASCADE") }
                 conn.createStatement().use { it.execute("TRUNCATE admin_audit_log") }
                 // Real accounts go (their refresh tokens cascade); the seeded dummy user has no email and stays.

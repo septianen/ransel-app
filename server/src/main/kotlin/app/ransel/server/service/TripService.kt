@@ -16,6 +16,8 @@ import app.ransel.shared.domain.summarizeExpenses
 import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.domain.validateTrip
+import app.ransel.shared.domain.validateTripPlace
+import app.ransel.shared.dto.TripPlaceDto
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.TripDetailDto
 import app.ransel.shared.dto.TripDto
@@ -56,7 +58,7 @@ object TripService {
     }
 
     fun create(userId: UUID, id: UUID, body: CreateTripRequest): TripDto = transaction {
-        requireValid(validateTrip(body.title, body.startDate, body.endDate, body.baseCurrency, body.budgetMinor))
+        requireValid(validateTrip(body.title, body.startDate, body.endDate, body.baseCurrency, body.budgetMinor) + validateTripPlace(body.destinationPlace))
         if (Trips.select(Trips.id).where { Trips.id eq id }.any()) throw conflict("Trip id already exists")
         Trips.insert {
             it[Trips.id] = id
@@ -68,6 +70,7 @@ object TripService {
             it[baseCurrency] = body.baseCurrency
             it[budgetMinor] = body.budgetMinor
             it[coverUrl] = body.coverUrl
+            fillPlace(it, body.destinationPlace)
         }
         TripMembers.insert {
             it[TripMembers.id] = UUID.fromString(memberIdFor(id.toString(), userId.toString()))
@@ -90,8 +93,10 @@ object TripService {
     fun update(userId: UUID, tripId: UUID, body: UpdateTripRequest): TripDto {
         val role = requireRole(tripId, userId, Role.EDITOR)
         return transaction {
-            requireValid(validateTrip(body.title, body.startDate, body.endDate, body.baseCurrency, body.budgetMinor))
+            requireValid(validateTrip(body.title, body.startDate, body.endDate, body.baseCurrency, body.budgetMinor) + validateTripPlace(body.destinationPlace))
+            val before = Trips.select(Trips.destination).where { Trips.id eq tripId }.single()[Trips.destination]
             Trips.update({ Trips.id eq tripId }) {
+                placeUpdate(it, body.destinationPlace, nameChanged = before != body.destination)
                 it[title] = body.title.trim()
                 it[destination] = body.destination
                 it[startDate] = body.startDate.toJavaLocalDate()
@@ -104,6 +109,22 @@ object TripService {
             TripEvents.onTripSaved(body.destination, body.startDate)
             load(tripId, role)
         }
+    }
+
+    /** Writes the picked place, or clears it for a typed name. */
+    internal fun fillPlace(it: org.jetbrains.exposed.v1.core.statements.UpdateBuilder<*>, place: TripPlaceDto?) {
+        it[Trips.destPlaceId] = place?.placeId
+        it[Trips.destLat] = place?.lat
+        it[Trips.destLng] = place?.lng
+        it[Trips.destViewport] = place?.viewport
+    }
+
+    /**
+     * On an update a missing place keeps the stored one while the name stays (older apps never send it) and clears it
+     * when the name changed, so a typed new destination never keeps the old map point.
+     */
+    internal fun placeUpdate(it: org.jetbrains.exposed.v1.core.statements.UpdateBuilder<*>, place: TripPlaceDto?, nameChanged: Boolean) {
+        if (place != null || nameChanged) fillPlace(it, place)
     }
 
     fun delete(userId: UUID, tripId: UUID) {

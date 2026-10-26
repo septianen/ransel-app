@@ -34,6 +34,37 @@ class GooglePlacesClient(
 ) : PlacesClient {
     private val json = Json { ignoreUnknownKeys = true }
 
+    override suspend fun findPlaceIdNear(name: String, destination: String, center: Pair<Double, Double>?): String? {
+        if (center == null) return findPlaceId(name, destination)
+        val response = http.post("$baseUrl/places:searchText") {
+            header("X-Goog-Api-Key", apiKey)
+            header("X-Goog-FieldMask", "places.id")
+            contentType(ContentType.Application.Json)
+            setBody(
+                buildJsonObject {
+                    put("textQuery", "$name, $destination")
+                    put("maxResultCount", 1)
+                    put("languageCode", "id")
+                    put(
+                        "locationBias",
+                        buildJsonObject {
+                            put(
+                                "circle",
+                                buildJsonObject {
+                                    put("center", buildJsonObject { put("latitude", center.first); put("longitude", center.second) })
+                                    put("radius", 50_000.0)
+                                },
+                            )
+                        },
+                    )
+                }.toString(),
+            )
+        }
+        if (!response.status.isSuccess()) error("Places search HTTP ${response.status.value}")
+        val body: JsonObject = json.parseToJsonElement(response.body<String>()).jsonObject
+        return body["places"]?.jsonArray?.firstOrNull()?.jsonObject?.get("id")?.jsonPrimitive?.content
+    }
+
     override suspend fun findPlaceId(name: String, destination: String): String? {
         val response = http.post("$baseUrl/places:searchText") {
             header("X-Goog-Api-Key", apiKey)

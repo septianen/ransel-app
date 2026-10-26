@@ -29,6 +29,7 @@ val SuggestionsRateLimit = RateLimitName("suggestions")
 val RedeemRateLimit = RateLimitName("redeem")
 val AdminRateLimit = RateLimitName("admin")
 val VerificationEmailRateLimit = RateLimitName("verification-email")
+val PlaceSearchRateLimit = RateLimitName("place-search")
 
 fun Application.configureAuth(config: AppConfig, tokens: TokenService) {
     install(Authentication) {
@@ -77,6 +78,11 @@ fun Application.configureRateLimit(config: AppConfig) {
         // Each call makes the server fetch a page: per user, 30 a minute.
         register(LinkPreviewRateLimit) {
             rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
+        }
+        // Every key press after the second character can reach Google: per user, 60 a minute.
+        register(PlaceSearchRateLimit) {
+            rateLimiter(limit = 60, refillPeriod = 1.minutes)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
         }
         // The public invite preview needs no sign-in, so it is limited per address.

@@ -31,11 +31,14 @@ import app.ransel.shared.model.Vote
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import app.ransel.shared.model.AdminAction
+import app.ransel.shared.dto.PlaceDto
+import app.ransel.shared.dto.PlaceSuggestionDto
+import app.ransel.shared.dto.ViewportDto
 import app.ransel.shared.model.PaymentMethodKind
 import app.ransel.shared.model.SettlementStatus
 
 /*
- * Exposed mappings of the Flyway schema (V1..V18). Flyway owns the DDL; these objects only describe it.
+ * Exposed mappings of the Flyway schema (V1..V19). Flyway owns the DDL; these objects only describe it.
  * `updated_at` is set by the DB trigger, so writers never set it.
  */
 
@@ -65,6 +68,11 @@ object Trips : Table("trips") {
     val baseCurrency = char("base_currency", 3)
     val budgetMinor = long("budget_minor").nullable()
     val coverUrl = text("cover_url").nullable()
+    /** The picked destination's place (V19); all null for a typed name. */
+    val destPlaceId = text("dest_place_id").nullable()
+    val destLat = double("dest_lat").nullable()
+    val destLng = double("dest_lng").nullable()
+    val destViewport = jsonb<ViewportDto>("dest_viewport", Json).nullable()
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
@@ -349,6 +357,22 @@ object KittyDeposits : Table("kitty_deposits") {
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
     override val primaryKey = PrimaryKey(id)
+}
+
+/** Suggestions per normalised query, 24 hours (V19). */
+object PlaceAutocompleteCache : Table("place_autocomplete_cache") {
+    val queryKey = text("query_key")
+    val suggestions = jsonb<List<PlaceSuggestionDto>>("suggestions", Json)
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(queryKey)
+}
+
+/** Where a Google place is, 30 days (V19). */
+object PlaceDetailsCache : Table("place_details_cache") {
+    val placeId = text("place_id")
+    val place = jsonb<PlaceDto>("place", Json)
+    val fetchedAt = timestamp("fetched_at")
+    override val primaryKey = PrimaryKey(placeId)
 }
 
 /** Account → Info pembayaran (V18). */

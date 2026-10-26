@@ -29,6 +29,8 @@ data class LlmQuery(
     /** Names the user liked / skipped in this trip, as a taste signal. */
     val liked: List<String>,
     val skipped: List<String>,
+    /** The trip's picked destination point (V19); biases the Places lookups, never part of the prompt. */
+    val center: Pair<Double, Double>? = null,
     val count: Int,
     /** Poll search (Jelajah): every suggestion is of this category, e.g. LODGING for a stay poll. */
     val onlyCategory: Category? = null,
@@ -136,6 +138,10 @@ interface PlacesClient {
     /** Text Search (IDs Only: free). Null = no such place, which drops the candidate. */
     suspend fun findPlaceId(name: String, destination: String): String?
 
+    /** Like [findPlaceId], biased to [center] (the trip's picked destination) when there is one. */
+    suspend fun findPlaceIdNear(name: String, destination: String, center: Pair<Double, Double>?): String? =
+        findPlaceId(name, destination)
+
     /**
      * Place Details with a minimal field mask, Essentials tier only (no rating or price: those are Enterprise).
      * [withPhotoCredit] adds the photo author, which is for the cards the user actually sees.
@@ -180,4 +186,5 @@ data class CachedDetail(
     val costUsd: Double? = null,
 )
 
-class AiServices(val llm: LlmClient, val places: PlacesClient)
+/** [placeSearch] null = destination search falls back to the built-in region list. */
+class AiServices(val llm: LlmClient, val places: PlacesClient, val placeSearch: PlaceSearch? = null)

@@ -26,6 +26,8 @@ import app.ransel.server.routes.creditRoutes
 import app.ransel.server.routes.balanceRoutes
 import app.ransel.server.routes.kittyRoutes
 import app.ransel.server.routes.paymentMethodRoutes
+import app.ransel.server.routes.placeRoutes
+import app.ransel.server.service.PlaceSearchService
 import app.ransel.server.routes.receiptRoutes
 import app.ransel.server.service.ReceiptService
 import app.ransel.server.routes.exploreRoutes
@@ -224,6 +226,7 @@ fun Application.module(
                 creditRoutes(credits)
                 notificationRoutes(notifications)
                 exploreRoutes(suggestions)
+                placeRoutes(PlaceSearchService(aiServices.placeSearch))
                 placeDetailRoutes(placeDetails)
                 adminRoutes(admin)
             }

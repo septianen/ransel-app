@@ -11,6 +11,7 @@ import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.TripPlaceDto
 import app.ransel.shared.model.Role
 import kotlinx.datetime.toKotlinLocalDate
 import kotlinx.datetime.toKotlinLocalTime
@@ -31,6 +32,11 @@ fun ResultRow.toTripDto(role: Role) = TripDto(
     budgetMinor = this[Trips.budgetMinor],
     coverUrl = this[Trips.coverUrl],
     myRole = role,
+    destinationPlace = this[Trips.destPlaceId]?.let { placeId ->
+        val lat = this[Trips.destLat]
+        val lng = this[Trips.destLng]
+        if (lat == null || lng == null) null else TripPlaceDto(placeId, lat, lng, this[Trips.destViewport])
+    },
     createdAt = this[Trips.createdAt].toTimestamp(),
     updatedAt = this[Trips.updatedAt].toTimestamp(),
     deletedAt = this[Trips.deletedAt]?.toTimestamp(),
