@@ -68,6 +68,9 @@ data class PatchDocumentRequest(
     val unlinkItinerary: Boolean = false,
 )
 
-/** GET /trips/{id}/documents/{docId}/download: a link that works without a bearer token for 15 minutes. */
+/**
+ * GET /trips/{id}/documents/{docId}/download: for a FILE, a path relative to the API base (like place photos) that works
+ * without a bearer token for 15 minutes; for a LINK, the link itself.
+ */
 @Serializable
 data class DocumentDownloadDto(val url: String, val expiresAt: Timestamp)
