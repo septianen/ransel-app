@@ -69,6 +69,7 @@ object MemberService {
                 it[displayName] = name
                 it[TripMembers.phone] = phone
             }
+            MemberListService.onMemberJoined(tripId, id)
             members(tripId, isOwner = true).single { it.memberId == id.toString() }
         }
     }
@@ -179,12 +180,14 @@ object MemberService {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
-    internal fun members(tripId: UUID, isOwner: Boolean): List<TripMemberDto> =
-        TripMembers.join(Users, JoinType.LEFT, TripMembers.userId, Users.id)
+    internal fun members(tripId: UUID, isOwner: Boolean): List<TripMemberDto> {
+        val browsers = if (isOwner) GuestService.browserMembers(tripId) else emptySet()
+        return TripMembers.join(Users, JoinType.LEFT, TripMembers.userId, Users.id)
             .selectAll()
             .where { (TripMembers.tripId eq tripId) and TripMembers.active() }
             .orderBy(TripMembers.joinedAt to SortOrder.ASC, TripMembers.id to SortOrder.ASC)
-            .map { it.toMemberDto(isOwner) }
+            .map { it.toMemberDto(isOwner).copy(guestBrowser = it[TripMembers.id] in browsers) }
+    }
 
     internal fun ResultRow.toMemberDto(isOwner: Boolean) = TripMemberDto(
         tripId = this[TripMembers.tripId].toString(),

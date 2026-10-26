@@ -44,7 +44,7 @@ import java.util.UUID
  * "Daftar bawaan anggota" (PRD "Packing list from the trip owner"): the owner (or an editor) writes one list per trip
  * and sends it; every recipient gets a copy of each line in their own list. Saving a sent list changes every copy
  * (new lines added, removed ones gone, changed ones updated) and keeps the members' check marks and own lines.
- * Members without an account get no copies (they have no list of their own to open).
+ * Members without an account get copies too and tick them on the guest page.
  */
 object MemberListService {
     fun get(userId: UUID, tripId: UUID): MemberListDto {
@@ -205,14 +205,17 @@ object MemberListService {
             .orderBy(MemberListItems.sortOrder to SortOrder.ASC)
             .map { it.toMemberListItemDto() }
 
-    /** Members with an account who get the list: everyone but its author when sent to all, else the chosen ones. */
+    /**
+     * Members who get the list: everyone but its author when sent to all, else the chosen ones. Members without an
+     * account get it too and tick it on the guest page (stage 8).
+     */
     private fun recipients(tripId: UUID): List<UUID> {
         val row = MemberLists.selectAll().where { MemberLists.tripId eq tripId }.singleOrNull() ?: return emptyList()
         if (row[MemberLists.sentAt] == null) return emptyList()
         val chosen = if (row[MemberLists.sentToAll]) null
         else MemberListRecipients.selectAll().where { MemberListRecipients.tripId eq tripId }.map { it[MemberListRecipients.memberId] }.toSet()
         return TripMembers.selectAll()
-            .where { (TripMembers.tripId eq tripId) and TripMembers.active() and TripMembers.userId.isNotNull() }
+            .where { (TripMembers.tripId eq tripId) and TripMembers.active() }
             .orderBy(TripMembers.joinedAt)
             .map { it[TripMembers.id] }
             .filter { if (chosen == null) it != row[MemberLists.createdByMemberId] else it in chosen }

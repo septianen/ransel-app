@@ -20,6 +20,8 @@ fun Application.configureCors(origins: List<String>) {
         allowMethod(HttpMethod.Delete)
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
+        // the guest page's token (public routes, no bearer)
+        allowHeader(app.ransel.shared.api.ApiRoutes.GUEST_TOKEN_HEADER)
         allowNonSimpleContentTypes = true
     }
 }

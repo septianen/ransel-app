@@ -36,6 +36,7 @@ import app.ransel.shared.dto.CreatePollRequest
 import app.ransel.shared.dto.DecidePollRequest
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.PollDto
+import app.ransel.shared.dto.PollShareDto
 import app.ransel.shared.dto.PollOptionDto
 import app.ransel.shared.dto.PollOptionInput
 import app.ransel.shared.dto.ReopenPollRequest
@@ -310,38 +311,84 @@ object PollService {
 
     /** Replaces the caller's votes. A vote on an option edited since the voter saw it is refused (VOTE_STALE). */
     fun vote(userId: UUID, pollId: UUID, body: VotePollRequest): PollDto {
-        val row0 = loadRow(pollId)
-        val tripId = row0[Polls.tripId]
+        val tripId = loadRow(pollId)[Polls.tripId]
         requireRole(tripId, userId, Role.VIEWER)
-        val me = callerMemberId(tripId, userId)
-        return transaction {
-            settleDue(pollId = pollId)
-            val row = loadRow(pollId)
-            if (row[Polls.status] != PollStatus.OPEN) throw closed()
-            val options = activeOptions(pollId).associateBy { it[PollOptions.id] }
-            val chosen = body.votes.map { uuid(it.optionId, "votes") to it.version }
-            if (chosen.map { it.first }.toSet().size != chosen.size) throw validationFailed(mapOf("votes" to "DUPLICATE_OPTION"))
-            if (!row[Polls.multiChoice] && chosen.size > 1) throw validationFailed(mapOf("votes" to "ONLY_ONE_CHOICE"))
-            chosen.forEach { (optionId, version) ->
-                val option = options[optionId] ?: throw validationFailed(mapOf("votes" to "UNKNOWN_OPTION"))
-                if (option[PollOptions.version] != version) {
-                    throw ApiException(HttpStatusCode.Conflict, ErrorCode.VOTE_STALE, "This option changed: load the poll again")
-                }
+        return transaction { voteAs(pollId, callerMemberId(tripId, userId), body) }
+    }
+
+    /** Replaces [me]'s votes; also used by the guest page. Call inside a transaction. */
+    internal fun voteAs(pollId: UUID, me: UUID, body: VotePollRequest): PollDto {
+        settleDue(pollId = pollId)
+        val row = loadRow(pollId)
+        if (row[Polls.status] != PollStatus.OPEN) throw closed()
+        val options = activeOptions(pollId).associateBy { it[PollOptions.id] }
+        val chosen = body.votes.map { uuid(it.optionId, "votes") to it.version }
+        if (chosen.map { it.first }.toSet().size != chosen.size) throw validationFailed(mapOf("votes" to "DUPLICATE_OPTION"))
+        if (!row[Polls.multiChoice] && chosen.size > 1) throw validationFailed(mapOf("votes" to "ONLY_ONE_CHOICE"))
+        chosen.forEach { (optionId, version) ->
+            val option = options[optionId] ?: throw validationFailed(mapOf("votes" to "UNKNOWN_OPTION"))
+            if (option[PollOptions.version] != version) {
+                throw ApiException(HttpStatusCode.Conflict, ErrorCode.VOTE_STALE, "This option changed: load the poll again")
             }
-            PollVotes.deleteWhere { (PollVotes.pollId eq pollId) and (PollVotes.memberId eq me) }
-            chosen.forEach { (optionId, version) ->
-                PollVotes.insert {
-                    it[PollVotes.optionId] = optionId
-                    it[PollVotes.pollId] = pollId
-                    it[memberId] = me
-                    it[optionVersion] = version
-                }
-            }
-            if (chosen.isNotEmpty() && !row[Polls.anonymityLocked]) {
-                Polls.update({ Polls.id eq pollId }) { it[anonymityLocked] = true }
-            }
-            toDto(loadRow(pollId), me)
         }
+        PollVotes.deleteWhere { (PollVotes.pollId eq pollId) and (PollVotes.memberId eq me) }
+        chosen.forEach { (optionId, version) ->
+            PollVotes.insert {
+                it[PollVotes.optionId] = optionId
+                it[PollVotes.pollId] = pollId
+                it[memberId] = me
+                it[optionVersion] = version
+            }
+        }
+        if (chosen.isNotEmpty() && !row[Polls.anonymityLocked]) {
+            Polls.update({ Polls.id eq pollId }) { it[anonymityLocked] = true }
+        }
+        return toDto(loadRow(pollId), me)
+    }
+
+    // ── guest link ──────────────────────────────────────────────────────────
+
+    /** "Bagikan": the poll's guest link, made once and kept until it is turned off. Any member may share. */
+    fun share(userId: UUID, pollId: UUID, baseUrl: String): PollShareDto {
+        val tripId = loadRow(pollId)[Polls.tripId]
+        requireRole(tripId, userId, Role.VIEWER)
+        val code = transaction {
+            loadRow(pollId)[Polls.shareCode] ?: run {
+                var made: String
+                do { made = newShareCode() } while (Polls.select(Polls.id).where { Polls.shareCode eq made }.any())
+                Polls.update({ Polls.id eq pollId }) { it[shareCode] = made }
+                made
+            }
+        }
+        return PollShareDto(code, "${baseUrl.trimEnd('/')}/p/$code")
+    }
+
+    /** Turns the link off (the creator or the OWNER); sharing again makes a new code. */
+    fun unshare(userId: UUID, pollId: UUID) {
+        val row = loadRow(pollId)
+        val role = requireRole(row[Polls.tripId], userId, Role.VIEWER)
+        if (role != Role.OWNER && row[Polls.createdByMemberId] != callerMemberId(row[Polls.tripId], userId)) throw forbidden()
+        transaction { Polls.update({ Polls.id eq pollId }) { it[shareCode] = null } }
+    }
+
+    /** The guest page's polls: open ones, plus [focus] whatever its status. Call inside a transaction. */
+    internal fun forGuest(tripId: UUID, me: UUID?, focus: UUID?): List<PollDto> {
+        settleDue(tripId = tripId)
+        val viewer = me ?: UUID(0, 0)
+        return Polls.selectAll()
+            .where { (Polls.tripId eq tripId) and Polls.deletedAt.isNull() }
+            .orderBy(Polls.closesAt to SortOrder.ASC)
+            .filter { it[Polls.status] == PollStatus.OPEN || it[Polls.id] == focus }
+            .sortedByDescending { it[Polls.id] == focus }
+            .map { toDto(it, viewer) }
+    }
+
+    private val shareRandom = java.security.SecureRandom()
+
+    /** Six characters without look-alikes (no 0/O, 1/I/L). */
+    private fun newShareCode(): String {
+        val alphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
+        return (1..6).map { alphabet[shareRandom.nextInt(alphabet.length)] }.joinToString("")
     }
 
     // ── closing and deciding ────────────────────────────────────────────────
@@ -569,8 +616,9 @@ object PollService {
             },
             myVotes = votes.filter { it.second == me }.map { it.first.toString() },
             votedMemberIds = votes.map { it.second.toString() }.distinct(),
+            // members without an account vote on the guest page
             memberCount = TripMembers.selectAll()
-                .where { (TripMembers.tripId eq row[Polls.tripId]) and TripMembers.active() and TripMembers.userId.isNotNull() }.count().toInt(),
+                .where { (TripMembers.tripId eq row[Polls.tripId]) and TripMembers.active() }.count().toInt(),
         )
     }
 

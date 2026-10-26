@@ -1,6 +1,7 @@
 package app.ransel.server.routes
 
 import app.ransel.server.plugins.InvitePreviewRateLimit
+import app.ransel.server.service.GuestService
 import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.InviteService
 import app.ransel.server.service.MemberService
@@ -47,6 +48,11 @@ fun Route.memberRoutes(invites: InviteService) {
         route("/{memberId}") {
             post("/claim") {
                 MemberService.claim(call.userId(), call.tripId(), bodyUuid(call.parameters["memberId"].orEmpty(), "memberId"))
+                call.respondNoContent()
+            }
+            delete("/guest-session") {
+                val target = bodyUuid(call.parameters["memberId"].orEmpty(), "memberId")
+                GuestService.release(call.userId(), call.tripId(), target)
                 call.respondNoContent()
             }
             delete("/claim") {

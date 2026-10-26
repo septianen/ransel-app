@@ -51,6 +51,8 @@ import app.ransel.server.routes.votingRoutes
 import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
 import app.ransel.server.routes.wellKnownRoutes
+import app.ransel.server.routes.guestRoutes
+import app.ransel.server.routes.ogRoutes
 import app.ransel.server.security.EmailSender
 import app.ransel.server.security.LoggingEmailSender
 import app.ransel.server.security.PasswordHasher
@@ -212,6 +214,8 @@ fun Application.module(
             placePhotoRoutes(photoSigner, placePhotos)
             val invites = InviteService(config)
             invitePreviewRoutes(invites)
+            guestRoutes()
+            ogRoutes(invites, config.appBaseUrl)
             authenticate(JWT_AUTH) {
                 meRoutes(verification)
                 tripRoutes()
@@ -221,7 +225,7 @@ fun Application.module(
                 syncRoutes(SyncService())
                 memberRoutes(invites)
                 commentRoutes()
-                pollRoutes { user, poll, body -> recommendations.searchForPoll(user, poll, body) }
+                pollRoutes(config.appBaseUrl) { user, poll, body -> recommendations.searchForPoll(user, poll, body) }
                 linkPreviewRoutes(linkPreviews)
                 balanceRoutes()
                 kittyRoutes()

@@ -24,7 +24,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-fun Route.pollRoutes(search: suspend (UUID, UUID, PollSearchRequest) -> PollSearchResponse) {
+fun Route.pollRoutes(appBaseUrl: String, search: suspend (UUID, UUID, PollSearchRequest) -> PollSearchResponse) {
     route("${ApiRoutes.TRIPS}/{id}/polls") {
         get { call.respondData(HttpStatusCode.OK, PollService.list(call.userId(), call.tripId())) }
         post {
@@ -69,6 +69,11 @@ fun Route.pollRoutes(search: suspend (UUID, UUID, PollSearchRequest) -> PollSear
         put("/votes") {
             val body = call.receive<VotePollRequest>()
             call.respondData(HttpStatusCode.OK, PollService.vote(call.userId(), call.pollUuid(), body))
+        }
+        post("/share") { call.respondData(HttpStatusCode.OK, PollService.share(call.userId(), call.pollUuid(), appBaseUrl)) }
+        delete("/share") {
+            PollService.unshare(call.userId(), call.pollUuid())
+            call.respondNoContent()
         }
         post("/close") { call.respondData(HttpStatusCode.OK, PollService.close(call.userId(), call.pollUuid())) }
         post("/decide") {

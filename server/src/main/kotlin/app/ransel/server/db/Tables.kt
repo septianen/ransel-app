@@ -135,6 +135,8 @@ object Polls : Table("polls") {
     val decidedOptionId = javaUUID("decided_option_id").nullable()
     val decidedAt = timestamp("decided_at").nullable()
     val tiedAt = timestamp("tied_at").nullable()
+    /** The guest link (V22); null = not shared or turned off. */
+    val shareCode = text("share_code").nullable()
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
@@ -363,6 +365,16 @@ object EmailVerificationTokens : Table("email_verification_tokens") {
     val usedAt = timestamp("used_at").nullable()
     val createdAt = timestamp("created_at")
     override val primaryKey = PrimaryKey(id)
+}
+
+/** A browser on the guest page that picked a member without an account (V22). */
+object GuestSessions : Table("guest_sessions") {
+    val tokenHash = text("token_hash")
+    val tripId = javaUUID("trip_id")
+    val memberId = javaUUID("member_id")
+    val createdAt = timestamp("created_at")
+    val lastSeenAt = timestamp("last_seen_at")
+    override val primaryKey = PrimaryKey(tokenHash)
 }
 
 object TripInvites : Table("trip_invites") {

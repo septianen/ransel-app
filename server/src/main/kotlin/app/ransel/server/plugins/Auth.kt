@@ -30,6 +30,8 @@ val RedeemRateLimit = RateLimitName("redeem")
 val AdminRateLimit = RateLimitName("admin")
 val VerificationEmailRateLimit = RateLimitName("verification-email")
 val PlaceSearchRateLimit = RateLimitName("place-search")
+val GuestRateLimit = RateLimitName("guest")
+val GuestIdentityRateLimit = RateLimitName("guest-identity")
 
 fun Application.configureAuth(config: AppConfig, tokens: TokenService) {
     install(Authentication) {
@@ -88,6 +90,15 @@ fun Application.configureRateLimit(config: AppConfig) {
         // The public invite preview needs no sign-in, so it is limited per address.
         register(InvitePreviewRateLimit) {
             rateLimiter(limit = config.invitePreviewRateLimitPerMinute, refillPeriod = 1.minutes)
+            requestKey { call -> call.request.origin.remoteHost }
+        }
+        // The guest page is public: per address. Picking or writing a name is rarer, so it is held tighter.
+        register(GuestRateLimit) {
+            rateLimiter(limit = 120, refillPeriod = 1.minutes)
+            requestKey { call -> call.request.origin.remoteHost }
+        }
+        register(GuestIdentityRateLimit) {
+            rateLimiter(limit = 10, refillPeriod = 10.minutes)
             requestKey { call -> call.request.origin.remoteHost }
         }
         register(PhotoRateLimit) {
