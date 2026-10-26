@@ -8,6 +8,7 @@ import app.ransel.shared.dto.ExpenseSplitDto
 import kotlinx.serialization.builtins.ListSerializer
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PackingItemDto
+import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripPlaceDto
 import app.ransel.shared.dto.ViewportDto
@@ -63,8 +64,21 @@ fun ItineraryItemEntity.toDto() = ItineraryItemDto(
 
 fun PackingItemEntity.toDto() = PackingItemDto(
     id = id, tripId = tripId, category = enumOr(category, PackingCategory.OTHER), name = name,
-    quantity = quantity, isPacked = isPacked, sortOrder = sortOrder,
+    quantity = quantity, isPacked = isPacked, sortOrder = sortOrder, assigneeMemberId = assigneeMemberId,
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
+)
+
+fun PersonalItemEntity.toDto() = PersonalItemDto(
+    id = id, tripId = tripId, ownerMemberId = ownerMemberId, category = enumOr(category, PackingCategory.OTHER), name = name,
+    quantity = quantity, isPacked = isPacked, sortOrder = sortOrder, sourceItemId = sourceItemId, required = required,
+    createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
+)
+
+fun PersonalItemDto.toEntity() = PersonalItemEntity(
+    id = id, tripId = tripId, ownerMemberId = ownerMemberId, category = category.name, name = name, quantity = quantity,
+    isPacked = isPacked, sortOrder = sortOrder, sourceItemId = sourceItemId, required = required,
+    createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
+    syncState = SyncState.SYNCED,
 )
 
 fun ExpenseEntity.toDto() = ExpenseDto(
@@ -101,7 +115,7 @@ fun ItineraryItemDto.toEntity() = ItineraryItemEntity(
 
 fun PackingItemDto.toEntity() = PackingItemEntity(
     id = id, tripId = tripId, category = category.name, name = name, quantity = quantity,
-    isPacked = isPacked, sortOrder = sortOrder,
+    isPacked = isPacked, sortOrder = sortOrder, assigneeMemberId = assigneeMemberId,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
 )

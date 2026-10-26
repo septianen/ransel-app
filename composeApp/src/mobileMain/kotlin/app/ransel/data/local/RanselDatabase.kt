@@ -13,10 +13,11 @@ import kotlinx.coroutines.Dispatchers
         TripEntity::class,
         ItineraryItemEntity::class,
         PackingItemEntity::class,
+        PersonalItemEntity::class,
         ExpenseEntity::class,
         PreferenceEntity::class,
     ],
-    version = 8,
+    version = 9,
     autoMigrations = [
         AutoMigration(from = 1, to = 2), // expenses.splitsJson
         AutoMigration(from = 2, to = 3), // trips.myRole
@@ -25,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
         AutoMigration(from = 5, to = 6), // expenses.paidFromKitty, isEstimate, itemsJson
         AutoMigration(from = 6, to = 7), // trips.destPlaceId, destLat, destLng, destViewportJson
         AutoMigration(from = 7, to = 8), // trips.countryCode, localCurrency, timeZone; expenses.fxSource, fxDate
+        AutoMigration(from = 8, to = 9), // packing_items.assigneeMemberId, personal_items
     ],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
@@ -32,6 +34,7 @@ abstract class RanselDatabase : RoomDatabase() {
     abstract fun tripDao(): TripDao
     abstract fun itineraryDao(): ItineraryDao
     abstract fun packingDao(): PackingDao
+    abstract fun personalItemDao(): PersonalItemDao
     abstract fun expenseDao(): ExpenseDao
     abstract fun preferenceDao(): PreferenceDao
     abstract fun syncDao(): SyncDao

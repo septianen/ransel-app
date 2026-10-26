@@ -90,6 +90,17 @@ fun notificationLine(n: NotificationDto): NotificationLine {
                 },
             )
         }
+        NotificationType.PACKING_LIST -> when (p["stage"]) {
+            "UPDATED" -> NotificationLine(stringResource(Res.string.notification_packing_list_updated), trip)
+            "REMIND" -> NotificationLine(
+                stringResource(Res.string.notification_packing_list_remind),
+                p["requiredLeft"]?.takeIf { it != "0" }?.let { stringResource(Res.string.notification_packing_list_remind_body, it, trip) } ?: trip,
+            )
+            else -> NotificationLine(
+                actor?.let { stringResource(Res.string.notification_packing_list_sent, it) } ?: stringResource(Res.string.notification_packing_list_sent_someone),
+                trip,
+            )
+        }
         NotificationType.PACKING_REMINDER -> NotificationLine(
             stringResource(Res.string.notification_packing_reminder, trip),
             stringResource(Res.string.notification_packing_reminder_body, p["remaining"].orEmpty()),
@@ -156,6 +167,7 @@ fun notificationTile(type: NotificationType, params: Map<String, String> = empty
         NotificationType.POLL_REQUESTED -> accents.magenta to Symbols.checklist
         NotificationType.POLL_RESULT -> accents.magenta to Symbols.checkCircle
         NotificationType.PACKING_REMINDER -> accents.orange to Symbols.luggage
+        NotificationType.PACKING_LIST -> accents.orange to Symbols.checklist
         NotificationType.ACTIVITY_REMINDER -> accents.orange to Symbols.schedule
         NotificationType.VOTE_REQUESTED -> accents.magenta to (if (stage == VoteStage.CLOSING) Symbols.schedule else Symbols.favorite)
         NotificationType.VOTE_RESULT -> accents.magenta to (if (stage == VoteStage.READY) Symbols.doneAll else Symbols.checkCircle)

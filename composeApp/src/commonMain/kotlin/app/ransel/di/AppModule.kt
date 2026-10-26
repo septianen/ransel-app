@@ -76,6 +76,7 @@ val commonModule: Module = module {
     viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> PackingViewModel(params.get(), get(), get()) }
     viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.packing.GroupPackingViewModel(params.get(), get(), get(), get(), get()) }
     viewModel { params -> TripSidePanelViewModel(params.get(), get(), get()) }
     viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.expenses.receipt.ReceiptViewModel(params.get(), get(), get(), get()) }

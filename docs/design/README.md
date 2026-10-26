@@ -373,8 +373,8 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/BuatTripTanggalBelumPasti.html` |  | Buat trip: tanggal belum pasti | 390 |
 | `screens/BuatPolling.html` |  | Atur polling tanggal (bottom sheet) | 390 |
 | `screens/PollingTanggal.html` |  | Polling tanggal: pilih dan tetapkan | 390 |
-| `screens/PackingBersama.html` |  | Packing: barang bersama | 390 |
-| `screens/TambahBarangBersama.html` |  | Tambah barang bersama (bottom sheet) | 390 |
+| `screens/PackingBersama.html` | `PackingList` Bersama (`SharedPackingRow`, `SharedSummaryCard`) | Packing: barang bersama | 390 |
+| `screens/TambahBarangBersama.html` | `AddPackingItemSheet` + `BringerChoice` | Tambah barang bersama (bottom sheet) | 390 |
 | `screens/KasBersama.html` | `KittyContent` (Expenses tab, Kas) | Pengeluaran: kas bersama | 390 |
 | `screens/CatatSetoran.html` | `DepositSheet` | Catat setoran kas (bottom sheet) | 390 |
 
@@ -510,11 +510,11 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 
 | File | Code name | Board title | Width |
 | --- | --- | --- | --- |
-| `screens/MulaiDaftarAnggota.html` |  | Packing: owner mulai daftar bawaan anggota | 390 |
-| `screens/SusunDaftarAnggota.html` |  | Packing: owner menyusun daftar bawaan anggota | 390 |
-| `screens/KirimDaftarAnggota.html` |  | Packing: kirim daftar bawaan ke anggota | 390 |
-| `screens/PackingOwnerGunung.html` |  | Packing pribadi owner: progres anggota | 390 |
-| `screens/PackingPribadiGunung.html` |  | Packing pribadi anggota: daftar dari owner trip | 390 |
+| `screens/MulaiDaftarAnggota.html` | `MemberListStartSheet` | Packing: owner mulai daftar bawaan anggota | 390 |
+| `screens/SusunDaftarAnggota.html` | `MemberListEditor` | Packing: owner menyusun daftar bawaan anggota | 390 |
+| `screens/KirimDaftarAnggota.html` | `MemberListSendSheet` | Packing: kirim daftar bawaan ke anggota | 390 |
+| `screens/PackingOwnerGunung.html` | `PersonalPackingTab` (editor, `MemberListCard`) | Packing pribadi owner: progres anggota | 390 |
+| `screens/PackingPribadiGunung.html` | `PersonalPackingTab` (member, `FromOwnerCard`) | Packing pribadi anggota: daftar dari owner trip | 390 |
 
 ### Polling anonim · toggle saat membuat, hasil tanpa nama pemilih
 

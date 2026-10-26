@@ -39,6 +39,7 @@ actual val platformModule: Module = module {
     single<TripRepository> { RemoteTripRepository(get()) }
     single<ItineraryRepository> { RemoteItineraryRepository(get()) }
     single<PackingRepository> { RemotePackingRepository(get()) }
+    single<app.ransel.data.repository.PersonalItemRepository> { app.ransel.data.remote.RemotePersonalItemRepository(get()) }
     single<ExpenseRepository> { RemoteExpenseRepository(get()) }
     single<PreferencesRepository> { LocalStoragePreferencesRepository() }
 }

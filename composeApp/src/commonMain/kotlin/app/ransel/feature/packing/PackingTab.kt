@@ -30,6 +30,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.SegmentedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,11 +76,31 @@ import ransel.composeapp.generated.resources.packing_menu
 import ransel.composeapp.generated.resources.packing_progress_count
 import ransel.composeapp.generated.resources.packing_progress_title
 import ransel.composeapp.generated.resources.packing_uncheck_all
+import ransel.composeapp.generated.resources.packing_tab_personal
+import ransel.composeapp.generated.resources.packing_tab_shared
+import ransel.composeapp.generated.resources.packing_shared_empty_title
+import ransel.composeapp.generated.resources.packing_shared_empty_body
+import ransel.composeapp.generated.resources.packing_only_bringer
+import ransel.composeapp.generated.resources.packing_shared_title
+import ransel.composeapp.generated.resources.packing_shared_count
+import ransel.composeapp.generated.resources.packing_shared_mine
+import ransel.composeapp.generated.resources.packing_shared_open
+import ransel.composeapp.generated.resources.packing_shared_nobody
+import ransel.composeapp.generated.resources.packing_bringer
+import ransel.composeapp.generated.resources.packing_bringer_me
+import ransel.composeapp.generated.resources.packing_give_back
+import ransel.composeapp.generated.resources.packing_bring
+import kotlinx.coroutines.launch
+import app.ransel.ui.preview.IrisPreview
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.template_added
 import ransel.composeapp.generated.resources.template_apply_title
 import ransel.composeapp.generated.resources.template_error
 import ransel.composeapp.generated.resources.template_save_title
 import ransel.composeapp.generated.resources.template_saved
+
+/** Pribadi | Bersama in a group trip (signed in, more than one member); the plain list otherwise. */
+enum class PackingSection { PERSONAL, SHARED }
 
 @Composable
 fun PackingTab(
@@ -87,12 +108,58 @@ fun PackingTab(
     modifier: Modifier = Modifier,
     viewModel: PackingViewModel = koinViewModel(key = "packing-${trip.id}") { parametersOf(trip.id) },
 ) {
+    val session: app.ransel.data.auth.SessionManager = org.koin.compose.koinInject()
+    val signedIn = session.state.collectAsState().value is app.ransel.data.auth.SessionState.SignedIn
+    if (!signedIn) {
+        PackingList(trip, modifier, group = null, viewModel = viewModel)
+        return
+    }
+    val group: GroupPackingViewModel = koinViewModel(key = "group-packing-${trip.id}") { parametersOf(trip.id) }
+    val groupState by group.state.collectAsState()
+    // a group trip as far as this device knows: someone else is in it, or the user was invited, or has own lines
+    val isGroup = groupState.members.size > 1 || groupState.personal.isNotEmpty() || trip.myRole != app.ransel.shared.model.Role.OWNER
+    if (!isGroup) {
+        PackingList(trip, modifier, group = null, viewModel = viewModel)
+        return
+    }
+    var section by rememberSaveable { mutableStateOf(PackingSection.PERSONAL) }
+    Column(modifier.fillMaxSize()) {
+        androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp)) {
+            PackingSection.entries.forEachIndexed { index, option ->
+                SegmentedButton(
+                    selected = section == option,
+                    onClick = { section = option },
+                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, PackingSection.entries.size),
+                ) {
+                    Text(stringResource(if (option == PackingSection.PERSONAL) Res.string.packing_tab_personal else Res.string.packing_tab_shared))
+                }
+            }
+        }
+        when (section) {
+            PackingSection.PERSONAL -> PersonalPackingTab(trip, group, Modifier.weight(1f))
+            PackingSection.SHARED -> PackingList(trip, Modifier.weight(1f), group = group, viewModel = viewModel)
+        }
+    }
+}
+
+/** The trip-wide list: the whole packing list of a solo trip, or "Bersama" when [group] is set. */
+@Composable
+private fun PackingList(
+    trip: TripDto,
+    modifier: Modifier,
+    group: GroupPackingViewModel?,
+    viewModel: PackingViewModel,
+) {
     val state by viewModel.state.collectAsState()
+    val groupState = group?.state?.collectAsState()?.value
+    val myMemberId = groupState?.myMemberId
     val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
     // Templates live on the server: they need an account (guests keep the plain list).
     val session: app.ransel.data.auth.SessionManager = org.koin.compose.koinInject()
     val signedIn = session.state.collectAsState().value is app.ransel.data.auth.SessionState.SignedIn
-    val canUseTemplates = canEdit && signedIn
+    val canUseTemplates = canEdit && signedIn && group == null
+    val onlyBringerText = stringResource(Res.string.packing_only_bringer, "%s")
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val templates: PackingTemplatesViewModel =
         koinViewModel(key = "packing-templates-${trip.id}") { parametersOf(trip.id) }
     val templateState by templates.state.collectAsState()
@@ -117,6 +184,11 @@ fun PackingTab(
     Box(modifier.fillMaxSize()) {
         when {
             state.loading -> Unit
+            state.total == 0 && group != null -> FullScreenState(
+                title = stringResource(Res.string.packing_shared_empty_title),
+                body = stringResource(Res.string.packing_shared_empty_body, trip.title),
+                illustration = painterResource(Res.drawable.ic_packing_empty),
+            )
             state.total == 0 -> FullScreenState(
                 title = stringResource(Res.string.packing_empty_title),
                 body = stringResource(Res.string.packing_empty_body, trip.title),
@@ -126,11 +198,27 @@ fun PackingTab(
                 illustration = painterResource(Res.drawable.ic_packing_empty),
             )
             else -> {
-                PackingList(
+                val shared = if (groupState != null && myMemberId != null) SharedMode(
+                    myMemberId = myMemberId,
+                    members = groupState.members,
+                    canEdit = canEdit,
+                    onBring = { viewModel.bring(it, myMemberId) },
+                    onGiveBack = viewModel::giveBack,
+                ) else null
+                PackingItems(
                     trip = trip,
                     state = state,
                     today = today,
-                    onToggle = viewModel::toggle,
+                    shared = shared,
+                    onToggle = { item ->
+                        val bringer = item.assigneeMemberId
+                        if (shared != null && bringer != null && bringer != myMemberId) {
+                            val name = groupState?.member(bringer)?.displayName.orEmpty()
+                            scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(onlyBringerText.replace("%s", name)) }
+                        } else {
+                            viewModel.toggle(item)
+                        }
+                    },
                     onEdit = { sheet = SheetTarget.Edit(it.id) },
                     onUncheckAll = viewModel::uncheckAll,
                     canEdit = canEdit,
@@ -182,6 +270,12 @@ fun PackingTab(
                 viewModel.add(name, category, quantity)
                 if (!keepOpen) sheet = null
             },
+            bringers = if (group != null && groupState != null && myMemberId != null) {
+                BringerChoice(groupState.members.filter { it.userId != null }, myMemberId) { name, category, quantity, bringer, keepOpen ->
+                    group.addShared(name, category, quantity, bringer, (allItems.maxOfOrNull { it.sortOrder } ?: 0.0) + 1.0)
+                    if (!keepOpen) sheet = null
+                }
+            } else null,
             onDelete = null,
             onDismiss = { sheet = null },
         )
@@ -205,11 +299,21 @@ fun PackingTab(
     }
 }
 
+/** Bersama: who brings what. */
+class SharedMode(
+    val myMemberId: String,
+    val members: List<app.ransel.shared.dto.TripMemberDto>,
+    val canEdit: Boolean,
+    val onBring: (PackingItemDto) -> Unit,
+    val onGiveBack: (PackingItemDto) -> Unit,
+)
+
 @Composable
-private fun PackingList(
+private fun PackingItems(
     trip: TripDto,
     state: PackingUiState,
     today: kotlinx.datetime.LocalDate,
+    shared: SharedMode?,
     onToggle: (PackingItemDto) -> Unit,
     onEdit: (PackingItemDto) -> Unit,
     onUncheckAll: () -> Unit,
@@ -224,9 +328,9 @@ private fun PackingList(
             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        ProgressCard(trip, state, today, onUncheckAll, canEdit, onUseTemplate, onSaveTemplate)
+        if (shared != null) SharedSummaryCard(state, shared.myMemberId) else ProgressCard(trip, state, today, onUncheckAll, canEdit, onUseTemplate, onSaveTemplate)
         state.groups.forEach { group ->
-            PackingGroupSection(group, onToggle = onToggle, onEdit = onEdit, canEdit = canEdit)
+            PackingGroupSection(group, onToggle = onToggle, onEdit = onEdit, canEdit = canEdit, shared = shared)
         }
     }
 }
@@ -241,6 +345,7 @@ private fun PackingGroupSection(
     onToggle: (PackingItemDto) -> Unit,
     onEdit: (PackingItemDto) -> Unit,
     canEdit: Boolean,
+    shared: SharedMode?,
 ) {
     var expanded by rememberSaveable(group.category.name) { mutableStateOf(true) }
     val chevron by animateFloatAsState(if (expanded) 180f else 0f, label = "packing-group-chevron")
@@ -304,7 +409,11 @@ private fun PackingGroupSection(
             // Items start under the category name (tile 32 dp + gap 12 dp), with room on the right.
             Column(Modifier.padding(start = 44.dp, end = 12.dp)) {
                 group.items.forEach { item ->
-                    PackingRow(item, onToggle = { onToggle(item) }, onLongPress = { onEdit(item) }, enabled = canEdit)
+                    if (shared != null) {
+                        SharedPackingRow(item, shared, onToggle = { onToggle(item) }, onLongPress = { if (canEdit) onEdit(item) })
+                    } else {
+                        PackingRow(item, onToggle = { onToggle(item) }, onLongPress = { onEdit(item) }, enabled = canEdit)
+                    }
                 }
             }
         }
@@ -445,10 +554,135 @@ private fun PackingRow(item: PackingItemDto, onToggle: () -> Unit, onLongPress: 
     }
 }
 
+/** Design "PackingBersama": how many items have a bringer, and how many the user brings. */
+@Composable
+private fun SharedSummaryCard(state: PackingUiState, myMemberId: String) {
+    val items = state.groups.flatMap { it.items }
+    val claimed = items.count { it.assigneeMemberId != null }
+    val mine = items.count { it.assigneeMemberId == myMemberId }
+    val percent = if (items.isEmpty()) 0 else claimed * 100 / items.size
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .shadow(2.dp, IrisShape.lg, ambientColor = Color.Black.copy(alpha = .06f), spotColor = Color.Black.copy(alpha = .06f))
+            .background(MaterialTheme.colorScheme.surface, IrisShape.lg)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(stringResource(Res.string.packing_shared_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(Res.string.packing_shared_count, claimed, items.size), style = MaterialTheme.typography.titleLarge)
+        Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
+            Box(Modifier.fillMaxWidth(percent / 100f).height(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
+        }
+        Text(
+            listOf(stringResource(Res.string.packing_shared_mine, mine), stringResource(Res.string.packing_shared_open, items.size - claimed)).joinToString(" · "),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * A Bersama row: nobody brings it yet ("Saya bawa"), or the bringer's avatar and name; only the bringer ticks it.
+ * Tapping the bringer opens "Batal bawa" for them, and for editors on anyone's item.
+ */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle: () -> Unit, onLongPress: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val bringer = item.assigneeMemberId
+    val mine = bringer == shared.myMemberId
+    var menu by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .combinedClickable(enabled = bringer != null, role = Role.Checkbox, onClick = onToggle, onLongClick = onLongPress),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (bringer != null) {
+            val packed = item.isPacked
+            Box(
+                Modifier.size(22.dp).clip(IrisShape.xs).then(
+                    when {
+                        packed -> Modifier.background(if (mine) scheme.primary else scheme.outline)
+                        else -> Modifier.border(2.dp, if (mine) scheme.outline else scheme.outlineVariant, IrisShape.xs)
+                    },
+                ),
+                contentAlignment = Alignment.Center,
+            ) { if (packed) Symbol(Symbols.check, size = 16.dp, tint = scheme.onPrimary) }
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                if (item.quantity > 1 && bringer == null) "${item.name} ×${item.quantity}" else item.name,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    textDecoration = if (item.isPacked) TextDecoration.LineThrough else TextDecoration.None,
+                ),
+                color = if (item.isPacked) scheme.onSurfaceVariant else scheme.onSurface,
+            )
+            if (bringer == null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Symbol(Symbols.help, size = 14.dp, tint = scheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.packing_shared_nobody), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+                }
+            } else {
+                val member = shared.members.firstOrNull { it.memberId == bringer }
+                Box {
+                    Row(
+                        Modifier.clip(IrisShape.xs).clickable(enabled = mine || shared.canEdit, role = Role.Button) { menu = true }.padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        app.ransel.ui.components.MemberAvatar(member?.displayName ?: "?", bringer, size = 20.dp)
+                        Text(
+                            if (mine) stringResource(Res.string.packing_bringer_me) else stringResource(Res.string.packing_bringer, member?.displayName.orEmpty()),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.packing_give_back)) },
+                            leadingIcon = { Symbol(Symbols.close) },
+                            onClick = { menu = false; shared.onGiveBack(item) },
+                        )
+                    }
+                }
+            }
+        }
+        app.ransel.ui.components.PendingMarker(item.id)
+        if (bringer == null) {
+            androidx.compose.material3.OutlinedButton(onClick = { shared.onBring(item) }, modifier = Modifier.heightIn(min = 40.dp)) {
+                Text(stringResource(Res.string.packing_bring), style = MaterialTheme.typography.labelLarge)
+            }
+        } else {
+            Text("×${item.quantity}", style = MaterialTheme.typography.titleSmall, color = scheme.onSurfaceVariant)
+        }
+    }
+}
+
 /** What the add/edit sheet is showing. */
 sealed interface SheetTarget {
     data object Add : SheetTarget
     data object UseTemplate : SheetTarget
     data object SaveTemplate : SheetTarget
     data class Edit(val itemId: String) : SheetTarget
+}
+
+@Preview
+@Composable
+private fun SharedPackingRowPreview() = IrisPreview {
+    val stamp = kotlin.time.Instant.parse("2026-12-01T00:00:00Z")
+    val members = listOf(
+        app.ransel.shared.dto.TripMemberDto("t", "r", "r", "Raka", role = app.ransel.shared.model.Role.EDITOR, joinedAt = stamp),
+    )
+    val mode = SharedMode("me", members, canEdit = true, onBring = {}, onGiveBack = {})
+    fun item(id: String, name: String, bringer: String?, packed: Boolean = false) =
+        PackingItemDto(id, "t", name = name, quantity = 2, isPacked = packed, assigneeMemberId = bringer, createdAt = stamp, updatedAt = stamp)
+    Column(Modifier.padding(16.dp)) {
+        SharedPackingRow(item("1", "Snorkel set", null), mode, {}, {})
+        SharedPackingRow(item("2", "Speaker portable", "r"), mode, {}, {})
+        SharedPackingRow(item("3", "Colokan T", "me", packed = true), mode, {}, {})
+    }
 }

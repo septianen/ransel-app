@@ -1,6 +1,9 @@
 package app.ransel.data.repository
 
 import app.ransel.shared.dto.CreatePackingItemRequest
+import app.ransel.shared.dto.CreatePersonalItemRequest
+import app.ransel.shared.dto.PatchPersonalItemRequest
+import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.DayOrderItem
 import app.ransel.shared.dto.ExpenseDto
@@ -54,6 +57,23 @@ interface PackingRepository {
     suspend fun addAll(tripId: String, requests: List<CreatePackingItemRequest>) {
         requests.forEach { add(tripId, it) }
     }
+
+    /** Bersama "Saya bawa": [memberId] is the caller's member id. */
+    suspend fun bring(tripId: String, itemId: String, memberId: String)
+
+    /** Gives a Bersama item back; its tick goes with it. */
+    suspend fun giveBack(tripId: String, itemId: String)
+}
+
+/**
+ * "Pribadi": the signed-in member's own packing lines in a group trip, including the copies of the owner's member list
+ * (those only change their tick; the server keeps them in step with the list).
+ */
+interface PersonalItemRepository {
+    fun observe(tripId: String): Flow<List<PersonalItemDto>>
+    suspend fun add(tripId: String, request: CreatePersonalItemRequest)
+    suspend fun update(tripId: String, itemId: String, patch: PatchPersonalItemRequest)
+    suspend fun delete(tripId: String, itemId: String)
 }
 
 interface ExpenseRepository {

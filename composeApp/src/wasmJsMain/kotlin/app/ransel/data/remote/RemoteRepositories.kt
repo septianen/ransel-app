@@ -3,6 +3,10 @@ package app.ransel.data.remote
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PackingRepository
+import app.ransel.data.repository.PersonalItemRepository
+import app.ransel.shared.dto.CreatePersonalItemRequest
+import app.ransel.shared.dto.PatchPersonalItemRequest
+import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.data.repository.TripRepository
 import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.CreateTripRequest
@@ -91,6 +95,26 @@ internal class RemotePackingRepository(private val gateway: RemoteGateway) : Pac
         gateway.mutate { api.deletePackingItem(tripId, itemId) }
 
     override suspend fun uncheckAll(tripId: String) = gateway.mutate { api.uncheckAllPacking(tripId) }
+
+    override suspend fun bring(tripId: String, itemId: String, memberId: String) =
+        gateway.mutate { api.bringPackingItem(tripId, itemId) }
+
+    override suspend fun giveBack(tripId: String, itemId: String) = gateway.mutate { api.giveBackPackingItem(tripId, itemId) }
+}
+
+internal class RemotePersonalItemRepository(private val gateway: RemoteGateway) : PersonalItemRepository {
+    private val api get() = gateway.api
+
+    override fun observe(tripId: String): Flow<List<PersonalItemDto>> =
+        gateway.observe(whenMissing = { emptyList() }) { api.personalItems(tripId) }
+
+    override suspend fun add(tripId: String, request: CreatePersonalItemRequest) =
+        gateway.mutate { api.createPersonalItem(tripId, request) }
+
+    override suspend fun update(tripId: String, itemId: String, patch: PatchPersonalItemRequest) =
+        gateway.mutate { api.patchPersonalItem(tripId, itemId, patch) }
+
+    override suspend fun delete(tripId: String, itemId: String) = gateway.mutate { api.deletePersonalItem(tripId, itemId) }
 }
 
 internal class RemoteExpenseRepository(private val gateway: RemoteGateway) : ExpenseRepository {

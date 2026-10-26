@@ -79,6 +79,15 @@ class PackingViewModel(
         viewModelScope.launch { packing.delete(tripId, item.id) }
     }
 
+    /** Bersama "Saya bawa". */
+    fun bring(item: PackingItemDto, myMemberId: String) {
+        viewModelScope.launch { packing.bring(tripId, item.id, myMemberId) }
+    }
+
+    fun giveBack(item: PackingItemDto) {
+        viewModelScope.launch { packing.giveBack(tripId, item.id) }
+    }
+
     fun uncheckAll() {
         viewModelScope.launch { packing.uncheckAll(tripId) }
     }

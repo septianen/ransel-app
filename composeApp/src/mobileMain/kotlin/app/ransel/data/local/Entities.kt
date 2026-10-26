@@ -85,6 +85,27 @@ data class PackingItemEntity(
     val updatedAt: Long,
     val deletedAt: Long?,
     val syncState: String = SyncState.PENDING,
+    /** Bersama: who brings it (DB v9). */
+    @ColumnInfo(defaultValue = "NULL") val assigneeMemberId: String? = null,
+)
+
+/** "Pribadi": the signed-in member's own lines in a group trip (DB v9). Lines with [sourceItemId] follow the owner's list. */
+@Entity(tableName = "personal_items", indices = [Index("tripId")])
+data class PersonalItemEntity(
+    @PrimaryKey val id: String,
+    val tripId: String,
+    val ownerMemberId: String,
+    val category: String,
+    val name: String,
+    val quantity: Int,
+    val isPacked: Boolean,
+    val sortOrder: Double,
+    val sourceItemId: String?,
+    val required: Boolean,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long?,
+    val syncState: String = SyncState.PENDING,
 )
 
 @Entity(tableName = "expenses", indices = [Index("tripId")])

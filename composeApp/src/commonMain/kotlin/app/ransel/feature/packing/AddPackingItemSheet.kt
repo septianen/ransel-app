@@ -31,6 +31,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.dto.PackingItemDto
+import app.ransel.shared.dto.TripMemberDto
+import app.ransel.ui.components.MemberAvatar
 import app.ransel.shared.model.PackingCategory
 import app.ransel.ui.category.label
 import app.ransel.ui.components.AdaptiveSheet
@@ -56,10 +58,23 @@ import ransel.composeapp.generated.resources.packing_save
 import ransel.composeapp.generated.resources.packing_sheet_edit_title
 import ransel.composeapp.generated.resources.packing_sheet_subtitle
 import ransel.composeapp.generated.resources.activity_category
+import ransel.composeapp.generated.resources.packing_shared_add
+import ransel.composeapp.generated.resources.packing_who_brings
+import ransel.composeapp.generated.resources.packing_who_hint
+import ransel.composeapp.generated.resources.packing_who_unset
+import ransel.composeapp.generated.resources.packing_who_you
+
+/** "Siapa yang bawa?" for a new Bersama item (design "TambahBarangBersama"): members with an account, the user first. */
+class BringerChoice(
+    val members: List<TripMemberDto>,
+    val myMemberId: String,
+    val onSave: (name: String, category: PackingCategory, quantity: Int, bringerMemberId: String?, keepOpen: Boolean) -> Unit,
+)
 
 /**
  * Add (existing == null) or edit a packing item (design "Tambah barang"). "Tambah lagi" saves and
- * clears the name but keeps the category, for quick entry of several items.
+ * clears the name but keeps the category, for quick entry of several items. With [bringers] a new item is a Bersama
+ * item and the sheet asks who brings it.
  */
 @Composable
 fun AddPackingItemSheet(
@@ -69,8 +84,11 @@ fun AddPackingItemSheet(
     onSave: (name: String, category: PackingCategory, quantity: Int, keepOpen: Boolean) -> Unit,
     onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
+    bringers: BringerChoice? = null,
+    title: String? = null,
 ) {
     var name by remember { mutableStateOf(existing?.name.orEmpty()) }
+    var bringer by remember { mutableStateOf<String?>(null) }
     var category by remember { mutableStateOf(existing?.category ?: PackingCategory.CLOTHING) }
     var quantity by remember { mutableStateOf(existing?.quantity ?: 1) }
     var showError by remember { mutableStateOf(false) }
@@ -80,7 +98,8 @@ fun AddPackingItemSheet(
             showError = true
             return
         }
-        onSave(name, category, quantity, keepOpen)
+        if (bringers != null && existing == null) bringers.onSave(name, category, quantity, bringer, keepOpen)
+        else onSave(name, category, quantity, keepOpen)
         if (keepOpen) {
             name = ""
             quantity = 1
@@ -92,7 +111,11 @@ fun AddPackingItemSheet(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    stringResource(if (existing == null) Res.string.packing_add else Res.string.packing_sheet_edit_title),
+                    title ?: when {
+                        existing != null -> stringResource(Res.string.packing_sheet_edit_title)
+                        bringers != null -> stringResource(Res.string.packing_shared_add)
+                        else -> stringResource(Res.string.packing_add)
+                    },
                     style = MaterialTheme.typography.headlineSmall,
                 )
                 Text(
@@ -181,6 +204,9 @@ fun AddPackingItemSheet(
                     quantity += 1
                 }
             }
+            if (bringers != null && existing == null) {
+                BringerPicker(bringers, bringer) { bringer = it }
+            }
         }
         Column(Modifier.padding(top = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -224,6 +250,39 @@ fun AddPackingItemSheet(
                 }
             }
         }
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun BringerPicker(choice: BringerChoice, selected: String?, onSelect: (String?) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val you = stringResource(Res.string.packing_who_you)
+    val people = listOf<Pair<String?, String>>(null to stringResource(Res.string.packing_who_unset), choice.myMemberId to you) +
+        choice.members.filter { it.memberId != choice.myMemberId }.map { it.memberId to it.displayName }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(Res.string.packing_who_brings), style = MaterialTheme.typography.labelLarge)
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            people.forEach { (id, label) ->
+                val on = id == selected
+                Row(
+                    Modifier
+                        .heightIn(min = 40.dp)
+                        .clip(CircleShape)
+                        .background(if (on) scheme.primaryContainer else scheme.surface)
+                        .border(1.dp, if (on) scheme.primary else scheme.outlineVariant, CircleShape)
+                        .clickable(role = Role.RadioButton) { onSelect(id) }
+                        .padding(start = if (id == null) 14.dp else 6.dp, end = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    if (id == null) Symbol(Symbols.help, size = 18.dp, tint = scheme.onSurfaceVariant)
+                    else MemberAvatar(if (id == choice.myMemberId) choice.members.firstOrNull { it.memberId == id }?.displayName ?: you else label, id, size = 28.dp)
+                    Text(label, style = MaterialTheme.typography.labelLarge, color = if (on) scheme.onPrimaryContainer else scheme.onSurface)
+                }
+            }
+        }
+        Text(stringResource(Res.string.packing_who_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
     }
 }
 

@@ -139,7 +139,8 @@ class SyncCoordinator(
             val items = dao.pendingItems()
             val packing = dao.pendingPacking()
             val expenses = dao.pendingExpenses()
-            if (trips.isEmpty() && items.isEmpty() && packing.isEmpty() && expenses.isEmpty()) {
+            val personal = dao.pendingPersonal()
+            if (trips.isEmpty() && items.isEmpty() && packing.isEmpty() && expenses.isEmpty() && personal.isEmpty()) {
                 return PushResult(needsFullPull)
             }
             // Trips first so a batch never has an item whose trip comes later; cap each batch.
@@ -149,15 +150,17 @@ class SyncCoordinator(
             val sendItems = items.take()
             val sendPacking = packing.take()
             val sendExpenses = expenses.take()
+            val sendPersonal = personal.take()
             val request = SyncPushRequest(
                 SyncChanges(
                     trips = sendTrips.map { it.toDto() },
                     itineraryItems = sendItems.map { it.toDto() },
                     packingItems = sendPacking.map { it.toDto() },
                     expenses = sendExpenses.map { it.toDto() },
+                    personalItems = sendPersonal.map { it.toDto() },
                 ),
             )
-            val sent = sendTrips.size + sendItems.size + sendPacking.size + sendExpenses.size
+            val sent = sendTrips.size + sendItems.size + sendPacking.size + sendExpenses.size + sendPersonal.size
             when (val result = api.syncPush(request)) {
                 is ApiResult.Failure -> {
                     if (result.error.isConnection) {
@@ -177,6 +180,7 @@ class SyncCoordinator(
                         sendItems.forEach { settle(accepted, rejected, "itineraryItem", it.id) { s -> dao.setItemState(it.id, it.updatedAt, s) } }
                         sendPacking.forEach { settle(accepted, rejected, "packingItem", it.id) { s -> dao.setPackingState(it.id, it.updatedAt, s) } }
                         sendExpenses.forEach { settle(accepted, rejected, "expense", it.id) { s -> dao.setExpenseState(it.id, it.updatedAt, s) } }
+                        sendPersonal.forEach { settle(accepted, rejected, "personalItem", it.id) { s -> dao.setPersonalState(it.id, it.updatedAt, s) } }
                     }
                     if (response.rejected.any { it.code == ErrorCode.CONFLICT }) needsFullPull = true
                     // A batch that settled nothing would loop forever: stop and retry on the next tick.
@@ -245,6 +249,12 @@ class SyncCoordinator(
                     dao.putPacking(dto.toEntity())
                 }
             }
+            c.personalItems.forEach { dto ->
+                val local = dao.personal(dto.id)
+                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                    dao.putPersonal(dto.toEntity())
+                }
+            }
             c.expenses.forEach { dto ->
                 val local = dao.expense(dto.id)
                 if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
@@ -262,6 +272,7 @@ class SyncCoordinator(
         db.withWriteTransaction {
             dao.clearItems()
             dao.clearPacking()
+            dao.clearPersonal()
             dao.clearExpenses()
             dao.clearTrips()
             db.preferenceDao().remove(LAST_SYNC_KEY)

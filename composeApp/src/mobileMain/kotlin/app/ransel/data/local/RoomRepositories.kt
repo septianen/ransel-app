@@ -6,6 +6,7 @@ import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PackingRepository
+import app.ransel.data.repository.PersonalItemRepository
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.repository.buildTripSummary
@@ -22,6 +23,9 @@ import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.LOCAL_USER_ID
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
+import app.ransel.shared.dto.CreatePersonalItemRequest
+import app.ransel.shared.dto.PatchPersonalItemRequest
+import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.dto.UpdateTripRequest
@@ -171,9 +175,20 @@ class RoomPackingRepository(private val db: RanselDatabase) : PackingRepository 
             PackingItemEntity(
                 id = request.id, tripId = tripId, category = request.category.name, name = request.name.trim(),
                 quantity = request.quantity, isPacked = false, sortOrder = request.sortOrder,
-                createdAt = stamp, updatedAt = stamp, deletedAt = null,
+                createdAt = stamp, updatedAt = stamp, deletedAt = null, assigneeMemberId = request.assigneeMemberId,
             ),
         )
+    }
+
+    override suspend fun bring(tripId: String, itemId: String, memberId: String) {
+        val current = db.packingDao().get(itemId) ?: return
+        if (current.assigneeMemberId != null) return
+        db.packingDao().upsert(current.copy(assigneeMemberId = memberId, updatedAt = now().toMillis(), syncState = SyncState.PENDING))
+    }
+
+    override suspend fun giveBack(tripId: String, itemId: String) {
+        val current = db.packingDao().get(itemId) ?: return
+        db.packingDao().upsert(current.copy(assigneeMemberId = null, isPacked = false, updatedAt = now().toMillis(), syncState = SyncState.PENDING))
     }
 
     override suspend fun update(tripId: String, itemId: String, patch: PatchPackingItemRequest) {
@@ -196,6 +211,46 @@ class RoomPackingRepository(private val db: RanselDatabase) : PackingRepository 
 
     override suspend fun uncheckAll(tripId: String) {
         db.packingDao().uncheckAll(tripId, now().toMillis())
+    }
+}
+
+class RoomPersonalItemRepository(
+    private val db: RanselDatabase,
+    private val currentUserId: () -> String,
+) : PersonalItemRepository {
+    override fun observe(tripId: String): Flow<List<PersonalItemDto>> =
+        db.personalItemDao().observe(tripId).map { l -> l.map { it.toDto() } }
+
+    override suspend fun add(tripId: String, request: CreatePersonalItemRequest) {
+        val stamp = now().toMillis()
+        db.personalItemDao().upsert(
+            PersonalItemEntity(
+                id = request.id, tripId = tripId, ownerMemberId = memberIdFor(tripId, currentUserId()),
+                category = request.category.name, name = request.name.trim(), quantity = request.quantity, isPacked = false,
+                sortOrder = request.sortOrder, sourceItemId = null, required = false,
+                createdAt = stamp, updatedAt = stamp, deletedAt = null,
+            ),
+        )
+    }
+
+    override suspend fun update(tripId: String, itemId: String, patch: PatchPersonalItemRequest) {
+        val current = db.personalItemDao().get(itemId) ?: return
+        // a line from the owner's list only takes its tick
+        val own = current.sourceItemId == null
+        db.personalItemDao().upsert(
+            current.copy(
+                category = patch.category?.name?.takeIf { own } ?: current.category,
+                name = patch.name?.trim()?.takeIf { own } ?: current.name,
+                quantity = patch.quantity?.takeIf { own } ?: current.quantity,
+                isPacked = patch.isPacked ?: current.isPacked,
+                sortOrder = patch.sortOrder ?: current.sortOrder,
+                updatedAt = now().toMillis(), syncState = SyncState.PENDING,
+            ),
+        )
+    }
+
+    override suspend fun delete(tripId: String, itemId: String) {
+        db.personalItemDao().softDelete(itemId, now().toMillis())
     }
 }
 

@@ -97,6 +97,14 @@ import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
+import app.ransel.shared.dto.CreatePersonalItemRequest
+import app.ransel.shared.dto.PatchPersonalItemRequest
+import app.ransel.shared.dto.PersonalItemDto
+import app.ransel.shared.dto.MemberListDto
+import app.ransel.shared.dto.SaveMemberListRequest
+import app.ransel.shared.dto.SendMemberListRequest
+import app.ransel.shared.dto.MemberListProgressDto
+import app.ransel.shared.dto.RemindMemberListRequest
 import app.ransel.shared.dto.TripDetailDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.UpdateTripRequest
@@ -219,6 +227,26 @@ class RanselApi(
         delete(ApiRoutes.packingItem(tripId, itemId))
     suspend fun uncheckAllPacking(tripId: String): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.packingUncheckAll(tripId)) { }
+    suspend fun bringPackingItem(tripId: String, itemId: String): ApiResult<PackingItemDto> =
+        call(HttpMethod.Post, ApiRoutes.packingBring(tripId, itemId)) { it.body<ApiResponse<PackingItemDto>>().data }
+    suspend fun giveBackPackingItem(tripId: String, itemId: String): ApiResult<PackingItemDto> =
+        call(HttpMethod.Delete, ApiRoutes.packingBring(tripId, itemId)) { it.body<ApiResponse<PackingItemDto>>().data }
+
+    // ── group packing (stage 7) ─────────────────────────────────────────────
+    suspend fun personalItems(tripId: String): ApiResult<List<PersonalItemDto>> = get(ApiRoutes.personalItems(tripId))
+    suspend fun createPersonalItem(tripId: String, request: CreatePersonalItemRequest): ApiResult<PersonalItemDto> =
+        send(HttpMethod.Post, ApiRoutes.personalItems(tripId), request)
+    suspend fun patchPersonalItem(tripId: String, itemId: String, patch: PatchPersonalItemRequest): ApiResult<PersonalItemDto> =
+        send(HttpMethod.Patch, ApiRoutes.personalItem(tripId, itemId), patch)
+    suspend fun deletePersonalItem(tripId: String, itemId: String): ApiResult<Unit> = delete(ApiRoutes.personalItem(tripId, itemId))
+    suspend fun memberList(tripId: String): ApiResult<MemberListDto> = get(ApiRoutes.memberList(tripId))
+    suspend fun saveMemberList(tripId: String, request: SaveMemberListRequest): ApiResult<MemberListDto> =
+        send(HttpMethod.Put, ApiRoutes.memberList(tripId), request)
+    suspend fun sendMemberList(tripId: String, request: SendMemberListRequest): ApiResult<MemberListDto> =
+        send(HttpMethod.Post, ApiRoutes.memberListSend(tripId), request)
+    suspend fun memberListProgress(tripId: String): ApiResult<List<MemberListProgressDto>> = get(ApiRoutes.memberListProgress(tripId))
+    suspend fun remindMemberList(tripId: String, memberIds: List<String>): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.memberListRemind(tripId), bodyOf = { contentType(ContentType.Application.Json); setBody(RemindMemberListRequest(memberIds)) }) { }
 
     // ── expenses ────────────────────────────────────────────────────────────
     suspend fun expenses(tripId: String): ApiResult<List<ExpenseDto>> = get(ApiRoutes.expenses(tripId))

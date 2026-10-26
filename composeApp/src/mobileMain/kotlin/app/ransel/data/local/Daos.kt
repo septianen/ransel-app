@@ -58,6 +58,21 @@ interface ItineraryDao {
 }
 
 @Dao
+interface PersonalItemDao {
+    @Query("SELECT * FROM personal_items WHERE tripId = :tripId AND deletedAt IS NULL ORDER BY category, sortOrder")
+    fun observe(tripId: String): Flow<List<PersonalItemEntity>>
+
+    @Query("SELECT * FROM personal_items WHERE id = :id")
+    suspend fun get(id: String): PersonalItemEntity?
+
+    @Upsert
+    suspend fun upsert(entity: PersonalItemEntity)
+
+    @Query("UPDATE personal_items SET deletedAt = :now, updatedAt = :now, syncState = 'PENDING' WHERE id = :id AND sourceItemId IS NULL")
+    suspend fun softDelete(id: String, now: Long)
+}
+
+@Dao
 interface PackingDao {
     @Query("SELECT * FROM packing_items WHERE tripId = :tripId AND deletedAt IS NULL ORDER BY category, sortOrder")
     fun observe(tripId: String): Flow<List<PackingItemEntity>>
@@ -139,11 +154,15 @@ interface SyncDao {
     @Query("SELECT * FROM expenses WHERE syncState = 'PENDING'")
     suspend fun pendingExpenses(): List<ExpenseEntity>
 
+    @Query("SELECT * FROM personal_items WHERE syncState = 'PENDING'")
+    suspend fun pendingPersonal(): List<PersonalItemEntity>
+
     @Query(
         "SELECT id FROM trips WHERE syncState = 'PENDING' UNION ALL " +
             "SELECT id FROM itinerary_items WHERE syncState = 'PENDING' UNION ALL " +
             "SELECT id FROM packing_items WHERE syncState = 'PENDING' UNION ALL " +
-            "SELECT id FROM expenses WHERE syncState = 'PENDING'",
+            "SELECT id FROM expenses WHERE syncState = 'PENDING' UNION ALL " +
+            "SELECT id FROM personal_items WHERE syncState = 'PENDING'",
     )
     fun observePendingIds(): Flow<List<String>>
 
@@ -158,6 +177,18 @@ interface SyncDao {
 
     @Query("UPDATE expenses SET syncState = :state WHERE id = :id AND updatedAt = :updatedAt AND syncState = 'PENDING'")
     suspend fun setExpenseState(id: String, updatedAt: Long, state: String)
+
+    @Query("UPDATE personal_items SET syncState = :state WHERE id = :id AND updatedAt = :updatedAt AND syncState = 'PENDING'")
+    suspend fun setPersonalState(id: String, updatedAt: Long, state: String)
+
+    @Query("SELECT * FROM personal_items WHERE id = :id")
+    suspend fun personal(id: String): PersonalItemEntity?
+
+    @Upsert
+    suspend fun putPersonal(entity: PersonalItemEntity)
+
+    @Query("DELETE FROM personal_items")
+    suspend fun clearPersonal()
 
     @Query("SELECT * FROM trips WHERE id = :id")
     suspend fun trip(id: String): TripEntity?

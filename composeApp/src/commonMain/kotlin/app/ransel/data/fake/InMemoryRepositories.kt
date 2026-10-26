@@ -5,6 +5,10 @@ import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PackingRepository
+import app.ransel.data.repository.PersonalItemRepository
+import app.ransel.shared.dto.CreatePersonalItemRequest
+import app.ransel.shared.dto.PatchPersonalItemRequest
+import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.repository.buildTripSummary
@@ -43,6 +47,42 @@ class InMemoryStore {
     val items = MutableStateFlow<List<ItineraryItemDto>>(emptyList())
     val packing = MutableStateFlow<List<PackingItemDto>>(emptyList())
     val expenses = MutableStateFlow<List<ExpenseDto>>(emptyList())
+    val personal = MutableStateFlow<List<PersonalItemDto>>(emptyList())
+}
+
+class InMemoryPersonalItemRepository(private val store: InMemoryStore, private val ownerMemberId: (String) -> String) : PersonalItemRepository {
+    override fun observe(tripId: String): Flow<List<PersonalItemDto>> = store.personal.map { list ->
+        list.filter { it.tripId == tripId && it.deletedAt == null }.sortedWith(compareBy({ it.category }, { it.sortOrder }))
+    }
+
+    override suspend fun add(tripId: String, request: CreatePersonalItemRequest) {
+        val stamp = now()
+        store.personal.update {
+            it + PersonalItemDto(
+                id = request.id, tripId = tripId, ownerMemberId = ownerMemberId(tripId), category = request.category,
+                name = request.name, quantity = request.quantity, sortOrder = request.sortOrder, createdAt = stamp, updatedAt = stamp,
+            )
+        }
+    }
+
+    override suspend fun update(tripId: String, itemId: String, patch: PatchPersonalItemRequest) {
+        val stamp = now()
+        store.personal.update { list ->
+            list.map {
+                val own = it.sourceItemId == null
+                if (it.id != itemId) it else it.copy(
+                    category = patch.category?.takeIf { own } ?: it.category, name = patch.name?.takeIf { own } ?: it.name,
+                    quantity = patch.quantity?.takeIf { own } ?: it.quantity, isPacked = patch.isPacked ?: it.isPacked,
+                    sortOrder = patch.sortOrder ?: it.sortOrder, updatedAt = stamp,
+                )
+            }
+        }
+    }
+
+    override suspend fun delete(tripId: String, itemId: String) {
+        val stamp = now()
+        store.personal.update { l -> l.map { if (it.id == itemId && it.sourceItemId == null) it.copy(deletedAt = stamp, updatedAt = stamp) else it } }
+    }
 }
 
 class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository {
@@ -167,9 +207,20 @@ class InMemoryPackingRepository(private val store: InMemoryStore) : PackingRepos
         store.packing.update {
             it + PackingItemDto(
                 id = request.id, tripId = tripId, category = request.category, name = request.name,
-                quantity = request.quantity, sortOrder = request.sortOrder, createdAt = stamp, updatedAt = stamp,
+                quantity = request.quantity, sortOrder = request.sortOrder, assigneeMemberId = request.assigneeMemberId,
+                createdAt = stamp, updatedAt = stamp,
             )
         }
+    }
+
+    override suspend fun bring(tripId: String, itemId: String, memberId: String) {
+        val stamp = now()
+        store.packing.update { l -> l.map { if (it.id == itemId && it.assigneeMemberId == null) it.copy(assigneeMemberId = memberId, updatedAt = stamp) else it } }
+    }
+
+    override suspend fun giveBack(tripId: String, itemId: String) {
+        val stamp = now()
+        store.packing.update { l -> l.map { if (it.id == itemId) it.copy(assigneeMemberId = null, isPacked = false, updatedAt = stamp) else it } }
     }
 
     override suspend fun update(tripId: String, itemId: String, patch: PatchPackingItemRequest) {
