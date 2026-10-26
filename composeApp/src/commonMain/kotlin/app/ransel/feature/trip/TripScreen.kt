@@ -74,6 +74,11 @@ fun TripScreen(
     onCreatePoll: (PollKind) -> Unit = {},
     onOpenPoll: (pollId: String) -> Unit = {},
     onOpenPaymentMethods: () -> Unit = {},
+    /** "Dokumen trip"; upload = opened from "Unggah dokumen". */
+    onOpenDocuments: (upload: Boolean) -> Unit = {},
+    onOpenRecap: () -> Unit = {},
+    /** Opened right after "Buat trip dengan grup ini": the invite sheet comes first. */
+    openInvite: Boolean = false,
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
 ) {
@@ -98,7 +103,7 @@ fun TripScreen(
     val actionRounds = tripRounds.actionRounds(isOwner)
     // The + button of the Group tab: Buat polling / Ajak anggota / Unggah dokumen.
     var actionSheetOpen by remember { mutableStateOf(false) }
-    var inviteSheetOpen by remember { mutableStateOf(false) }
+    var inviteSheetOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(openInvite) }
     var kindSheetOpen by remember { mutableStateOf(false) }
     // The OWNER and EDITORs ask the group; viewers vote.
     val canAsk = current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true
@@ -136,6 +141,7 @@ fun TripScreen(
                 onTabSelected = { tab = it },
                 onBack = onBack,
                 onEdit = if (current?.myRole == app.ransel.shared.model.Role.OWNER) onEditTrip else null,
+                onRecap = current?.takeIf { app.ransel.shared.domain.recapAvailable(it.endDate, app.ransel.util.today()) }?.let { { onOpenRecap() } },
                 onMembers = if (signedIn) onMembers else null,
             )
             if (offline) app.ransel.ui.components.OfflineBanner()
@@ -181,6 +187,7 @@ fun TripScreen(
                             },
                             onOpenMembers = onMembers,
                             onOpenPoll = onOpenPoll,
+                            onOpenDocuments = { onOpenDocuments(false) },
                             refreshKey = refreshCount,
                         )
                         TripTab.ITINERARY -> ItineraryTab(
@@ -212,6 +219,7 @@ fun TripScreen(
             onPoll = { actionSheetOpen = false; kindSheetOpen = true },
             onInvite = { actionSheetOpen = false; inviteSheetOpen = true },
             onDismiss = { actionSheetOpen = false },
+            onDocument = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenDocuments(true) }) else null,
         )
     }
     if (kindSheetOpen) {

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.datetime.minus
 import kotlinx.datetime.LocalDate
 
 sealed interface HomeUiState {
@@ -53,4 +54,17 @@ class HomeViewModel(
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)
+
+    /** Design "BerandaRekap": the trip that ended most recently, for two weeks after its last day. */
+    val recapTrip: StateFlow<TripDto?> = trips.observeTrips()
+        .map { list ->
+            val today = today()
+            list.filter { app.ransel.shared.domain.recapAvailable(it.endDate, today) && it.endDate >= today.minus(kotlinx.datetime.DatePeriod(days = RECAP_CARD_DAYS)) }
+                .maxByOrNull { it.endDate }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private companion object {
+        const val RECAP_CARD_DAYS = 14
+    }
 }

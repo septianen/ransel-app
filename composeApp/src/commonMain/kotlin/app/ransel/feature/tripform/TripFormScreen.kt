@@ -50,6 +50,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.trip_template_use
+import ransel.composeapp.generated.resources.trip_template_none
+import ransel.composeapp.generated.resources.trip_template_hint
+import ransel.composeapp.generated.resources.trip_template_delete
 import ransel.composeapp.generated.resources.destination_hint
 import app.ransel.feature.destination.DestinationField
 import app.ransel.shared.domain.isOverseas
@@ -97,10 +101,19 @@ fun TripFormScreen(
     viewModel: TripFormViewModel = koinViewModel(key = "trip-form-${tripId ?: "new"}") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
+    // "Pakai template trip" (new trips only): applied once the trip exists
+    val templates: TripTemplatesViewModel? = if (tripId == null) koinViewModel(key = "trip-templates") else null
+    val templateState = templates?.state?.collectAsState()?.value
+    var templateSheet by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
-                is TripFormEvent.Saved -> onSaved(event.tripId)
+                is TripFormEvent.Saved -> if (templates != null) {
+                    val s = viewModel.state.value
+                    templates.applyTo(event.tripId, s.startDate, s.endDate) { onSaved(event.tripId) }
+                } else {
+                    onSaved(event.tripId)
+                }
                 TripFormEvent.Deleted -> onDeleted()
             }
         }
@@ -143,6 +156,9 @@ fun TripFormScreen(
         )
         if (isOverseas(state.countryCode)) {
             app.ransel.feature.trip.OverseasCard(state.currency, state.localCurrency, state.timeZone)
+        }
+        if (templates != null && templateState != null && templateState.templates.isNotEmpty()) {
+            TemplateField(templateState.chosen) { templateSheet = true }
         }
 
         // Dates
@@ -275,6 +291,9 @@ fun TripFormScreen(
             onDismiss = { showCurrency = false },
         )
     }
+    if (templateSheet && templates != null && templateState != null) {
+        TemplateSheet(templateState.templates, templateState.chosen, onChoose = templates::choose, onDelete = templates::delete, onDismiss = { templateSheet = false })
+    }
     state.deleteSummary?.let { summary ->
         ConfirmDialog(
             title = stringResource(Res.string.delete_trip_title, state.title),
@@ -328,5 +347,66 @@ private fun DeleteRow(symbol: String, label: String, count: String) {
         Symbol(symbol, size = 20.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         Text(count, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/** "Pakai template trip": the chosen template, or "Tanpa template". */
+@Composable
+private fun TemplateField(chosen: app.ransel.shared.dto.TripTemplateDto?, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(Res.string.trip_template_use), style = MaterialTheme.typography.labelLarge)
+        androidx.compose.material3.OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+            app.ransel.ui.symbols.Symbol(Symbols.bookmark)
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                Text(chosen?.name ?: stringResource(Res.string.trip_template_none))
+                if (chosen != null) {
+                    Text(
+                        stringResource(Res.string.trip_template_hint, chosen.dayCount, chosen.items.size, chosen.packing.size),
+                        style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
+                    )
+                }
+            }
+            app.ransel.ui.symbols.Symbol(Symbols.arrowDropDown)
+        }
+    }
+}
+
+/** The user's trip templates to start from, with "Tanpa template" and a delete per template. */
+@Composable
+private fun TemplateSheet(
+    templates: List<app.ransel.shared.dto.TripTemplateDto>,
+    chosen: app.ransel.shared.dto.TripTemplateDto?,
+    onChoose: (app.ransel.shared.dto.TripTemplateDto?) -> Unit,
+    onDelete: (app.ransel.shared.dto.TripTemplateDto) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    app.ransel.ui.components.AdaptiveSheet(onDismiss = onDismiss) {
+        Text(stringResource(Res.string.trip_template_use), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(bottom = 8.dp))
+        val rows = listOf<app.ransel.shared.dto.TripTemplateDto?>(null) + templates
+        rows.forEach { template ->
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                    .clickable(role = androidx.compose.ui.semantics.Role.RadioButton) { onChoose(template); onDismiss() },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                androidx.compose.material3.RadioButton(selected = template?.id == chosen?.id, onClick = null)
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text(template?.name ?: stringResource(Res.string.trip_template_none), style = MaterialTheme.typography.bodyLarge)
+                    if (template != null) {
+                        Text(
+                            stringResource(Res.string.trip_template_hint, template.dayCount, template.items.size, template.packing.size),
+                            style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (template != null) {
+                    Box(Modifier.size(48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { onDelete(template) }, contentAlignment = Alignment.Center) {
+                        app.ransel.ui.symbols.Symbol(Symbols.delete, tint = scheme.onSurfaceVariant, contentDescription = stringResource(Res.string.trip_template_delete))
+                    }
+                }
+            }
+        }
     }
 }

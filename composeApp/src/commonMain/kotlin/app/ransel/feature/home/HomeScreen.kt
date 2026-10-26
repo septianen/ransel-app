@@ -102,6 +102,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
     onOpenNotifications: () -> Unit = {},
+    onOpenRecap: (tripId: String) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -109,7 +110,9 @@ fun HomeScreen(
     val session: SessionManager = koinInject()
     val signedIn = session.state.collectAsState().value is SessionState.SignedIn
     val inbox by koinInject<NotificationsStore>().inbox.collectAsState()
-    HomeContent(state, onOpenTrip, onCreateTrip, modifier, onExplore, unreadCount = if (signedIn) (inbox?.unreadCount ?: 0) else null, onOpenNotifications = onOpenNotifications)
+    val recapTrip by viewModel.recapTrip.collectAsState()
+    val recap: (@Composable () -> Unit)? = recapTrip?.let { trip -> { RecapCardOnHome(trip.id) { onOpenRecap(trip.id) } } }
+    HomeContent(state, onOpenTrip, onCreateTrip, modifier, onExplore, unreadCount = if (signedIn) (inbox?.unreadCount ?: 0) else null, onOpenNotifications = onOpenNotifications, recap = recap)
 }
 
 @Composable
@@ -122,12 +125,15 @@ fun HomeContent(
     /** Null = no bell (a guest has no notifications). */
     unreadCount: Int? = null,
     onOpenNotifications: () -> Unit = {},
+    /** "Rekap siap" after a trip ended. */
+    recap: (@Composable () -> Unit)? = null,
 ) {
     val bell: (@Composable () -> Unit)? = unreadCount?.let { count -> { NotificationBell(count, onOpenNotifications) } }
     when (state) {
         HomeUiState.Loading -> Box(modifier.fillMaxSize())
         HomeUiState.Empty -> Column(modifier.fillMaxSize()) {
             Header(title = stringResource(Res.string.home_title_empty), modifier = Modifier.padding(16.dp, 20.dp, 16.dp, 0.dp), bell = bell)
+            recap?.let { Box(Modifier.padding(16.dp)) { it() } }
             FullScreenState(
                 modifier = Modifier.weight(1f),
                 title = stringResource(Res.string.home_empty_title),
@@ -137,7 +143,7 @@ fun HomeContent(
                 illustration = painterResource(Res.drawable.ic_data_not_found),
             )
         }
-        is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier, onExplore, bell)
+        is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier, onExplore, bell, recap)
     }
 }
 
@@ -211,6 +217,7 @@ private fun HomeTripContent(
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
     bell: (@Composable () -> Unit)? = null,
+    recap: (@Composable () -> Unit)? = null,
 ) {
     val dates = rememberDateFormatter()
     Column(
@@ -221,6 +228,7 @@ private fun HomeTripContent(
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         Header(title = stringResource(Res.string.home_title), bell = bell)
+        recap?.invoke()
         FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, TripSection.ITINERARY) })
         val canExplore = onExplore != null && state.trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
         TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) })
@@ -465,4 +473,14 @@ private fun HomeContentPreview() = IrisPreview {
         onOpenTrip = { _, _ -> },
         onCreateTrip = {},
     )
+}
+
+/** The recap card's numbers come from the trip's own recap view model. */
+@Composable
+private fun RecapCardOnHome(tripId: String, onOpen: () -> Unit) {
+    val recapVm: app.ransel.feature.recap.RecapViewModel = koinViewModel(key = "recap-$tripId") { org.koin.core.parameter.parametersOf(tripId) }
+    val state by recapVm.state.collectAsState()
+    val trip = state.trip ?: return
+    val recap = state.recap ?: return
+    app.ransel.feature.recap.RecapHomeCard(trip.title, trip.baseCurrency, recap, state.openTransfers, onOpen)
 }

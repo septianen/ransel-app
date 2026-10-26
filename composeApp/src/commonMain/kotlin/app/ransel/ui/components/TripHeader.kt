@@ -27,6 +27,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.recap_title
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_edit_trip
 import ransel.composeapp.generated.resources.action_members
@@ -57,6 +58,8 @@ fun TripHeader(
     modifier: Modifier = Modifier,
     onMembers: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
+    /** "Rekap trip": shown once the trip has ended. */
+    onRecap: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxWidth()) {
         Row(
@@ -79,6 +82,10 @@ fun TripHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
+            }
+            if (onRecap != null) {
+                // the subset has no auto_stories: a star stands in for the recap
+                HeaderIconButton(Symbols.star, stringResource(Res.string.recap_title), onRecap)
             }
             if (onEdit != null) {
                 HeaderIconButton(Symbols.edit, stringResource(Res.string.action_edit_trip), onEdit)

@@ -14,12 +14,20 @@ import kotlinx.serialization.Serializable
 @Serializable data object OnboardingRoute
 
 /** Trip detail: header + Itinerary / Packing / Expenses tabs. [tab] is a `TripTab` name. */
-@Serializable data class TripRoute(val tripId: String, val tab: String = "ITINERARY")
-@Serializable data object CreateTripRoute
+/** [invite] = just made with "Buat trip dengan grup ini": the invite sheet opens first. */
+@Serializable data class TripRoute(val tripId: String, val tab: String = "ITINERARY", val invite: Boolean = false)
+/** [invite] = "Buat trip dengan grup ini" from a recap: the new trip opens with the invite sheet. */
+@Serializable data class CreateTripRoute(val invite: Boolean = false)
 /** [share] = just created: the share sheet opens first ("Polling sudah dibuat"). */
 @Serializable data class PollRoute(val tripId: String, val pollId: String, val share: Boolean = false)
 /** [kind] is a `PollKind` name. */
 @Serializable data class CreatePollRoute(val tripId: String, val kind: String)
+
+/** "Dokumen trip"; [upload] = opened from "Unggah dokumen": the add sheet comes first. */
+@Serializable data class DocumentsRoute(val tripId: String, val upload: Boolean = false)
+
+/** "Rekap trip". */
+@Serializable data class RecapRoute(val tripId: String)
 @Serializable data class EditTripRoute(val tripId: String)
 
 /** Add (`itemId == null`) or edit an activity. [dayDate] is an ISO date preselecting the day. */

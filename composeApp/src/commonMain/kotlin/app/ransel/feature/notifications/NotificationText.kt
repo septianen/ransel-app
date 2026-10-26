@@ -95,6 +95,14 @@ fun notificationLine(n: NotificationDto): NotificationLine {
                 },
             )
         }
+        NotificationType.DOCUMENT_ADDED -> NotificationLine(
+            stringResource(Res.string.notification_document_added, actor.orEmpty()).trim(),
+            listOf(p["title"].orEmpty(), trip).filter { it.isNotBlank() }.joinToString(" · "),
+        )
+        NotificationType.RECAP_READY -> NotificationLine(
+            stringResource(Res.string.notification_recap_ready, trip),
+            stringResource(Res.string.notification_recap_ready_body),
+        )
         NotificationType.PACKING_LIST -> when (p["stage"]) {
             "UPDATED" -> NotificationLine(stringResource(Res.string.notification_packing_list_updated), trip)
             "REMIND" -> NotificationLine(
@@ -173,6 +181,8 @@ fun notificationTile(type: NotificationType, params: Map<String, String> = empty
         NotificationType.POLL_RESULT -> accents.magenta to Symbols.checkCircle
         NotificationType.PACKING_REMINDER -> accents.orange to Symbols.luggage
         NotificationType.PACKING_LIST -> accents.orange to Symbols.checklist
+        NotificationType.DOCUMENT_ADDED -> accents.blue to Symbols.receiptLong
+        NotificationType.RECAP_READY -> accents.green to Symbols.star
         NotificationType.ACTIVITY_REMINDER -> accents.orange to Symbols.schedule
         NotificationType.VOTE_REQUESTED -> accents.magenta to (if (stage == VoteStage.CLOSING) Symbols.schedule else Symbols.favorite)
         NotificationType.VOTE_RESULT -> accents.magenta to (if (stage == VoteStage.READY) Symbols.doneAll else Symbols.checkCircle)

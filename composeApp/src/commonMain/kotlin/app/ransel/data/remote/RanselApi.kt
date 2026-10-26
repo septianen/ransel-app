@@ -97,6 +97,13 @@ import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
+import app.ransel.shared.dto.TripDocumentsDto
+import app.ransel.shared.dto.TripDocumentDto
+import app.ransel.shared.dto.CreateDocumentRequest
+import app.ransel.shared.dto.PatchDocumentRequest
+import app.ransel.shared.dto.DocumentDownloadDto
+import app.ransel.shared.dto.TripTemplateDto
+import app.ransel.shared.dto.CreateTripTemplateRequest
 import app.ransel.shared.dto.PollShareDto
 import app.ransel.shared.dto.GuestPageDto
 import app.ransel.shared.dto.GuestIdentityRequest
@@ -147,6 +154,9 @@ private const val REQUEST_TIMEOUT_MILLIS = 15_000L
  * Keep it in step with the server's LLM timeouts and nginx's `proxy_read_timeout` (120 s), and below Android's OkHttp read timeout (150 s).
  */
 private const val RECOMMENDATION_TIMEOUT_MILLIS = 120_000L
+
+/** Documents up to 20 MB on a slow line. */
+private const val UPLOAD_TIMEOUT_MILLIS = 180_000L
 
 /**
  * HTTP client for the API. [engine] is only passed by tests (MockEngine); otherwise the platform's
@@ -236,6 +246,58 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.packingBring(tripId, itemId)) { it.body<ApiResponse<PackingItemDto>>().data }
     suspend fun giveBackPackingItem(tripId: String, itemId: String): ApiResult<PackingItemDto> =
         call(HttpMethod.Delete, ApiRoutes.packingBring(tripId, itemId)) { it.body<ApiResponse<PackingItemDto>>().data }
+
+    // ── trip documents and templates (stage 9) ──────────────────────────────
+    suspend fun documents(tripId: String): ApiResult<TripDocumentsDto> = get(ApiRoutes.documents(tripId))
+    suspend fun addDocumentLink(tripId: String, request: CreateDocumentRequest): ApiResult<TripDocumentDto> =
+        send(HttpMethod.Post, ApiRoutes.documents(tripId), request)
+
+    /** multipart `meta` + `file`; uploads can take a while on a slow line. */
+    suspend fun uploadDocument(tripId: String, meta: CreateDocumentRequest, fileName: String, mime: String, bytes: ByteArray): ApiResult<TripDocumentDto> =
+        call(HttpMethod.Post, ApiRoutes.documents(tripId), bodyOf = {
+            setBody(
+                io.ktor.client.request.forms.MultiPartFormDataContent(
+                    io.ktor.client.request.forms.formData {
+                        append("meta", ApiJson.encodeToString(CreateDocumentRequest.serializer(), meta), io.ktor.http.Headers.build {
+                            append(HttpHeaders.ContentType, "application/json")
+                        })
+                        append("file", bytes, io.ktor.http.Headers.build {
+                            append(HttpHeaders.ContentType, mime)
+                            append(HttpHeaders.ContentDisposition, "filename=\"${fileName.replace("\"", "")}\"")
+                        })
+                    },
+                ),
+            )
+            timeout { requestTimeoutMillis = UPLOAD_TIMEOUT_MILLIS }
+        }) { it.body<ApiResponse<TripDocumentDto>>().data }
+
+    suspend fun patchDocument(tripId: String, docId: String, patch: PatchDocumentRequest): ApiResult<TripDocumentDto> =
+        send(HttpMethod.Patch, ApiRoutes.document(tripId, docId), patch)
+    suspend fun deleteDocument(tripId: String, docId: String): ApiResult<Unit> = delete(ApiRoutes.document(tripId, docId))
+    suspend fun documentDownload(tripId: String, docId: String): ApiResult<DocumentDownloadDto> = get(ApiRoutes.documentDownload(tripId, docId))
+
+    /** The bytes behind a signed download path (no bearer needed, none sent). */
+    suspend fun downloadBytes(path: String): ApiResult<ByteArray> =
+        try {
+            val response = client.request(absoluteUrl(path)) {
+                method = HttpMethod.Get
+                timeout { requestTimeoutMillis = UPLOAD_TIMEOUT_MILLIS }
+            }
+            if (response.status.isSuccess()) ApiResult.Success(response.body<ByteArray>())
+            else ApiResult.Failure(ApiFailure(ErrorCode.NOT_FOUND, "The file is gone", response.status.value))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            ApiResult.Failure(ApiFailure(ErrorCode.NETWORK_UNAVAILABLE, e.message ?: "No connection"))
+        }
+
+    /** A path from the API (signed file links) as a full URL; full URLs pass through. */
+    fun absoluteUrl(path: String): String = if (path.startsWith("http")) path else url(path)
+
+    suspend fun tripTemplates(): ApiResult<List<TripTemplateDto>> = get(ApiRoutes.TRIP_TEMPLATES)
+    suspend fun createTripTemplate(request: CreateTripTemplateRequest): ApiResult<TripTemplateDto> =
+        send(HttpMethod.Post, ApiRoutes.TRIP_TEMPLATES, request)
+    suspend fun deleteTripTemplate(id: String): ApiResult<Unit> = delete(ApiRoutes.tripTemplate(id))
 
     // ── sharing and the guest page (stage 8) ────────────────────────────────
     suspend fun sharePoll(pollId: String): ApiResult<PollShareDto> =

@@ -43,12 +43,12 @@ import ransel.composeapp.generated.resources.group_sheet_title
  * later step: that row shows "Segera hadir" and does nothing. Only the owner can invite.
  */
 @Composable
-fun GroupActionSheet(canInvite: Boolean, onPoll: () -> Unit, onInvite: () -> Unit, onDismiss: () -> Unit) {
-    AdaptiveSheet(onDismiss = onDismiss) { GroupActionContent(canInvite, onPoll, onInvite) }
+fun GroupActionSheet(canInvite: Boolean, onPoll: () -> Unit, onInvite: () -> Unit, onDismiss: () -> Unit, onDocument: (() -> Unit)? = null) {
+    AdaptiveSheet(onDismiss = onDismiss) { GroupActionContent(canInvite, onPoll, onInvite, onDocument) }
 }
 
 @Composable
-private fun GroupActionContent(canInvite: Boolean, onPoll: () -> Unit, onInvite: () -> Unit) {
+private fun GroupActionContent(canInvite: Boolean, onPoll: () -> Unit, onInvite: () -> Unit, onDocument: (() -> Unit)? = null) {
     val accents = IrisTheme.accents
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -60,7 +60,10 @@ private fun GroupActionContent(canInvite: Boolean, onPoll: () -> Unit, onInvite:
         if (canInvite) {
             ActionRow(Symbols.personAdd, accents.green, Res.string.group_action_invite, Res.string.group_action_invite_hint, soon = false, onClick = onInvite)
         }
-        ActionRow(Symbols.cloudUpload, accents.blue, Res.string.group_action_document, Res.string.group_action_document_hint, soon = true, onClick = {})
+        // editors add documents; everyone else sees them on the Group tab
+        if (onDocument != null) {
+            ActionRow(Symbols.cloudUpload, accents.blue, Res.string.group_action_document, Res.string.group_action_document_hint, soon = false, onClick = onDocument)
+        }
     }
 }
 

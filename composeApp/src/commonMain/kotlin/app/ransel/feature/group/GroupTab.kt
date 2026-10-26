@@ -60,6 +60,9 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.group_documents
+import ransel.composeapp.generated.resources.documents_title
+import ransel.composeapp.generated.resources.group_documents_all
 import ransel.composeapp.generated.resources.group_countdown_finished
 import ransel.composeapp.generated.resources.group_countdown_ongoing
 import ransel.composeapp.generated.resources.group_guest_tag
@@ -102,6 +105,7 @@ fun GroupTab(
     modifier: Modifier = Modifier,
     /** A money item in "Perlu tindakanmu" opens the Pengeluaran tab. */
     onOpenMoney: () -> Unit = {},
+    onOpenDocuments: () -> Unit = {},
     viewModel: GroupViewModel = koinViewModel(key = "group-${trip.id}") { parametersOf(trip.id) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -124,6 +128,7 @@ fun GroupTab(
         claimsToConfirm = state.claimsToConfirm,
         currency = state.currency,
         onOpenMoney = onOpenMoney,
+        onOpenDocuments = onOpenDocuments,
     )
 }
 
@@ -146,6 +151,7 @@ fun GroupContent(
     claimsToConfirm: List<SettlementDto> = emptyList(),
     currency: String = trip.baseCurrency,
     onOpenMoney: () -> Unit = {},
+    onOpenDocuments: () -> Unit = {},
 ) {
     val dates = rememberDateFormatter()
     val pollNeeds = polls.mapNotNull { poll -> poll.needFor(myMemberId, isOwner)?.let { poll to it } }
@@ -188,6 +194,21 @@ fun GroupContent(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     polls.forDisplay().forEach { PollRow(it) { onOpenPoll(it.id) } }
                 }
+            }
+        }
+
+        Section(stringResource(Res.string.group_documents)) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(IrisShape.lg)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .clickable(role = SemanticsRole.Button, onClick = onOpenDocuments).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Symbol(Symbols.receiptLong, tint = MaterialTheme.colorScheme.primary)
+                Text(stringResource(Res.string.documents_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                Text(stringResource(Res.string.group_documents_all), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 

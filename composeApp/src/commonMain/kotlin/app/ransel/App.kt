@@ -54,6 +54,8 @@ import app.ransel.feature.auth.SessionExpiredScreen
 import app.ransel.feature.auth.SignInScreen
 import app.ransel.feature.auth.SignUpScreen
 import app.ransel.navigation.CheckEmailRoute
+import app.ransel.navigation.DocumentsRoute
+import app.ransel.navigation.RecapRoute
 import app.ransel.navigation.ForgotPasswordRoute
 import app.ransel.navigation.NewPasswordRoute
 import app.ransel.navigation.SessionExpiredRoute
@@ -457,7 +459,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                 RanselNavigationRail(
                     selected = railSelected,
                     onSelect = navController::openTab,
-                    onCreateTrip = { navController.navigate(CreateTripRoute) },
+                    onCreateTrip = { navController.navigate(CreateTripRoute()) },
                 )
             }
             // Each screen applies its own system-bar insets; the four tabs bring their own bottom bar (TabPage), so
@@ -544,8 +546,9 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
                 }
                 navController.navigate(TripRoute(id, tab.name))
             },
-            onCreateTrip = { navController.navigate(CreateTripRoute) },
+            onCreateTrip = { navController.navigate(CreateTripRoute()) },
             onOpenNotifications = { navController.navigate(NotificationsRoute) },
+            onOpenRecap = { navController.navigate(RecapRoute(it)) },
             // "Coba": the preferences step on a new trip ("Trip baru"), full screen over Home.
             onExplore = { navController.navigate(ExplorePreferencesRoute(null)) },
         )
@@ -554,7 +557,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
         TripListScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { navController.navigate(TripRoute(it)) },
-            onCreateTrip = { navController.navigate(CreateTripRoute) },
+            onCreateTrip = { navController.navigate(CreateTripRoute()) },
         )
     }
     tabPage<ExploreRoute>(MainTab.EXPLORE, navController) {
@@ -691,6 +694,8 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             onOpenPoll = { tripId, pollId -> navController.navigate(PollRoute(tripId, pollId)) },
             onOpenSettings = { navController.navigate(NotificationSettingsRoute) },
             onOpenExpenses = { navController.navigate(TripRoute(it, TripTab.EXPENSES.name)) },
+            onOpenDocuments = { navController.navigate(DocumentsRoute(it)) },
+            onOpenRecap = { navController.navigate(RecapRoute(it)) },
         )
     }
     page<NotificationSettingsRoute> {
@@ -749,11 +754,26 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onCreatePoll = { kind -> navController.navigate(CreatePollRoute(route.tripId, kind.name)) },
             onOpenPoll = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) },
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
+            onOpenDocuments = { upload -> navController.navigate(DocumentsRoute(route.tripId, upload)) },
+            onOpenRecap = { navController.navigate(RecapRoute(route.tripId)) },
+            openInvite = route.invite,
         )
     }
     page<PollRoute> { entry ->
         val route = entry.toRoute<PollRoute>()
         PollScreen(tripId = route.tripId, pollId = route.pollId, openShare = route.share, onBack = { navController.popBackStack() })
+    }
+    page<RecapRoute> { entry ->
+        val route = entry.toRoute<RecapRoute>()
+        app.ransel.feature.recap.RecapScreen(
+            tripId = route.tripId,
+            onClose = { navController.popBackStack() },
+            onNewTrip = { navController.navigate(CreateTripRoute(invite = true)) },
+        )
+    }
+    page<DocumentsRoute> { entry ->
+        val route = entry.toRoute<DocumentsRoute>()
+        app.ransel.feature.documents.DocumentsScreen(tripId = route.tripId, startUpload = route.upload, onBack = { navController.popBackStack() })
     }
     page<CreatePollRoute> { entry ->
         val route = entry.toRoute<CreatePollRoute>()
@@ -797,13 +817,14 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onClose = { navController.popBackStack() },
         )
     }
-    page<CreateTripRoute> {
+    page<CreateTripRoute> { entry ->
+        val route = entry.toRoute<CreateTripRoute>()
         TripFormScreen(
             tripId = null,
             onClose = { navController.popBackStack() },
             onSaved = { id ->
                 // Replace the form with the new trip so Back returns to where the user came from.
-                navController.navigate(TripRoute(id)) { popUpTo<CreateTripRoute> { inclusive = true } }
+                navController.navigate(TripRoute(id, tab = if (route.invite) "GROUP" else "ITINERARY", invite = route.invite)) { popUpTo<CreateTripRoute> { inclusive = true } }
             },
             onDeleted = {},
         )

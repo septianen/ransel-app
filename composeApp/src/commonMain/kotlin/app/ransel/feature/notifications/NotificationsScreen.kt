@@ -69,6 +69,8 @@ fun NotificationsScreen(
     modifier: Modifier = Modifier,
     /** Money notifications (an expense, a payment claimed or confirmed) open the trip on Pengeluaran. */
     onOpenExpenses: (tripId: String) -> Unit = onOpenTrip,
+    onOpenDocuments: (tripId: String) -> Unit = onOpenTrip,
+    onOpenRecap: (tripId: String) -> Unit = onOpenTrip,
     viewModel: NotificationsViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
@@ -91,6 +93,8 @@ fun NotificationsScreen(
                 // The vote screen sorts out where the round stands (open, closed, decided, expired).
                 tripId != null && roundId != null -> onOpenRound(tripId, roundId, n.params["stage"] == VoteStage.READY)
                 tripId != null && (n.type == NotificationType.SETTLEMENT_MARKED || n.type == NotificationType.EXPENSE_ADDED) -> onOpenExpenses(tripId)
+                tripId != null && n.type == NotificationType.DOCUMENT_ADDED -> onOpenDocuments(tripId)
+                tripId != null && n.type == NotificationType.RECAP_READY -> onOpenRecap(tripId)
                 tripId != null -> onOpenTrip(tripId)
             }
         },

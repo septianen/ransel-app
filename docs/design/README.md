@@ -384,8 +384,8 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | --- | --- | --- | --- |
 | `screens/FotoStruk.html` | `ReceiptFlow` (pick) | Foto struk: kamera | 390 |
 | `screens/HasilStruk.html` | `ReceiptFlow` (result, `ReceiptFormState`) | Foto struk: hasil dan bagi per item | 390 |
-| `screens/DokumenTrip.html` |  | Dokumen trip | 390 |
-| `screens/RekapTrip.html` |  | Rekap trip untuk dibagikan | 390 |
+| `screens/DokumenTrip.html` | `DocumentsScreen` + `AddDocumentSheet` | Dokumen trip | 390 |
+| `screens/RekapTrip.html` | `RecapScreen` (`RecapCard`) | Rekap trip untuk dibagikan | 390 |
 
 ### Trip grup · titik masuk: polling, foto struk, dokumen, rekap
 
@@ -397,7 +397,7 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/WebPollingTamu.html` | `GuestPageContent` | Web di HP: polling dari link WhatsApp, tanpa akun | 390 |
 | `screens/TambahPengeluaranPilih.html` | `AddExpenseChooserSheet` | Tambah pengeluaran: pilih cara (tombol +) | 390 |
 | `screens/MenuTrip.html` |  | Menu trip: tinggal pengaturan trip | 390 |
-| `screens/BerandaRekap.html` |  | Beranda setelah trip selesai: kartu rekap | 390 |
+| `screens/BerandaRekap.html` | `RecapHomeCard` on `HomeScreen` | Beranda setelah trip selesai: kartu rekap | 390 |
 | `screens/CatatPengeluaranKas.html` | `ExpenseSheet` ("Ambil dari kas" on) | Catat pengeluaran: toggle ambil dari kas aktif | 390 |
 
 ### Tab Grup · pusat polling, tindakan, dan dokumen (+ komentar)
@@ -470,8 +470,8 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/WebCatatSetoran.html` | `DepositSheet` (dialog) | Web: catat setoran kas | 1280 |
 | `screens/WebFotoStruk.html` | `ReceiptFlow` (pick, file only) | Web: unggah foto struk | 1280 |
 | `screens/WebHasilStruk.html` | `ReceiptFlow` (result, dialog) | Web: cek hasil struk | 1280 |
-| `screens/WebDokumenTrip.html` |  | Web: dokumen trip | 1280 |
-| `screens/WebRekapTrip.html` |  | Web: rekap trip | 1280 |
+| `screens/WebDokumenTrip.html` | `DocumentsScreen` (web: downloads) | Web: dokumen trip | 1280 |
+| `screens/WebRekapTrip.html` | `RecapScreen` (web: "Unduh gambar") | Web: rekap trip | 1280 |
 | `screens/WebPackingBersama.html` |  | Web: packing bersama | 1280 |
 | `screens/WebAnggotaTanpaAkun.html` |  | Web: anggota, termasuk tanpa akun | 1280 |
 
