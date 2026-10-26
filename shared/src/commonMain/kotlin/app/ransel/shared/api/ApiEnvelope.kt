@@ -102,6 +102,8 @@ object ErrorCode {
     const val SETTLEMENT_NOT_CLAIMED = "SETTLEMENT_NOT_CLAIMED" // 409 on confirm: the settlement is not waiting for confirmation
     const val RECEIPT_UNREADABLE = "RECEIPT_UNREADABLE"    // 422 on /receipts/parse: no total could be read (no credits are charged)
     const val FILE_TOO_LARGE = "FILE_TOO_LARGE"            // 413, details: maxBytes
+    const val STORAGE_FULL = "STORAGE_FULL"                // 413 on a document upload: the trip's 200 MB are used; details: usedBytes, limitBytes
+    const val UNSUPPORTED_FILE = "UNSUPPORTED_FILE"        // 415 on a document upload: not PDF or an image
 
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down

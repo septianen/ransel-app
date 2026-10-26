@@ -128,7 +128,16 @@ enum class NotificationType {
     MEMBER_CLAIMED, COMMENT_MENTION,
     POLL_REQUESTED, POLL_RESULT,
     PACKING_LIST,
+    DOCUMENT_ADDED, RECAP_READY,
 }
+
+/** trip_documents.category: the groups of "Dokumen trip". */
+@Serializable
+enum class DocumentCategory { TRAVEL, STAY, ACTIVITY, OTHER }
+
+/** trip_documents.kind: an uploaded file, or a link (a booking page). */
+@Serializable
+enum class DocumentKind { FILE, LINK }
 
 @Serializable
 enum class DevicePlatform { ANDROID, IOS }

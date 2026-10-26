@@ -72,6 +72,14 @@ object ApiRoutes {
     fun guestIdentity(code: String) = "/guest/$code/identity"      // POST GuestIdentityRequest → GuestIdentityDto; 409 GUEST_NAME_TAKEN, GUEST_NAME_EXISTS
     fun guestVotes(code: String, pollId: String) = "/guest/$code/polls/$pollId/votes" // POST VotePollRequest → PollDto; 401 GUEST_NAME_REQUIRED
     fun guestPersonalItem(code: String, itemId: String) = "/guest/$code/personal-items/$itemId" // PATCH GuestTickRequest → PersonalItemDto
+    // Trip documents (stage 9). Online only.
+    fun documents(tripId: String) = "/trips/$tripId/documents"    // GET → TripDocumentsDto; POST CreateDocumentRequest (link, JSON) or multipart meta+file → 201 TripDocumentDto (EDITOR+); 413 FILE_TOO_LARGE / STORAGE_FULL, 415 UNSUPPORTED_FILE
+    fun document(tripId: String, docId: String) = "/trips/$tripId/documents/$docId" // PATCH PatchDocumentRequest → TripDocumentDto, DELETE → 204 (uploader or OWNER)
+    fun documentDownload(tripId: String, docId: String) = "/trips/$tripId/documents/$docId/download" // GET → DocumentDownloadDto (any member)
+    fun documentFile(docId: String) = "/files/documents/$docId"  // GET ?exp=&sig= (public, signed for 15 minutes) → the bytes
+    const val TRIP_TEMPLATES = "/trip-templates"                   // GET → List<TripTemplateDto> (mine); POST CreateTripTemplateRequest → 201
+    fun tripTemplate(id: String) = "/trip-templates/$id"           // DELETE → 204
+
     fun pollShare(pollId: String) = "/polls/$pollId/share"         // POST (any member) → PollShareDto; DELETE (creator or OWNER) turns the link off → 204
     fun memberGuestSession(tripId: String, memberId: String) =
         "/trips/$tripId/members/$memberId/guest-session"           // DELETE (OWNER): the name is free for another browser → 204

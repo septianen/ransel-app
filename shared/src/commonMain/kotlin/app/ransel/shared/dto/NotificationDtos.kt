@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  * Push is a nudge; the inbox is the record. Guests have neither.
  *
  * `params` per type (all values are strings):
- *   MEMBER_JOINED       tripTitle, actorName (who joined)
+ *   MEMBER_JOINED       tripTitle, actorName (who joined), via (LINK = a guest wrote their name on the guest page)
  *   MEMBER_REMOVED      tripTitle
  *   ROLE_CHANGED        tripTitle, role (Role name)
  *   EXPENSE_ADDED       tripTitle, actorName, amountMinor, currency, shareMinor (your share, in `currency`; absent if none)
@@ -31,6 +31,8 @@ import kotlinx.serialization.Serializable
  *                       closesAt (ISO timestamp), optionLabel (RESET: the option whose votes were cleared)
  *   POLL_RESULT         tripTitle, pollId, pollKind, question, stage (TIED | DECIDED; missing = DECIDED);
  *                       TIED (to the creator): tiedCount; DECIDED (to the others): actorName, winner (option label; absent when dismissed)
+ *   DOCUMENT_ADDED      tripTitle, actorName, title (the document), documentId
+ *   RECAP_READY         tripTitle (the day after the trip ended; "Rekap siap")
  * All of them follow the "Aktivitas trip" switch. Members without an account have no inbox and no push.
  * Unknown keys must be ignored; a missing key means "do not show that part".
  */
