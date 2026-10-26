@@ -1396,7 +1396,7 @@
     <string name="member_list_send_title">Send the list to members</string>
     <string name="member_list_send_subtitle">%1$s · %2$d items</string>
     <string name="member_list_send_to_personal">Goes to their Personal tab</string>
-    <string name="member_list_send_guest">No account yet</string>
+    <string name="member_list_send_guest">Through the trip link on the web</string>
     <string name="member_list_save_template">Save as my template</string>
     <string name="member_list_save_template_hint">Use it again on your next trip</string>
     <string name="member_list_send_note">If you change this list later, the changes reach every member\'s list. Their ticks and own items stay.</string>

@@ -339,7 +339,7 @@ private fun SmallStep(text: String, description: String, enabled: Boolean, onCli
 
 /**
  * Design "KirimDaftarAnggota": who gets the list. Everyone ticked = sent to all (members who join later get it too).
- * Members without an account cannot receive it yet (the guest web page comes with sharing).
+ * Members without an account get it on the guest page (the trip link on the web).
  */
 @Composable
 fun MemberListSendSheet(
@@ -350,8 +350,7 @@ fun MemberListSendSheet(
     onDismiss: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val accounts = members.filter { it.userId != null }
-    val chosen = remember { mutableStateListOf<String>().apply { addAll(accounts.map { it.memberId }) } }
+    val chosen = remember { mutableStateListOf<String>().apply { addAll(members.map { it.memberId }) } }
     var saveTemplate by remember { mutableStateOf(false) }
     AdaptiveSheet(onDismiss = onDismiss) {
         SheetTitle(stringResource(Res.string.member_list_send_title), stringResource(Res.string.member_list_send_subtitle, list.name, list.items.size), onDismiss)
@@ -361,21 +360,21 @@ fun MemberListSendSheet(
                 val on = member.memberId in chosen
                 Row(
                     Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(IrisShape.md)
-                        .clickable(enabled = hasAccount, role = Role.Checkbox) { if (on) chosen.remove(member.memberId) else chosen.add(member.memberId) }
+                        .clickable(role = Role.Checkbox) { if (on) chosen.remove(member.memberId) else chosen.add(member.memberId) }
                         .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     MemberAvatar(member.displayName, member.memberId, isGuest = !hasAccount)
                     Column(Modifier.weight(1f)) {
-                        Text(member.displayName, style = MaterialTheme.typography.bodyLarge, color = if (hasAccount) scheme.onSurface else scheme.onSurfaceVariant)
+                        Text(member.displayName, style = MaterialTheme.typography.bodyLarge)
                         Text(
                             stringResource(if (hasAccount) Res.string.member_list_send_to_personal else Res.string.member_list_send_guest),
                             style = MaterialTheme.typography.bodySmall,
                             color = scheme.onSurfaceVariant,
                         )
                     }
-                    Checkbox(checked = on, onCheckedChange = null, enabled = hasAccount)
+                    Checkbox(checked = on, onCheckedChange = null)
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -395,7 +394,7 @@ fun MemberListSendSheet(
             LoadingButton(
                 onClick = {
                     // everyone with an account = sent to all, so later members get it as well
-                    val all = accounts.all { it.memberId in chosen }
+                    val all = members.all { it.memberId in chosen }
                     onSend(if (all) emptyList() else chosen.toList(), saveTemplate)
                 },
                 loading = busy,

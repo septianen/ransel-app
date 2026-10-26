@@ -1388,7 +1388,7 @@
     <string name="member_list_send_title">Kirim daftar ke anggota</string>
     <string name="member_list_send_subtitle">%1$s · %2$d barang</string>
     <string name="member_list_send_to_personal">Masuk ke tab Pribadi</string>
-    <string name="member_list_send_guest">Belum punya akun</string>
+    <string name="member_list_send_guest">Lewat link trip di web</string>
     <string name="member_list_save_template">Simpan sebagai template saya</string>
     <string name="member_list_save_template_hint">Pakai lagi untuk trip berikutnya</string>
     <string name="member_list_send_note">Kalau daftar ini kamu ubah nanti, perubahannya ikut masuk ke daftar anggota. Centang dan barang tambahan mereka tidak berubah.</string>
