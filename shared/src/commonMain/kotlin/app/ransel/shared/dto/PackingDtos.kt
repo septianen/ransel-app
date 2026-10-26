@@ -193,6 +193,6 @@ data class MemberListProgressDto(
     val total: Int,
 )
 
-/** POST /trips/{id}/member-list/remind ("Ingatkan"): a push to members with an account, at most once per 12 hours each. */
+/** POST /trips/{id}/member-list/remind ("Ingatkan"): a push to members with an account (guests get none), at most once per 12 hours each. */
 @Serializable
 data class RemindMemberListRequest(val memberIds: List<String>)

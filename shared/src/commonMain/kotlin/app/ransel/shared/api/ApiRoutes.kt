@@ -64,6 +64,21 @@ object ApiRoutes {
     fun invite(tripId: String, code: String) = "/trips/$tripId/invites/$code" // DELETE = revoke (OWNER)
     fun invitePreview(code: String) = "/invites/$code"             // GET InvitePreviewDto (public, no bearer; rate limited per IP)
     fun inviteAccept(code: String) = "/invites/$code/accept"       // POST → TripDto
+
+    // Guest page (stage 8, public, no bearer; rate limited per IP). {code} = a poll share code or a live invite code.
+    // The guest's token goes in the GUEST_TOKEN_HEADER header; without it the page shows names to pick.
+    const val GUEST_TOKEN_HEADER = "X-Guest-Token"
+    fun guestPage(code: String) = "/guest/$code"                   // GET → GuestPageDto
+    fun guestIdentity(code: String) = "/guest/$code/identity"      // POST GuestIdentityRequest → GuestIdentityDto; 409 GUEST_NAME_TAKEN, GUEST_NAME_EXISTS
+    fun guestVotes(code: String, pollId: String) = "/guest/$code/polls/$pollId/votes" // POST VotePollRequest → PollDto; 401 GUEST_NAME_REQUIRED
+    fun guestPersonalItem(code: String, itemId: String) = "/guest/$code/personal-items/$itemId" // PATCH GuestTickRequest → PersonalItemDto
+    fun pollShare(pollId: String) = "/polls/$pollId/share"         // POST (any member) → PollShareDto; DELETE (creator or OWNER) turns the link off → 204
+    fun memberGuestSession(tripId: String, memberId: String) =
+        "/trips/$tripId/members/$memberId/guest-session"           // DELETE (OWNER): the name is free for another browser → 204
+    // Link previews for WhatsApp and other crawlers (HTML with Open Graph tags, not JSON). nginx sends crawler requests
+    // for https://<web>/p/<code> and /j/<code> here.
+    fun ogPoll(code: String) = "/og/p/$code"
+    fun ogInvite(code: String) = "/og/j/$code"
     fun members(tripId: String) = "/trips/$tripId/members"         // GET list TripMemberDto, POST AddMemberRequest (OWNER) → 201 TripMemberDto
     fun member(tripId: String, memberId: String) =
         "/trips/$tripId/members/$memberId"                         // PATCH UpdateMemberRoleRequest, DELETE = remove (OWNER)

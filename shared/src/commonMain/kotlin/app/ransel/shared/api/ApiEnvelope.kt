@@ -88,6 +88,11 @@ object ErrorCode {
     const val POLL_LOCKED = "POLL_LOCKED"                  // 409, the anonymous switch changed after the first vote
     const val VOTE_STALE = "VOTE_STALE"                    // 409, the option was edited since the voter saw it: load the poll again
 
+    // guest page
+    const val GUEST_NAME_TAKEN = "GUEST_NAME_TAKEN"        // 409, another browser uses this name; the OWNER can release it
+    const val GUEST_NAME_EXISTS = "GUEST_NAME_EXISTS"      // 409, a member with this name exists: details.memberId (pick it instead)
+    const val GUEST_NAME_REQUIRED = "GUEST_NAME_REQUIRED"  // 401, no or released guest token: pick a name again
+
     const val LIST_STALE = "LIST_STALE"                    // 409, the member list was saved by someone else since: load it again
     const val LINK_UNREADABLE = "LINK_UNREADABLE"          // 422 on /link-preview: not a public web page, too big or slow, or nothing to show
 

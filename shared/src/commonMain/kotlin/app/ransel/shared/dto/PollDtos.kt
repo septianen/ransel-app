@@ -67,7 +67,7 @@ data class PollDto(
     val myVotes: List<String> = emptyList(),
     /** Members who voted, also for an anonymous poll (so reminders and "belum memilih" work). */
     val votedMemberIds: List<String> = emptyList(),
-    /** Current members with an account, the people who can vote. */
+    /** Current members, the people who can vote: members without an account vote on the guest page (stage 8). */
     val memberCount: Int = 0,
 ) {
     val isOpen: Boolean get() = status == PollStatus.OPEN

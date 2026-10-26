@@ -26,6 +26,8 @@ data class TripMemberDto(
     val phone: String? = null,
     /** Set on a member without an account that someone has claimed (such a member is hidden from lists). */
     val claimedAt: Timestamp? = null,
+    /** A member without an account whose name a browser uses on the guest page (OWNER only; the OWNER can release it). */
+    val guestBrowser: Boolean = false,
 ) {
     val isGuest: Boolean get() = userId == null
 }
