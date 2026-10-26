@@ -59,6 +59,10 @@ import app.ransel.shared.dto.RedeemVoucherRequest
 import app.ransel.shared.dto.RedeemVoucherResponse
 import app.ransel.shared.dto.CreateSettlementRequest
 import app.ransel.shared.dto.SettlementDto
+import app.ransel.shared.dto.PlaceDto
+import app.ransel.shared.dto.PlaceSuggestionsDto
+import app.ransel.shared.dto.PopularDestinationDto
+import app.ransel.shared.dto.ReverseGeocodeDto
 import app.ransel.shared.dto.ClaimSettlementRequest
 import app.ransel.shared.dto.KittyDepositDto
 import app.ransel.shared.dto.KittyDepositInput
@@ -301,6 +305,26 @@ class RanselApi(
         delete(ApiRoutes.settlement(tripId, settlementId))
     suspend fun payInfo(tripId: String, fromMemberId: String, toMemberId: String): ApiResult<PayInfoDto> =
         get(ApiRoutes.payInfo(tripId, fromMemberId, toMemberId))
+
+    // ── destination search ──────────────────────────────────────────────────
+    /** Cancelled with the caller's coroutine, so a newer key press drops the older request. */
+    suspend fun placeAutocomplete(query: String, session: String?, near: Pair<Double, Double>? = null): ApiResult<PlaceSuggestionsDto> =
+        call(HttpMethod.Get, ApiRoutes.PLACES_AUTOCOMPLETE, bodyOf = {
+            parameter("q", query)
+            session?.let { parameter("session", it) }
+            near?.let { parameter("near", "${it.first},${it.second}") }
+        }) { it.body<ApiResponse<PlaceSuggestionsDto>>().data }
+    suspend fun place(placeId: String, session: String?): ApiResult<PlaceDto> =
+        call(HttpMethod.Get, ApiRoutes.place(placeId), bodyOf = { session?.let { parameter("session", it) } }) {
+            it.body<ApiResponse<PlaceDto>>().data
+        }
+    /** The coordinates go to the server once and are not kept anywhere. */
+    suspend fun reverseGeocode(lat: Double, lng: Double): ApiResult<ReverseGeocodeDto> =
+        call(HttpMethod.Get, ApiRoutes.PLACES_REVERSE, bodyOf = {
+            parameter("lat", lat)
+            parameter("lng", lng)
+        }) { it.body<ApiResponse<ReverseGeocodeDto>>().data }
+    suspend fun popularDestinations(): ApiResult<List<PopularDestinationDto>> = get(ApiRoutes.PLACES_POPULAR)
 
     // ── group money: kitty, payment info, receipts ──────────────────────────
     suspend fun kitty(tripId: String): ApiResult<KittyOverviewDto> = get(ApiRoutes.kitty(tripId))

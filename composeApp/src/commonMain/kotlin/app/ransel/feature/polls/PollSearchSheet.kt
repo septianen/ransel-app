@@ -26,6 +26,7 @@ import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.format.formatMoney
 import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.near_pick
 import ransel.composeapp.generated.resources.poll_closed_notice
 import ransel.composeapp.generated.resources.poll_option_error_invalid
 import ransel.composeapp.generated.resources.poll_price_night
@@ -59,6 +60,8 @@ fun PollSearchSheet(
     currency: String,
     destination: String,
     onArea: (String) -> Unit,
+    /** Opens "Cari dekat mana?" (current location, last activity, another place). */
+    onPickArea: () -> Unit,
     onMin: (String) -> Unit,
     onMax: (String) -> Unit,
     onNeeds: (String) -> Unit,
@@ -78,6 +81,12 @@ fun PollSearchSheet(
                     value = state.area,
                     onValueChange = onArea,
                     placeholder = destination,
+                    trailing = {
+                        androidx.compose.material3.TextButton(onClick = onPickArea) {
+                            app.ransel.ui.symbols.Symbol(app.ransel.ui.symbols.Symbols.locationOn, size = 18.dp)
+                            Text(stringResource(Res.string.near_pick), Modifier.padding(start = 4.dp))
+                        }
+                    },
                 )
                 Text(
                     stringResource(if (kind == PollKind.STAY) Res.string.poll_search_budget_stay else Res.string.poll_search_budget_food),

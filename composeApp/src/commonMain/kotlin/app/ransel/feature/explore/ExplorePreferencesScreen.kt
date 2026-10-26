@@ -39,10 +39,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.ransel.feature.destination.DestinationField
 import app.ransel.feature.tripform.TripDateRangePicker
 import app.ransel.shared.model.Interest
 import app.ransel.shared.model.PriceLevel
@@ -125,20 +125,15 @@ private fun PreferencesForm(
 ) {
     val scheme = MaterialTheme.colorScheme
     var showDates by remember { mutableStateOf(false) }
-    var destinationFocused by remember { mutableStateOf(false) }
     val destinationError = stringResource(Res.string.field_error_required).takeIf { state.showErrors && state.destination.isBlank() }
     val destinationField: @Composable () -> Unit = {
-        IrisTextField(
+        DestinationField(
             label = stringResource(Res.string.explore_destination),
             value = state.destination,
-            onValueChange = vm::setDestination,
+            onPicked = vm::pickDestination,
             placeholder = stringResource(Res.string.explore_destination_hint),
-            leadingSymbol = Symbols.locationOn,
+            picked = state.destinationPlace != null,
             error = destinationError,
-            modifier = Modifier.onFocusChanged {
-                if (destinationFocused && !it.hasFocus) vm.onDestinationBlur()
-                destinationFocused = it.hasFocus
-            },
         )
     }
     Column(

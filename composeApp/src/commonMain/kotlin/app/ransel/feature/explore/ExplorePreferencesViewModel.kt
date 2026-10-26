@@ -16,6 +16,8 @@ import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.TravelStyle
 import app.ransel.util.newId
 import app.ransel.util.today
+import app.ransel.feature.destination.DestinationChoice
+import app.ransel.shared.dto.TripPlaceDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -56,6 +58,8 @@ data class ExplorePreferencesState(
     val tripDestination: String = "",
     /** Where to explore: typed for a new trip, prefilled from the trip and editable for an existing one. */
     val destination: String = "",
+    /** A new trip's destination picked from the suggestions (stored on the trip). */
+    val destinationPlace: TripPlaceDto? = null,
     val startDate: LocalDate,
     val endDate: LocalDate,
     /** null = follow the default "Trip ke <destination>". */
@@ -220,8 +224,14 @@ class ExplorePreferencesViewModel(
     // ── form ───────────────────────────────────────────────────────────────
 
     fun setDestination(value: String) {
-        _state.update { it.copy(destination = value.take(200)) }
+        _state.update { it.copy(destination = value.take(200), destinationPlace = null) }
         requestSuggestions(debounce = true)
+    }
+
+    /** Picked in the destination picker: the chips load right away. */
+    fun pickDestination(choice: DestinationChoice) {
+        _state.update { it.copy(destination = choice.name.take(200), destinationPlace = choice.place) }
+        requestSuggestions(debounce = false)
     }
 
     /** The destination field lost focus: load right away if the debounce has not already. */
@@ -272,6 +282,7 @@ class ExplorePreferencesViewModel(
                         CreateTripRequest(
                             id = id, title = title, destination = s.destination.trim(), startDate = s.startDate,
                             endDate = s.endDate, baseCurrency = preferences.observe().first().defaultCurrency,
+                            destinationPlace = s.destinationPlace,
                         ),
                     )
                 }

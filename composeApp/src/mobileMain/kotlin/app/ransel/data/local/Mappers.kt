@@ -9,6 +9,8 @@ import kotlinx.serialization.builtins.ListSerializer
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.TripPlaceDto
+import app.ransel.shared.dto.ViewportDto
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.PackingCategory
@@ -28,7 +30,24 @@ fun TripEntity.toDto() = TripDto(
     id = id, ownerId = ownerId, title = title, destination = destination,
     startDate = LocalDate.parse(startDate), endDate = LocalDate.parse(endDate),
     baseCurrency = baseCurrency, budgetMinor = budgetMinor, coverUrl = coverUrl, myRole = enumOr(myRole, Role.OWNER),
+    destinationPlace = tripPlace(),
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
+)
+
+private fun TripEntity.tripPlace(): TripPlaceDto? {
+    val id = destPlaceId ?: return null
+    val lat = destLat ?: return null
+    val lng = destLng ?: return null
+    val viewport = destViewportJson?.let { runCatching { ApiJson.decodeFromString(ViewportDto.serializer(), it) }.getOrNull() }
+    return TripPlaceDto(id, lat, lng, viewport)
+}
+
+/** The place columns of a trip row: written whole, all null for a typed name. */
+fun TripEntity.withPlace(place: TripPlaceDto?) = copy(
+    destPlaceId = place?.placeId,
+    destLat = place?.lat,
+    destLng = place?.lng,
+    destViewportJson = place?.viewport?.let { ApiJson.encodeToString(ViewportDto.serializer(), it) },
 )
 
 fun ItineraryItemEntity.toDto() = ItineraryItemDto(
@@ -65,7 +84,7 @@ fun TripDto.toEntity() = TripEntity(
     budgetMinor = budgetMinor, coverUrl = coverUrl,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED, myRole = myRole.name,
-)
+).withPlace(destinationPlace)
 
 fun ItineraryItemDto.toEntity() = ItineraryItemEntity(
     id = id, tripId = tripId, dayDate = dayDate?.toString(), startTime = startTime?.toString(),

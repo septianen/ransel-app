@@ -117,6 +117,8 @@ kotlin {
             implementation(libs.firebase.analytics)
             implementation(libs.firebase.crashlytics)
             implementation(libs.androidx.activity.compose)
+            // one coarse fix for "Gunakan lokasi saat ini"
+            implementation(libs.play.services.location)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)

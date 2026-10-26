@@ -50,6 +50,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.destination_hint
+import app.ransel.feature.destination.DestinationField
 import ransel.composeapp.generated.resources.currency_locked_hint
 import ransel.composeapp.generated.resources.currency_sheet_title
 import ransel.composeapp.generated.resources.delete_trip_activities
@@ -131,11 +133,12 @@ fun TripFormScreen(
             onValueChange = viewModel::onTitleChange,
             error = if (state.titleError) stringResource(Res.string.error_required) else null,
         )
-        IrisTextField(
+        DestinationField(
             label = stringResource(Res.string.trip_destination),
             value = state.destination,
-            onValueChange = viewModel::onDestinationChange,
-            leadingSymbol = Symbols.locationOn,
+            onPicked = viewModel::onDestinationPicked,
+            picked = state.destinationPlace != null,
+            placeholder = stringResource(Res.string.destination_hint),
         )
 
         // Dates

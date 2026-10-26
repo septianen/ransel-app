@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.datetime.daysUntil
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -133,6 +134,7 @@ fun PollScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PollViewModel = koinViewModel(key = "poll-$pollId") { parametersOf(tripId, pollId) },
+    itinerary: app.ransel.data.repository.ItineraryRepository = org.koin.compose.koinInject(),
 ) {
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
@@ -194,12 +196,14 @@ fun PollScreen(
     }
     state.search?.let { search ->
         if (poll != null) {
+            var nearOpen by remember { mutableStateOf(false) }
             PollSearchSheet(
                 kind = poll.kind,
                 state = search,
                 currency = state.currency,
                 destination = state.destination,
                 onArea = viewModel::onSearchArea,
+                onPickArea = { nearOpen = true },
                 onMin = viewModel::onSearchMin,
                 onMax = viewModel::onSearchMax,
                 onNeeds = viewModel::onSearchNeeds,
@@ -209,6 +213,37 @@ fun PollScreen(
                 onRetry = viewModel::backToSearchForm,
                 onDismiss = viewModel::closeSearch,
             )
+            if (nearOpen) {
+                val today = app.ransel.util.today()
+                val start = state.tripStart
+                val end = state.tripEnd
+                val ongoing = start != null && end != null && today >= start && today <= end
+                // the poll's own day for a FOOD poll, else today during the trip
+                val day = poll.dayDate ?: today.takeIf { ongoing }
+                val items by itinerary.observe(tripId).collectAsState(emptyList())
+                val last = items.filter { it.dayDate != null && it.dayDate == day && it.deletedAt == null }
+                    .maxByOrNull { it.startTime ?: kotlinx.datetime.LocalTime(0, 0) }
+                    ?.let { item ->
+                        app.ransel.feature.destination.LastActivity(
+                            dayNumber = if (start != null && day != null) start.daysUntil(day) + 1 else 1,
+                            title = item.title,
+                            area = item.placeName ?: item.title,
+                            time = item.startTime?.let { app.ransel.ui.format.formatTime(it) },
+                        )
+                    }
+                app.ransel.feature.destination.NearPickerSheet(
+                    subtitle = poll.question,
+                    destinationName = state.destination,
+                    tripOngoing = ongoing,
+                    tripPlace = state.tripPlace,
+                    lastActivity = last,
+                    onArea = {
+                        viewModel.onSearchArea(it)
+                        nearOpen = false
+                    },
+                    onDismiss = { nearOpen = false },
+                )
+            }
         }
     }
     when (val dialog = state.dialog) {

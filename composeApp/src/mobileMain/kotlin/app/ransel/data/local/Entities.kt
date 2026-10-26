@@ -36,6 +36,12 @@ data class TripEntity(
     val syncState: String = SyncState.PENDING,
     /** The signed-in user's role in this trip (Phase 4, DB v3); trips made on this device are always OWNER. */
     @ColumnInfo(defaultValue = "OWNER") val myRole: String = "OWNER",
+    /** The picked destination's place (DB v7); all null for a typed name. */
+    val destPlaceId: String? = null,
+    val destLat: Double? = null,
+    val destLng: Double? = null,
+    /** JSON of `ViewportDto`. */
+    val destViewportJson: String? = null,
 )
 
 @Entity(tableName = "itinerary_items", indices = [Index("tripId")])

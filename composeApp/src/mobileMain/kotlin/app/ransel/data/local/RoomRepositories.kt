@@ -72,7 +72,7 @@ class RoomTripRepository(
             endDate = request.endDate.toString(), baseCurrency = request.baseCurrency,
             budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
             createdAt = stamp, updatedAt = stamp, deletedAt = null,
-        )
+        ).withPlace(request.destinationPlace)
         db.tripDao().upsert(entity)
     }
 
@@ -86,7 +86,10 @@ class RoomTripRepository(
                     startDate = request.startDate.toString(), endDate = request.endDate.toString(),
                     baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
                     updatedAt = stamp, syncState = SyncState.PENDING,
-                ),
+                ).let {
+                    // same rule as the server: no place keeps the stored one while the name stays
+                    if (request.destinationPlace != null || current.destination != request.destination.trim()) it.withPlace(request.destinationPlace) else it
+                },
             )
             // Shortened dates never delete activities: they go back to "Belum dijadwalkan".
             val outside = itemsOutsideRange(

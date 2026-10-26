@@ -9,6 +9,7 @@ datetime = "0.8.0"
 ktor = "3.5.2"
 coil = "3.4.0"
 filekit = "0.15.0"
+play-services-location = "21.3.0"
 chucker = "4.3.1"
 firebase-bom = "33.7.0"
 google-services = "4.4.2"
@@ -29,6 +30,7 @@ testcontainers = "2.0.5"
 bcrypt = "0.10.2"
 
 [libraries]
+play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "play-services-location" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }

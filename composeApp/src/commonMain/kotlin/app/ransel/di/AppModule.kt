@@ -80,6 +80,7 @@ val commonModule: Module = module {
     viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.expenses.receipt.ReceiptViewModel(params.get(), get(), get(), get()) }
     viewModel { app.ransel.feature.account.PaymentMethodsViewModel(get(), get()) }
+    viewModel { app.ransel.feature.destination.DestinationPickerViewModel(get(), get(), get()) }
     single { InviteLinks() }
     single { CreditsStore() }
     single { PushRegistration(get(), get(), get()) }

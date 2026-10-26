@@ -79,6 +79,10 @@ data class PollUiState(
     val currency: String = "IDR",
     /** Nights of the trip, for the estimate a STAY winner becomes. */
     val tripNights: Int = 0,
+    /** For "Cari dekat mana?": the trip's dates and picked point. */
+    val tripStart: kotlinx.datetime.LocalDate? = null,
+    val tripEnd: kotlinx.datetime.LocalDate? = null,
+    val tripPlace: app.ransel.shared.dto.TripPlaceDto? = null,
     val myMemberId: String? = null,
     val myRole: Role = Role.VIEWER,
 ) {
@@ -118,6 +122,7 @@ class PollViewModel(
                         it.copy(
                             currency = trip.baseCurrency, myRole = trip.myRole, destination = trip.destination,
                             tripNights = trip.startDate.daysUntil(trip.endDate),
+                            tripStart = trip.startDate, tripEnd = trip.endDate, tripPlace = trip.destinationPlace,
                         )
                     }
                 }

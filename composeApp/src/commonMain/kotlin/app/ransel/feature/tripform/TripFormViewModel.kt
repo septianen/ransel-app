@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import app.ransel.feature.destination.DestinationChoice
+import app.ransel.shared.dto.TripPlaceDto
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
@@ -30,6 +32,8 @@ data class TripFormState(
     val loading: Boolean = true,
     val title: String = "",
     val destination: String = "",
+    /** Where [destination] is, when it was picked from the suggestions. */
+    val destinationPlace: TripPlaceDto? = null,
     val startDate: LocalDate,
     val endDate: LocalDate,
     val currency: String = "IDR",
@@ -81,6 +85,7 @@ class TripFormViewModel(
                             loading = false,
                             title = trip.title,
                             destination = trip.destination,
+                            destinationPlace = trip.destinationPlace,
                             startDate = trip.startDate,
                             endDate = trip.endDate,
                             currency = trip.baseCurrency,
@@ -94,7 +99,10 @@ class TripFormViewModel(
     }
 
     fun onTitleChange(value: String) = _state.update { it.copy(title = value) }
-    fun onDestinationChange(value: String) = _state.update { it.copy(destination = value) }
+    fun onDestinationChange(value: String) = _state.update { it.copy(destination = value, destinationPlace = null) }
+
+    fun onDestinationPicked(choice: DestinationChoice) =
+        _state.update { it.copy(destination = choice.name, destinationPlace = choice.place) }
     fun onBudgetChange(value: String) = _state.update { it.copy(budgetDigits = value.filter(Char::isDigit).take(12)) }
     fun onCurrencyChange(code: String) = _state.update { it.copy(currency = code) }
 
@@ -118,6 +126,7 @@ class TripFormViewModel(
                     CreateTripRequest(
                         id = id, title = s.title, destination = s.destination, startDate = s.startDate,
                         endDate = s.endDate, baseCurrency = s.currency, budgetMinor = budgetMinor,
+                        destinationPlace = s.destinationPlace,
                     ),
                 )
                 analytics.event(AnalyticsEvent.TripCreated)
@@ -127,6 +136,7 @@ class TripFormViewModel(
                     UpdateTripRequest(
                         title = s.title, destination = s.destination, startDate = s.startDate,
                         endDate = s.endDate, baseCurrency = s.currency, budgetMinor = budgetMinor,
+                        destinationPlace = s.destinationPlace,
                     ),
                 )
             }

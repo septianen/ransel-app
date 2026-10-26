@@ -40,6 +40,7 @@ import app.ransel.shared.dto.PollOptionInput
 import app.ransel.shared.model.PollKind
 import app.ransel.shared.model.PollPriceUnit
 import app.ransel.ui.components.AdaptiveSheet
+import app.ransel.feature.destination.DestinationField
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.format.amountToInput
 import app.ransel.shared.domain.currencyDecimals
@@ -242,12 +243,22 @@ fun PollOptionSheet(
                             Text(stringResource(Res.string.poll_link_error), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                         }
                     }
-                    IrisTextField(
-                        label = stringResource(Res.string.poll_option_label),
-                        value = draft.label,
-                        onValueChange = { draft = draft.copy(label = it); wrong = wrong - "label" },
-                        error = error("label", true),
-                    )
+                    if (kind == PollKind.DESTINATION) {
+                        DestinationField(
+                            label = stringResource(Res.string.poll_option_label),
+                            value = draft.label,
+                            onPicked = { draft = draft.copy(label = it.name); wrong = wrong - "label" },
+                            picked = draft.label.isNotEmpty(),
+                            error = error("label", true),
+                        )
+                    } else {
+                        IrisTextField(
+                            label = stringResource(Res.string.poll_option_label),
+                            value = draft.label,
+                            onValueChange = { draft = draft.copy(label = it); wrong = wrong - "label" },
+                            error = error("label", true),
+                        )
+                    }
                     if (kind == PollKind.STAY || kind == PollKind.FOOD) {
                         MoneyField(
                             label = stringResource(if (kind == PollKind.STAY) Res.string.poll_option_price_night else Res.string.poll_option_price_person),

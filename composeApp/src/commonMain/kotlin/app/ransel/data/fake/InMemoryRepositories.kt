@@ -70,6 +70,7 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
             id = request.id, ownerId = LOCAL_USER_ID, title = request.title, destination = request.destination,
             startDate = request.startDate, endDate = request.endDate, baseCurrency = request.baseCurrency,
             budgetMinor = request.budgetMinor, coverUrl = request.coverUrl, createdAt = stamp, updatedAt = stamp,
+            destinationPlace = request.destinationPlace,
         )
         store.trips.update { it + trip }
     }
@@ -97,6 +98,7 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
                     title = request.title, destination = request.destination, startDate = request.startDate,
                     endDate = request.endDate, baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor,
                     coverUrl = request.coverUrl, updatedAt = now(),
+                    destinationPlace = if (request.destinationPlace != null || it.destination != request.destination) request.destinationPlace else it.destinationPlace,
                 )
             }
         }
