@@ -79,6 +79,21 @@ object PushText {
                     }
                 }
             }
+            NotificationType.PACKING_LIST -> {
+                val left = params["requiredLeft"]?.toIntOrNull() ?: 0
+                when (params["stage"]) {
+                    "UPDATED" -> (if (en) "Packing list updated" else "Daftar bawaan diperbarui") to
+                        (if (en) "$actor changed the list for $trip." else "$actor mengubah daftar untuk $trip.")
+                    "REMIND" -> (if (en) "Don't forget your packing" else "Jangan lupa bawaanmu") to when {
+                        en && left > 0 -> "$left required items left for $trip."
+                        en -> "Check your list for $trip."
+                        left > 0 -> "Masih $left barang wajib untuk $trip."
+                        else -> "Cek daftar bawaanmu untuk $trip."
+                    }
+                    else -> (if (en) "$actor sent a packing list" else "$actor mengirim daftar bawaan") to
+                        (if (en) "For $trip. It is in your list now." else "Untuk $trip. Sudah masuk ke daftarmu.")
+                }
+            }
             NotificationType.PACKING_REMINDER -> {
                 val n = params["remaining"].orEmpty()
                 (if (en) "Packing for $trip" else "Packing untuk $trip") to

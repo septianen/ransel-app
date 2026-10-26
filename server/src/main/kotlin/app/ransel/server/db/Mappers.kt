@@ -7,7 +7,9 @@ import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.KittyDepositDto
 import app.ransel.shared.dto.KittyDto
+import app.ransel.shared.dto.MemberListItemDto
 import app.ransel.shared.dto.PackingItemDto
+import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.TripDto
@@ -75,9 +77,35 @@ fun ResultRow.toPackingItemDto() = PackingItemDto(
     quantity = this[PackingItems.quantity],
     isPacked = this[PackingItems.isPacked],
     sortOrder = this[PackingItems.sortOrder],
+    assigneeMemberId = this[PackingItems.assigneeMemberId]?.toString(),
     createdAt = this[PackingItems.createdAt].toTimestamp(),
     updatedAt = this[PackingItems.updatedAt].toTimestamp(),
     deletedAt = this[PackingItems.deletedAt]?.toTimestamp(),
+)
+
+fun ResultRow.toPersonalItemDto() = PersonalItemDto(
+    id = this[PersonalItems.id].toString(),
+    tripId = this[PersonalItems.tripId].toString(),
+    ownerMemberId = this[PersonalItems.ownerMemberId].toString(),
+    category = this[PersonalItems.category],
+    name = this[PersonalItems.name],
+    quantity = this[PersonalItems.quantity],
+    isPacked = this[PersonalItems.isPacked],
+    sortOrder = this[PersonalItems.sortOrder],
+    sourceItemId = this[PersonalItems.sourceItemId]?.toString(),
+    required = this[PersonalItems.required],
+    createdAt = this[PersonalItems.createdAt].toTimestamp(),
+    updatedAt = this[PersonalItems.updatedAt].toTimestamp(),
+    deletedAt = this[PersonalItems.deletedAt]?.toTimestamp(),
+)
+
+fun ResultRow.toMemberListItemDto() = MemberListItemDto(
+    id = this[MemberListItems.id].toString(),
+    category = this[MemberListItems.category],
+    name = this[MemberListItems.name],
+    quantity = this[MemberListItems.quantity],
+    required = this[MemberListItems.required],
+    sortOrder = this[MemberListItems.sortOrder],
 )
 
 fun ResultRow.toExpenseDto(

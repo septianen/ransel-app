@@ -3,6 +3,7 @@ package app.ransel.server.service
 import app.ransel.server.db.PackingItems
 import app.ransel.server.db.toPackingItemDto
 import app.ransel.server.plugins.conflict
+import app.ransel.server.plugins.forbidden
 import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
 import app.ransel.shared.dto.CreatePackingItemRequest
@@ -49,10 +50,14 @@ object PackingService {
     }
 
     fun patch(userId: UUID, tripId: UUID, itemId: UUID, body: PatchPackingItemRequest): PackingItemDto {
-        requireRole(tripId, userId, Role.EDITOR)
+        val role = requireRole(tripId, userId, Role.VIEWER)
         requireValid(validate(body.name ?: "x", body.quantity ?: 1))
         return transaction {
-            load(tripId, itemId)
+            val before = load(tripId, itemId)
+            // a VIEWER only ticks what they bring
+            val onlyTick = body.category == null && body.name == null && body.quantity == null && body.sortOrder == null
+            if (!role.atLeast(Role.EDITOR) && !(onlyTick && before.assigneeMemberId == callerMemberId(tripId, userId).toString())) throw forbidden()
+            if (body.isPacked != null) requireMayTick(tripId, userId, before)
             val changes = listOfNotNull(body.category, body.name, body.quantity, body.isPacked, body.sortOrder)
             if (changes.isNotEmpty()) {
                 PackingItems.update({ PackingItems.id eq itemId }) {
@@ -80,6 +85,38 @@ object PackingService {
         transaction {
             PackingItems.update({ liveIn(tripId) and (PackingItems.isPacked eq true) }) { it[isPacked] = false }
         }
+    }
+
+    /** "Saya bawa": any member takes an item nobody brings yet (or one they already bring). */
+    fun bring(userId: UUID, tripId: UUID, itemId: UUID): PackingItemDto {
+        requireRole(tripId, userId, Role.VIEWER)
+        val me = callerMemberId(tripId, userId)
+        return transaction {
+            val item = load(tripId, itemId)
+            if (item.assigneeMemberId != null && item.assigneeMemberId != me.toString()) throw conflict("Someone else brings it already")
+            PackingItems.update({ PackingItems.id eq itemId }) { it[assigneeMemberId] = me }
+            load(tripId, itemId)
+        }
+    }
+
+    /** Gives an item back: the bringer, or an EDITOR+ for anyone. Its check mark goes with it. */
+    fun unbring(userId: UUID, tripId: UUID, itemId: UUID): PackingItemDto {
+        val role = requireRole(tripId, userId, Role.VIEWER)
+        return transaction {
+            val item = load(tripId, itemId)
+            if (item.assigneeMemberId != callerMemberId(tripId, userId).toString() && !role.atLeast(Role.EDITOR)) throw forbidden()
+            PackingItems.update({ PackingItems.id eq itemId }) {
+                it[assigneeMemberId] = null
+                it[isPacked] = false
+            }
+            load(tripId, itemId)
+        }
+    }
+
+    /** Once someone brings an item, only they tick it (PRD "Shared packing items"); unclaimed items work as before. */
+    internal fun requireMayTick(tripId: UUID, userId: UUID, item: PackingItemDto) {
+        val bringer = item.assigneeMemberId ?: return
+        if (bringer != callerMemberId(tripId, userId).toString()) throw forbidden()
     }
 
     private fun liveIn(tripId: UUID) = (PackingItems.tripId eq tripId) and PackingItems.deletedAt.isNull()

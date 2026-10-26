@@ -74,7 +74,7 @@ class NotificationService(private val config: AppConfig, private val push: PushS
                     NotificationType.MEMBER_JOINED, NotificationType.MEMBER_REMOVED, NotificationType.ROLE_CHANGED,
                     NotificationType.VOTE_REQUESTED, NotificationType.VOTE_RESULT,
                     NotificationType.MEMBER_CLAIMED, NotificationType.COMMENT_MENTION,
-                    NotificationType.POLL_REQUESTED, NotificationType.POLL_RESULT -> tripActivity
+                    NotificationType.POLL_REQUESTED, NotificationType.POLL_RESULT, NotificationType.PACKING_LIST -> tripActivity
                     NotificationType.EXPENSE_ADDED, NotificationType.SETTLEMENT_MARKED -> expenses
                     NotificationType.PACKING_REMINDER, NotificationType.ACTIVITY_REMINDER -> reminders
                 }

@@ -151,6 +151,7 @@ class InviteService(private val config: AppConfig) {
         TripInvites.update({ TripInvites.code eq invite[TripInvites.code] }) {
             it[usedCount] = invite[TripInvites.usedCount] + 1
         }
+        MemberListService.onMemberJoined(tripId, callerMemberId(tripId, userId))
         Notify.emit { memberJoined(tripId, userId) }
         Trips.selectAll().where { Trips.id eq tripId }.single().toTripDto(invite[TripInvites.role])
     }

@@ -6,6 +6,8 @@ import app.ransel.server.db.ItineraryItems
 import app.ransel.server.db.Kitties
 import app.ransel.server.db.KittyDeposits
 import app.ransel.server.db.PackingItems
+import app.ransel.server.db.PersonalItems
+import app.ransel.server.db.toPersonalItemDto
 import app.ransel.server.db.Settlements
 import app.ransel.server.db.toSettlementDto
 import app.ransel.server.db.TripMembers
@@ -31,6 +33,7 @@ import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.KittyDepositDto
 import app.ransel.shared.dto.KittyDto
 import app.ransel.shared.dto.PackingItemDto
+import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPullResponse
@@ -72,7 +75,7 @@ import kotlin.time.toJavaInstant
  */
 class SyncService {
     fun push(userId: UUID, changes: SyncChanges): SyncPushResponse {
-        val total = changes.trips.size + changes.itineraryItems.size + changes.packingItems.size +
+        val total = changes.trips.size + changes.itineraryItems.size + changes.packingItems.size + changes.personalItems.size +
             changes.expenses.size + changes.settlements.size + changes.kitties.size + changes.kittyDeposits.size
         if (total > MAX_ROWS) {
             throw ApiException(
@@ -103,6 +106,7 @@ class SyncService {
             }
             changes.itineraryItems.forEach { dto -> attempt(ENTITY_ITEM, dto.id) { pushItem(userId, dto) } }
             changes.packingItems.forEach { dto -> attempt(ENTITY_PACKING, dto.id) { pushPacking(userId, dto) } }
+            changes.personalItems.forEach { dto -> attempt(ENTITY_PERSONAL, dto.id) { pushPersonal(userId, dto) } }
             // the kitty before its deposits and before expenses paid from it
             changes.kitties.forEach { dto -> attempt(ENTITY_KITTY, dto.tripId) { pushKitty(userId, dto) } }
             changes.kittyDeposits.forEach { dto -> attempt(ENTITY_DEPOSIT, dto.id) { pushDeposit(userId, dto) } }
@@ -158,6 +162,15 @@ class SyncService {
                 if (sinceJava == null) inTrips
                 else inTrips and ((PackingItems.updatedAt greater sinceJava) or (PackingItems.tripId inList newTripIds))
             }.map { it.toPackingItemDto() }
+
+        // my own lines only: another member's bag is theirs
+        val myMemberIds = allTripIds.map { callerMemberId(it, userId) }
+        val personal = if (allTripIds.isEmpty()) emptyList() else PersonalItems.selectAll()
+            .where {
+                val mine = PersonalItems.ownerMemberId inList myMemberIds
+                if (sinceJava == null) mine
+                else mine and ((PersonalItems.updatedAt greater sinceJava) or (PersonalItems.tripId inList newTripIds))
+            }.map { it.toPersonalItemDto() }
 
         val expenseRows = if (allTripIds.isEmpty()) emptyList() else Expenses.selectAll()
             .where {
@@ -221,7 +234,7 @@ class SyncService {
 
         SyncPullResponse(
             changes = SyncChanges(
-                trips = trips, itineraryItems = items, packingItems = packing, expenses = expenses, settlements = settlements,
+                trips = trips, itineraryItems = items, packingItems = packing, personalItems = personal, expenses = expenses, settlements = settlements,
                 kitties = kitties, kittyDeposits = deposits, members = members,
             ),
             serverTime = serverTime.toTimestamp(),
@@ -321,37 +334,108 @@ class SyncService {
         }
     }
 
+    /**
+     * EDITOR+ write packing items; any member may bring an item (assignee = themselves) or give back their own. Once an
+     * item has a bringer, only they tick it, as in PackingService.
+     */
     private fun pushPacking(userId: UUID, dto: PackingItemDto) {
         val id = uuid(dto.id, "id")
         val tripId = uuid(dto.tripId, "tripId")
-        requireEditorOnLiveTrip(tripId, userId)
+        val role = requireMemberOnLiveTrip(tripId, userId)
         val problems = PackingService.validate(dto.name, dto.quantity)
         if (problems.isNotEmpty()) throw validation(problems)
-
+        val me = callerMemberId(tripId, userId)
+        val assignee = dto.assigneeMemberId?.let { uuid(it, "assigneeMemberId") }
         val existing = PackingItems.selectAll().where { PackingItems.id eq id }.singleOrNull()
+        val before = existing?.get(PackingItems.assigneeMemberId)
+        if (assignee != before) {
+            val allowed = (before == null && assignee == me) || (assignee == null && (before == me || role.atLeast(Role.EDITOR)))
+            if (!allowed) throw forbidden()
+        }
+        // giving an item back takes its check mark with it
+        val packed = dto.isPacked && !(assignee == null && before != null)
+        if (assignee != null && assignee != me && packed != (existing?.get(PackingItems.isPacked) ?: false)) throw forbidden()
+
         if (existing == null) {
+            if (!role.atLeast(Role.EDITOR)) throw forbidden()
             PackingItems.insert {
                 it[PackingItems.id] = id
                 it[PackingItems.tripId] = tripId
                 it[category] = dto.category
                 it[name] = dto.name.trim()
                 it[quantity] = dto.quantity
-                it[isPacked] = dto.isPacked
+                it[isPacked] = packed
                 it[sortOrder] = dto.sortOrder
+                it[assigneeMemberId] = assignee
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
         } else {
             if (existing[PackingItems.tripId] != tripId) throw conflict("Item belongs to another trip")
             requireNewer(dto.updatedAt, existing[PackingItems.updatedAt])
+            if (!role.atLeast(Role.EDITOR)) {
+                // a viewer only brings, gives back and ticks
+                val same = existing[PackingItems.category] == dto.category && existing[PackingItems.name] == dto.name.trim() &&
+                    existing[PackingItems.quantity] == dto.quantity && existing[PackingItems.sortOrder] == dto.sortOrder &&
+                    (existing[PackingItems.deletedAt] == null) == (dto.deletedAt == null)
+                if (!same) throw forbidden()
+            }
             PackingItems.update({ PackingItems.id eq id }) {
+                it[category] = dto.category
+                it[name] = dto.name.trim()
+                it[quantity] = dto.quantity
+                it[isPacked] = packed
+                it[sortOrder] = dto.sortOrder
+                it[assigneeMemberId] = assignee
+                it[deletedAt] = dto.deletedAt?.toJavaInstant()
+            }
+        }
+    }
+
+    /** The caller's own lines only. Lines from the owner's list are created by the server and only change their tick. */
+    private fun pushPersonal(userId: UUID, dto: PersonalItemDto) {
+        val id = uuid(dto.id, "id")
+        val tripId = uuid(dto.tripId, "tripId")
+        requireMemberOnLiveTrip(tripId, userId)
+        val me = callerMemberId(tripId, userId)
+        if (uuid(dto.ownerMemberId, "ownerMemberId") != me) throw forbidden()
+        val problems = PackingService.validate(dto.name, dto.quantity)
+        if (problems.isNotEmpty()) throw validation(problems)
+        val existing = PersonalItems.selectAll().where { PersonalItems.id eq id }.singleOrNull()
+        if (existing == null) {
+            if (dto.sourceItemId != null) throw forbidden()
+            PersonalItems.insert {
+                it[PersonalItems.id] = id
+                it[PersonalItems.tripId] = tripId
+                it[ownerMemberId] = me
                 it[category] = dto.category
                 it[name] = dto.name.trim()
                 it[quantity] = dto.quantity
                 it[isPacked] = dto.isPacked
                 it[sortOrder] = dto.sortOrder
+                it[required] = false
+                it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
+            return
+        }
+        // someone else's line is not there for the caller
+        if (existing[PersonalItems.tripId] != tripId || existing[PersonalItems.ownerMemberId] != me) throw conflict("Item belongs to someone else")
+        requireNewer(dto.updatedAt, existing[PersonalItems.updatedAt])
+        if (existing[PersonalItems.sourceItemId] != null) {
+            // removed from the owner's list: stays gone; otherwise only the tick is the member's
+            if (existing[PersonalItems.deletedAt] != null) throw conflict("The line was removed from the list")
+            if (dto.deletedAt != null) throw forbidden()
+            PersonalItems.update({ PersonalItems.id eq id }) { it[isPacked] = dto.isPacked }
+            return
+        }
+        PersonalItems.update({ PersonalItems.id eq id }) {
+            it[category] = dto.category
+            it[name] = dto.name.trim()
+            it[quantity] = dto.quantity
+            it[isPacked] = dto.isPacked
+            it[sortOrder] = dto.sortOrder
+            it[deletedAt] = dto.deletedAt?.toJavaInstant()
         }
     }
 
@@ -537,6 +621,15 @@ class SyncService {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
+    private fun requireMemberOnLiveTrip(tripId: UUID, userId: UUID): Role {
+        val trip = Trips.select(Trips.deletedAt).where { Trips.id eq tripId }.singleOrNull()
+        val role = memberRole(tripId, userId)
+        if (trip == null || role == null || trip[Trips.deletedAt] != null) {
+            throw ApiException(HttpStatusCode.NotFound, ErrorCode.TRIP_NOT_FOUND, "Trip not found")
+        }
+        return role
+    }
+
     private fun requireEditorOnLiveTrip(tripId: UUID, userId: UUID) {
         val trip = Trips.select(Trips.deletedAt).where { Trips.id eq tripId }.singleOrNull()
         val role = memberRole(tripId, userId)
@@ -572,6 +665,7 @@ class SyncService {
         const val ENTITY_TRIP = "trip"
         const val ENTITY_ITEM = "itineraryItem"
         const val ENTITY_PACKING = "packingItem"
+        const val ENTITY_PERSONAL = "personalItem"
         const val ENTITY_EXPENSE = "expense"
         const val ENTITY_SETTLEMENT = "settlement"
         const val ENTITY_KITTY = "kitty"

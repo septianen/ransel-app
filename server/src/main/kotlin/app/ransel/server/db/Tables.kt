@@ -39,7 +39,7 @@ import app.ransel.shared.model.PaymentMethodKind
 import app.ransel.shared.model.SettlementStatus
 
 /*
- * Exposed mappings of the Flyway schema (V1..V19). Flyway owns the DDL; these objects only describe it.
+ * Exposed mappings of the Flyway schema (V1..V21). Flyway owns the DDL; these objects only describe it.
  * `updated_at` is set by the DB trigger, so writers never set it.
  */
 
@@ -230,10 +230,60 @@ object PackingItems : Table("packing_items") {
     val quantity = integer("quantity")
     val isPacked = bool("is_packed")
     val sortOrder = double("sort_order")
+    /** Bersama: who brings it (V21). */
+    val assigneeMemberId = javaUUID("assignee_member_id").nullable()
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
     override val primaryKey = PrimaryKey(id)
+}
+
+/** Each member's own packing lines (V21). */
+object PersonalItems : Table("personal_items") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val ownerMemberId = javaUUID("owner_member_id")
+    val category = enumerationByName<PackingCategory>("category", 16)
+    val name = text("name")
+    val quantity = integer("quantity")
+    val isPacked = bool("is_packed")
+    val sortOrder = double("sort_order")
+    val sourceItemId = javaUUID("source_item_id").nullable()
+    val required = bool("required")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** "Daftar bawaan anggota", one per trip (V21). */
+object MemberLists : Table("member_lists") {
+    val tripId = javaUUID("trip_id")
+    val name = text("name")
+    val version = integer("version")
+    val sentToAll = bool("sent_to_all")
+    val sentAt = timestamp("sent_at").nullable()
+    val createdByMemberId = javaUUID("created_by_member_id")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(tripId)
+}
+
+object MemberListItems : Table("member_list_items") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val category = enumerationByName<PackingCategory>("category", 16)
+    val name = text("name")
+    val quantity = integer("quantity")
+    val required = bool("required")
+    val sortOrder = double("sort_order")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object MemberListRecipients : Table("member_list_recipients") {
+    val tripId = javaUUID("trip_id")
+    val memberId = javaUUID("member_id")
+    override val primaryKey = PrimaryKey(tripId, memberId)
 }
 
 object Expenses : Table("expenses") {
