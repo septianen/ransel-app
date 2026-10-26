@@ -24,6 +24,8 @@ data class GuestMemberDto(
 @Serializable
 data class GuestPageDto(
     val code: String,
+    /** The browser keeps one guest token per trip, whichever link (poll or invite) it came through. */
+    val tripId: String,
     val tripTitle: String,
     val destination: String,
     val startDate: LocalDate,
