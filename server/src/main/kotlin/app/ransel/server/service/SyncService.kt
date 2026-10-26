@@ -348,7 +348,10 @@ class SyncService {
         val assignee = dto.assigneeMemberId?.let { uuid(it, "assigneeMemberId") }
         val existing = PackingItems.selectAll().where { PackingItems.id eq id }.singleOrNull()
         val before = existing?.get(PackingItems.assigneeMemberId)
-        if (assignee != before) {
+        if (existing == null && assignee != null && role.atLeast(Role.EDITOR)) {
+            // "Siapa yang bawa?" when an editor adds it
+            PackingService.requireActiveMember(tripId, assignee.toString())
+        } else if (assignee != before) {
             val allowed = (before == null && assignee == me) || (assignee == null && (before == me || role.atLeast(Role.EDITOR)))
             if (!allowed) throw forbidden()
         }

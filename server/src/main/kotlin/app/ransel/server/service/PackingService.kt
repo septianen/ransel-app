@@ -1,6 +1,7 @@
 package app.ransel.server.service
 
 import app.ransel.server.db.PackingItems
+import app.ransel.server.db.TripMembers
 import app.ransel.server.db.toPackingItemDto
 import app.ransel.server.plugins.conflict
 import app.ransel.server.plugins.forbidden
@@ -15,6 +16,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
@@ -37,7 +39,9 @@ object PackingService {
         requireValid(validate(body.name, body.quantity))
         return transaction {
             if (PackingItems.selectAll().where { PackingItems.id eq itemId }.any()) throw conflict("Packing item id already exists")
+            val bringer = body.assigneeMemberId?.let { requireActiveMember(tripId, it) }
             PackingItems.insert {
+                it[assigneeMemberId] = bringer
                 it[id] = itemId
                 it[PackingItems.tripId] = tripId
                 it[category] = body.category
@@ -117,6 +121,15 @@ object PackingService {
     internal fun requireMayTick(tripId: UUID, userId: UUID, item: PackingItemDto) {
         val bringer = item.assigneeMemberId ?: return
         if (bringer != callerMemberId(tripId, userId).toString()) throw forbidden()
+    }
+
+    /** "Siapa yang bawa?" names a member of this trip. */
+    internal fun requireActiveMember(tripId: UUID, raw: String): UUID {
+        val id = runCatching { UUID.fromString(raw) }.getOrNull()
+        val ok = id != null && TripMembers.select(TripMembers.id)
+            .where { (TripMembers.tripId eq tripId) and (TripMembers.id eq id) and TripMembers.active() }.any()
+        requireValid(if (ok) emptyMap() else mapOf("assigneeMemberId" to "NOT_A_MEMBER"))
+        return id!!
     }
 
     private fun liveIn(tripId: UUID) = (PackingItems.tripId eq tripId) and PackingItems.deletedAt.isNull()

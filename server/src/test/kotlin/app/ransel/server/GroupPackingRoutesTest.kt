@@ -164,6 +164,12 @@ class GroupPackingRoutesTest {
         val back = delete("/trips/${trip.id}/packing/$stove/bring").data().jsonObject
         assertEquals("false", back.str("isPacked"))
         assertTrue(back["assigneeMemberId"].toString() == "null")
+
+        // "Siapa yang bawa?" when adding: an editor names a member, not a stranger
+        val tent = UUID.randomUUID().toString()
+        val added = post("/trips/${trip.id}/packing", """{"id":"$tent","name":"Tenda","assigneeMemberId":"${trip.v.memberId(trip.id)}"}""")
+        assertEquals(trip.v.memberId(trip.id), added.data().jsonObject.str("assigneeMemberId"))
+        assertEquals("VALIDATION_FAILED", post("/trips/${trip.id}/packing", """{"id":"${UUID.randomUUID()}","name":"Tenda","assigneeMemberId":"${UUID.randomUUID()}"}""").errorCode())
     }
 
     @Test
