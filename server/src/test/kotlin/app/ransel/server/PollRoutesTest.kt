@@ -342,7 +342,7 @@ class PollRoutesTest {
     @Test
     fun placeFoodAndDestinationPollsPutTheWinnerInThePlan() = apiTest {
         val t = pollTrip()
-        val place = createPoll(t, pollJson(kind = "PLACE", question = "Ke mana?", options = listOf(option("Tanah Lot", extra = ""","placeId":"gp1"""))))
+        val place = createPoll(t, pollJson(kind = "PLACE", question = "Ke mana?", options = listOf(option("Tanah Lot", extra = ""","placeId":"gp1""""))))
         post("/polls/${place.str("id")}/decide", """{"optionId":"${place.options()[0].str("id")}"}""")
 
         val food = createPoll(t, pollJson(kind = "FOOD", question = "Makan malam?", extra = ""","dayDate":"2026-11-21","startTime":"19:00"""", options = listOf(option("Warung Babi Guling"))))
