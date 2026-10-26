@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Link verifikasi tidak berlaku (web)</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..600,0..1,0&amp;display=block">
+<style>
+body{margin:0}
+.rs{--page:#F3F3F3;--surface:#FFFFFF;--on:#1B1B1B;--muted:#525252;--line:#E2E2E2;--primary:#008808;--onp:#FFFFFF;--err:#BA1A1D;--ec:#FFE9E6;}
+.ic{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;display:inline-block;font-variation-settings:"FILL" 0,"wght" 500,"GRAD" 0,"opsz" 24;font-feature-settings:"liga";-webkit-font-smoothing:antialiased}
+.fill{font-variation-settings:"FILL" 1,"wght" 500,"GRAD" 0,"opsz" 24}
+a{color:var(--primary)}
+</style>
+</helmet>
+<div class="rs" style="position: relative; width: 1280px; height: 800px; box-sizing: border-box; background: var(--page); color: var(--on); font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; overflow: hidden;">
+  <div style="width: 560px; flex-shrink: 0; background: #008808; color: #FFFFFF; display: flex; flex-direction: column; padding: 48px; box-sizing: border-box; position: relative; overflow: hidden;">
+    <span style="font-size: 18px; line-height: 24px; font-weight: 800; letter-spacing: 2px;">RANSEL</span>
+    <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;"><div style="width: 300px; height: 300px; border-radius: 9999px; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center;"><img src="../illustrations/canvas-2475ebc2.png" alt="" width="280" height="280" style="display: block; width: 280px; height: 280px; object-fit: contain;"></div></div>
+    <h2 style="margin: 0; font-size: 34px; line-height: 44px; font-weight: 800;">Satu trip, semua beres.</h2><p style="margin: 8px 0 0; font-size: 16px; line-height: 24px; opacity: .9; max-width: 420px;">Itinerary, barang bawaan, dan pengeluaran dalam satu tempat. Buka di ponsel, tablet, atau web.</p>
+  </div>
+  <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; background: var(--surface);">
+    <div style="width: 420px; display: flex; flex-direction: column; gap: 20px;">
+      <span style="width: 64px; height: 64px; border-radius: 20px; background: var(--ec); color: var(--err); display: flex; align-items: center; justify-content: center;"><span class="ic" style="font-size: 34px;" aria-hidden="true">link_off</span></span>
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;"><h1 style="margin: 0; font-size: 30px; line-height: 38px; font-weight: 800;">Link verifikasi tidak berlaku</h1><span style="font-size: 16px; line-height: 24px; color: var(--muted);">Link-nya sudah lewat 24 jam atau sudah pernah dipakai. Kirim link baru, lalu buka link yang paling baru.</span><span style="font-size: 12px; line-height: 16px; color: #777777;">VERIFY_TOKEN_INVALID</span></div>
+      <a href="WebVerifikasiEmail.dc.html" style="height: 52px; border-radius: 9999px; background: var(--primary); color: var(--onp); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; font-weight: 700; text-decoration: none;"><span class="ic" style="font-size: 20px;" aria-hidden="true">forward_to_inbox</span>Kirim link baru</a>
+      <a href="WebBeranda.dc.html" style="height: 52px; border-radius: 9999px; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; text-decoration: none;">Ke Beranda</a>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
