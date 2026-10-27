@@ -41,19 +41,20 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * "Daftar bawaan anggota" (PRD "Packing list from the trip owner"): the owner (or an editor) writes one list per trip
- * and sends it; every recipient gets a copy of each line in their own list. Saving a sent list changes every copy
- * (new lines added, removed ones gone, changed ones updated) and keeps the members' check marks and own lines.
+ * "Daftar bawaan anggota" (PRD "Packing list from the trip owner"): the OWNER writes one list per trip and sends it
+ * (owner only since 27 Oct 2026); every recipient gets a copy of each line in their own list, theirs to tick, edit or
+ * delete. Saving a sent list adds new lines everywhere and removes or changes only the copies a member has not edited
+ * (`customized`); a copy the member deleted is never brought back. Check marks and own lines stay.
  * Members without an account get copies too and tick them on the guest page.
  */
 object MemberListService {
     fun get(userId: UUID, tripId: UUID): MemberListDto {
-        requireRole(tripId, userId, Role.VIEWER)
+        requireRole(tripId, userId, Role.OWNER)
         return transaction { load(tripId) ?: throw notFound("Member list") }
     }
 
     fun save(userId: UUID, tripId: UUID, body: SaveMemberListRequest): MemberListDto {
-        requireRole(tripId, userId, Role.EDITOR)
+        requireRole(tripId, userId, Role.OWNER)
         requireValid(validateMemberList(body.name, body.items))
         val ids = body.items.map { runCatching { UUID.fromString(it.id) }.getOrNull() }
         requireValid(if (ids.any { it == null }) mapOf("items" to "INVALID_UUID") else emptyMap())
@@ -104,7 +105,7 @@ object MemberListService {
     }
 
     fun send(userId: UUID, tripId: UUID, body: SendMemberListRequest): MemberListDto {
-        requireRole(tripId, userId, Role.EDITOR)
+        requireRole(tripId, userId, Role.OWNER)
         val wanted = body.memberIds.map { runCatching { UUID.fromString(it) }.getOrNull() }
         requireValid(if (wanted.any { it == null }) mapOf("memberIds" to "INVALID_UUID") else emptyMap())
         return transaction {
@@ -142,7 +143,7 @@ object MemberListService {
 
     /** One row per recipient: how many required and all lines from the list they ticked. */
     fun progress(userId: UUID, tripId: UUID): List<MemberListProgressDto> {
-        requireRole(tripId, userId, Role.EDITOR)
+        requireRole(tripId, userId, Role.OWNER)
         return transaction {
             load(tripId) ?: throw notFound("Member list")
             val copies = PersonalItems.selectAll()
@@ -164,7 +165,7 @@ object MemberListService {
 
     /** "Ingatkan": a push to each chosen recipient, at most once per 12 hours each (the dedupe key holds the window). */
     fun remind(userId: UUID, tripId: UUID, memberIds: List<String>) {
-        requireRole(tripId, userId, Role.EDITOR)
+        requireRole(tripId, userId, Role.OWNER)
         val ids = memberIds.mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }.toSet()
         transaction {
             load(tripId) ?: throw notFound("Member list")
@@ -221,10 +222,10 @@ object MemberListService {
             .filter { if (chosen == null) it != row[MemberLists.createdByMemberId] else it in chosen }
     }
 
-    /** A copy of every list line the member does not have yet. */
+    /** A copy of every list line the member never had; one they deleted counts as had, so it does not come back. */
     private fun copyMissing(tripId: UUID, memberId: UUID) {
         val have = PersonalItems.select(PersonalItems.sourceItemId)
-            .where { (PersonalItems.ownerMemberId eq memberId) and PersonalItems.sourceItemId.isNotNull() and PersonalItems.deletedAt.isNull() }
+            .where { (PersonalItems.ownerMemberId eq memberId) and PersonalItems.sourceItemId.isNotNull() }
             .mapNotNull { it[PersonalItems.sourceItemId] }.toSet()
         val missing = MemberListItems.selectAll().where { MemberListItems.tripId eq tripId }.filter { it[MemberListItems.id] !in have }
         if (missing.isEmpty()) return
@@ -239,21 +240,29 @@ object MemberListService {
             it[PersonalItems.sortOrder] = line[MemberListItems.sortOrder]
             it[PersonalItems.sourceItemId] = line[MemberListItems.id]
             it[PersonalItems.required] = line[MemberListItems.required]
+            it[PersonalItems.customized] = false
         } }
     }
 
-    /** Removed lines leave every list (checked or not); changed lines change in place and keep their check mark. */
+    /**
+     * Removed lines leave every list (checked or not) and changed lines change in place keeping their check mark, but
+     * only in the copies the member has not edited.
+     */
     private fun applyDiff(tripId: UUID, removed: List<String>, changed: List<MemberListItemDto>) {
         val now = Instant.now()
         val gone = removed.map(UUID::fromString)
         if (gone.isNotEmpty()) {
-            PersonalItems.update({ (PersonalItems.tripId eq tripId) and (PersonalItems.sourceItemId inList gone) and PersonalItems.deletedAt.isNull() }) {
+            PersonalItems.update({
+                (PersonalItems.tripId eq tripId) and (PersonalItems.sourceItemId inList gone) and PersonalItems.deletedAt.isNull() and
+                    (PersonalItems.customized eq false)
+            }) {
                 it[deletedAt] = now
             }
         }
         changed.forEach { line ->
             PersonalItems.update({
-                (PersonalItems.tripId eq tripId) and (PersonalItems.sourceItemId eq UUID.fromString(line.id)) and PersonalItems.deletedAt.isNull()
+                (PersonalItems.tripId eq tripId) and (PersonalItems.sourceItemId eq UUID.fromString(line.id)) and PersonalItems.deletedAt.isNull() and
+                    (PersonalItems.customized eq false)
             }) {
                 it[category] = line.category
                 it[name] = line.name.trim()

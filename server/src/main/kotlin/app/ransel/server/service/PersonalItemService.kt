@@ -3,7 +3,6 @@ package app.ransel.server.service
 import app.ransel.server.db.PersonalItems
 import app.ransel.server.db.toPersonalItemDto
 import app.ransel.server.plugins.conflict
-import app.ransel.server.plugins.forbidden
 import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
 import app.ransel.shared.dto.CreatePersonalItemRequest
@@ -23,7 +22,8 @@ import java.util.UUID
 
 /**
  * "Pribadi": a member's own packing list. Any member (VIEWER too: it is their own bag) reads and writes only their
- * own lines. A line from the owner's list follows that list; the member only ticks it.
+ * own lines, also the copies of the owner's list: they may edit and delete those (owner, 27 Oct 2026). An edited copy
+ * is marked `customized` so the list's later changes leave it alone; a deleted one stays deleted.
  */
 object PersonalItemService {
     fun list(userId: UUID, tripId: UUID): List<PersonalItemDto> {
@@ -53,6 +53,7 @@ object PersonalItemService {
                 it[isPacked] = false
                 it[sortOrder] = body.sortOrder
                 it[required] = false
+                it[customized] = false
             }
             load(id)
         }
@@ -63,8 +64,10 @@ object PersonalItemService {
         requireValid(PackingService.validate(body.name ?: "x", body.quantity ?: 1))
         return transaction {
             val item = mine(userId, tripId, id)
-            if (item.sourceItemId != null && (body.name != null || body.quantity != null || body.category != null)) throw forbidden()
+            val edited = (body.name != null && body.name!!.trim() != item.name) ||
+                (body.quantity != null && body.quantity != item.quantity) || (body.category != null && body.category != item.category)
             PersonalItems.update({ PersonalItems.id eq id }) {
+                if (item.sourceItemId != null && edited) it[customized] = true
                 body.category?.let { v -> it[category] = v }
                 body.name?.let { v -> it[name] = v.trim() }
                 body.quantity?.let { v -> it[quantity] = v }
@@ -75,12 +78,11 @@ object PersonalItemService {
         }
     }
 
-    /** Own lines only: a line from the owner's list goes when the owner removes it. */
+    /** Any of my lines; a copy of the owner's list stays deleted (the list never brings it back). */
     fun delete(userId: UUID, tripId: UUID, id: UUID) {
         requireRole(tripId, userId, Role.VIEWER)
         transaction {
-            val item = mine(userId, tripId, id)
-            if (item.sourceItemId != null) throw forbidden()
+            mine(userId, tripId, id)
             PersonalItems.update({ PersonalItems.id eq id }) { it[deletedAt] = Instant.now() }
         }
     }

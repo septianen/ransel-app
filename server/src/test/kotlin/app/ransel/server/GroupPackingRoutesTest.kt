@@ -53,7 +53,7 @@ private suspend fun Api.mine(trip: String) = get("/trips/$trip/personal-items").
 
 class GroupPackingRoutesTest {
     @Test
-    fun sentListLandsInEveryBagAndFollowsLaterEdits() = apiTest {
+    fun sentListLandsInEveryBagAndMembersOwnTheirCopies() = apiTest {
         val trip = packTrip()
         val jacket = UUID.randomUUID().toString()
         val socks = UUID.randomUUID().toString()
@@ -65,9 +65,14 @@ class GroupPackingRoutesTest {
         // a second save on the old version is stale
         assertEquals("LIST_STALE", put("/trips/${trip.id}/member-list", listJson(null, line(jacket, "Jaket"))).errorCode())
 
-        // a VIEWER may not write or send it
-        use(trip.v)
-        assertEquals(HttpStatusCode.Forbidden, put("/trips/${trip.id}/member-list", listJson(1, line(jacket, "Jaket"))).status)
+        // the list is the OWNER's alone: an editor and a viewer may not read, write, send or follow it
+        for (other in listOf(trip.e, trip.v)) {
+            use(other)
+            assertEquals(HttpStatusCode.Forbidden, get("/trips/${trip.id}/member-list").status)
+            assertEquals(HttpStatusCode.Forbidden, put("/trips/${trip.id}/member-list", listJson(1, line(jacket, "Jaket"))).status)
+            assertEquals(HttpStatusCode.Forbidden, post("/trips/${trip.id}/member-list/send", """{"memberIds":[]}""").status)
+            assertEquals(HttpStatusCode.Forbidden, get("/trips/${trip.id}/member-list/progress").status)
+        }
         assertEquals(0, mine(trip.id).size, "nothing before it is sent")
 
         use(trip.owner)
@@ -75,34 +80,46 @@ class GroupPackingRoutesTest {
         // the author gets no copy; both members do
         assertEquals(0, mine(trip.id).size)
         use(trip.v)
-        val copies = mine(trip.id)
-        assertEquals(listOf("Jaket", "Kaos kaki"), copies.map { it.str("name") })
-        val jacketCopy = copies.first().str("id")
+        val copies = mine(trip.id).associateBy { it.str("name") }
+        assertEquals(setOf("Jaket", "Kaos kaki"), copies.keys)
+        val jacketCopy = copies.getValue("Jaket").str("id")
+        // every line is the member's: tick, rename, delete
         assertEquals(HttpStatusCode.OK, patch("/trips/${trip.id}/personal-items/$jacketCopy", """{"isPacked":true}""").status)
-        // only the tick belongs to the member
-        assertEquals(HttpStatusCode.Forbidden, patch("/trips/${trip.id}/personal-items/$jacketCopy", """{"name":"Jas"}""").status)
-        assertEquals(HttpStatusCode.Forbidden, delete("/trips/${trip.id}/personal-items/$jacketCopy").status)
-        // an own line is free
+        assertEquals(HttpStatusCode.OK, patch("/trips/${trip.id}/personal-items/$jacketCopy", """{"name":"Jas"}""").status)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/${trip.id}/personal-items/${copies.getValue("Kaos kaki").str("id")}").status)
         val own = UUID.randomUUID().toString()
         assertEquals(HttpStatusCode.Created, post("/trips/${trip.id}/personal-items", """{"id":"$own","category":"OTHER","name":"Buku"}""").status)
 
-        // the owner renames the jacket, drops the socks and adds a headlamp: the tick stays, own lines stay
+        // the owner renames the jacket, drops the socks and adds a headlamp
         use(trip.owner)
         val lamp = UUID.randomUUID().toString()
         val edited = put("/trips/${trip.id}/member-list", listJson(1, line(jacket, "Jaket tebal", required = true), line(lamp, "Headlamp", required = true, order = 2.0)))
         assertEquals("2", edited.data().jsonObject.str("version"))
+        // the viewer's edited jacket stays theirs; the new line arrives; their own line stays
         use(trip.v)
         val after = mine(trip.id).associateBy { it.str("name") }
-        assertEquals(setOf("Jaket tebal", "Headlamp", "Buku"), after.keys)
-        assertEquals("true", after.getValue("Jaket tebal").str("isPacked"))
-
-        // the editor's progress: 1 of 2 required ticked
+        assertEquals(setOf("Jas", "Headlamp", "Buku"), after.keys)
+        assertEquals("true", after.getValue("Jas").str("isPacked"))
+        // the editor never touched their copies: they follow the list
         use(trip.e)
+        assertEquals(setOf("Jaket tebal", "Headlamp"), mine(trip.id).map { it.str("name") }.toSet())
+
+        // the owner's progress: the viewer ticked 1 of 2 required
+        use(trip.owner)
         val progress = get("/trips/${trip.id}/member-list/progress").data().jsonArray.map { it.jsonObject }.associateBy { it.str("memberId") }
         val viewer = progress.getValue(trip.v.memberId(trip.id))
         assertEquals("1", viewer.str("requiredDone"))
         assertEquals("2", viewer.str("requiredTotal"))
         assertTrue(trip.owner.memberId(trip.id) !in progress, "the author is not a recipient")
+
+        // a copy the member deleted does not come back with the next save
+        use(trip.v)
+        val lampCopy = mine(trip.id).single { it.str("name") == "Headlamp" }.str("id")
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/${trip.id}/personal-items/$lampCopy").status)
+        use(trip.owner)
+        put("/trips/${trip.id}/member-list", listJson(2, line(jacket, "Jaket tebal", required = true), line(lamp, "Headlamp LED", required = true, order = 2.0)))
+        use(trip.v)
+        assertEquals(setOf("Jas", "Buku"), mine(trip.id).map { it.str("name") }.toSet())
     }
 
     @Test
@@ -191,7 +208,7 @@ class GroupPackingRoutesTest {
             SyncChanges(
                 personalItems = listOf(
                     own,
-                    copy.copy(isPacked = true, updatedAt = now + 1.minutes),
+                    copy.copy(isPacked = true, name = "Jaket hujan", updatedAt = now + 1.minutes),
                     // someone else's line, and a copy pretending to come from the list
                     own.copy(id = UUID.randomUUID().toString(), ownerMemberId = trip.e.memberId(trip.id)),
                     own.copy(id = UUID.randomUUID().toString(), sourceItemId = copy.sourceItemId),
@@ -201,6 +218,7 @@ class GroupPackingRoutesTest {
         )
         assertEquals(setOf(own.id, copy.id, stove), pushed.accepted.map { it.id }.toSet(), pushed.rejected.toString())
         assertEquals(listOf("FORBIDDEN", "FORBIDDEN"), pushed.rejected.map { it.code })
+        assertEquals("Jaket hujan", pull().changes.personalItems.single { it.id == copy.id }.name, "a copy is the member's to rename")
 
         // a viewer cannot rename the shared item
         val renamed = push(SyncChanges(packingItems = listOf(stoveRow.copy(name = "Kompor gas", assigneeMemberId = trip.v.memberId(trip.id), isPacked = true, updatedAt = now + 2.minutes))))

@@ -252,6 +252,8 @@ object PersonalItems : Table("personal_items") {
     val sortOrder = double("sort_order")
     val sourceItemId = javaUUID("source_item_id").nullable()
     val required = bool("required")
+    /** A copy of a list line the member edited (V25): later saves of the list leave it alone. */
+    val customized = bool("customized")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()

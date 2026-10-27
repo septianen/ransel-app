@@ -394,6 +394,7 @@ class SyncService {
                 it[isPacked] = dto.isPacked
                 it[sortOrder] = dto.sortOrder
                 it[required] = false
+                it[customized] = false
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
@@ -402,14 +403,13 @@ class SyncService {
         // someone else's line is not there for the caller
         if (existing[PersonalItems.tripId] != tripId || existing[PersonalItems.ownerMemberId] != me) throw conflict("Item belongs to someone else")
         requireNewer(dto.updatedAt, existing[PersonalItems.updatedAt])
-        if (existing[PersonalItems.sourceItemId] != null) {
-            // removed from the owner's list: stays gone; otherwise only the tick is the member's
-            if (existing[PersonalItems.deletedAt] != null) throw conflict("The line was removed from the list")
-            if (dto.deletedAt != null) throw forbidden()
-            PersonalItems.update({ PersonalItems.id eq id }) { it[isPacked] = dto.isPacked }
-            return
-        }
+        // a copy of the owner's list is the member's too; editing it detaches it from later changes of the list
+        val fromList = existing[PersonalItems.sourceItemId] != null
+        if (fromList && existing[PersonalItems.deletedAt] != null && dto.deletedAt == null) throw conflict("The line was removed from the list")
+        val edited = dto.name.trim() != existing[PersonalItems.name] || dto.quantity != existing[PersonalItems.quantity] ||
+            dto.category != existing[PersonalItems.category]
         PersonalItems.update({ PersonalItems.id eq id }) {
+            if (fromList && edited) it[customized] = true
             it[category] = dto.category
             it[name] = dto.name.trim()
             it[quantity] = dto.quantity
