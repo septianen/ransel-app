@@ -17,6 +17,7 @@ import app.ransel.shared.dto.PollSearchRequest
 import app.ransel.shared.dto.PollSearchResult
 import app.ransel.shared.dto.PollVoteInput
 import app.ransel.shared.model.PollKind
+import app.ransel.shared.model.PollStatus
 import app.ransel.ui.format.parseAmountMinor
 import app.ransel.util.newId
 import app.ransel.shared.dto.ReopenPollRequest
@@ -217,7 +218,19 @@ class PollViewModel(
 
     // ── the creator and the owner ───────────────────────────────────────────
 
-    fun close() = act { api.closePoll(pollId) }
+    /**
+     * "Tutup voting sekarang", then straight on to the result: a clear winner (or no votes at all) opens the confirm
+     * dialog at once; a tie stays on the screen, where the manager picks one of the tied options.
+     */
+    fun close() = act(
+        call = { api.closePoll(pollId) },
+        then = { poll ->
+            if (poll.status == PollStatus.CLOSED) {
+                val leaders = poll.leaders()
+                if (leaders.size <= 1) ask(PollDialog.Decide(leaders.singleOrNull()))
+            }
+        },
+    )
 
     fun reopen() = act { api.reopenPoll(pollId, ReopenPollRequest(Clock.System.now() + 1.days)) }
 
@@ -312,11 +325,14 @@ class PollViewModel(
         else -> PollSearchError.FAILED
     }
 
-    private fun act(call: suspend () -> ApiResult<PollDto>) {
+    private fun act(then: (PollDto) -> Unit = {}, call: suspend () -> ApiResult<PollDto>) {
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
             when (val result = call()) {
-                is ApiResult.Success -> _state.update { it.copy(poll = result.value) }
+                is ApiResult.Success -> {
+                    _state.update { it.copy(poll = result.value) }
+                    then(result.value)
+                }
                 is ApiResult.Failure -> {
                     events.send(PollEvent.Notice(if (result.error.code == ErrorCode.POLL_CLOSED) PollNotice.CLOSED else PollNotice.ACTION_FAILED))
                     load()

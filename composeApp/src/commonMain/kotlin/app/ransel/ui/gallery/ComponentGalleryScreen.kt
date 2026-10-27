@@ -124,6 +124,11 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     MoneyText(50_000, "IDR", style = MaterialTheme.typography.titleMedium)
                     MoneyText(1_250, "USD", style = MaterialTheme.typography.titleMedium)
                 }
+                Section("HeroCard") {
+                    app.ransel.ui.components.HeroCard(label = "Bali 4 hari", value = "12 hari lagi", symbol = Symbols.calendarMonth) {
+                        Text("20–23 Nov 2026", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
                 Section("BudgetProgress") {
                     BudgetProgress(3_250_000, 5_000_000, "IDR")
                 }

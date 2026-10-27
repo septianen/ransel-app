@@ -49,13 +49,11 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.kitty_tab
-import ransel.composeapp.generated.resources.shared_balance_collect
 import ransel.composeapp.generated.resources.shared_balance_collect_short
 import ransel.composeapp.generated.resources.shared_balance_even_short
 import ransel.composeapp.generated.resources.shared_balance_owe_short
 import ransel.composeapp.generated.resources.shared_per_person
 import ransel.composeapp.generated.resources.shared_people
-import ransel.composeapp.generated.resources.shared_balance_owe
 import ransel.composeapp.generated.resources.shared_balances_empty
 import ransel.composeapp.generated.resources.shared_balances_title
 import ransel.composeapp.generated.resources.shared_balances_total
@@ -64,7 +62,6 @@ import ransel.composeapp.generated.resources.shared_paid_by
 import ransel.composeapp.generated.resources.shared_paid_by_hint
 import ransel.composeapp.generated.resources.shared_payers_custom_hint
 import ransel.composeapp.generated.resources.shared_payers_title
-import ransel.composeapp.generated.resources.shared_participants_summary
 import ransel.composeapp.generated.resources.shared_pays_to
 import ransel.composeapp.generated.resources.shared_settle_hint
 import ransel.composeapp.generated.resources.shared_settle_title
@@ -126,50 +123,7 @@ fun SharedTabSwitch(selected: SharedTab, onSelect: (SharedTab) -> Unit, modifier
     }
 }
 
-// ── "Posisimu" card ─────────────────────────────────────────────────────────
-
-/** Summary tab: the caller's own balance, tapping it opens the balances tab. */
-@Composable
-fun PositionCard(
-    mine: MemberBalanceDto,
-    currency: String,
-    onOpen: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    val headline = when {
-        mine.balanceMinor > 0 -> stringResource(Res.string.shared_balance_collect, formatMoney(mine.balanceMinor, currency))
-        mine.balanceMinor < 0 -> stringResource(Res.string.shared_balance_owe, formatMoney(-mine.balanceMinor, currency))
-        else -> stringResource(Res.string.shared_you_even)
-    }
-    val (container, onContainer) = balanceColors(mine.balanceMinor)
-    Row(
-        modifier
-            .fillMaxWidth()
-            .clip(IrisShape.lg)
-            .background(container)
-            .clickable(role = Role.Button, onClick = onOpen)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(Res.string.shared_you), style = MaterialTheme.typography.labelMedium, color = onContainer)
-            Text(headline, style = MaterialTheme.typography.titleLarge, color = if (mine.balanceMinor < 0) scheme.error else onContainer)
-            Text(
-                stringResource(
-                    Res.string.shared_participants_summary,
-                    formatMoney(mine.paidMinor, currency),
-                    formatMoney(mine.shareMinor, currency),
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = onContainer,
-            )
-        }
-        Symbol(Symbols.chevronRight, tint = onContainer)
-    }
-}
-
-/** Card colours for my balance, the same on the summary and the balances tab: green when money comes back, red when I owe, neutral when even. */
+/** Card colours for my balance on the balances tab: green when money comes back, red when I owe, neutral when even. */
 @Composable
 internal fun balanceColors(balanceMinor: Long): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> {
     val scheme = MaterialTheme.colorScheme

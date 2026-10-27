@@ -571,9 +571,6 @@
     <string name="shared_you">kamu</string>
     <string name="shared_you_lower">kamu</string>
     <string name="shared_you_even">Kamu sudah impas</string>
-    <string name="shared_balance_collect">Dapat kembali %1$s</string>
-    <string name="shared_balance_owe">Perlu bayar %1$s</string>
-    <string name="shared_participants_summary">Kamu bayar %1$s · bagianmu %2$s</string>
     <string name="shared_balance_collect_short">dapat kembali</string>
     <string name="shared_balance_owe_short">perlu bayar</string>
     <string name="shared_balance_even_short">impas</string>
@@ -1326,7 +1323,6 @@
     <string name="packing_shared_count">%1$d dari %2$d ada yang bawa</string>
     <string name="packing_shared_mine">Kamu bawa %1$d barang</string>
     <string name="packing_shared_open">%1$d belum ada yang ambil</string>
-    <string name="packing_shared_nobody">Belum ada yang bawa</string>
     <string name="packing_bring">Saya bawa</string>
     <string name="packing_bringer">%1$s bawa</string>
     <string name="packing_bringer_me">Kamu bawa</string>

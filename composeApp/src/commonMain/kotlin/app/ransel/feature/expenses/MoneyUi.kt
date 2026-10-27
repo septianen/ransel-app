@@ -38,6 +38,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.ransel.feature.currency.currencySymbol
 import app.ransel.feature.tripform.ThousandsVisualTransformation
 import app.ransel.platform.rememberShareText
@@ -309,17 +310,29 @@ private fun SettleRow(
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 2,
             )
-            Text(formatMoney(t.amountMinor, currency), style = MaterialTheme.typography.titleMedium)
+            // the amount always shows whole: one line, a little smaller when the column is narrow
+            val amountStyle = MaterialTheme.typography.titleMedium
+            Text(
+                formatMoney(t.amountMinor, currency),
+                style = amountStyle,
+                maxLines = 1,
+                softWrap = false,
+                autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+                    minFontSize = 12.sp, maxFontSize = amountStyle.fontSize, stepSize = 0.5.sp,
+                ),
+            )
             if (toMe && otherMember?.userId == null) {
                 Text(stringResource(Res.string.money_guest_via_whatsapp), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
             }
         }
         when {
             toMe -> Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = onRemind, modifier = Modifier.heightIn(min = 40.dp)) {
-                    Symbol(Symbols.notificationsActive, size = 16.dp)
-                    Text(stringResource(Res.string.money_remind), Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
-                }
+                // a bell only (owner, 27 Oct 2026); the word stays for screen readers
+                Box(
+                    Modifier.size(40.dp).clip(CircleShape).border(1.dp, scheme.outline, CircleShape)
+                        .clickable(role = Role.Button, onClick = onRemind),
+                    contentAlignment = Alignment.Center,
+                ) { Symbol(Symbols.notificationsActive, size = 18.dp, contentDescription = stringResource(Res.string.money_remind)) }
                 Box(
                     Modifier.size(40.dp).clip(CircleShape).border(1.dp, scheme.outline, CircleShape)
                         .clickable(enabled = !busy, role = Role.Button, onClick = onSettle),

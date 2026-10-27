@@ -200,10 +200,7 @@ fun ExpensesTab(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    val mine = balances.balances?.members?.firstOrNull { it.memberId == myMemberId }
-                    if (shared && mine != null) {
-                        PositionCard(mine, balances.balances!!.baseCurrency, onOpen = { sharedTab = SharedTab.BALANCES })
-                    }
+                    // no "Posisimu" card here: the Saldo tab says the same (owner, 27 Oct 2026)
                     CategoryBreakdown(summary, trip.baseCurrency)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(Res.string.expenses_transactions), style = MaterialTheme.typography.titleLarge)

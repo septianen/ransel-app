@@ -574,9 +574,6 @@
     <string name="shared_you">you</string>
     <string name="shared_you_lower">you</string>
     <string name="shared_you_even">You are all square</string>
-    <string name="shared_balance_collect">You get back %1$s</string>
-    <string name="shared_balance_owe">You owe %1$s</string>
-    <string name="shared_participants_summary">You paid %1$s · your share %2$s</string>
     <string name="shared_balance_collect_short">gets back</string>
     <string name="shared_balance_owe_short">needs to pay</string>
     <string name="shared_balance_even_short">all square</string>
@@ -1334,7 +1331,6 @@
     <string name="packing_shared_count">%1$d of %2$d have someone bringing them</string>
     <string name="packing_shared_mine">You bring %1$d items</string>
     <string name="packing_shared_open">%1$d still unclaimed</string>
-    <string name="packing_shared_nobody">Nobody is bringing it yet</string>
     <string name="packing_bring">I'll bring it</string>
     <string name="packing_bringer">%1$s brings it</string>
     <string name="packing_bringer_me">You bring it</string>

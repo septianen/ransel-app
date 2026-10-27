@@ -51,6 +51,7 @@ import app.ransel.ui.theme.IrisTheme
 import androidx.compose.foundation.layout.heightIn
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
+import app.ransel.ui.components.HeroCard
 import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.preview.IrisPreview
@@ -179,7 +180,7 @@ fun GroupContent(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 72.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        CountdownCard(countdown = countdownFor(trip, today), dates = dates.range(trip.startDate, trip.endDate))
+        CountdownCard(countdown = countdownFor(trip, today), tripTitle = trip.title, dates = dates.range(trip.startDate, trip.endDate))
 
         if (!signedIn) {
             SignInCard()
@@ -384,26 +385,14 @@ private fun PollTile(kind: PollKind) {
 }
 
 @Composable
-private fun CountdownCard(countdown: Countdown, dates: String) {
+private fun CountdownCard(countdown: Countdown, tripTitle: String, dates: String) {
     val label = when (countdown) {
         is Countdown.Upcoming -> countdownLabel(countdown.days)
         is Countdown.Ongoing -> stringResource(Res.string.group_countdown_ongoing, countdown.day, countdown.totalDays)
         Countdown.Finished -> stringResource(Res.string.group_countdown_finished)
     }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(IrisShape.lg)
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            label,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
-        Text(dates, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+    HeroCard(label = tripTitle, value = label, symbol = Symbols.calendarMonth) {
+        Text(dates, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimary)
     }
 }
 

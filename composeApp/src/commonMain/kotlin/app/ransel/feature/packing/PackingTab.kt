@@ -92,7 +92,6 @@ import ransel.composeapp.generated.resources.packing_shared_title
 import ransel.composeapp.generated.resources.packing_shared_count
 import ransel.composeapp.generated.resources.packing_shared_mine
 import ransel.composeapp.generated.resources.packing_shared_open
-import ransel.composeapp.generated.resources.packing_shared_nobody
 import ransel.composeapp.generated.resources.packing_bringer
 import ransel.composeapp.generated.resources.packing_bringer_me
 import ransel.composeapp.generated.resources.packing_give_back
@@ -639,12 +638,8 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
                 ),
                 color = if (item.isPacked) scheme.onSurfaceVariant else scheme.onSurface,
             )
-            if (bringer == null) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Symbol(Symbols.help, size = 14.dp, tint = scheme.onSurfaceVariant)
-                    Text(stringResource(Res.string.packing_shared_nobody), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-                }
-            } else {
+            // nobody brings it yet: the "Saya bawa" button says so, no extra line (owner, 27 Oct 2026)
+            if (bringer != null) {
                 val member = shared.members.firstOrNull { it.memberId == bringer }
                 Box {
                     Row(
