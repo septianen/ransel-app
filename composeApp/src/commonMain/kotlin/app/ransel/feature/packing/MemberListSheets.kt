@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -301,9 +301,14 @@ private fun EditorCategory(
                         .clickable(role = Role.Switch) { onChange(line.copy(required = !required)) }
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                 )
-                SmallStep("−", stringResource(Res.string.packing_quantity_decrease), line.quantity > 1) { onChange(line.copy(quantity = line.quantity - 1)) }
-                Text("${line.quantity}", style = MaterialTheme.typography.titleSmall, modifier = Modifier.widthIn(min = 16.dp))
-                SmallStep("+", stringResource(Res.string.packing_quantity_increase), line.quantity < 99) { onChange(line.copy(quantity = line.quantity + 1)) }
+                SmallStep(Symbols.remove, stringResource(Res.string.packing_quantity_decrease), line.quantity > 1) { onChange(line.copy(quantity = line.quantity - 1)) }
+                Text(
+                    "${line.quantity}",
+                    style = MaterialTheme.typography.titleSmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.width(24.dp),
+                )
+                SmallStep(Symbols.add, stringResource(Res.string.packing_quantity_increase), line.quantity < 99) { onChange(line.copy(quantity = line.quantity + 1)) }
                 Box(Modifier.size(40.dp).clickable(role = Role.Button) { onRemove(line) }, contentAlignment = Alignment.Center) {
                     Symbol(Symbols.close, size = 18.dp, tint = scheme.onSurfaceVariant, contentDescription = stringResource(Res.string.member_list_remove_item, line.name))
                 }
@@ -328,13 +333,16 @@ private fun EditorCategory(
 }
 
 @Composable
-private fun SmallStep(text: String, description: String, enabled: Boolean, onClick: () -> Unit) {
+private fun SmallStep(symbol: String, description: String, enabled: Boolean, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Box(
         Modifier.size(32.dp).clip(CircleShape).border(1.dp, if (enabled) scheme.outline else scheme.outlineVariant, CircleShape)
             .clickable(enabled = enabled, role = Role.Button, onClickLabel = description, onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Text(text, style = MaterialTheme.typography.titleSmall, color = if (enabled) scheme.onSurface else scheme.outlineVariant) }
+    ) {
+        // an icon, not "−"/"+" text: glyphs sit on the font's baseline and look off-centre in the circle
+        Symbol(symbol, size = 18.dp, tint = if (enabled) scheme.onSurface else scheme.outlineVariant)
+    }
 }
 
 /**
