@@ -9,11 +9,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
-import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,7 +62,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -410,7 +407,6 @@ private fun DaySection(
     val finish by rememberUpdatedState(onFinish)
     val itemIds by rememberUpdatedState(items.map { it.id })
     var containerRoot by remember { mutableStateOf(Offset.Zero) }
-    val handleZone = with(LocalDensity.current) { 56.dp.toPx() }
     Column(
         Modifier
             .onGloballyPositioned { containerRoot = it.positionInRoot() }
@@ -422,25 +418,9 @@ private fun DaySection(
                     val hit = itemIds.firstOrNull { drag.rowBounds[it]?.contains(rootPos) == true }
                         ?: return@awaitEachGesture
                     val bounds = drag.rowBounds.getValue(hit)
-                    val started: Boolean
-                    var overshoot = Offset.Zero
-                    if (rootPos.x >= bounds.right - handleZone) {
-                        // handle: drag as soon as the touch slop is crossed
-                        drag.armed = true
-                        started = awaitTouchSlopOrCancellation(down.id) { change, over ->
-                            change.consume()
-                            overshoot = over
-                        } != null
-                    } else {
-                        started = awaitLongPressOrCancellation(down.id) != null
-                    }
-                    if (!started) {
-                        drag.armed = false
-                        return@awaitEachGesture
-                    }
+                    // only a long press anywhere on the row starts a drag, so scrolling past a row never moves it
+                    if (awaitLongPressOrCancellation(down.id) == null) return@awaitEachGesture
                     drag.start(hit, rootPos - bounds.topLeft)
-                    // the movement that crossed the slop already happened: do not lose it
-                    if (overshoot != Offset.Zero) drag.dragBy(overshoot.x, overshoot.y)
                     val completed = drag(down.id) { change ->
                         val delta = change.positionChange()
                         change.consume()
@@ -571,11 +551,8 @@ private fun TimelineRow(
             }
             app.ransel.ui.components.PendingMarker(item.id)
             if (!dragging) PlaceDetailButton(item)
-            // Handle: touching it drags immediately; the rest of the row needs a long press.
-            // Gestures are detected by the container in DaySection (this row moves while dragging).
-            Box(Modifier.size(48.dp).testTag("drag-handle-${item.id}"), contentAlignment = Alignment.Center) {
-                Symbol(Symbols.dragIndicator, tint = MaterialTheme.colorScheme.outline)
-            }
+            // No handle: a long press anywhere on the row drags it. Gestures are detected by the container in
+            // DaySection (this row moves while dragging).
         }
     }
 }

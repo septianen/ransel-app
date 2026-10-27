@@ -76,8 +76,9 @@ import ransel.composeapp.generated.resources.group_members_title
 import ransel.composeapp.generated.resources.group_needs_empty
 import ransel.composeapp.generated.resources.group_need_confirm
 import ransel.composeapp.generated.resources.group_need_pay
-import ransel.composeapp.generated.resources.group_polls_empty
-import ransel.composeapp.generated.resources.group_polls_title
+import ransel.composeapp.generated.resources.group_votings_ongoing
+import ransel.composeapp.generated.resources.group_votings_ongoing_empty
+import ransel.composeapp.generated.resources.vote_banner_history
 import ransel.composeapp.generated.resources.poll_need_decide
 import ransel.composeapp.generated.resources.poll_need_vote
 import ransel.composeapp.generated.resources.poll_status_closed
@@ -113,6 +114,8 @@ fun GroupTab(
     /** The trip's place-voting rounds (Explore on a group trip), listed with the polls. */
     rounds: List<RoundSummaryDto> = emptyList(),
     onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
+    /** "Riwayat voting": the finished votings on their own screen. */
+    onOpenVotingHistory: () -> Unit = {},
     /** A money item in "Perlu tindakanmu" opens the Pengeluaran tab. */
     onOpenMoney: () -> Unit = {},
     onOpenDocuments: () -> Unit = {},
@@ -135,6 +138,7 @@ fun GroupTab(
         onOpenPoll = onOpenPoll,
         rounds = rounds,
         onOpenRound = onOpenRound,
+        onOpenVotingHistory = onOpenVotingHistory,
         modifier = modifier,
         owes = state.owes,
         claimsToConfirm = state.claimsToConfirm,
@@ -161,6 +165,7 @@ fun GroupContent(
     modifier: Modifier = Modifier,
     rounds: List<RoundSummaryDto> = emptyList(),
     onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
+    onOpenVotingHistory: () -> Unit = {},
     now: Instant = Clock.System.now(),
     owes: List<TransferDto> = emptyList(),
     claimsToConfirm: List<SettlementDto> = emptyList(),
@@ -198,48 +203,32 @@ fun GroupContent(
             )
         }
 
-        // Every voting of the trip lives here: polls and place-voting rounds, ongoing first, then newest first.
-        Section(stringResource(Res.string.group_polls_title)) {
-            val votings = votingEntries(polls, rounds, now)
-            if (votings.isEmpty()) {
+        // Votings still running that wait for others (the ones waiting for me are in "Perlu tindakanmu" above);
+        // finished ones only behind "Riwayat voting".
+        val actionRounds = rounds.actionRounds(isOwner, now).toSet()
+        val ongoing = votingEntries(
+            polls.filter { it.status != PollStatus.DECIDED && it.needFor(myMemberId, isOwner) == null },
+            rounds.filter { roundState(now, it.closesAt, it.decidedAt) != RoundState.DECIDED && it !in actionRounds },
+        )
+        Section(stringResource(Res.string.group_votings_ongoing)) {
+            if (ongoing.isEmpty()) {
                 Text(
-                    stringResource(Res.string.group_polls_empty),
+                    stringResource(Res.string.group_votings_ongoing_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                val actionRounds = rounds.actionRounds(isOwner, now).toSet()
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    votings.forEach { entry ->
-                        when (entry) {
-                            is VotingEntry.Poll -> PollRow(entry.poll) { onOpenPoll(entry.poll.id) }
-                            is VotingEntry.Round -> VoteRoundRow(
-                                entry.round,
-                                isOwner = isOwner,
-                                highlight = entry.round in actionRounds,
-                                now = now,
-                                modifier = Modifier.heightIn(min = 64.dp),
-                                background = MaterialTheme.colorScheme.surfaceContainerLow,
-                            ) { onOpenRound(entry.round.id, entry.round.opensResult(isOwner, now)) }
-                        }
-                    }
+                    ongoing.forEach { VotingEntryRow(it, isOwner, now, onOpenPoll, onOpenRound) }
                 }
             }
+            val finished = polls.count { it.status == PollStatus.DECIDED } +
+                rounds.count { roundState(now, it.closesAt, it.decidedAt) == RoundState.DECIDED }
+            LinkRow(Symbols.doneAll, stringResource(Res.string.vote_banner_history), finished.toString(), onOpenVotingHistory)
         }
 
         Section(stringResource(Res.string.group_documents)) {
-            Row(
-                Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(IrisShape.lg)
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .clickable(role = SemanticsRole.Button, onClick = onOpenDocuments).padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Symbol(Symbols.receiptLong, tint = MaterialTheme.colorScheme.primary)
-                Text(stringResource(Res.string.documents_title), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                Text(stringResource(Res.string.group_documents_all), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            LinkRow(Symbols.receiptLong, stringResource(Res.string.documents_title), stringResource(Res.string.group_documents_all), onOpenDocuments)
         }
 
         Section(
@@ -255,23 +244,59 @@ fun GroupContent(
     }
 }
 
-private sealed interface VotingEntry {
-    val ongoing: Boolean
-    val createdAt: Instant
+/** One voting in a list: a poll or a place-voting round. */
+sealed interface VotingEntry {
+    /** When it started (ongoing list) or ended (history), for the order. */
+    val at: Instant
 
-    data class Poll(val poll: PollDto) : VotingEntry {
-        override val ongoing get() = poll.status == PollStatus.OPEN
-        override val createdAt get() = poll.createdAt
-    }
+    data class Poll(val poll: PollDto, override val at: Instant) : VotingEntry
+    data class Round(val round: RoundSummaryDto, override val at: Instant) : VotingEntry
+}
 
-    data class Round(val round: RoundSummaryDto, override val ongoing: Boolean) : VotingEntry {
-        override val createdAt get() = round.createdAt
+/** Polls and place-voting rounds in one list, newest first. */
+internal fun votingEntries(polls: List<PollDto>, rounds: List<RoundSummaryDto>, finished: Boolean = false): List<VotingEntry> =
+    (
+        polls.map { VotingEntry.Poll(it, if (finished) it.closesAt else it.createdAt) } +
+            rounds.map { VotingEntry.Round(it, if (finished) it.decidedAt ?: it.closesAt else it.createdAt) }
+        ).sortedByDescending { it.at }
+
+@Composable
+internal fun VotingEntryRow(
+    entry: VotingEntry,
+    isOwner: Boolean,
+    now: Instant,
+    onOpenPoll: (pollId: String) -> Unit,
+    onOpenRound: (roundId: String, showResult: Boolean) -> Unit,
+) {
+    when (entry) {
+        is VotingEntry.Poll -> PollRow(entry.poll) { onOpenPoll(entry.poll.id) }
+        is VotingEntry.Round -> VoteRoundRow(
+            entry.round,
+            isOwner = isOwner,
+            highlight = false,
+            now = now,
+            modifier = Modifier.heightIn(min = 64.dp),
+            background = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) { onOpenRound(entry.round.id, entry.round.opensResult(isOwner, now)) }
     }
 }
 
-private fun votingEntries(polls: List<PollDto>, rounds: List<RoundSummaryDto>, now: Instant): List<VotingEntry> =
-    (polls.map { VotingEntry.Poll(it) } + rounds.map { VotingEntry.Round(it, roundState(now, it.closesAt, it.decidedAt) != RoundState.DECIDED) })
-        .sortedWith(compareByDescending<VotingEntry> { it.ongoing }.thenByDescending { it.createdAt })
+/** A row that opens another screen: "Dokumen trip", "Riwayat voting". */
+@Composable
+private fun LinkRow(symbol: String, title: String, trailing: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(IrisShape.lg)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable(role = SemanticsRole.Button, onClick = onClick).padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Symbol(symbol, tint = MaterialTheme.colorScheme.primary)
+        Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+        Text(trailing, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
 
 /** A poll that asks something of the user: vote, or (creator and owner) confirm the result. */
 @Composable
@@ -317,7 +342,7 @@ private fun PollNeedCard(poll: PollDto, need: PollNeed, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PollRow(poll: PollDto, onClick: () -> Unit) {
+internal fun PollRow(poll: PollDto, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()

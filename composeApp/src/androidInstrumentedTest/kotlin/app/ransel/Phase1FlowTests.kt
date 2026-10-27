@@ -150,14 +150,16 @@ class Phase1FlowTests {
         val first = store.items.value.first { it.title == "Melasti" }
         try {
             rule.waitUntil(5_000) {
-                rule.onAllNodesWithTag("drag-handle-${first.id}", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+                rule.onAllNodesWithText("Melasti").fetchSemanticsNodes().isNotEmpty()
             }
         } catch (e: Throwable) {
             rule.onRoot().printToLog("DBGTREE")
             throw e
         }
-        rule.onNodeWithTag("drag-handle-${first.id}", useUnmergedTree = true).performTouchInput {
+        // no handle: a long press starts the drag
+        rule.onNodeWithText("Melasti").performTouchInput {
             down(center)
+            advanceEventTime(viewConfiguration.longPressTimeoutMillis + 100)
             repeat(8) { moveBy(Offset(0f, 60f)) } // 480 px: past the centers of "Uluwatu" and "Lunch" (rows are ~190 px apart)
             up()
         }

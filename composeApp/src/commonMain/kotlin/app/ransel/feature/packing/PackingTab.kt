@@ -66,6 +66,13 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.packing_item_delete_confirm
+import ransel.composeapp.generated.resources.packing_item_delete_body
+import ransel.composeapp.generated.resources.packing_item_delete_title
+import ransel.composeapp.generated.resources.packing_item_delete
+import ransel.composeapp.generated.resources.packing_item_edit
+import ransel.composeapp.generated.resources.packing_item_more
 import ransel.composeapp.generated.resources.ic_packing_empty
 import ransel.composeapp.generated.resources.packing_add
 import ransel.composeapp.generated.resources.packing_complete
@@ -204,6 +211,7 @@ private fun PackingList(
                     canEdit = canEdit,
                     onBring = { viewModel.bring(it, myMemberId) },
                     onGiveBack = viewModel::giveBack,
+                    onDelete = viewModel::delete,
                 ) else null
                 PackingItems(
                     trip = trip,
@@ -306,6 +314,8 @@ class SharedMode(
     val canEdit: Boolean,
     val onBring: (PackingItemDto) -> Unit,
     val onGiveBack: (PackingItemDto) -> Unit,
+    /** The ⋮ menu's "Hapus" (OWNER and EDITOR), after a confirmation. */
+    val onDelete: (PackingItemDto) -> Unit = {},
 )
 
 @Composable
@@ -593,11 +603,19 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
     val bringer = item.assigneeMemberId
     val mine = bringer == shared.myMemberId
     var menu by remember { mutableStateOf(false) }
+    var itemMenu by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .combinedClickable(enabled = bringer != null, role = Role.Checkbox, onClick = onToggle, onLongClick = onLongPress),
+            // a tap ticks (only once someone brings it); a long press edits, also before anyone brings it
+            .combinedClickable(
+                enabled = bringer != null || shared.canEdit,
+                role = if (bringer != null) Role.Checkbox else null,
+                onClick = { if (bringer != null) onToggle() },
+                onLongClick = if (shared.canEdit) onLongPress else null,
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -659,6 +677,37 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
         } else {
             Text("×${item.quantity}", style = MaterialTheme.typography.titleSmall, color = scheme.onSurfaceVariant)
         }
+        if (shared.canEdit) {
+            Box {
+                androidx.compose.material3.IconButton(onClick = { itemMenu = true }) {
+                    Symbol(Symbols.moreVert, tint = scheme.onSurfaceVariant, contentDescription = stringResource(Res.string.packing_item_more))
+                }
+                DropdownMenu(expanded = itemMenu, onDismissRequest = { itemMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.packing_item_edit)) },
+                        leadingIcon = { Symbol(Symbols.edit) },
+                        onClick = { itemMenu = false; onLongPress() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.packing_item_delete), color = scheme.error) },
+                        leadingIcon = { Symbol(Symbols.delete, tint = scheme.error) },
+                        onClick = { itemMenu = false; confirmDelete = true },
+                    )
+                }
+            }
+        }
+    }
+    if (confirmDelete) {
+        app.ransel.ui.components.ConfirmDialog(
+            title = stringResource(Res.string.packing_item_delete_title, item.name),
+            body = stringResource(Res.string.packing_item_delete_body),
+            confirmLabel = stringResource(Res.string.packing_item_delete_confirm),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = { confirmDelete = false; shared.onDelete(item) },
+            onDismiss = { confirmDelete = false },
+            destructive = true,
+            symbol = Symbols.delete,
+        )
     }
 }
 

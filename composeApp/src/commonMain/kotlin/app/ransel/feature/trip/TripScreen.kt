@@ -72,6 +72,8 @@ fun TripScreen(
     onOpenVoteList: (() -> Unit)? = null,
     /** Opens one voting round from the Group tab's "Voting" list (the OWNER sees the result of a closed round). */
     onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
+    /** "Riwayat voting" on the Group tab. */
+    onOpenVotingHistory: () -> Unit = {},
     /** Polls live on their own screens: create one of a kind, or open one. */
     onCreatePoll: (PollKind) -> Unit = {},
     onOpenPoll: (pollId: String) -> Unit = {},
@@ -178,6 +180,7 @@ fun TripScreen(
                             onOpenPoll = onOpenPoll,
                             rounds = tripRounds,
                             onOpenRound = onOpenRound,
+                            onOpenVotingHistory = onOpenVotingHistory,
                             onOpenDocuments = { onOpenDocuments(false) },
                             refreshKey = refreshCount,
                         )

@@ -96,3 +96,6 @@ import kotlinx.serialization.Serializable
 
 /** Every voting round of a trip, opened from the Group tab. */
 @Serializable data class VoteListRoute(val tripId: String)
+
+/** "Riwayat voting": the finished polls and place-voting rounds of a trip, opened from the Group tab. */
+@Serializable data class VotingHistoryRoute(val tripId: String)

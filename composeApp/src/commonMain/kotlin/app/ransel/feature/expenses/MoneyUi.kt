@@ -220,8 +220,14 @@ fun SaldoContent(
 @Composable
 private fun PositionHeadline(mine: MemberBalanceDto, transfers: List<TransferDto>, settledNow: List<TransferDto>, currency: String) {
     val scheme = MaterialTheme.colorScheme
+    // green when money comes back, red when I owe, neutral when even
+    val container = when {
+        mine.balanceMinor > 0 -> scheme.primaryContainer
+        mine.balanceMinor < 0 -> scheme.errorContainer
+        else -> scheme.surfaceContainerHigh
+    }
     Column(
-        Modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.primaryContainer).padding(16.dp),
+        Modifier.fillMaxWidth().clip(IrisShape.lg).background(container).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         when {
@@ -236,10 +242,10 @@ private fun PositionHeadline(mine: MemberBalanceDto, transfers: List<TransferDto
                 )
             }
             mine.balanceMinor < 0 -> {
-                Text(stringResource(Res.string.money_owe), style = MaterialTheme.typography.labelMedium, color = scheme.onPrimaryContainer)
+                Text(stringResource(Res.string.money_owe), style = MaterialTheme.typography.labelMedium, color = scheme.onErrorContainer)
                 Text(formatMoney(-mine.balanceMinor, currency), style = MaterialTheme.typography.headlineMedium, color = scheme.error)
             }
-            else -> Text(stringResource(Res.string.shared_you_even), style = MaterialTheme.typography.titleLarge, color = scheme.onPrimaryContainer)
+            else -> Text(stringResource(Res.string.shared_you_even), style = MaterialTheme.typography.titleLarge, color = scheme.onSurface)
         }
     }
 }

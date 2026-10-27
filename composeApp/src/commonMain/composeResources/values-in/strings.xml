@@ -1112,8 +1112,6 @@
     <string name="poll_delete_option_body">Suara untuk opsi ini akan dihapus.</string>
     <string name="poll_option_edit">Ubah</string>
     <string name="poll_option_delete">Hapus</string>
-    <string name="group_polls_title">Voting</string>
-    <string name="group_polls_empty">Belum ada voting. Ketuk + untuk bertanya ke grup.</string>
     <string name="poll_need_vote">Kamu belum memilih</string>
     <string name="poll_need_decide">Menunggu keputusanmu</string>
     <string name="notification_poll_open">%1$s membuat polling</string>
@@ -1527,4 +1525,13 @@
     <string name="trip_template_hint">%1$d hari · %2$d aktivitas · %3$d barang</string>
     <string name="trip_template_applied">Itinerary dan packing dari "%1$s" ditambahkan</string>
     <string name="trip_template_delete">Hapus template</string>
+    <string name="group_votings_ongoing">Voting berjalan</string>
+    <string name="group_votings_ongoing_empty">Tidak ada voting yang sedang menunggu anggota lain.</string>
+    <string name="voting_history_empty">Belum ada voting yang selesai.</string>
+    <string name="packing_item_more">Pilihan untuk barang ini</string>
+    <string name="packing_item_edit">Ubah</string>
+    <string name="packing_item_delete">Hapus</string>
+    <string name="packing_item_delete_title">Hapus %1$s?</string>
+    <string name="packing_item_delete_body">Barang ini hilang dari daftar Bersama untuk semua anggota.</string>
+    <string name="packing_item_delete_confirm">Ya, hapus</string>
 </resources>

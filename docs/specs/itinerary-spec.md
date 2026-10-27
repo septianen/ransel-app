@@ -54,7 +54,7 @@ Scheduling opens a bottom sheet: pick a day (2×2 cards with the number of activ
 | Icon | 22dp, fill 1 (filled), weight 500 |
 | Activity title | 16/24 semibold, `on-surface` |
 | Supporting text | `body-medium` (14/20), `on-surface-variant`, the category or place name |
-| Drag handle | `drag_indicator` 24dp `outline` #777777 at the end of the row |
+| Drag handle | None (removed 27 Oct 2026 by the owner): a long press anywhere on the row starts the drag |
 | Spacing | Time column to tile 12dp; tile to title 12dp; between activities 16dp |
 
 ## Activities that cross midnight
@@ -175,7 +175,7 @@ The enum lives in the `shared` module so it matches the `CHECK` values in the da
 
 ## Drag and drop (reorder)
 
-Activities in the timeline can be moved with a long press or with the `drag_indicator` handle at the end of the row. Times follow the new order; to set a specific time, the user uses the Edit activity form.
+Activities in the timeline can be moved with a long press anywhere on the row; there is no handle, so scrolling past a row never moves it (owner, 27 Oct 2026). Times follow the new order; to set a specific time, the user uses the Edit activity form.
 
 ### Time rule: durations kept, schedule packed
 

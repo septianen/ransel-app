@@ -30,13 +30,10 @@ class DayDragState {
     val rowBounds = HashMap<String, Rect>()
     val chipBounds = HashMap<Int, Rect>()
 
-    /** True from the moment a handle is touched, before any movement: the parent scroll must let go. */
-    var armed by mutableStateOf(false)
-
     val isDragging: Boolean get() = draggingId != null
 
-    /** The list must not scroll while a drag is possible or running (the scroll would steal the gesture). */
-    val blocksScroll: Boolean get() = armed || isDragging
+    /** The list must not scroll while a drag runs (the scroll would steal the gesture). */
+    val blocksScroll: Boolean get() = isDragging
 
     fun start(id: String, touchInRow: Offset) {
         draggingId = id
@@ -54,7 +51,6 @@ class DayDragState {
     }
 
     fun finish() {
-        armed = false
         draggingId = null
         deltaY = 0f
         deltaX = 0f

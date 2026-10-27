@@ -1119,8 +1119,6 @@
     <string name="poll_delete_option_body">Votes on this option are cleared.</string>
     <string name="poll_option_edit">Edit</string>
     <string name="poll_option_delete">Delete</string>
-    <string name="group_polls_title">Voting</string>
-    <string name="group_polls_empty">No votes yet. Tap + to ask the group.</string>
     <string name="poll_need_vote">You have not voted yet</string>
     <string name="poll_need_decide">Waiting for your decision</string>
     <string name="notification_poll_open">%1$s started a poll</string>
@@ -1535,4 +1533,13 @@
     <string name="trip_template_hint">%1$d days · %2$d activities · %3$d items</string>
     <string name="trip_template_applied">Itinerary and packing from "%1$s" added</string>
     <string name="trip_template_delete">Delete template</string>
+    <string name="group_votings_ongoing">Ongoing votes</string>
+    <string name="group_votings_ongoing_empty">No votes waiting for other members.</string>
+    <string name="voting_history_empty">No finished votes yet.</string>
+    <string name="packing_item_more">Options for this item</string>
+    <string name="packing_item_edit">Edit</string>
+    <string name="packing_item_delete">Delete</string>
+    <string name="packing_item_delete_title">Delete %1$s?</string>
+    <string name="packing_item_delete_body">This item disappears from the shared list for every member.</string>
+    <string name="packing_item_delete_confirm">Yes, delete</string>
 </resources>

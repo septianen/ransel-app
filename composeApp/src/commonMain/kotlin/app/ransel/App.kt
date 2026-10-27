@@ -753,6 +753,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             },
             onOpenVoteList = { navController.navigate(VoteListRoute(route.tripId)) },
             onOpenRound = { roundId, showResult -> navController.navigate(VoteRoute(route.tripId, roundId, showResult)) },
+            onOpenVotingHistory = { navController.navigate(app.ransel.navigation.VotingHistoryRoute(route.tripId)) },
             onCreatePoll = { kind -> navController.navigate(CreatePollRoute(route.tripId, kind.name)) },
             onOpenPoll = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) },
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
@@ -771,6 +772,15 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             tripId = route.tripId,
             onClose = { navController.popBackStack() },
             onNewTrip = { navController.navigate(CreateTripRoute(invite = true)) },
+        )
+    }
+    page<app.ransel.navigation.VotingHistoryRoute> { entry ->
+        val route = entry.toRoute<app.ransel.navigation.VotingHistoryRoute>()
+        app.ransel.feature.group.VotingHistoryScreen(
+            tripId = route.tripId,
+            onBack = { navController.popBackStack() },
+            onOpenPoll = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) },
+            onOpenRound = { roundId, showResult -> navController.navigate(VoteRoute(route.tripId, roundId, showResult)) },
         )
     }
     page<DocumentsRoute> { entry ->
