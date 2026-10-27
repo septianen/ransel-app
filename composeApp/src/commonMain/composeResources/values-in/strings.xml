@@ -1501,4 +1501,13 @@
     <string name="form_discard_body">Isian yang belum disimpan akan hilang.</string>
     <string name="form_discard_confirm">Buang</string>
     <string name="form_discard_keep">Lanjut isi</string>
+    <string name="itinerary_auto_button">Jadwalkan otomatis</string>
+    <string name="itinerary_auto_title">Jadwalkan otomatis?</string>
+    <string name="itinerary_auto_body">%1$d tempat akan dijadwalkan ke Hari %2$s, antara 09.00 dan 20.00. Kegiatan yang sudah ada tidak berubah.</string>
+    <string name="itinerary_auto_left">%1$d tempat tidak muat dan tetap di Belum dijadwalkan.</string>
+    <string name="itinerary_auto_none">Tidak ada tempat yang muat di sisa hari. Tambah hari atau kurangi kegiatan dulu.</string>
+    <string name="itinerary_auto_confirm">Jadwalkan</string>
+    <string name="itinerary_auto_running">Menjadwalkan…</string>
+    <string name="itinerary_auto_done">%1$d tempat dijadwalkan</string>
+    <string name="itinerary_auto_done_left">%1$d tempat dijadwalkan, %2$d tidak muat</string>
 </resources>

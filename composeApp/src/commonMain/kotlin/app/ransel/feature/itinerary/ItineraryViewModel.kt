@@ -11,6 +11,11 @@ import app.ransel.shared.domain.Slot
 import app.ransel.shared.domain.activityDurationMinutes
 import app.ransel.shared.domain.changedSlots
 import app.ransel.shared.domain.reorder
+import app.ransel.shared.domain.AutoDay
+import app.ransel.shared.domain.AutoExisting
+import app.ransel.shared.domain.AutoPlace
+import app.ransel.shared.domain.AutoScheduleResult
+import app.ransel.shared.domain.autoSchedule
 import app.ransel.shared.domain.scheduleAtEndOfDay
 import app.ransel.shared.dto.DayOrderItem
 import app.ransel.shared.dto.ItineraryItemDto
@@ -39,6 +44,8 @@ data class ItineraryUiState(
     val unscheduled: List<ItineraryItemDto> = emptyList(),
     val skipReorderConfirmation: Boolean = false,
     val pendingReorder: PendingReorder? = null,
+    /** "Jadwalkan otomatis" is saving: the dialog shows progress and ignores taps. */
+    val autoScheduling: Boolean = false,
     val loading: Boolean = true,
 ) {
     val selectedIndex: Int get() = days.indexOf(selectedDay).coerceAtLeast(0)
@@ -59,12 +66,20 @@ data class PendingReorder(
     val packedFrom: LocalTime?,
 )
 
+/** What "Jadwalkan otomatis" would do, for its confirmation dialog. */
+data class AutoPlan(val result: AutoScheduleResult, val dayNumbers: List<Int>) {
+    val count: Int get() = result.scheduled.size
+    val leftOver: Int get() = result.leftOver.size
+}
+
 data class ReorderChange(val item: ItineraryItemDto, val oldStart: LocalTime?, val newStart: LocalTime?)
 
 sealed interface ItineraryEvent {
     /** "Jadwal Hari 1 dirapatkan" + Undo. [restore] is the day order to send back. */
     data class Reordered(val dayNumber: Int, val day: LocalDate, val restore: List<DayOrderItem>) : ItineraryEvent
     data class MovedToDay(val dayNumber: Int, val restore: ItineraryItemInput) : ItineraryEvent
+    /** "5 tempat dijadwalkan" + Undo. [restore] are the places as they were (unscheduled). */
+    data class AutoScheduled(val count: Int, val leftOver: Int, val restore: List<ItineraryItemInput>) : ItineraryEvent
 }
 
 class ItineraryViewModel(
@@ -75,6 +90,7 @@ class ItineraryViewModel(
 ) : ViewModel() {
     private val selectedDay = MutableStateFlow<LocalDate?>(null)
     private val pending = MutableStateFlow<PendingReorder?>(null)
+    private val autoRunning = MutableStateFlow(false)
     private val events = Channel<ItineraryEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
@@ -86,7 +102,8 @@ class ItineraryViewModel(
         selectedDay,
         pending,
         preferences.observe(),
-    ) { items, selected, pendingReorder, prefs ->
+        autoRunning,
+    ) { items, selected, pendingReorder, prefs, auto ->
         val scheduled = items.filter { it.dayDate != null }
         val byDay = days.associateWith { day ->
             scheduled.filter { it.dayDate == day }.sortedWith(compareBy({ it.sortOrder }, { it.startTime }))
@@ -99,6 +116,7 @@ class ItineraryViewModel(
             unscheduled = items.filter { it.dayDate == null },
             skipReorderConfirmation = prefs.skipReorderConfirmation,
             pendingReorder = pendingReorder,
+            autoScheduling = auto,
             loading = false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItineraryUiState(days = days))
@@ -216,6 +234,61 @@ class ItineraryViewModel(
             )
             if (item.dayDate == null) analytics.event(AnalyticsEvent.ActivityScheduled)
         }
+    }
+
+    // ── "Jadwalkan otomatis" ─────────────────────────────────────────────────
+
+    /** Days that can still take places: all of them before the trip, from today on while it runs. */
+    private fun autoDays(s: ItineraryUiState): List<AutoDay> {
+        val open = days.filter { it >= today() }.ifEmpty { days }
+        return open.map { d ->
+            AutoDay(
+                d,
+                s.itemsByDay[d].orEmpty().map { item ->
+                    val start = item.startTime?.let { it.hour * 60 + it.minute }
+                    val end = item.endTime?.let { it.hour * 60 + it.minute }?.let { e -> if (start != null && e < start) e + 24 * 60 else e }
+                    AutoExisting(start, end, item.sortOrder, item.lat, item.lng)
+                },
+            )
+        }
+    }
+
+    /** The plan for the dialog; nothing is saved. Null when there is nothing to schedule. */
+    fun previewAutoSchedule(): AutoPlan? {
+        val s = state.value
+        if (s.unscheduled.isEmpty()) return null
+        val places = s.unscheduled.map { AutoPlace(it.id, it.category, it.lat, it.lng, it.durationMin) }
+        val result = autoSchedule(places, autoDays(s))
+        return AutoPlan(result, result.scheduled.map { dayNumber(it.date) }.distinct().sorted())
+    }
+
+    /** Saves the plan place by place (each goes through the normal local-first path), then offers Undo. */
+    fun runAutoSchedule() {
+        if (autoRunning.value) return
+        val s = state.value
+        val plan = previewAutoSchedule() ?: return
+        val byId = s.unscheduled.associateBy { it.id }
+        autoRunning.value = true
+        viewModelScope.launch {
+            try {
+                plan.result.scheduled.forEach { a ->
+                    val item = byId[a.id] ?: return@forEach
+                    itinerary.save(
+                        trip.id,
+                        item.toInput().copy(dayDate = a.date, startTime = a.start, endTime = a.end, sortOrder = a.sortOrder),
+                    )
+                    analytics.event(AnalyticsEvent.ActivityScheduled)
+                }
+                val restore = plan.result.scheduled.mapNotNull { byId[it.id]?.toInput() }
+                events.send(ItineraryEvent.AutoScheduled(plan.count, plan.leftOver, restore))
+            } finally {
+                autoRunning.value = false
+            }
+        }
+    }
+
+    fun undoAutoSchedule(restore: List<ItineraryItemInput>) {
+        viewModelScope.launch { restore.forEach { itinerary.save(trip.id, it) } }
     }
 
     fun deleteItem(itemId: String) {

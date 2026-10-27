@@ -35,6 +35,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -96,6 +97,15 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.itinerary_auto_button
+import ransel.composeapp.generated.resources.itinerary_auto_title
+import ransel.composeapp.generated.resources.itinerary_auto_body
+import ransel.composeapp.generated.resources.itinerary_auto_left
+import ransel.composeapp.generated.resources.itinerary_auto_none
+import ransel.composeapp.generated.resources.itinerary_auto_confirm
+import ransel.composeapp.generated.resources.itinerary_auto_running
+import ransel.composeapp.generated.resources.itinerary_auto_done
+import ransel.composeapp.generated.resources.itinerary_auto_done_left
 import ransel.composeapp.generated.resources.action_undo
 import ransel.composeapp.generated.resources.ic_itinerary_empty
 import ransel.composeapp.generated.resources.itinerary_add_activity
@@ -149,6 +159,17 @@ fun ItineraryTab(
                         actionLabel = undoLabel,
                     )
                     if (result == SnackbarResult.ActionPerformed) viewModel.undoReorder(event.day, event.restore)
+                }
+                is ItineraryEvent.AutoScheduled -> {
+                    val result = snackbar.showSnackbar(
+                        message = if (event.leftOver == 0) {
+                            getString(Res.string.itinerary_auto_done, event.count)
+                        } else {
+                            getString(Res.string.itinerary_auto_done_left, event.count, event.leftOver)
+                        },
+                        actionLabel = undoLabel,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) viewModel.undoAutoSchedule(event.restore)
                 }
                 is ItineraryEvent.MovedToDay -> {
                     val result = snackbar.showSnackbar(
@@ -216,6 +237,8 @@ private fun ItineraryContent(
     val drag = remember(state.selectedDay) { DayDragState() }
     var showUnscheduled by rememberSaveable { mutableStateOf(false) }
     var scheduleItemId by rememberSaveable { mutableStateOf<String?>(null) }
+    var autoPlan by remember { mutableStateOf<AutoPlan?>(null) }
+    var showAuto by rememberSaveable { mutableStateOf(false) }
     val day = state.selectedDay
     val items = state.selectedItems
     val ids = items.map { it.id }
@@ -259,6 +282,14 @@ private fun ItineraryContent(
                         items = state.unscheduled,
                         onSeeAll = { showUnscheduled = true },
                         onSchedule = if (canEdit) ({ scheduleItemId = it.id }) else null,
+                        onAutoSchedule = if (canEdit && state.unscheduled.size >= 2) {
+                            {
+                                autoPlan = viewModel.previewAutoSchedule()
+                                showAuto = true
+                            }
+                        } else {
+                            null
+                        },
                     )
                 }
                 if (drag.isDragging) {
@@ -293,6 +324,19 @@ private fun ItineraryContent(
         }
     }
 
+    val plan = autoPlan
+    if (showAuto && plan != null) {
+        AutoScheduleDialog(
+            plan = plan,
+            running = state.autoScheduling,
+            onConfirm = viewModel::runAutoSchedule,
+            onDismiss = { if (!state.autoScheduling) showAuto = false },
+        )
+        // done: the dialog closes by itself once the places have left the box
+        LaunchedEffect(state.unscheduled.size, state.autoScheduling) {
+            if (!state.autoScheduling && state.unscheduled.size < plan.count + plan.leftOver) showAuto = false
+        }
+    }
     if (showUnscheduled) {
         UnscheduledPlacesSheet(
             items = state.unscheduled,
@@ -614,6 +658,7 @@ private fun UnscheduledBox(
     items: List<ItineraryItemDto>,
     onSeeAll: () -> Unit,
     onSchedule: ((ItineraryItemDto) -> Unit)?,
+    onAutoSchedule: (() -> Unit)? = null,
 ) {
     Column(
         Modifier
@@ -651,7 +696,40 @@ private fun UnscheduledBox(
         items.take(2).forEach { item ->
             UnscheduledRow(item, onSchedule = onSchedule?.let { schedule -> { schedule(item) } })
         }
+        if (onAutoSchedule != null) {
+            OutlinedButton(onClick = onAutoSchedule, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Symbol(Symbols.schedule, size = 20.dp)
+                Text(stringResource(Res.string.itinerary_auto_button), Modifier.padding(start = 8.dp))
+            }
+        }
     }
+}
+
+/** "Jadwalkan otomatis?": says where the places would go, then saves them and shows progress until done. */
+@Composable
+private fun AutoScheduleDialog(plan: AutoPlan, running: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val days = plan.dayNumbers
+    val dayText = if (days.size > 1 && days.last() - days.first() == days.size - 1) "${days.first()}–${days.last()}" else days.joinToString(", ")
+    val none = plan.count == 0
+    ConfirmDialog(
+        title = stringResource(Res.string.itinerary_auto_title),
+        body = if (none) stringResource(Res.string.itinerary_auto_none) else stringResource(Res.string.itinerary_auto_body, plan.count, dayText),
+        confirmLabel = stringResource(if (running) Res.string.itinerary_auto_running else Res.string.itinerary_auto_confirm),
+        dismissLabel = stringResource(Res.string.action_cancel),
+        onConfirm = { if (!none && !running) onConfirm() },
+        onDismiss = onDismiss,
+        symbol = Symbols.schedule,
+        extra = {
+            if (plan.leftOver > 0 && !none) {
+                Text(
+                    stringResource(Res.string.itinerary_auto_left, plan.leftOver),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (running) LinearProgressIndicator(Modifier.fillMaxWidth())
+        },
+    )
 }
 
 @Composable

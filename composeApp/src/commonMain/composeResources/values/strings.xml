@@ -1509,4 +1509,13 @@
     <string name="form_discard_body">What you entered and have not saved will be lost.</string>
     <string name="form_discard_confirm">Discard</string>
     <string name="form_discard_keep">Keep editing</string>
+    <string name="itinerary_auto_button">Schedule automatically</string>
+    <string name="itinerary_auto_title">Schedule automatically?</string>
+    <string name="itinerary_auto_body">%1$d places will be scheduled on Day %2$s, between 9:00 AM and 8:00 PM. Activities already planned stay as they are.</string>
+    <string name="itinerary_auto_left">%1$d places do not fit and stay unscheduled.</string>
+    <string name="itinerary_auto_none">No place fits in the days that are left. Add days or remove activities first.</string>
+    <string name="itinerary_auto_confirm">Schedule</string>
+    <string name="itinerary_auto_running">Scheduling…</string>
+    <string name="itinerary_auto_done">%1$d places scheduled</string>
+    <string name="itinerary_auto_done_left">%1$d places scheduled, %2$d do not fit</string>
 </resources>
