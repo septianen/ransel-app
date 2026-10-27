@@ -934,7 +934,7 @@
     <string name="vote_close_title">Tutup voting sekarang?</string>
     <string name="vote_close_body">Anggota tidak bisa memilih lagi. Kamu tetap memutuskan tempat yang masuk ke itinerary.</string>
     <!-- Group foundation (stage 1) -->
-    <string name="trip_tab_group">Grup</string>
+    <string name="trip_tab_group">Ringkasan</string>
     <string name="group_countdown_ongoing">Hari ke-%1$d dari %2$d</string>
     <string name="group_countdown_finished">Trip sudah selesai</string>
     <string name="group_members_title">Anggota</string>
@@ -1492,4 +1492,6 @@
     <string name="document_search_activity">Cari aktivitas</string>
     <string name="document_no_activity_found">Tidak ada aktivitas yang cocok</string>
     <string name="packing_item_delete_body_own">Barang ini dihapus dari daftarmu.</string>
+    <string name="overview_invite_title">Ajak teman</string>
+    <string name="overview_invite_body">Trip ini masih kamu sendiri. Ajak teman untuk merencanakan, voting, dan patungan bersama.</string>
 </resources>

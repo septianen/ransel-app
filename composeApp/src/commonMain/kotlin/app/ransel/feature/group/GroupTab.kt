@@ -70,6 +70,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.group_documents
+import ransel.composeapp.generated.resources.overview_invite_body
+import ransel.composeapp.generated.resources.overview_invite_title
 import ransel.composeapp.generated.resources.documents_title
 import ransel.composeapp.generated.resources.group_countdown_finished
 import ransel.composeapp.generated.resources.group_countdown_ongoing
@@ -98,10 +100,11 @@ import ransel.composeapp.generated.resources.role_owner
 import ransel.composeapp.generated.resources.role_viewer
 
 /**
- * The first tab of a trip: its hub. A countdown, "Perlu tindakanmu" (votings and money that wait for the user), every
- * voting of the trip (polls and place-voting rounds; the other tabs show none), documents and the
- * members, with the ones added by name tagged "Tanpa akun". [needs] draws what asks for the user, [hasNeeds] says whether
- * there is anything.
+ * "Ringkasan", the first tab of every trip: its hub. A countdown, "Perlu tindakanmu" (votings and money that wait for
+ * the user), every voting of the trip (polls and place-voting rounds; the other tabs show none), documents and the
+ * members, with the ones added by name tagged "Tanpa akun". A solo trip shows only the countdown, documents and, for
+ * the owner, "Ajak teman" (owner, 27 Oct 2026). [needs] draws what asks for the user, [hasNeeds] says whether there is
+ * anything.
  */
 @Composable
 fun GroupTab(
@@ -121,6 +124,8 @@ fun GroupTab(
     /** A money item in "Perlu tindakanmu" opens the Pengeluaran tab. */
     onOpenMoney: () -> Unit = {},
     onOpenDocuments: () -> Unit = {},
+    /** "Ajak teman" on a solo trip (the OWNER); null = not offered. */
+    onInvite: (() -> Unit)? = null,
     viewModel: GroupViewModel = koinViewModel(key = "group-${trip.id}") { parametersOf(trip.id) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -148,6 +153,8 @@ fun GroupTab(
         onOpenMoney = onOpenMoney,
         onOpenDocuments = onOpenDocuments,
         documentCount = state.documentCount,
+        solo = state.solo && trip.myRole == Role.OWNER,
+        onInvite = onInvite,
     )
 }
 
@@ -176,6 +183,8 @@ fun GroupContent(
     onOpenMoney: () -> Unit = {},
     onOpenDocuments: () -> Unit = {},
     documentCount: Int? = null,
+    solo: Boolean = false,
+    onInvite: (() -> Unit)? = null,
 ) {
     val dates = rememberDateFormatter()
     val pollNeeds = polls.mapNotNull { poll -> poll.needFor(myMemberId, isOwner)?.let { poll to it } }
@@ -187,6 +196,15 @@ fun GroupContent(
 
         if (!signedIn) {
             SignInCard()
+            return@Column
+        }
+
+        if (solo) {
+            // no voting, money or members on a trip of one; documents stay, and friends can be invited
+            Section(stringResource(Res.string.group_documents)) {
+                LinkRow(Symbols.receiptLong, stringResource(Res.string.documents_title), documentCount?.toString(), onOpenDocuments)
+            }
+            if (onInvite != null) InviteCard(onInvite)
             return@Column
         }
 
@@ -298,6 +316,27 @@ private fun LinkRow(symbol: String, title: String, count: String?, onClick: () -
         Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
         if (count != null) Text(count, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** "Ajak teman": a solo trip can become a group trip. */
+@Composable
+private fun InviteCard(onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.surfaceContainerLow)
+            .clickable(role = SemanticsRole.Button, onClick = onClick).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(scheme.primaryContainer), contentAlignment = Alignment.Center) {
+            Symbol(Symbols.personAdd, tint = scheme.onPrimaryContainer)
+        }
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(Res.string.overview_invite_title), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(Res.string.overview_invite_body), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        }
+        Symbol(Symbols.chevronRight, tint = scheme.onSurfaceVariant)
     }
 }
 

@@ -51,6 +51,9 @@ data class GroupUiState(
     val claimsToConfirm: List<SettlementDto> = emptyList(),
     val currency: String = "IDR",
 ) {
+    /** Only the user is in the trip (as far as the server said): "Ringkasan" leaves out the group parts. */
+    val solo: Boolean get() = !loading && failure == null && members.size <= 1
+
     /** People added by name, without an account. */
     val guests: List<TripMemberDto> get() = members.filter { it.isGuest }
 }

@@ -255,6 +255,7 @@ private fun PreferencesForm(
             end = state.endDate,
             onConfirm = { s, e -> vm.setDates(s, e); showDates = false },
             onDismiss = { showDates = false },
+            earliest = app.ransel.util.today(),
         )
     }
 }

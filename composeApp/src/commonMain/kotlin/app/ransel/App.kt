@@ -538,7 +538,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { id, section ->
                 val tab = when (section) {
-                    TripSection.GROUP -> TripTab.GROUP
+                    TripSection.OVERVIEW -> TripTab.OVERVIEW
                     TripSection.ITINERARY -> TripTab.ITINERARY
                     TripSection.PACKING -> TripTab.PACKING
                     TripSection.EXPENSES -> TripTab.EXPENSES
@@ -823,7 +823,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onClose = { navController.popBackStack() },
             onSaved = { id ->
                 // Replace the form with the new trip so Back returns to where the user came from.
-                navController.navigate(TripRoute(id, tab = if (route.invite) "GROUP" else "ITINERARY", invite = route.invite)) { popUpTo<CreateTripRoute> { inclusive = true } }
+                navController.navigate(TripRoute(id, tab = if (route.invite) TripTab.OVERVIEW.name else TripTab.ITINERARY.name, invite = route.invite)) { popUpTo<CreateTripRoute> { inclusive = true } }
             },
             onDeleted = {},
         )

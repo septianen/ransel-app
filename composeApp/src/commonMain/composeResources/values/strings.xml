@@ -940,7 +940,7 @@
     <string name="vote_close_title">Close voting now?</string>
     <string name="vote_close_body">Members can no longer vote. You still decide which places enter the itinerary.</string>
     <!-- Group foundation (stage 1) -->
-    <string name="trip_tab_group">Group</string>
+    <string name="trip_tab_group">Overview</string>
     <string name="group_countdown_ongoing">Day %1$d of %2$d</string>
     <string name="group_countdown_finished">This trip is over</string>
     <string name="group_members_title">Members</string>
@@ -1500,4 +1500,6 @@
     <string name="document_search_activity">Search activities</string>
     <string name="document_no_activity_found">No matching activity</string>
     <string name="packing_item_delete_body_own">This item is removed from your list.</string>
+    <string name="overview_invite_title">Invite friends</string>
+    <string name="overview_invite_body">You are on this trip alone. Invite friends to plan, vote and share costs together.</string>
 </resources>

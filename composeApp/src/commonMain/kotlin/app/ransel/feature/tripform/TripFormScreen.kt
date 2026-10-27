@@ -277,6 +277,8 @@ fun TripFormScreen(
                 showDates = false
             },
             onDismiss = { showDates = false },
+            // no day before today; a trip under way may keep the start it already has
+            earliest = minOf(app.ransel.util.today(), state.savedStartDate ?: app.ransel.util.today()),
         )
     }
     if (showCurrency) {

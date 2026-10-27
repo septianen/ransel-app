@@ -41,6 +41,8 @@ import app.ransel.ui.components.TripHeader
 import app.ransel.ui.components.TripTab
 import app.ransel.ui.format.rememberDateFormatter
 import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -157,7 +159,7 @@ fun TripScreen(
             ) {
                 if (current != null) {
                     when (tab) {
-                        TripTab.GROUP -> GroupTab(
+                        TripTab.OVERVIEW -> GroupTab(
                             onOpenMoney = { tab = TripTab.EXPENSES },
                             trip = current,
                             signedIn = signedIn,
@@ -184,6 +186,7 @@ fun TripScreen(
                             onOpenRound = onOpenRound,
                             onOpenVotingHistory = onOpenVotingHistory,
                             onOpenDocuments = { onOpenDocuments(false) },
+                            onInvite = if (isOwner) ({ inviteSheetOpen = true }) else null,
                             refreshKey = refreshCount,
                         )
                         TripTab.ITINERARY -> ItineraryTab(
@@ -197,7 +200,7 @@ fun TripScreen(
                     }
                 }
             }
-            if (tab == TripTab.GROUP && signedIn && canAsk) {
+            if (tab == TripTab.OVERVIEW && signedIn && canAsk) {
                 IconFab(
                     Symbols.add,
                     label = stringResource(Res.string.group_fab_description),
@@ -210,9 +213,12 @@ fun TripScreen(
     }
 
     if (actionSheetOpen) {
+        // a solo trip has nobody to ask yet: no "Buat polling" until someone joins
+        val solo = signedIn && koinViewModel<app.ransel.feature.group.GroupViewModel>(key = "group-$tripId") { parametersOf(tripId) }
+            .state.collectAsState().value.solo
         GroupActionSheet(
             canInvite = isOwner,
-            onPoll = { actionSheetOpen = false; kindSheetOpen = true },
+            onPoll = if (solo) null else ({ actionSheetOpen = false; kindSheetOpen = true }),
             onInvite = { actionSheetOpen = false; inviteSheetOpen = true },
             onDismiss = { actionSheetOpen = false },
             onDocument = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenDocuments(true) }) else null,

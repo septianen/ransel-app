@@ -43,12 +43,12 @@ import ransel.composeapp.generated.resources.group_sheet_title
  * later step: that row shows "Segera hadir" and does nothing. Only the owner can invite.
  */
 @Composable
-fun GroupActionSheet(canInvite: Boolean, onPoll: () -> Unit, onInvite: () -> Unit, onDismiss: () -> Unit, onDocument: (() -> Unit)? = null) {
+fun GroupActionSheet(canInvite: Boolean, onPoll: (() -> Unit)?, onInvite: () -> Unit, onDismiss: () -> Unit, onDocument: (() -> Unit)? = null) {
     AdaptiveSheet(onDismiss = onDismiss) { GroupActionContent(canInvite, onPoll, onInvite, onDocument) }
 }
 
 @Composable
-private fun GroupActionContent(canInvite: Boolean, onPoll: () -> Unit, onInvite: () -> Unit, onDocument: (() -> Unit)? = null) {
+private fun GroupActionContent(canInvite: Boolean, onPoll: (() -> Unit)?, onInvite: () -> Unit, onDocument: (() -> Unit)? = null) {
     val accents = IrisTheme.accents
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -56,7 +56,7 @@ private fun GroupActionContent(canInvite: Boolean, onPoll: () -> Unit, onInvite:
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(bottom = 8.dp),
         )
-        ActionRow(Symbols.checklist, accents.magenta, Res.string.group_action_poll, Res.string.group_action_poll_hint, soon = false, onClick = onPoll)
+        if (onPoll != null) ActionRow(Symbols.checklist, accents.magenta, Res.string.group_action_poll, Res.string.group_action_poll_hint, soon = false, onClick = onPoll)
         if (canInvite) {
             ActionRow(Symbols.personAdd, accents.green, Res.string.group_action_invite, Res.string.group_action_invite_hint, soon = false, onClick = onInvite)
         }

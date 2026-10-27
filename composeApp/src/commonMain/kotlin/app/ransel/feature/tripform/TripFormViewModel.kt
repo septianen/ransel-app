@@ -48,6 +48,8 @@ data class TripFormState(
     val saving: Boolean = false,
     /** Editing a trip that already has expenses: the base currency is fixed. */
     val currencyLocked: Boolean = false,
+    /** Editing: the start date as saved, still allowed when it is already past (a trip under way keeps its start). */
+    val savedStartDate: LocalDate? = null,
     /** Counts for the delete dialog; non-null = dialog visible. */
     val deleteSummary: TripSummaryDto? = null,
 ) {
@@ -95,6 +97,7 @@ class TripFormViewModel(
                             localCurrency = trip.localCurrency,
                             timeZone = trip.timeZone,
                             startDate = trip.startDate,
+                            savedStartDate = trip.startDate,
                             endDate = trip.endDate,
                             currency = trip.baseCurrency,
                             budgetDigits = trip.budgetMinor?.let { b -> (b / divisor).toString() }.orEmpty(),

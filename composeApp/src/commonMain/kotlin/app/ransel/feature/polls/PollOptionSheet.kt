@@ -287,6 +287,7 @@ fun PollOptionSheet(
                 pickRange = false
             },
             onDismiss = { pickRange = false },
+            earliest = app.ransel.util.today(),
         )
     }
 }

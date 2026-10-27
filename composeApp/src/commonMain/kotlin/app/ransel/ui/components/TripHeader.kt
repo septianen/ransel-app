@@ -38,7 +38,8 @@ import ransel.composeapp.generated.resources.trip_tab_itinerary
 import ransel.composeapp.generated.resources.trip_tab_packing
 
 enum class TripTab(val label: StringResource) {
-    GROUP(Res.string.trip_tab_group),
+    /** "Ringkasan": the trip's hub, for solo and group trips (was "Grup"; owner, 27 Oct 2026). */
+    OVERVIEW(Res.string.trip_tab_group),
     ITINERARY(Res.string.trip_tab_itinerary),
     PACKING(Res.string.trip_tab_packing),
     EXPENSES(Res.string.trip_tab_expenses),

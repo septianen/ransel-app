@@ -18,9 +18,11 @@ import androidx.compose.material3.DateRangePickerDefaults
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -38,7 +40,10 @@ import ransel.composeapp.generated.resources.date_range_confirm
 import ransel.composeapp.generated.resources.date_range_title
 import ransel.composeapp.generated.resources.trip_close
 
-/** Full-screen M3 DateRangePicker for the trip dates (design "Pilih tanggal trip"). */
+/**
+ * Full-screen M3 DateRangePicker for the trip dates (design "Pilih tanggal trip"). Days before [earliest] are greyed
+ * out and cannot be picked (owner, 27 Oct 2026: a trip does not start in the past); null = any day.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripDateRangePicker(
@@ -46,11 +51,19 @@ fun TripDateRangePicker(
     end: LocalDate,
     onConfirm: (LocalDate, LocalDate) -> Unit,
     onDismiss: () -> Unit,
+    earliest: LocalDate? = null,
 ) {
+    val selectable = remember(earliest) {
+        object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long) = earliest == null || utcTimeMillis.fromPickerMillis() >= earliest
+            override fun isSelectableYear(year: Int) = earliest == null || year >= earliest.year
+        }
+    }
     val state = rememberDateRangePickerState(
         initialSelectedStartDateMillis = start.toPickerMillis(),
         initialSelectedEndDateMillis = end.toPickerMillis(),
         initialDisplayedMonthMillis = start.toPickerMillis(),
+        selectableDates = selectable,
     )
     Dialog(
         onDismissRequest = onDismiss,
