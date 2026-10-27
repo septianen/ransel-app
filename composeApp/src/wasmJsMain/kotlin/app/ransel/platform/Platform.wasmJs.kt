@@ -50,7 +50,6 @@ private external fun browserHostname(): String
 // Web has no build types: only the production host (ransel.mietek.tech) counts as a release; staging and localhost keep the debug tools.
 actual val isDebugBuild: Boolean = browserHostname() != "ransel.mietek.tech"
 
-actual val supportsInAppLanguage: Boolean = false
 
 actual val requiresAccount: Boolean = true
 

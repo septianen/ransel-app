@@ -57,7 +57,6 @@ actual val platformModule: Module = module {
 
 actual val isDebugBuild: Boolean = BuildConfig.DEBUG
 
-actual val supportsInAppLanguage: Boolean = true
 
 actual val requiresAccount: Boolean = false
 

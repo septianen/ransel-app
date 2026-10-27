@@ -51,7 +51,6 @@ actual val platformModule: Module = module {
 @OptIn(ExperimentalNativeApi::class)
 actual val isDebugBuild: Boolean = Platform.isDebugBinary
 
-actual val supportsInAppLanguage: Boolean = true
 
 actual val requiresAccount: Boolean = false
 

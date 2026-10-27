@@ -20,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
@@ -103,10 +105,23 @@ fun TripHeader(
                 Tab(
                     selected = tab == selectedTab,
                     onClick = { onTabSelected(tab) },
+                    modifier = Modifier.height(48.dp),
                     selectedContentColor = MaterialTheme.colorScheme.primary,
                     unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    text = { Text(stringResource(tab.label), style = MaterialTheme.typography.labelLarge) },
-                )
+                ) {
+                    // Always one line: less side padding than M3's 16 dp, then a smaller size (never under 12 sp),
+                    // and only at that size an ellipsis. Four tabs on a narrow phone must never wrap.
+                    val style = MaterialTheme.typography.labelLarge
+                    Text(
+                        stringResource(tab.label),
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                        style = style,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        autoSize = TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = style.fontSize, stepSize = 0.5.sp),
+                    )
+                }
             }
         }
     }

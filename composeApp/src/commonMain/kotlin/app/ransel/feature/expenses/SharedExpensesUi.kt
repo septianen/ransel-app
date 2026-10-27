@@ -142,18 +142,19 @@ fun PositionCard(
         mine.balanceMinor < 0 -> stringResource(Res.string.shared_balance_owe, formatMoney(-mine.balanceMinor, currency))
         else -> stringResource(Res.string.shared_you_even)
     }
+    val (container, onContainer) = balanceColors(mine.balanceMinor)
     Row(
         modifier
             .fillMaxWidth()
             .clip(IrisShape.lg)
-            .background(scheme.primaryContainer)
+            .background(container)
             .clickable(role = Role.Button, onClick = onOpen)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(Res.string.shared_you), style = MaterialTheme.typography.labelMedium, color = scheme.onPrimaryContainer)
-            Text(headline, style = MaterialTheme.typography.titleLarge, color = scheme.onPrimaryContainer)
+            Text(stringResource(Res.string.shared_you), style = MaterialTheme.typography.labelMedium, color = onContainer)
+            Text(headline, style = MaterialTheme.typography.titleLarge, color = if (mine.balanceMinor < 0) scheme.error else onContainer)
             Text(
                 stringResource(
                     Res.string.shared_participants_summary,
@@ -161,10 +162,21 @@ fun PositionCard(
                     formatMoney(mine.shareMinor, currency),
                 ),
                 style = MaterialTheme.typography.bodySmall,
-                color = scheme.onPrimaryContainer,
+                color = onContainer,
             )
         }
-        Symbol(Symbols.chevronRight, tint = scheme.onPrimaryContainer)
+        Symbol(Symbols.chevronRight, tint = onContainer)
+    }
+}
+
+/** Card colours for my balance, the same on the summary and the balances tab: green when money comes back, red when I owe, neutral when even. */
+@Composable
+internal fun balanceColors(balanceMinor: Long): Pair<androidx.compose.ui.graphics.Color, androidx.compose.ui.graphics.Color> {
+    val scheme = MaterialTheme.colorScheme
+    return when {
+        balanceMinor > 0 -> scheme.primaryContainer to scheme.onPrimaryContainer
+        balanceMinor < 0 -> scheme.errorContainer to scheme.onErrorContainer
+        else -> scheme.surfaceContainerHigh to scheme.onSurface
     }
 }
 

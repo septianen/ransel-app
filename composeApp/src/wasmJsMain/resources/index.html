@@ -17,6 +17,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <style>html, body { margin: 0; height: 100%; overflow: hidden; background: #FFFFFF; }</style>
     <script>
+        // Language picked in Akun -> Bahasa (LocalStoragePreferences "ransel.language"). The app's strings follow the
+        // browser language, so a choice other than "Ikuti sistem" stands in for it before the app loads; changing it
+        // reloads the page (Locale.wasmJs.kt).
+        (() => {
+            let tag = null;
+            try { tag = { INDONESIAN: 'id', ENGLISH: 'en' }[localStorage.getItem('ransel.language')] || null; } catch (e) {}
+            window.RANSEL_LANGUAGE_TAG = tag;
+            if (!tag) return;
+            Object.defineProperty(navigator, 'languages', { get: () => [tag], configurable: true });
+            Object.defineProperty(navigator, 'language', { get: () => tag, configurable: true });
+            document.documentElement.lang = tag;
+        })();
         // The web app and the API live on different hosts when deployed (production and staging use the same build);
         // locally the app finds the API on its own.
         const deployedApi = {

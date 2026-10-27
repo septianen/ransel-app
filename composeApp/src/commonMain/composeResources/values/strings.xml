@@ -11,7 +11,7 @@
     <!-- Trip screens -->
     <string name="trip_tab_itinerary">Itinerary</string>
     <string name="trip_tab_packing">Packing</string>
-    <string name="trip_tab_expenses">Expenses</string>
+    <string name="trip_tab_expenses">Costs</string>
     <string name="action_back">Back</string>
     <string name="action_members">Trip members</string>
 

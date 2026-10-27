@@ -52,7 +52,7 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 ## Web (Phase 2)
 
 - Needs the API: `docker compose up -d db` and `./gradlew :server:run` (see `server/CLAUDE.md`), then the web dev server on **8081** (8080 is the API; `CORS_ORIGINS` already allows it).
-- The web app is online-only: `wasmJsMain` has `Remote*Repository` (Ktor) instead of Room, preferences in `localStorage`, no onboarding, no in-app language switch (the browser language decides).
+- The web app is online-only: `wasmJsMain` has `Remote*Repository` (Ktor) instead of Room, preferences in `localStorage`, no onboarding. Language: "Ikuti sistem" follows the browser; a picked language is stored in `localStorage` and `index.html` puts it in place of `navigator.languages` before the app loads, so changing it reloads the page (owner, 27 Oct 2026).
 - Compose resources load asynchronously on the web: string arrays start empty, so never index them without a fallback (`DateFormatter` does).
 - Wide windows (≥ 1240 dp): navigation rail, side panel on trip detail, dialogs instead of bottom sheets (`ui/adaptive`).
 
