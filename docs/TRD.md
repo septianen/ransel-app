@@ -237,7 +237,7 @@ The exact request and response classes for every row are in the `shared` module 
 
 **Response format.** Success or failure is read from the HTTP status code. Success: `{"data": …}` (lists add `meta` for paging); failure: `{"error": {"code", "message", "details"}}`. 201 for create, 204 for delete, 400/422 for validation, 401 for tokens, 403 for no permission, 404, 409 for conflicts, 429 for quota, 500 without a stack trace.
 
-**Error codes** are fixed constants for app logic and are shown small on the state screens: `NETWORK_TIMEOUT` (client), `INTERNAL_ERROR`, `TOKEN_EXPIRED`, `TRIP_NOT_FOUND`, `INVITE_EXPIRED`, `INVITE_REVOKED`, `INVITE_FULL`, `AI_UNAVAILABLE`, `RATE_LIMITED`, `SPLIT_TOTAL_MISMATCH`, `OWNER_CANNOT_LEAVE`, for voting `ROUND_NOT_FOUND`, `VOTING_CLOSED`, `ROUND_ALREADY_DECIDED`, `ROUND_LIMIT`, and `ACCOUNT_DISABLED` (403, an admin deactivated the account).
+**Error codes** are fixed constants for app logic and are shown small on the state screens (the full list is `shared/.../api/ErrorCode.kt`): `NETWORK_TIMEOUT` (client), `INTERNAL_ERROR`, `TOKEN_EXPIRED`, `TRIP_NOT_FOUND`, `INVITE_EXPIRED`, `INVITE_REVOKED`, `INVITE_FULL`, `AI_UNAVAILABLE`, `RATE_LIMITED`, `SPLIT_TOTAL_MISMATCH`, `PAYER_TOTAL_MISMATCH`, `OWNER_CANNOT_LEAVE`, for voting `ROUND_NOT_FOUND`, `VOTING_CLOSED`, `ROUND_ALREADY_DECIDED`, `ROUND_LIMIT`, for group trips `MEMBER_ALREADY_CLAIMED`, `MEMBER_HAS_ACCOUNT`, `POLL_CLOSED`, `POLL_LOCKED`, `VOTE_STALE`, `LINK_UNREADABLE`, `SETTLEMENT_NOT_CLAIMED`, `RECEIPT_UNREADABLE`, `FILE_TOO_LARGE`, `STORAGE_FULL`, `UNSUPPORTED_FILE`, `LIST_STALE`, `GUEST_NAME_TAKEN`, `GUEST_NAME_EXISTS`, `GUEST_NAME_REQUIRED`, `PLACES_UNAVAILABLE`, for credits `INSUFFICIENT_CREDITS` (402) and the voucher codes, and `ACCOUNT_DISABLED` (403, an admin deactivated the account).
 
 Conventions: camelCase fields, ISO 8601 dates, UTC times, money in the smallest unit. The `ApiResponse<T>` and `ApiError` wrappers live in `shared`; the server wraps responses with `call.respondData(...)` and StatusPages; the client maps them to `sealed interface ApiResult<T> { Success, Failure }`.
 
@@ -295,6 +295,43 @@ The result is sent to `PUT /trips/{id}/days/{date}/order`. Undo simply resends t
 **Invites.** Code = a prefix from the trip name + 4 random characters without look-alike letters (e.g. `BALI-7K2Q`). Accept checks in order: revoked → `INVITE_REVOKED`, past `expires_at` → `INVITE_EXPIRED`, `used_count ≥ max_uses` → `INVITE_FULL`; if it passes, create `trip_members` and increment `used_count` in one transaction.
 
 **Authorization per trip.** Every trip route calls one function `requireRole(tripId, minRole)`: VIEWER to read, EDITOR to change content, OWNER for members, invites, and deleting the trip. The owner cannot `leave` before `transfer-ownership` (`OWNER_CANNOT_LEAVE`). Removing a member does not delete their `expenses` or `expense_splits`.
+
+## Group trip design details
+
+Design notes from the group trip discussion (24–26 Oct 2026), kept where they still describe how the code works; the implementation notes under Data model say what was finally built.
+
+**Polls.** `polls.kind` is one of DATE, PLACE, STAY, FOOD, BUDGET, DESTINATION, TRANSPORT, CUSTOM. Each kind decides which option fields are required and what `POST /polls/{id}/decide` does; the winner's action runs in the same transaction as setting `decided_option_id`.
+
+| Kind | Option fields | On decide (when apply_winner) |
+| --- | --- | --- |
+| DATE | start_date, end_date | Sets the trip dates (activities on removed days become unscheduled) |
+| PLACE | place_id | Adds the place to Belum dijadwalkan |
+| STAY | label, place_id or url, price_minor per night | An estimated LODGING expense of price × nights; the url becomes a trip document link |
+| FOOD | label, place_id, price_minor per person | An itinerary item on the poll's day and time |
+| BUDGET | label, min and max per person | Recorded on the poll only (not copied to the trip) |
+| DESTINATION | label (place) | Sets the trip destination |
+| TRANSPORT, CUSTOM | label | No automatic action |
+
+- **Anonymous polls.** `is_anonymous` (forced true for BUDGET). It may change only while nobody has voted, then `anonymity_locked` (409 `POLL_LOCKED`). Votes keep the member (one vote per member, a vote can be changed), but for an anonymous poll the API never returns who chose an option, also not to the creator: counts per option plus `votedMemberIds` for the whole poll; the caller's own choice comes from `myVotes`.
+- **Closing.** `closes_at` (1, 2 or 3 days from the app) is checked on the server: a vote after it gets 409 `POLL_CLOSED`, also a queued offline vote. A tie sets TIED and notifies the creator; a job reopens a TIED poll for 24 hours if nobody decided within 24 hours. Members who have not voted get a push a day before `closes_at`.
+- **Options.** Editing an option's label, dates, place, link or price bumps its `version` and clears its votes (those voters are told); a vote carries the version it saw (409 `VOTE_STALE`). When the creator leaves the trip, `created_by_member_id` moves to the owner.
+- **Guests.** A guest votes on the guest page with an `X-Guest-Token` (hash in `guest_sessions`); a member with an account must sign in (`MEMBER_HAS_ACCOUNT`).
+
+**Comments.** `comments` (target ITINERARY_ITEM, EXPENSE or POLL_OPTION; body ≤ 1,000 characters; mentions as member ids). The apps show them on poll options only (owner, 25 Oct 2026). An @mention notifies that member; counts come from `GET /trips/{id}/comments/counts`. There is no group chat.
+
+**Link previews for shared links.** `/j/{code}` (invite) and `/p/{code}` (poll) on the web host serve the app; nginx sends only crawler user agents to `/api/v1/og/...`, which returns HTML with `og:title`, `og:description` and one static 1200×630 image per link type (owner, 26 Oct 2026: not rendered per poll). Previews carry no amounts per person, phone numbers or payment info.
+
+**Fetching pasted links** (`POST /link-preview`). Only http and https; the host is resolved and private, loopback and link-local addresses are refused; a short timeout, a size cap and a few redirects, each checked again. It reads `og:*` tags and schema.org JSON-LD (name, image), never prices. Cached 7 days per normalised address; only title, image link and site name are kept (the image is hotlinked, not re-hosted). 422 `LINK_UNREADABLE`.
+
+**Places.** Every place lookup goes through the server, so the Google key never ships in the apps.
+
+- Autocomplete (New): `languageCode=id`, `regionCode=id`, a location bias over Indonesia (Indonesian results first, overseas places still appear), primary types locality, administrative_area_level_1/2, country, tourist_attraction (airports left out: Google takes 5 types at most).
+- Details: field mask id, location, viewport, addressComponents, types only, so it bills as Place Details Essentials ($5 per 1,000, 10,000 free a month); `displayName` would move the call to Pro, so the name comes from the suggestion. Sending the same session token ends the autocomplete session, which makes its autocomplete requests free.
+- Client: 300 ms debounce, at least 2 characters, the in-flight request cancelled on a new key; one session token per opening of the picker; the last 10 picks kept per device for "Terakhir dipakai".
+- Server: caches in Postgres (24 h per normalised query, 30 days per place), 60 requests per user per minute; when Google errors or takes over 1.5 s, the built-in region list in `shared` answers (`PLACES_UNAVAILABLE` is the server's signal that the fallback is in use). "Populer untuk trip grup" needs at least 3 different trip owners, so no single group can be identified.
+- Location: `LocationProvider` expect/actual (FusedLocation, coarse, on Android; CLLocationManager on iOS; `navigator.geolocation` on the web). Permission only on tap, one fix, never background location. Coordinates go once to `/places/reverse` and are neither logged nor stored. Jelajah offers "Lokasi saat ini" only during the trip and within 50 km of the destination. Client errors `LOCATION_DENIED`, `LOCATION_TIMEOUT`.
+
+**Members and money security.** A member's phone and every payment method are personal data: the phone goes to the owner only, payment info only to the member who owes that person money, neither on the guest page or link previews. The guest page and the invite preview are rate limited per IP and stop working when the link is turned off or the invite is revoked or expired. Reminders use a WhatsApp deep link (`https://wa.me/<phone>?text=<message>`) or the share sheet; the server sends no messages.
 
 ## Notifications
 
