@@ -17,8 +17,9 @@ import kotlin.time.Instant
 
 /**
  * The "Cek hasil struk" form (design "HasilStruk"): what was read, who paid, and "Bagi rata" or "Per item".
- * Tax and service become one line without members, spread in proportion (domain.splitByItems). Save waits until
- * the lines add up to the total, like the server's SPLIT_TOTAL_MISMATCH.
+ * Tax and service become one line without members, spread in proportion (domain.splitByItems), unless the receipt
+ * already counts them in its prices ("Incl. Pb1 10%": the items alone make the total); then they are only a note.
+ * Save waits until the lines add up to the total, like the server's SPLIT_TOTAL_MISMATCH.
  */
 class ReceiptFormState(
     val draft: ReceiptDraftDto,
@@ -28,19 +29,30 @@ class ReceiptFormState(
     /** Label of the tax-and-service line, in the UI language. */
     extrasLabel: String,
 ) {
+    private val extras = draft.taxMinor + draft.serviceMinor
+
+    /**
+     * Tax and service already inside the item prices: the items alone make the total, adding the extras would not.
+     * Shown as "Termasuk pajak …", never as a line to split.
+     */
+    val includedExtrasMinor: Long =
+        if (extras > 0 && draft.items.sumOf { it.amountMinor } == draft.totalMinor) extras else 0
+
     val lines: List<ExpenseItemDto> = buildList {
         draft.items.forEach { add(ExpenseItemDto(it.name, it.amountMinor)) }
-        val extras = draft.taxMinor + draft.serviceMinor
-        if (extras > 0) add(ExpenseItemDto(extrasLabel, extras))
+        if (extras > 0 && includedExtrasMinor == 0L) add(ExpenseItemDto(extrasLabel, extras))
     }
 
-    /** Index of the tax-and-service line, or -1. */
-    val extrasIndex: Int = if (draft.taxMinor + draft.serviceMinor > 0) lines.lastIndex else -1
+    /** Index of the tax-and-service line (added on top of the items), or -1. */
+    val extrasIndex: Int = if (extras > 0 && includedExtrasMinor == 0L) lines.lastIndex else -1
 
     var perItem by mutableStateOf(false)
     var payer by mutableStateOf(myMemberId ?: memberIds.firstOrNull())
     var category by mutableStateOf(Category.FOOD)
     var place by mutableStateOf(draft.placeName.orEmpty())
+
+    /** The day read from the receipt; editable, since the reading can be wrong (and a ticket may be bought earlier). */
+    var date by mutableStateOf(draft.spentOn)
 
     /** Who shares each line (by index); everyone at first. */
     private val sharers = mutableStateMapOf<Int, Set<String>>().apply {
@@ -89,5 +101,23 @@ class ReceiptFormState(
         items = if (perItem && memberIds.size > 1) items() else emptyList(),
     )
 
-    val date: LocalDate? get() = draft.spentOn
+    /**
+     * "Bagian tiap orang" in "Per item": each member's share and the part of it that is tax and service (spread in
+     * proportion). Empty until the lines add up to the total.
+     */
+    fun perPerson(): List<PersonShare> {
+        if (!perItem || memberIds.size < 2 || difference != 0L || payer == null) return emptyList()
+        val withExtras = shares()
+        val itemsOnly = if (extrasIndex < 0) withExtras else {
+            val own = items().filterIndexed { i, _ -> i != extrasIndex }
+            if (own.none { it.memberIds.isNotEmpty() }) emptyMap() else splitByItems(own, payer!!)
+        }
+        return memberIds.mapNotNull { id ->
+            val share = withExtras[id] ?: 0
+            if (share == 0L) null else PersonShare(id, share, share - (itemsOnly[id] ?: 0))
+        }
+    }
 }
+
+/** One member's part of a receipt split per item; [extrasMinor] is the tax and service inside [totalMinor]. */
+data class PersonShare(val memberId: String, val totalMinor: Long, val extrasMinor: Long)

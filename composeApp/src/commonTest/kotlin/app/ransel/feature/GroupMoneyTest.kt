@@ -11,6 +11,7 @@ import app.ransel.data.remote.RanselApi
 import app.ransel.data.remote.createApiHttpClient
 import app.ransel.feature.expenses.ExpensesViewModel
 import app.ransel.feature.expenses.MoneyEvent
+import app.ransel.feature.expenses.receipt.PersonShare
 import app.ransel.feature.expenses.receipt.ReceiptFormState
 import app.ransel.feature.expenses.receipt.ReceiptImage
 import app.ransel.feature.expenses.receipt.ReceiptStep
@@ -226,6 +227,47 @@ class ReceiptTest {
         assertFalse(form.canSave)
         form.perItem = false
         assertTrue(form.canSave, "an equal split does not need the lines")
+    }
+
+    @Test
+    fun taxAlreadyInThePricesIsANoteNotALine() {
+        // Tous Les Jours: latte 35.000 for a, bread 40.000 for b, TOTAL 75.000 "Incl. Pb1 10% 6.818"
+        val included = ReceiptDraftDto(
+            spentOn = LocalDate(2017, 12, 3), currency = "IDR",
+            items = listOf(ReceiptLineDto("Cafe latte", 1, 35_000), ReceiptLineDto("Creamcheese walnut bread", 1, 40_000)),
+            taxMinor = 6_818, totalMinor = 75_000, credits = wallet,
+        )
+        val form = ReceiptFormState(included, listOf("a", "b"), "a", "Pajak")
+        assertEquals(6_818L, form.includedExtrasMinor)
+        assertEquals(-1, form.extrasIndex)
+        form.perItem = true
+        form.toggle(0, "b") // latte only for a
+        form.toggle(1, "a") // bread only for b
+        assertEquals(0L, form.difference)
+        assertTrue(form.canSave)
+        val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
+        assertEquals(mapOf("a" to 35_000L, "b" to 40_000L), input.splits.associate { it.memberId to it.shareMinor })
+        assertEquals(listOf(0L, 0L), form.perPerson().map { it.extrasMinor })
+    }
+
+    @Test
+    fun eachPersonsShareShowsTheirPartOfTheTax() {
+        val form = ReceiptFormState(draft, listOf("a", "b"), "a", "Pajak")
+        assertEquals(0L, form.includedExtrasMinor, "286.000 = items + tax: the tax comes on top")
+        form.perItem = true
+        form.toggle(1, "a") // Sate only for b
+        assertEquals(
+            listOf(PersonShare("a", 71_500, 6_500), PersonShare("b", 214_500, 19_500)),
+            form.perPerson(),
+        )
+    }
+
+    @Test
+    fun theReceiptDateCanBeFixed() {
+        val form = ReceiptFormState(draft.copy(spentOn = LocalDate(2017, 12, 3)), listOf("a", "b"), "a", "Pajak")
+        assertEquals(LocalDate(2017, 12, 3), form.date, "the date read is kept, also outside the trip")
+        form.date = LocalDate(2026, 11, 21)
+        assertEquals(LocalDate(2026, 11, 21), form.date)
     }
 
     @Test

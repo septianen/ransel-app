@@ -72,7 +72,6 @@ import ransel.composeapp.generated.resources.poll_apply_winner
 import ransel.composeapp.generated.resources.poll_closes_1d
 import ransel.composeapp.generated.resources.poll_closes_2d
 import ransel.composeapp.generated.resources.poll_closes_3d
-import ransel.composeapp.generated.resources.poll_closes_7d
 import ransel.composeapp.generated.resources.poll_closes_label
 import ransel.composeapp.generated.resources.poll_create_action
 import ransel.composeapp.generated.resources.poll_create_error
@@ -240,8 +239,7 @@ private fun ClosingChoice(selected: Int, onSelect: (Int) -> Unit) {
                                 when (days) {
                                     1 -> Res.string.poll_closes_1d
                                     2 -> Res.string.poll_closes_2d
-                                    3 -> Res.string.poll_closes_3d
-                                    else -> Res.string.poll_closes_7d
+                                    else -> Res.string.poll_closes_3d
                                 },
                             ),
                         )

@@ -28,7 +28,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 
 /** The choices for "Voting ditutup dalam". */
-val CLOSING_CHOICES_DAYS = listOf(1, 2, 3, 7)
+val CLOSING_CHOICES_DAYS = listOf(1, 2, 3)
 
 data class CreatePollUiState(
     val kind: PollKind,

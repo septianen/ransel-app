@@ -48,6 +48,15 @@ import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.rememberDateFormatter
+import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.action_ok
+import ransel.composeapp.generated.resources.receipt_change_date
+import ransel.composeapp.generated.resources.receipt_per_person_extras
+import ransel.composeapp.generated.resources.receipt_per_person
+import ransel.composeapp.generated.resources.receipt_extras_included
+import ransel.composeapp.generated.resources.receipt_extras_spread
+import app.ransel.util.toPickerMillis
+import app.ransel.util.fromPickerMillis
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
@@ -228,6 +237,7 @@ fun ReceiptFlow(
 }
 
 /** Design "HasilStruk". */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun ReceiptResult(
     form: ReceiptFormState,
@@ -246,6 +256,7 @@ private fun ReceiptResult(
     val shared = form.memberIds.size > 1
     val you = stringResource(Res.string.shared_you)
     fun name(id: String) = members.firstOrNull { it.memberId == id }?.displayName?.let { if (id == myMemberId) "$it ($you)" else it } ?: "?"
+    var pickDate by remember { mutableStateOf(false) }
 
     Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SheetHeader(stringResource(Res.string.receipt_result_title), trip.title, onDismiss)
@@ -258,10 +269,21 @@ private fun ReceiptResult(
         }
         IrisTextField(label = stringResource(Res.string.receipt_place), value = form.place, onValueChange = { form.place = it })
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                form.date?.let { dates.weekdayDayMonth(it) } ?: dates.weekdayDayMonth(today()),
-                Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant,
-            )
+            // the day the AI read; tap to fix it. The year shows when it is not the trip's, so a misread stands out.
+            val day = form.date ?: today()
+            Row(
+                Modifier.weight(1f).clip(IrisShape.md)
+                    .clickable(role = Role.Button, onClickLabel = stringResource(Res.string.receipt_change_date)) { pickDate = true }
+                    .heightIn(min = 48.dp).padding(end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Symbol(Symbols.calendarMonth, size = 18.dp, tint = scheme.primary)
+                Text(
+                    dates.weekdayDayMonth(day) + if (day.year != trip.startDate.year) " ${day.year}" else "",
+                    style = MaterialTheme.typography.bodyMedium, color = scheme.primary,
+                )
+            }
             Text(formatMoney(form.total, currency), style = MaterialTheme.typography.headlineSmall)
         }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -299,6 +321,9 @@ private fun ReceiptResult(
                     Text(line.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(formatMoney(line.amountMinor, currency), style = MaterialTheme.typography.titleSmall)
                 }
+                if (shared && form.perItem && index == form.extrasIndex) {
+                    Text(stringResource(Res.string.receipt_extras_spread), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+                }
                 if (shared && form.perItem && index != form.extrasIndex) {
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         form.memberIds.forEach { id ->
@@ -310,6 +335,33 @@ private fun ReceiptResult(
                                     .padding(2.dp),
                             ) {
                                 MemberAvatar(members.firstOrNull { it.memberId == id }?.displayName ?: "?", id, size = 32.dp, isGuest = !on)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (form.includedExtrasMinor > 0) {
+            Text(
+                stringResource(Res.string.receipt_extras_included, formatMoney(form.includedExtrasMinor, currency)),
+                style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
+            )
+        }
+        val perPerson = form.perPerson()
+        if (perPerson.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(Res.string.receipt_per_person), style = MaterialTheme.typography.labelLarge)
+                perPerson.forEach { p ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        MemberAvatar(members.firstOrNull { it.memberId == p.memberId }?.displayName ?: "?", p.memberId, size = 24.dp)
+                        Text(name(p.memberId), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(formatMoney(p.totalMinor, currency), style = MaterialTheme.typography.titleSmall)
+                            if (p.extrasMinor > 0) {
+                                Text(
+                                    stringResource(Res.string.receipt_per_person_extras, formatMoney(p.extrasMinor, currency)),
+                                    style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
+                                )
                             }
                         }
                     }
@@ -342,6 +394,23 @@ private fun ReceiptResult(
             enabled = form.canSave && (!foreign || (rate != null && rate > 0.0)),
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
         ) { Text(stringResource(Res.string.action_save), style = MaterialTheme.typography.titleMedium) }
+    }
+    if (pickDate) {
+        val state = androidx.compose.material3.rememberDatePickerState(initialSelectedDateMillis = (form.date ?: today()).toPickerMillis())
+        androidx.compose.material3.DatePickerDialog(
+            onDismissRequest = { pickDate = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        state.selectedDateMillis?.let { form.date = it.fromPickerMillis() }
+                        pickDate = false
+                    },
+                ) { Text(stringResource(Res.string.action_ok)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { pickDate = false }) { Text(stringResource(Res.string.action_cancel)) }
+            },
+        ) { androidx.compose.material3.DatePicker(state = state) }
     }
 }
 

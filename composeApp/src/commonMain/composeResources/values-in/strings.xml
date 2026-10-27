@@ -1030,7 +1030,6 @@
     <string name="poll_closes_1d">1 hari</string>
     <string name="poll_closes_2d">2 hari</string>
     <string name="poll_closes_3d">3 hari</string>
-    <string name="poll_closes_7d">7 hari</string>
     <string name="poll_multi">Boleh pilih lebih dari satu</string>
     <string name="poll_anonymous">Anonim</string>
     <string name="poll_anonymous_hint">Tidak ada yang bisa melihat siapa memilih apa, termasuk kamu.</string>
@@ -1499,4 +1498,9 @@
     <string name="packing_item_delete_title">Hapus %1$s?</string>
     <string name="packing_item_delete_body">Barang ini hilang dari daftar Bersama untuk semua anggota.</string>
     <string name="packing_item_delete_confirm">Ya, hapus</string>
+    <string name="receipt_extras_spread">Dibagi sesuai porsi belanja masing-masing</string>
+    <string name="receipt_extras_included">Sudah termasuk pajak dan layanan %1$s</string>
+    <string name="receipt_per_person">Bagian tiap orang</string>
+    <string name="receipt_per_person_extras">termasuk pajak %1$s</string>
+    <string name="receipt_change_date">Ubah tanggal</string>
 </resources>

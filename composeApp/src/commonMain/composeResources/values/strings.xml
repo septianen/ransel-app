@@ -1037,7 +1037,6 @@
     <string name="poll_closes_1d">1 day</string>
     <string name="poll_closes_2d">2 days</string>
     <string name="poll_closes_3d">3 days</string>
-    <string name="poll_closes_7d">7 days</string>
     <string name="poll_multi">Allow several choices</string>
     <string name="poll_anonymous">Anonymous</string>
     <string name="poll_anonymous_hint">Nobody sees who chose what, not even you.</string>
@@ -1507,4 +1506,9 @@
     <string name="packing_item_delete_title">Delete %1$s?</string>
     <string name="packing_item_delete_body">This item disappears from the shared list for every member.</string>
     <string name="packing_item_delete_confirm">Yes, delete</string>
+    <string name="receipt_extras_spread">Shared in proportion to what each person had</string>
+    <string name="receipt_extras_included">Tax and service %1$s already included</string>
+    <string name="receipt_per_person">Each person's share</string>
+    <string name="receipt_per_person_extras">incl. tax %1$s</string>
+    <string name="receipt_change_date">Change date</string>
 </resources>
