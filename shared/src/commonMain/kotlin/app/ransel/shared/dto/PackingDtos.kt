@@ -91,8 +91,9 @@ data class ApplyTemplateRequest(
 
 /**
  * One line of a member's own packing list. Only its owner sees it (sync pulls only the caller's rows). Lines that came
- * from the trip owner's list carry [sourceItemId] and [required] ("Wajib"); their name and quantity follow the list,
- * the check mark is the member's own and survives edits of the list.
+ * from the trip owner's list carry [sourceItemId] and [required] ("Wajib"), but are the member's like any other line
+ * (owner, 27 Oct 2026): they may be ticked, edited and deleted. Until the member edits a line it follows later changes
+ * of the list; an edited or deleted line is never overwritten or brought back.
  */
 @Serializable
 data class PersonalItemDto(
@@ -145,7 +146,7 @@ data class MemberListItemDto(
     val sortOrder: Double = 0.0,
 )
 
-/** GET /trips/{id}/member-list (any member). One list per trip. */
+/** GET /trips/{id}/member-list (OWNER). One list per trip. */
 @Serializable
 data class MemberListDto(
     val tripId: String,
@@ -163,9 +164,10 @@ data class MemberListDto(
 )
 
 /**
- * PUT /trips/{id}/member-list (OWNER or EDITOR). [baseVersion] = the version that was edited (null for a new list);
+ * PUT /trips/{id}/member-list (OWNER only). [baseVersion] = the version that was edited (null for a new list);
  * another one answers 409 LIST_STALE. Once sent, the server applies the difference to every recipient: new lines are
- * added, removed lines disappear (checked or not), changed lines are updated; check marks and own lines stay.
+ * added; removed and changed lines go or change only where the member has not edited them (a line the member edited
+ * or deleted stays as they left it); check marks and own lines stay.
  */
 @Serializable
 data class SaveMemberListRequest(
@@ -183,7 +185,7 @@ data class SendMemberListRequest(
     val templateName: String? = null,
 )
 
-/** GET /trips/{id}/member-list/progress (OWNER or EDITOR): one row per recipient. */
+/** GET /trips/{id}/member-list/progress (OWNER): one row per recipient. */
 @Serializable
 data class MemberListProgressDto(
     val memberId: String,

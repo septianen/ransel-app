@@ -32,7 +32,7 @@ data class SyncChanges(
      * the receiver, or by the OWNER when the receiver has no account; otherwise the row is rejected with FORBIDDEN.
      */
     val settlements: List<SettlementDto> = emptyList(),
-    /** The caller's own packing lines only, both ways; lines from the owner's list may only change their check mark. */
+    /** The caller's own packing lines only, both ways; every line is the member's to edit or delete, also those from the owner's list. */
     val personalItems: List<PersonalItemDto> = emptyList(),
     /** Pull only: membership of the user's trips (Phase 4). Ignored on push. */
     val members: List<TripMemberDto> = emptyList(),

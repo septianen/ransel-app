@@ -35,11 +35,11 @@ object ApiRoutes {
     // Group packing (stage 7): each member's own list, and the owner's list sent to members
     fun personalItems(tripId: String) = "/trips/$tripId/personal-items" // GET my lines, POST CreatePersonalItemRequest → 201 (any member)
     fun personalItem(tripId: String, itemId: String) =
-        "/trips/$tripId/personal-items/$itemId"                    // PATCH PatchPersonalItemRequest, DELETE (own lines only) → 204
-    fun memberList(tripId: String) = "/trips/$tripId/member-list" // GET → MemberListDto (404 NOT_FOUND = none yet), PUT SaveMemberListRequest (EDITOR+) → MemberListDto; 409 LIST_STALE
-    fun memberListSend(tripId: String) = "/trips/$tripId/member-list/send" // POST SendMemberListRequest (EDITOR+) → MemberListDto
-    fun memberListProgress(tripId: String) = "/trips/$tripId/member-list/progress" // GET → List<MemberListProgressDto> (EDITOR+)
-    fun memberListRemind(tripId: String) = "/trips/$tripId/member-list/remind" // POST RemindMemberListRequest (EDITOR+) → 204
+        "/trips/$tripId/personal-items/$itemId"                    // PATCH PatchPersonalItemRequest, DELETE → 204 (any of my lines, also those from the owner's list)
+    fun memberList(tripId: String) = "/trips/$tripId/member-list" // GET → MemberListDto (404 NOT_FOUND = none yet), PUT SaveMemberListRequest → MemberListDto; 409 LIST_STALE (both OWNER only)
+    fun memberListSend(tripId: String) = "/trips/$tripId/member-list/send" // POST SendMemberListRequest (OWNER) → MemberListDto
+    fun memberListProgress(tripId: String) = "/trips/$tripId/member-list/progress" // GET → List<MemberListProgressDto> (OWNER)
+    fun memberListRemind(tripId: String) = "/trips/$tripId/member-list/remind" // POST RemindMemberListRequest (OWNER) → 204
 
     // Phase 2 ─ expenses
     fun expenses(tripId: String) = "/trips/$tripId/expenses"       // GET list, POST ExpenseInput
