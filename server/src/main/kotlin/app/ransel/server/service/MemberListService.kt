@@ -42,8 +42,8 @@ import java.util.UUID
 
 /**
  * "Daftar bawaan anggota" (PRD "Packing list from the trip owner"): the OWNER writes one list per trip and sends it
- * (owner only since 27 Oct 2026); every recipient gets a copy of each line in their own list, theirs to tick, edit or
- * delete. Saving a sent list adds new lines everywhere and removes or changes only the copies a member has not edited
+ * (owner only since 27 Oct 2026); every recipient, and the owner too, gets a copy of each line in their own list,
+ * theirs to tick, edit or delete. Saving a sent list adds new lines everywhere and removes or changes only the copies a member has not edited
  * (`customized`); a copy the member deleted is never brought back. Check marks and own lines stay.
  * Members without an account get copies too and tick them on the guest page.
  */
@@ -96,7 +96,7 @@ object MemberListService {
                 val diff = diffMemberList(before, body.items)
                 if (!diff.isEmpty) {
                     applyDiff(tripId, diff.removedIds, diff.changed)
-                    recipients(tripId).forEach { copyMissing(tripId, it) }
+                    holders(tripId).forEach { copyMissing(tripId, it) }
                     tell(tripId, userId, recipients(tripId), "UPDATED", "packing-list-updated:$tripId:${row[MemberLists.version] + 1}")
                 }
             }
@@ -125,7 +125,7 @@ object MemberListService {
                 } }
             }
             val to = recipients(tripId)
-            to.forEach { copyMissing(tripId, it) }
+            holders(tripId).forEach { copyMissing(tripId, it) }
             if (body.saveAsTemplate) {
                 val list = load(tripId)!!
                 PackingTemplates.insert {
@@ -222,26 +222,54 @@ object MemberListService {
             .filter { if (chosen == null) it != row[MemberLists.createdByMemberId] else it in chosen }
     }
 
-    /** A copy of every list line the member never had; one they deleted counts as had, so it does not come back. */
+    /**
+     * Whoever holds copies of a sent list: the recipients and the owner who wrote it (owner, 27 Oct 2026: the list is
+     * everyone's own list to start with, the author's too). Progress and reminders stay for the recipients.
+     */
+    private fun holders(tripId: UUID): List<UUID> {
+        val author = MemberLists.select(MemberLists.createdByMemberId).where { MemberLists.tripId eq tripId }.singleOrNull()
+            ?.get(MemberLists.createdByMemberId)
+        return (recipients(tripId) + listOfNotNull(author)).distinct()
+    }
+
+    /**
+     * A copy of every list line the member never had; one they deleted counts as had, so it does not come back. A line
+     * the member already keeps on their own (same category and name, e.g. the owner's list was copied from their bag)
+     * is linked to the list instead of added twice.
+     */
     private fun copyMissing(tripId: UUID, memberId: UUID) {
         val have = PersonalItems.select(PersonalItems.sourceItemId)
             .where { (PersonalItems.ownerMemberId eq memberId) and PersonalItems.sourceItemId.isNotNull() }
             .mapNotNull { it[PersonalItems.sourceItemId] }.toSet()
         val missing = MemberListItems.selectAll().where { MemberListItems.tripId eq tripId }.filter { it[MemberListItems.id] !in have }
         if (missing.isEmpty()) return
-        missing.forEach { line -> PersonalItems.insert {
-            it[PersonalItems.id] = UUID.randomUUID()
-            it[PersonalItems.tripId] = tripId
-            it[PersonalItems.ownerMemberId] = memberId
-            it[PersonalItems.category] = line[MemberListItems.category]
-            it[PersonalItems.name] = line[MemberListItems.name]
-            it[PersonalItems.quantity] = line[MemberListItems.quantity]
-            it[PersonalItems.isPacked] = false
-            it[PersonalItems.sortOrder] = line[MemberListItems.sortOrder]
-            it[PersonalItems.sourceItemId] = line[MemberListItems.id]
-            it[PersonalItems.required] = line[MemberListItems.required]
-            it[PersonalItems.customized] = false
-        } }
+        val own = PersonalItems.selectAll()
+            .where { (PersonalItems.ownerMemberId eq memberId) and (PersonalItems.tripId eq tripId) and PersonalItems.sourceItemId.isNull() and PersonalItems.deletedAt.isNull() }
+            .associateBy { it[PersonalItems.category] to it[PersonalItems.name].trim().lowercase() }
+            .toMutableMap()
+        missing.forEach { line ->
+            val match = own.remove(line[MemberListItems.category] to line[MemberListItems.name].trim().lowercase())
+            if (match != null) {
+                PersonalItems.update({ PersonalItems.id eq match[PersonalItems.id] }) {
+                    it[sourceItemId] = line[MemberListItems.id]
+                    it[required] = line[MemberListItems.required]
+                }
+                return@forEach
+            }
+            PersonalItems.insert {
+                it[PersonalItems.id] = UUID.randomUUID()
+                it[PersonalItems.tripId] = tripId
+                it[PersonalItems.ownerMemberId] = memberId
+                it[PersonalItems.category] = line[MemberListItems.category]
+                it[PersonalItems.name] = line[MemberListItems.name]
+                it[PersonalItems.quantity] = line[MemberListItems.quantity]
+                it[PersonalItems.isPacked] = false
+                it[PersonalItems.sortOrder] = line[MemberListItems.sortOrder]
+                it[PersonalItems.sourceItemId] = line[MemberListItems.id]
+                it[PersonalItems.required] = line[MemberListItems.required]
+                it[PersonalItems.customized] = false
+            }
+        }
     }
 
     /**

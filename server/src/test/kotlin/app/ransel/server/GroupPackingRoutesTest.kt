@@ -76,9 +76,15 @@ class GroupPackingRoutesTest {
         assertEquals(0, mine(trip.id).size, "nothing before it is sent")
 
         use(trip.owner)
+        // the owner already keeps a jacket: the list links it instead of adding a second one
+        val ownJacket = UUID.randomUUID().toString()
+        post("/trips/${trip.id}/personal-items", """{"id":"$ownJacket","category":"CLOTHING","name":"jaket"}""")
         assertEquals(HttpStatusCode.OK, post("/trips/${trip.id}/member-list/send", """{"memberIds":[]}""").status)
-        // the author gets no copy; both members do
-        assertEquals(0, mine(trip.id).size)
+        // the list is everyone's own to start with, the owner's too
+        val ownerLines = mine(trip.id)
+        assertEquals(listOf("jaket", "Kaos kaki"), ownerLines.map { it.str("name") })
+        assertEquals(ownJacket, ownerLines.first().str("id"))
+        assertEquals(jacket, ownerLines.first().str("sourceItemId"))
         use(trip.v)
         val copies = mine(trip.id).associateBy { it.str("name") }
         assertEquals(setOf("Jaket", "Kaos kaki"), copies.keys)
