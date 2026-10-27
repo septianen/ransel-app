@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import app.ransel.stopTestMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
@@ -41,7 +41,7 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class SwipeViewModelTest {
     @BeforeTest fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-    @AfterTest fun tearDown() = Dispatchers.resetMain()
+    @AfterTest fun tearDown() = stopTestMain()
 
     /** The mock engine answers on its own dispatcher: wait (real time) until [check] holds. */
     private suspend fun eventually(check: suspend () -> Boolean) = withContext(Dispatchers.Default) {

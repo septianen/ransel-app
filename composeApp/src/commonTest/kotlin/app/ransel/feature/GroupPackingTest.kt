@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import app.ransel.stopTestMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
@@ -79,7 +79,7 @@ private fun listJson(version: Int, sent: Boolean) = """{"data":{"tripId":"$TRIP"
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupPackingTest {
     @BeforeTest fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-    @AfterTest fun tearDown() = Dispatchers.resetMain()
+    @AfterTest fun tearDown() = stopTestMain()
 
     private val requests = MutableStateFlow<List<String>>(emptyList())
     private var hasList = false

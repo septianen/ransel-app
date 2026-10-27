@@ -25,7 +25,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import app.ransel.stopTestMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
@@ -46,7 +46,7 @@ private fun member(id: String) =
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeGroupTripTest {
     @BeforeTest fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-    @AfterTest fun tearDown() = Dispatchers.resetMain()
+    @AfterTest fun tearDown() = stopTestMain()
 
     private suspend fun signedIn(): SessionManager {
         val store = object : TokenStore {

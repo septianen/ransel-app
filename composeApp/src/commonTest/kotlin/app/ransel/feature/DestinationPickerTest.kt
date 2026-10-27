@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import app.ransel.stopTestMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
@@ -48,7 +48,7 @@ private suspend fun eventually(check: () -> Boolean) = withContext(Dispatchers.D
 @OptIn(ExperimentalCoroutinesApi::class)
 class DestinationPickerTest {
     @BeforeTest fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-    @AfterTest fun tearDown() = Dispatchers.resetMain()
+    @AfterTest fun tearDown() = stopTestMain()
 
     private val requests = MutableStateFlow<List<String>>(emptyList())
 

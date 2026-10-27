@@ -40,7 +40,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
+import app.ransel.stopTestMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
@@ -99,7 +99,7 @@ class GroupMoneyViewModelTest {
 
     @AfterTest fun tearDown() {
         made.forEach { it.viewModelScope.cancel() }
-        Dispatchers.resetMain()
+        stopTestMain()
     }
 
     private val log = MutableStateFlow<List<Pair<String, String>>>(emptyList())
@@ -186,7 +186,7 @@ class GroupMoneyViewModelTest {
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReceiptTest {
     @BeforeTest fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-    @AfterTest fun tearDown() = Dispatchers.resetMain()
+    @AfterTest fun tearDown() = stopTestMain()
 
     private val wallet = CreditsDto(10, 3, 3, Instant.parse("2026-10-27T17:00:00Z"), CreditCostsDto(3, 1, 0, 1))
 
