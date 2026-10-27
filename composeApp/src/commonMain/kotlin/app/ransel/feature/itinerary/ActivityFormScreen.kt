@@ -37,6 +37,7 @@ import app.ransel.shared.model.Category
 import app.ransel.ui.category.itineraryLabel
 import app.ransel.ui.category.tileColor
 import app.ransel.ui.components.CategoryIcon
+import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.FormScaffold
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.IrisTimePickerDialog
@@ -55,7 +56,11 @@ import ransel.composeapp.generated.resources.activity_booking
 import ransel.composeapp.generated.resources.activity_category
 import ransel.composeapp.generated.resources.activity_day
 import ransel.composeapp.generated.resources.activity_day_unscheduled
+import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.activity_delete
+import ransel.composeapp.generated.resources.activity_delete_body
+import ransel.composeapp.generated.resources.activity_delete_confirm
+import ransel.composeapp.generated.resources.activity_delete_title
 import ransel.composeapp.generated.resources.activity_duration
 import ransel.composeapp.generated.resources.activity_ends_next_day
 import ransel.composeapp.generated.resources.activity_next_day_tag
@@ -93,6 +98,7 @@ fun ActivityFormScreen(
         viewModel.eventFlow.collect { onClose() }
     }
     var pickingTime by rememberSaveable { mutableStateOf<TimeTarget?>(null) }
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val dates = rememberDateFormatter()
 
     FormScaffold(
@@ -244,7 +250,7 @@ fun ActivityFormScreen(
 
         if (state.isEditing) {
             TextButton(
-                onClick = viewModel::delete,
+                onClick = { confirmDelete = true },
                 modifier = Modifier.heightIn(min = 48.dp),
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
             ) {
@@ -256,6 +262,22 @@ fun ActivityFormScreen(
                 )
             }
         }
+    }
+
+    if (confirmDelete) {
+        ConfirmDialog(
+            title = stringResource(Res.string.activity_delete_title, state.title),
+            body = stringResource(Res.string.activity_delete_body),
+            confirmLabel = stringResource(Res.string.activity_delete_confirm),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = {
+                confirmDelete = false
+                viewModel.delete()
+            },
+            onDismiss = { confirmDelete = false },
+            destructive = true,
+            symbol = Symbols.delete,
+        )
     }
 
     pickingTime?.let { target ->

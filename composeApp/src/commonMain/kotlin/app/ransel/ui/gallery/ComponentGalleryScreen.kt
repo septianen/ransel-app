@@ -67,6 +67,7 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     var showDialog by remember { mutableStateOf(false) }
     var showSheet by remember { mutableStateOf(false) }
     var showForm by remember { mutableStateOf(false) }
+    var showLoadingDialog by remember { mutableStateOf(false) }
     var showAdaptiveForm by remember { mutableStateOf(false) }
 
     if (showForm) {
@@ -175,6 +176,7 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 }
                 Section("ConfirmDialog / AdaptiveSheet / FormScaffold / AdaptiveFormScreen") {
                     Button(onClick = { showDialog = true }) { Text("ConfirmDialog") }
+                    Button(onClick = { showLoadingDialog = true }) { Text("ConfirmDialog (loading)") }
                     Button(onClick = { showSheet = true }) { Text("AdaptiveSheet") }
                     Button(onClick = { showForm = true }) { Text("FormScaffold") }
                     Button(onClick = { showAdaptiveForm = true }) { Text("AdaptiveFormScreen") }
@@ -183,6 +185,17 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 
+    if (showLoadingDialog) {
+        ConfirmDialog(
+            title = "Jadwalkan otomatis?",
+            body = "5 tempat akan dijadwalkan ke Hari 1–3.",
+            confirmLabel = "Jadwalkan",
+            dismissLabel = "Batal",
+            confirmLoading = true,
+            onConfirm = {},
+            onDismiss = { showLoadingDialog = false },
+        )
+    }
     if (showDialog) {
         ConfirmDialog(
             title = "Hapus trip ini?",

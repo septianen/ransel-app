@@ -40,10 +40,13 @@ fun ConfirmDialog(
     modifier: Modifier = Modifier,
     destructive: Boolean = false,
     symbol: String? = null,
+    /** Non-null = the confirm action waits for something: a [LoadingButton] that cannot be pressed while true, and the dialog cannot be closed. */
+    confirmLoading: Boolean? = null,
     extra: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
+    val busy = confirmLoading == true
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!busy) onDismiss() },
         modifier = modifier,
         shape = IrisShape.xl,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -69,20 +72,32 @@ fun ConfirmDialog(
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = if (destructive) {
-                    ButtonDefaults.textButtonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError,
-                    )
-                } else {
-                    ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                },
-            ) { Text(confirmLabel, style = MaterialTheme.typography.labelLarge) }
+            if (confirmLoading != null) {
+                LoadingButton(
+                    onClick = onConfirm,
+                    loading = confirmLoading,
+                    colors = if (destructive) {
+                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
+                    } else {
+                        ButtonDefaults.buttonColors()
+                    },
+                ) { Text(confirmLabel, style = MaterialTheme.typography.labelLarge) }
+            } else {
+                TextButton(
+                    onClick = onConfirm,
+                    colors = if (destructive) {
+                        ButtonDefaults.textButtonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        )
+                    } else {
+                        ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    },
+                ) { Text(confirmLabel, style = MaterialTheme.typography.labelLarge) }
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, enabled = !busy) {
                 Text(
                     dismissLabel,
                     style = MaterialTheme.typography.labelLarge,

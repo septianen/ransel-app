@@ -35,7 +35,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -97,13 +96,15 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.activity_delete_body
+import ransel.composeapp.generated.resources.activity_delete_confirm
+import ransel.composeapp.generated.resources.activity_delete_title
 import ransel.composeapp.generated.resources.itinerary_auto_button
 import ransel.composeapp.generated.resources.itinerary_auto_title
 import ransel.composeapp.generated.resources.itinerary_auto_body
 import ransel.composeapp.generated.resources.itinerary_auto_left
 import ransel.composeapp.generated.resources.itinerary_auto_none
 import ransel.composeapp.generated.resources.itinerary_auto_confirm
-import ransel.composeapp.generated.resources.itinerary_auto_running
 import ransel.composeapp.generated.resources.itinerary_auto_done
 import ransel.composeapp.generated.resources.itinerary_auto_done_left
 import ransel.composeapp.generated.resources.action_undo
@@ -239,6 +240,7 @@ private fun ItineraryContent(
     var scheduleItemId by rememberSaveable { mutableStateOf<String?>(null) }
     var autoPlan by remember { mutableStateOf<AutoPlan?>(null) }
     var showAuto by rememberSaveable { mutableStateOf(false) }
+    var confirmDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     val day = state.selectedDay
     val items = state.selectedItems
     val ids = items.map { it.id }
@@ -281,6 +283,7 @@ private fun ItineraryContent(
                     UnscheduledBox(
                         items = state.unscheduled,
                         onSeeAll = { showUnscheduled = true },
+                        onOpen = if (canEdit) ({ onEditActivity(it.id) }) else null,
                         onSchedule = if (canEdit) ({ scheduleItemId = it.id }) else null,
                         onAutoSchedule = if (canEdit && state.unscheduled.size >= 2) {
                             {
@@ -338,14 +341,23 @@ private fun ItineraryContent(
         }
     }
     if (showUnscheduled) {
-        UnscheduledPlacesSheet(
+        UnscheduledPlacesScreen(
             items = state.unscheduled,
             onDismiss = { showUnscheduled = false },
-            onSchedule = {
+            // the form is another screen: close the list first, or it would stay on top of it
+            onOpen = {
                 showUnscheduled = false
-                scheduleItemId = it.id
+                onEditActivity(it.id)
             },
-            onDelete = { viewModel.deleteItem(it.id) },
+            onSchedule = { scheduleItemId = it.id },
+            onAutoSchedule = if (canEdit && state.unscheduled.size >= 2) {
+                {
+                    autoPlan = viewModel.previewAutoSchedule()
+                    showAuto = true
+                }
+            } else {
+                null
+            },
             canEdit = canEdit,
         )
     }
@@ -359,11 +371,24 @@ private fun ItineraryContent(
                 viewModel.schedule(toSchedule, d, start, end)
                 scheduleItemId = null
             },
-            onDelete = {
-                viewModel.deleteItem(toSchedule.id)
+            onDelete = { confirmDeleteId = toSchedule.id },
+            onDismiss = { scheduleItemId = null },
+        )
+    }
+    state.unscheduled.firstOrNull { it.id == confirmDeleteId }?.let { doomed ->
+        ConfirmDialog(
+            title = stringResource(Res.string.activity_delete_title, doomed.title),
+            body = stringResource(Res.string.activity_delete_body),
+            confirmLabel = stringResource(Res.string.activity_delete_confirm),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = {
+                viewModel.deleteItem(doomed.id)
+                confirmDeleteId = null
                 scheduleItemId = null
             },
-            onDismiss = { scheduleItemId = null },
+            onDismiss = { confirmDeleteId = null },
+            destructive = true,
+            symbol = Symbols.delete,
         )
     }
 }
@@ -647,7 +672,8 @@ private fun PlaceDetailButton(item: ItineraryItemDto) {
         Modifier.size(40.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button) { open(item) },
         contentAlignment = Alignment.Center,
     ) {
-        Symbol(Symbols.info, contentDescription = stringResource(Res.string.place_detail_open), tint = MaterialTheme.colorScheme.primary)
+        // the AI colour, like the sparkle next to the category and the AI cards elsewhere
+        Symbol(Symbols.info, contentDescription = stringResource(Res.string.place_detail_open), tint = MaterialTheme.colorScheme.tertiary)
     }
 }
 
@@ -657,6 +683,7 @@ private fun PlaceDetailButton(item: ItineraryItemDto) {
 private fun UnscheduledBox(
     items: List<ItineraryItemDto>,
     onSeeAll: () -> Unit,
+    onOpen: ((ItineraryItemDto) -> Unit)?,
     onSchedule: ((ItineraryItemDto) -> Unit)?,
     onAutoSchedule: (() -> Unit)? = null,
 ) {
@@ -694,7 +721,11 @@ private fun UnscheduledBox(
             )
         }
         items.take(2).forEach { item ->
-            UnscheduledRow(item, onSchedule = onSchedule?.let { schedule -> { schedule(item) } })
+            UnscheduledRow(
+                item,
+                onOpen = onOpen?.let { open -> { open(item) } },
+                onSchedule = onSchedule?.let { schedule -> { schedule(item) } },
+            )
         }
         if (onAutoSchedule != null) {
             OutlinedButton(onClick = onAutoSchedule, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
@@ -714,8 +745,9 @@ private fun AutoScheduleDialog(plan: AutoPlan, running: Boolean, onConfirm: () -
     ConfirmDialog(
         title = stringResource(Res.string.itinerary_auto_title),
         body = if (none) stringResource(Res.string.itinerary_auto_none) else stringResource(Res.string.itinerary_auto_body, plan.count, dayText),
-        confirmLabel = stringResource(if (running) Res.string.itinerary_auto_running else Res.string.itinerary_auto_confirm),
+        confirmLabel = stringResource(Res.string.itinerary_auto_confirm),
         dismissLabel = stringResource(Res.string.action_cancel),
+        confirmLoading = running,
         onConfirm = { if (!none && !running) onConfirm() },
         onDismiss = onDismiss,
         symbol = Symbols.schedule,
@@ -727,7 +759,6 @@ private fun AutoScheduleDialog(plan: AutoPlan, running: Boolean, onConfirm: () -
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (running) LinearProgressIndicator(Modifier.fillMaxWidth())
         },
     )
 }
@@ -735,11 +766,14 @@ private fun AutoScheduleDialog(plan: AutoPlan, running: Boolean, onConfirm: () -
 @Composable
 internal fun UnscheduledRow(
     item: ItineraryItemDto,
+    onOpen: (() -> Unit)?,
     onSchedule: (() -> Unit)?,
-    trailing: (@Composable () -> Unit)? = null,
 ) {
     Row(
-        Modifier.fillMaxWidth(),
+        Modifier
+            .fillMaxWidth()
+            .clip(IrisShape.md)
+            .then(if (onOpen != null) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpen) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -748,7 +782,7 @@ internal fun UnscheduledRow(
             Text(
                 item.title,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -770,13 +804,14 @@ internal fun UnscheduledRow(
         }
         PlaceDetailButton(item)
         if (onSchedule != null) {
-            OutlinedButton(
-                onClick = onSchedule,
-                modifier = Modifier.heightIn(min = 36.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-            ) { Text(stringResource(Res.string.itinerary_schedule), style = MaterialTheme.typography.labelLarge) }
+            // icon only (owner, 27 Oct 2026): the title needs the room; the label is for screen readers
+            Box(
+                Modifier.size(40.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onSchedule),
+                contentAlignment = Alignment.Center,
+            ) {
+                Symbol(Symbols.eventAvailable, contentDescription = stringResource(Res.string.itinerary_schedule), tint = MaterialTheme.colorScheme.primary)
+            }
         }
-        trailing?.invoke()
     }
 }
 

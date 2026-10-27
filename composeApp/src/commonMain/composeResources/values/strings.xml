@@ -239,8 +239,6 @@
     <string name="itinerary_unscheduled_places">%1$d places · %2$s</string>
     <string name="itinerary_schedule">Schedule</string>
     <string name="itinerary_added_manually">Added manually</string>
-    <string name="itinerary_remove_from_list">Remove from list</string>
-    <string name="itinerary_more">More</string>
     <string name="itinerary_close">Close</string>
     <string name="itinerary_day_summary">%1$d activities · until %2$s</string>
     <string name="itinerary_day_empty_summary">Still empty</string>
@@ -1515,7 +1513,10 @@
     <string name="itinerary_auto_left">%1$d places do not fit and stay unscheduled.</string>
     <string name="itinerary_auto_none">No place fits in the days that are left. Add days or remove activities first.</string>
     <string name="itinerary_auto_confirm">Schedule</string>
-    <string name="itinerary_auto_running">Scheduling…</string>
     <string name="itinerary_auto_done">%1$d places scheduled</string>
     <string name="itinerary_auto_done_left">%1$d places scheduled, %2$d do not fit</string>
+    <string name="activity_delete_title">Delete “%1$s”?</string>
+    <string name="activity_delete_body">This activity is removed from the itinerary and cannot be brought back.</string>
+    <string name="activity_delete_confirm">Delete</string>
+    <string name="itinerary_remove_from_list">Remove from list</string>
 </resources>
