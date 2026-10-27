@@ -61,6 +61,7 @@ import app.ransel.shared.model.PollStatus
 import app.ransel.shared.model.Role as TripRole
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.MemberAvatar
+import app.ransel.ui.components.VoteOptionCard
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
@@ -552,68 +553,53 @@ private fun OptionRow(
     onDecide: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val fraction = if (poll.memberCount <= 0) 0f else (option.voteCount.toFloat() / poll.memberCount).coerceIn(0f, 1f)
     val canVote = poll.isOpen && enabled
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(IrisShape.lg)
-            .border(if (selected || winner) 2.dp else 1.dp, if (selected || winner) scheme.primary else scheme.outlineVariant, IrisShape.lg)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            Modifier.fillMaxWidth().clickable(enabled = canVote, role = if (poll.multiChoice) Role.Checkbox else Role.RadioButton, onClick = onToggle),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (poll.isOpen) {
+    VoteOptionCard(
+        title = option.label,
+        subtitle = pollOptionSubtitle(option, currency)?.takeIf { it != option.label },
+        voteCount = option.voteCount,
+        memberCount = poll.memberCount,
+        countLabel = pluralStringResource(Res.plurals.poll_votes_count, option.voteCount, option.voteCount),
+        highlighted = selected,
+        winner = winner,
+        clickRole = if (poll.multiChoice) Role.Checkbox else Role.RadioButton,
+        onClick = if (canVote) onToggle else null,
+        leading = if (poll.isOpen) {
+            {
                 if (poll.multiChoice) Checkbox(checked = selected, onCheckedChange = null, enabled = canVote)
                 else RadioButton(selected = selected, onClick = null, enabled = canVote)
             }
-            Column(Modifier.weight(1f)) {
-                Text(option.label, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
-                pollOptionSubtitle(option, currency)?.takeIf { it != option.label }?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-                }
-            }
+        } else null,
+        headerTrailing = {
             if (winner) Chip(stringResource(Res.string.poll_winner_badge), highlight = true)
             CommentButton(option.id, option.label)
-        }
-        // counts bar
-        Box(Modifier.fillMaxWidth().height(6.dp).clip(CircleShape).background(scheme.surfaceVariant)) {
-            Box(Modifier.fillMaxWidth(fraction).fillMaxHeight().background(if (winner) scheme.primary else scheme.primary.copy(alpha = 0.6f)))
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                pluralStringResource(Res.plurals.poll_votes_count, option.voteCount, option.voteCount),
-                style = MaterialTheme.typography.labelMedium,
-                color = scheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            // names only when the poll is not anonymous (the server sends no voter ids otherwise)
+        },
+        // names only when the poll is not anonymous (the server sends no voter ids otherwise)
+        avatars = {
             option.voterIds.take(5).forEachIndexed { index, id ->
                 val member = members[id]
                 MemberAvatar(member?.displayName ?: "?", id, Modifier.offset(x = (-6 * index).dp), isGuest = member?.isGuest == true, size = 24.dp)
             }
-        }
-        if (canEdit || canPickTie || canConfirm) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (canPickTie) {
-                    TextButton(onClick = onDecide, enabled = enabled) { Text(stringResource(Res.string.poll_tie_pick)) }
-                }
-                if (canConfirm) {
-                    TextButton(onClick = onDecide, enabled = enabled) { Text(stringResource(Res.string.poll_leading_pick)) }
-                }
-                if (canEdit) {
-                    TextButton(onClick = onEdit, enabled = enabled) { Text(stringResource(Res.string.poll_option_edit)) }
-                    TextButton(onClick = onDelete, enabled = enabled) {
-                        Text(stringResource(Res.string.poll_option_delete), color = scheme.error)
+        },
+        footer = if (canEdit || canPickTie || canConfirm) {
+            {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (canPickTie) {
+                        TextButton(onClick = onDecide, enabled = enabled) { Text(stringResource(Res.string.poll_tie_pick)) }
+                    }
+                    if (canConfirm) {
+                        TextButton(onClick = onDecide, enabled = enabled) { Text(stringResource(Res.string.poll_leading_pick)) }
+                    }
+                    if (canEdit) {
+                        TextButton(onClick = onEdit, enabled = enabled) { Text(stringResource(Res.string.poll_option_edit)) }
+                        TextButton(onClick = onDelete, enabled = enabled) {
+                            Text(stringResource(Res.string.poll_option_delete), color = scheme.error)
+                        }
                     }
                 }
             }
-        }
-    }
+        } else null,
+    )
 }
 
 private val previewNow = Instant.parse("2026-10-26T10:00:00Z")

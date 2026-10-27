@@ -870,8 +870,6 @@
     <string name="vote_result_all_voted">Semua anggota sudah memilih</string>
     <string name="vote_result_sorted">Urut dari paling banyak disukai</string>
     <string name="vote_result_selected">%1$d dipilih</string>
-    <string name="vote_result_likes">%1$d suka</string>
-    <string name="vote_result_skips">%1$d lewati</string>
     <string name="vote_result_action">Masukkan %1$d ke itinerary</string>
     <string name="vote_result_close_none">Tutup voting tanpa memilih</string>
     <string name="vote_result_note">Tempat masuk ke "Belum dijadwalkan". Voting langsung ditutup.</string>

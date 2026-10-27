@@ -876,8 +876,6 @@
     <string name="vote_result_all_voted">Every member has voted</string>
     <string name="vote_result_sorted">Most liked first</string>
     <string name="vote_result_selected">%1$d selected</string>
-    <string name="vote_result_likes">%1$d likes</string>
-    <string name="vote_result_skips">%1$d skipped</string>
     <string name="vote_result_action">Add %1$d to the itinerary</string>
     <string name="vote_result_close_none">Close voting without choosing</string>
     <string name="vote_result_note">Places go to "Unscheduled". Voting closes right away.</string>

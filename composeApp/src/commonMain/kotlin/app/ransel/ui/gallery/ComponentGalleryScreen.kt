@@ -51,6 +51,7 @@ import ransel.composeapp.generated.resources.explore_loading_4
 import ransel.composeapp.generated.resources.explore_loading_hint
 import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.components.AdaptiveSheet
+import app.ransel.ui.components.VoteOptionCard
 import app.ransel.ui.components.FormScaffold
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbols
@@ -167,6 +168,10 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         ),
                         hint = stringResource(Res.string.explore_loading_hint),
                     )
+                }
+                Section("VoteOptionCard") {
+                    VoteOptionCard("Kereta", voteCount = 4, memberCount = 5, countLabel = "4 suara", subtitle = "Rp250.000", winner = true)
+                    VoteOptionCard("Pantai Melasti", voteCount = 2, memberCount = 5, countLabel = "2 dari 5 suka", subtitle = "Wisata")
                 }
                 Section("ConfirmDialog / AdaptiveSheet / FormScaffold / AdaptiveFormScreen") {
                     Button(onClick = { showDialog = true }) { Text("ConfirmDialog") }

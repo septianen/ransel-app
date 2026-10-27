@@ -66,6 +66,7 @@ import app.ransel.ui.category.tileColor
 import app.ransel.ui.components.ConnectionErrorState
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.MemberAvatar
+import app.ransel.ui.components.VoteOptionCard
 import app.ransel.ui.components.UndoSnackbar
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
@@ -385,6 +386,7 @@ private fun ColumnScope.OwnerResult(
             ResultRow(
                 place = place,
                 tally = tally[id],
+                memberCount = round.memberCount,
                 voters = voters,
                 checked = if (decided) id in round.chosenPlaceIds else id in state.selected,
                 enabled = !decided && !state.busy,
@@ -457,47 +459,31 @@ private fun VotersCard(voters: List<VoterDto>, placeCount: Int) {
 private fun ResultRow(
     place: RoundPlaceDto,
     tally: TallyDto?,
+    memberCount: Int,
     voters: List<VoterDto>,
     checked: Boolean,
     enabled: Boolean,
     onToggle: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
     val likes = tally?.likes ?: 0
-    val skips = tally?.skips ?: 0
-    val counts = buildString {
-        append(stringResource(place.category.itineraryLabel))
-        append(" · ")
-        append(stringResource(Res.string.vote_result_likes, likes))
-        if (skips > 0) append(" · ").append(stringResource(Res.string.vote_result_skips, skips))
-    }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(IrisShape.lg)
-            .background(scheme.surface)
-            .border(2.dp, if (checked) scheme.primary else scheme.surface, IrisShape.lg)
-            .clickable(enabled = enabled, role = Role.Checkbox, onClick = onToggle)
-            .padding(horizontal = 4.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Checkbox(checked = checked, onCheckedChange = if (enabled) ({ onToggle() }) else null, enabled = enabled)
-        PlaceTile(place.category, 48)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(place.item.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(counts, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-        }
-        val likedBy = tally?.likedBy.orEmpty().mapNotNull { id -> voters.firstOrNull { it.userId == id } }
-        if (likedBy.isNotEmpty()) {
-            Box(Modifier.padding(end = 8.dp)) {
-                likedBy.take(3).forEachIndexed { index, voter ->
-                    MemberAvatar(voter.displayName, voter.userId, Modifier.offset(x = (index * 16).dp), size = 22.dp)
-                }
-                Box(Modifier.size(width = (22 + 16 * (minOf(likedBy.size, 3) - 1)).dp, height = 22.dp))
+    val likedBy = tally?.likedBy.orEmpty().mapNotNull { id -> voters.firstOrNull { it.userId == id } }
+    VoteOptionCard(
+        title = place.item.name,
+        subtitle = stringResource(place.category.itineraryLabel),
+        voteCount = likes,
+        memberCount = memberCount,
+        countLabel = stringResource(Res.string.vote_likes_of, likes, memberCount),
+        highlighted = checked,
+        clickRole = Role.Checkbox,
+        onClick = if (enabled) onToggle else null,
+        leading = { Checkbox(checked = checked, onCheckedChange = null, enabled = enabled) },
+        tile = { PlaceTile(place.category, 40) },
+        avatars = {
+            likedBy.take(3).forEachIndexed { index, voter ->
+                MemberAvatar(voter.displayName, voter.userId, Modifier.offset(x = (-6 * index).dp), size = 22.dp)
             }
-        }
-    }
+        },
+    )
 }
 
 // ── Member, closed (VotingDitutupMenunggu / VotingDitutup) ──────────────────
@@ -558,28 +544,30 @@ private fun ColumnScope.MemberClosed(state: VoteUiState, round: RoundDto, onClos
 @Composable
 private fun ClosedRow(place: RoundPlaceDto, tally: TallyDto?, members: Int, chosen: Boolean, liked: Boolean, faded: Boolean = false) {
     val scheme = MaterialTheme.colorScheme
-    Row(
-        Modifier.fillMaxWidth().alpha(if (faded) 0.75f else 1f).clip(IrisShape.lg).background(scheme.surface).padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        PlaceTile(place.category, if (faded) 40 else 48)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(place.item.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(stringResource(Res.string.vote_likes_of, tally?.likes ?: 0, members), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-        }
-        when {
-            chosen -> Symbol(Symbols.checkCircle, contentDescription = stringResource(Res.string.vote_chosen), size = 20.dp, filled = true, tint = scheme.primary)
-            liked -> Row(
-                Modifier.clip(IrisShape.xs).background(MaterialTheme.colorScheme.secondaryContainer).padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Symbol(Symbols.favorite, size = 14.dp, filled = true, tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                Text(stringResource(Res.string.vote_you_liked), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSecondaryContainer, maxLines = 1)
+    val likes = tally?.likes ?: 0
+    VoteOptionCard(
+        title = place.item.name,
+        subtitle = stringResource(place.category.itineraryLabel),
+        voteCount = likes,
+        memberCount = members,
+        countLabel = stringResource(Res.string.vote_likes_of, likes, members),
+        winner = chosen,
+        faded = faded,
+        tile = { PlaceTile(place.category, if (faded) 36 else 40) },
+        headerTrailing = {
+            when {
+                chosen -> Symbol(Symbols.checkCircle, contentDescription = stringResource(Res.string.vote_chosen), size = 20.dp, filled = true, tint = scheme.primary)
+                liked -> Row(
+                    Modifier.clip(IrisShape.xs).background(scheme.secondaryContainer).padding(horizontal = 8.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Symbol(Symbols.favorite, size = 14.dp, filled = true, tint = scheme.onSecondaryContainer)
+                    Text(stringResource(Res.string.vote_you_liked), style = MaterialTheme.typography.labelMedium, color = scheme.onSecondaryContainer, maxLines = 1)
+                }
             }
-        }
-    }
+        },
+    )
 }
 
 // ── small parts ─────────────────────────────────────────────────────────────

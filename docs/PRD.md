@@ -298,7 +298,7 @@ Prices from Jelajah are labelled as estimates. Google Places only gives a price 
 
 ### Place voting
 
-An Explore search on a group trip becomes a round (`docs/specs/voting-spec.md`): every member swipes within 24 hours, the owner decides. Rounds appear as cards in "Perlu tindakanmu" (one per round), rows in "Voting berjalan" and "Riwayat voting", drawn like poll rows (magenta tile with the AI mark, status tag). The owner can close voting early.
+An Explore search on a group trip becomes a round (`docs/specs/voting-spec.md`): every member swipes within 24 hours, the owner decides. Options look the same in a poll and in a place round (title, bar of votes out of members, count; skips are not shown). Rounds appear as cards in "Perlu tindakanmu" (one per round), rows in "Voting berjalan" and "Riwayat voting", drawn like poll rows (magenta tile with the AI mark, status tag). The owner can close voting early.
 
 ### Entry points for group trip screens
 
