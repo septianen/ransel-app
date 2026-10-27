@@ -109,11 +109,7 @@ object ApiRoutes {
     fun payInfo(tripId: String, fromMemberId: String, toMemberId: String) =
         "/trips/$tripId/settlements/$fromMemberId/$toMemberId/pay-info" // GET → PayInfoDto, only for the caller's own member as [fromMemberId] while they owe [toMemberId]; else 403
 
-    // Group money: kitty (iuran), payment info, receipts. Amounts of the kitty are in the trip's base currency.
-    fun kitty(tripId: String) = "/trips/$tripId/kitty"             // GET → KittyOverviewDto, PUT KittyInput (OWNER) → KittyOverviewDto, DELETE (OWNER) → 204
-    fun kittyDeposits(tripId: String) = "/trips/$tripId/kitty/deposits" // POST KittyDepositInput (EDITOR+ or the treasurer) → 201 KittyDepositDto
-    fun kittyDeposit(tripId: String, depositId: String) =
-        "/trips/$tripId/kitty/deposits/$depositId"                 // DELETE (EDITOR+ or the treasurer) → 204
+    // Group money: payment info, receipts.
     const val ME_PAYMENT_METHODS = "/me/payment-methods"           // GET → List<PaymentMethodDto>, POST PaymentMethodInput → 201 PaymentMethodDto
     fun mePaymentMethod(id: String) = "/me/payment-methods/$id"    // PATCH PaymentMethodInput → PaymentMethodDto, DELETE → 204
     const val FX_RATE = "/fx/rate"                                 // GET ?from=&to=&date= → FxRateDto (bearer); 404 NOT_FOUND for a currency the ECB does not quote

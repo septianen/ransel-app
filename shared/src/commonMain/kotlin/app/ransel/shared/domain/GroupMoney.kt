@@ -2,20 +2,12 @@ package app.ransel.shared.domain
 
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseItemDto
-import app.ransel.shared.dto.KittyDepositDto
-import app.ransel.shared.dto.KittyDto
-import app.ransel.shared.dto.KittyMemberDto
-import app.ransel.shared.dto.KittySummaryDto
 import app.ransel.shared.dto.PaymentMethodInput
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.model.PollPriceUnit
 import app.ransel.shared.model.SettlementStatus
 
-/*
- * Group money (PRD "Group kitty", "Getting paid", TRD "Group trip features"). The kitty goes through its treasurer:
- * a deposit is the member paying the treasurer, a kitty expense is paid by the treasurer. Money left at the end
- * therefore appears in the normal balances as the treasurer owing the depositors.
- */
+/* Group money (PRD "Getting paid", TRD "Group trip features"): balances, receipt splits, stay estimates. */
 
 /**
  * One expense in the trip's base currency. Each share is converted on its own and the rounding difference goes to the
@@ -33,14 +25,13 @@ fun ExpenseDto.toBalanceExpense(baseCurrency: String): BalanceExpense {
 }
 
 /**
- * Balances of a trip as the Saldo tab shows them. Deleted rows and estimates are ignored, settlements count only once
- * CONFIRMED, and each kitty deposit counts as the depositor paying the treasurer who received it.
+ * Balances of a trip as the Saldo tab shows them. Deleted rows and estimates are ignored, and settlements count only
+ * once CONFIRMED.
  */
 fun tripBalances(
     memberIds: List<String>,
     expenses: List<ExpenseDto>,
     settlements: List<SettlementDto>,
-    deposits: List<KittyDepositDto>,
     baseCurrency: String,
 ): List<MemberBalance> {
     val balanceExpenses = expenses
@@ -49,42 +40,7 @@ fun tripBalances(
     val paidBack = settlements
         .filter { it.deletedAt == null && it.status == SettlementStatus.CONFIRMED }
         .map { BalanceSettlement(it.fromMemberId, it.toMemberId, it.amountMinor) }
-    val intoKitty = deposits
-        .filter { it.deletedAt == null && it.memberId != it.receivedByMemberId }
-        .map { BalanceSettlement(it.memberId, it.receivedByMemberId, it.amountMinor) }
-    return computeBalances(memberIds, balanceExpenses, paidBack + intoKitty)
-}
-
-/** "Kas" view: collected, spent, left, and who has deposited the agreed amount. */
-fun kittySummary(
-    kitty: KittyDto?,
-    deposits: List<KittyDepositDto>,
-    expenses: List<ExpenseDto>,
-    memberIds: List<String>,
-    baseCurrency: String,
-): KittySummaryDto {
-    val live = deposits.filter { it.deletedAt == null }
-    val byMember = live.groupBy { it.memberId }.mapValues { (_, rows) -> rows.sumOf { it.amountMinor } }
-    val collected = live.sumOf { it.amountMinor }
-    val spent = expenses
-        .filter { it.deletedAt == null && it.paidFromKitty && !it.isEstimate }
-        .sumOf { convertMinor(it.amountMinor, it.currency, baseCurrency, it.fxRateToBase) }
-    val perMember = kitty?.amountPerMemberMinor ?: 0
-    return KittySummaryDto(
-        collectedMinor = collected,
-        spentMinor = spent,
-        leftMinor = collected - spent,
-        members = memberIds.map { id ->
-            val deposited = byMember[id] ?: 0
-            KittyMemberDto(id, deposited, done = perMember > 0 && deposited >= perMember)
-        },
-    )
-}
-
-/** Who a kitty expense is split between by default: the members who deposited, or everyone when nobody has yet. */
-fun kittyShareMemberIds(deposits: List<KittyDepositDto>, memberIds: List<String>): List<String> {
-    val depositors = deposits.filter { it.deletedAt == null && it.amountMinor > 0 }.map { it.memberId }.toSet()
-    return memberIds.filter { it in depositors }.ifEmpty { memberIds }
+    return computeBalances(memberIds, balanceExpenses, paidBack)
 }
 
 /**

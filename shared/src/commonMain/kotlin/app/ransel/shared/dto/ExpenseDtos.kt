@@ -33,8 +33,6 @@ data class ExpenseDto(
     val payers: List<ExpensePayerDto> = emptyList(),
     /** Empty = paid and carried fully by paidByMemberId (solo). Shares are in [currency] and sum to amountMinor. */
     val splits: List<ExpenseSplitDto> = emptyList(),
-    /** "Ambil dari kas": paid with the kitty's money. [paidByMemberId] is then the treasurer who holds it. */
-    val paidFromKitty: Boolean = false,
     /** A planned cost, not a payment yet (e.g. the stay chosen in a poll). Left out of balances and of spentMinor. */
     val isEstimate: Boolean = false,
     /** "Per item" split from a receipt, in list order. Empty = no items; the splits are then the whole truth. */
@@ -78,8 +76,7 @@ data class ExpenseItemDto(
  * splits empty or sum(shareMinor) == amountMinor (else 422 SPLIT_TOTAL_MISMATCH).
  * paidByMemberId null = the caller's own member (domain.memberIdFor). payers empty = paidByMemberId paid all; otherwise at least two different
  * members with amount > 0 summing to amountMinor (else 422 PAYER_TOTAL_MISMATCH), and paidByMemberId becomes the first.
- * paidFromKitty: the trip must have a kitty (else 422 paidFromKitty = NO_KITTY), payers must be empty, and the server sets
- * paidByMemberId to the kitty's treasurer. items: they must add up to amountMinor (else 422 SPLIT_TOTAL_MISMATCH) and the
+ * items: they must add up to amountMinor (else 422 SPLIT_TOTAL_MISMATCH) and the
  * server replaces the splits with domain.splitByItems. Saving an estimate with isEstimate = false turns it into the real payment.
  */
 @Serializable
@@ -95,7 +92,6 @@ data class ExpenseInput(
     val paidByMemberId: String? = null,
     val payers: List<ExpensePayerDto> = emptyList(),
     val splits: List<ExpenseSplitDto> = emptyList(),
-    val paidFromKitty: Boolean = false,
     val isEstimate: Boolean = false,
     val items: List<ExpenseItemDto> = emptyList(),
     val fxSource: FxSource? = null,

@@ -34,10 +34,6 @@ data class SyncChanges(
     val settlements: List<SettlementDto> = emptyList(),
     /** The caller's own packing lines only, both ways; lines from the owner's list may only change their check mark. */
     val personalItems: List<PersonalItemDto> = emptyList(),
-    /** One per trip at most (the trip id is its key). OWNER only. */
-    val kitties: List<KittyDto> = emptyList(),
-    /** EDITOR+ or the trip's treasurer. */
-    val kittyDeposits: List<KittyDepositDto> = emptyList(),
     /** Pull only: membership of the user's trips (Phase 4). Ignored on push. */
     val members: List<TripMemberDto> = emptyList(),
 )
@@ -57,7 +53,7 @@ data class SyncPushResponse(
 
 @Serializable
 data class SyncRowRef(
-    /** "trip", "itineraryItem", "packingItem", "personalItem", "expense", "settlement", "kitty", "kittyDeposit" */
+    /** "trip", "itineraryItem", "packingItem", "personalItem", "expense", "settlement" */
     val entity: String,
     val id: String,
 )
