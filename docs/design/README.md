@@ -375,8 +375,8 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/PollingTanggal.html` |  | Polling tanggal: pilih dan tetapkan | 390 |
 | `screens/PackingBersama.html` | `PackingList` Bersama (`SharedPackingRow`, `SharedSummaryCard`) | Packing: barang bersama | 390 |
 | `screens/TambahBarangBersama.html` | `AddPackingItemSheet` + `BringerChoice` | Tambah barang bersama (bottom sheet) | 390 |
-| `screens/KasBersama.html` | `KittyContent` (Expenses tab, Kas) | Pengeluaran: kas bersama | 390 |
-| `screens/CatatSetoran.html` | `DepositSheet` | Catat setoran kas (bottom sheet) | 390 |
+| `screens/KasBersama.html` | `KittyContent` (Expenses tab, Kas) | Pengeluaran: kas bersama (**removed 27 Oct 2026: the owner dropped the kitty; not built**) | 390 |
+| `screens/CatatSetoran.html` | `DepositSheet` | Catat setoran kas (bottom sheet) (**removed 27 Oct 2026: the owner dropped the kitty; not built**) | 390 |
 
 ### Trip grup · P2: foto struk, dokumen trip, rekap
 
@@ -398,7 +398,7 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/TambahPengeluaranPilih.html` | `AddExpenseChooserSheet` | Tambah pengeluaran: pilih cara (tombol +) | 390 |
 | `screens/MenuTrip.html` |  | Menu trip: tinggal pengaturan trip | 390 |
 | `screens/BerandaRekap.html` | `RecapHomeCard` on `HomeScreen` | Beranda setelah trip selesai: kartu rekap | 390 |
-| `screens/CatatPengeluaranKas.html` | `ExpenseSheet` ("Ambil dari kas" on) | Catat pengeluaran: toggle ambil dari kas aktif | 390 |
+| `screens/CatatPengeluaranKas.html` | `ExpenseSheet` ("Ambil dari kas" on) | Catat pengeluaran: toggle ambil dari kas aktif (**removed 27 Oct 2026: the owner dropped the kitty; not built**) | 390 |
 
 ### Tab Grup · pusat polling, tindakan, dan dokumen (+ komentar)
 
@@ -466,8 +466,8 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/WebSaldoTagih.html` | `SaldoContent` (expanded) | Web: saldo, yang perlu bayar ke kamu | 1280 |
 | `screens/WebIngatkanWA.html` | `RemindSheet` (dialog) | Web: ingatkan lewat WhatsApp | 1280 |
 | `screens/WebBayarKe.html` | `PayToSheet` (dialog) | Web: bayar ke anggota | 1280 |
-| `screens/WebKasBersama.html` | `KittyContent` (expanded) | Web: kas bersama | 1280 |
-| `screens/WebCatatSetoran.html` | `DepositSheet` (dialog) | Web: catat setoran kas | 1280 |
+| `screens/WebKasBersama.html` | `KittyContent` (expanded) | Web: kas bersama (**removed 27 Oct 2026: the owner dropped the kitty; not built**) | 1280 |
+| `screens/WebCatatSetoran.html` | `DepositSheet` (dialog) | Web: catat setoran kas (**removed 27 Oct 2026: the owner dropped the kitty; not built**) | 1280 |
 | `screens/WebFotoStruk.html` | `ReceiptFlow` (pick, file only) | Web: unggah foto struk | 1280 |
 | `screens/WebHasilStruk.html` | `ReceiptFlow` (result, dialog) | Web: cek hasil struk | 1280 |
 | `screens/WebDokumenTrip.html` | `DocumentsScreen` (web: downloads) | Web: dokumen trip | 1280 |

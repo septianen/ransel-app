@@ -44,7 +44,6 @@ import app.ransel.feature.tripform.ThousandsVisualTransformation
 import app.ransel.platform.rememberShareText
 import app.ransel.shared.domain.currencyDecimals
 import app.ransel.shared.domain.whatsappLink
-import app.ransel.shared.dto.KittyOverviewDto
 import app.ransel.shared.dto.MemberBalanceDto
 import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.SettlementDto
@@ -71,29 +70,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.itinerary_close
-import ransel.composeapp.generated.resources.kitty_collected
-import ransel.composeapp.generated.resources.kitty_deposit_from
-import ransel.composeapp.generated.resources.kitty_deposit_hint
-import ransel.composeapp.generated.resources.kitty_deposit_save
-import ransel.composeapp.generated.resources.kitty_deposit_title
-import ransel.composeapp.generated.resources.kitty_deposited
-import ransel.composeapp.generated.resources.kitty_deposits
-import ransel.composeapp.generated.resources.kitty_empty_body
-import ransel.composeapp.generated.resources.kitty_empty_title
-import ransel.composeapp.generated.resources.kitty_holds
-import ransel.composeapp.generated.resources.kitty_left
-import ransel.composeapp.generated.resources.kitty_note
-import ransel.composeapp.generated.resources.kitty_pay_from
-import ransel.composeapp.generated.resources.kitty_per_member_line
-import ransel.composeapp.generated.resources.kitty_record_deposit
-import ransel.composeapp.generated.resources.kitty_settings
-import ransel.composeapp.generated.resources.kitty_setup_amount
-import ransel.composeapp.generated.resources.kitty_setup_save
-import ransel.composeapp.generated.resources.kitty_setup_start
-import ransel.composeapp.generated.resources.kitty_setup_title
-import ransel.composeapp.generated.resources.kitty_setup_treasurer
-import ransel.composeapp.generated.resources.kitty_spent
-import ransel.composeapp.generated.resources.kitty_waiting_owner
 import ransel.composeapp.generated.resources.money_claim_confirm
 import ransel.composeapp.generated.resources.money_claim_from
 import ransel.composeapp.generated.resources.money_claim_reject
@@ -120,7 +96,6 @@ import ransel.composeapp.generated.resources.payto_share_line
 import ransel.composeapp.generated.resources.payto_title
 import ransel.composeapp.generated.resources.remind_copy
 import ransel.composeapp.generated.resources.remind_include
-import ransel.composeapp.generated.resources.remind_kitty_message
 import ransel.composeapp.generated.resources.remind_include_hint
 import ransel.composeapp.generated.resources.remind_message
 import ransel.composeapp.generated.resources.remind_message_pay_info
@@ -429,8 +404,6 @@ fun RemindSheet(
     includePayInfo: Boolean,
     onIncludePayInfo: (Boolean) -> Unit,
     onDismiss: () -> Unit,
-    /** A kitty contribution reminder: the money goes to this holder, not to me. */
-    kittyHolder: String? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val uriHandler = LocalUriHandler.current
@@ -438,14 +411,9 @@ fun RemindSheet(
     val share = rememberShareText()
     val name = member?.displayName ?: "?"
     val holderWord = stringResource(Res.string.payto_holder)
-    val base = if (kittyHolder != null) {
-        stringResource(Res.string.remind_kitty_message, name, tripTitle, formatMoney(transfer.amountMinor, currency), kittyHolder)
-    } else {
-        stringResource(Res.string.remind_message, name, tripTitle, formatMoney(transfer.amountMinor, currency), myName)
-    }
+    val base = stringResource(Res.string.remind_message, name, tripTitle, formatMoney(transfer.amountMinor, currency), myName)
     val methods = myMethods.orEmpty()
-    // my bank details only belong in a reminder to pay me
-    val message = if (kittyHolder == null && includePayInfo && methods.isNotEmpty()) {
+    val message = if (includePayInfo && methods.isNotEmpty()) {
         base + " " + stringResource(Res.string.remind_message_pay_info, methods.asMessageLines(holderWord))
     } else {
         base
@@ -458,7 +426,7 @@ fun RemindSheet(
                 Modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.surfaceContainerLow).padding(14.dp),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            if (kittyHolder == null && methods.isNotEmpty()) {
+            if (methods.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(stringResource(Res.string.remind_include), style = MaterialTheme.typography.titleSmall)
@@ -563,185 +531,6 @@ fun PayToSheet(
     }
 }
 
-// ── Kas ─────────────────────────────────────────────────────────────────────
-
-/** Design "KasBersama": what is left, who holds it, the agreed contribution and who has deposited. */
-@Composable
-fun KittyContent(
-    overview: KittyOverviewDto?,
-    members: List<TripMemberDto>,
-    myMemberId: String?,
-    currency: String,
-    isOwner: Boolean,
-    canRecord: Boolean,
-    onSetup: () -> Unit,
-    onRecordDeposit: () -> Unit,
-    onPayFromKitty: (() -> Unit)?,
-    onRemind: (TripMemberDto, Long) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val scheme = MaterialTheme.colorScheme
-    val kitty = overview?.kitty
-    if (overview == null) {
-        Box(modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        return
-    }
-    if (kitty == null) {
-        Column(modifier.fillMaxWidth().padding(vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Symbol(Symbols.savings, size = 40.dp, filled = true, tint = scheme.primary)
-            Text(stringResource(Res.string.kitty_empty_title), style = MaterialTheme.typography.titleLarge)
-            Text(stringResource(Res.string.kitty_empty_body), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-            if (isOwner) {
-                Button(onClick = onSetup, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(Res.string.kitty_setup_start)) }
-            } else {
-                Text(stringResource(Res.string.kitty_waiting_owner), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-            }
-        }
-        return
-    }
-    val summary = overview.summary
-    val doneCount = summary.members.count { it.done }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Column(
-            Modifier.fillMaxWidth().clip(IrisShape.lg).border(1.dp, scheme.outlineVariant, IrisShape.lg).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(Res.string.kitty_left), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-                    Text(formatMoney(summary.leftMinor, currency), style = MaterialTheme.typography.headlineMedium)
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    val holder = members.find(kitty.treasurerMemberId)
-                    MemberAvatar(holder?.displayName ?: "?", kitty.treasurerMemberId, size = 24.dp)
-                    Text(stringResource(Res.string.kitty_holds, holder?.displayName ?: "?"), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(stringResource(Res.string.kitty_collected, formatMoney(summary.collectedMinor, currency)), style = MaterialTheme.typography.bodyMedium)
-                Text(stringResource(Res.string.kitty_spent, formatMoney(summary.spentMinor, currency)), style = MaterialTheme.typography.bodyMedium)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(Res.string.kitty_per_member_line, formatMoney(kitty.amountPerMemberMinor, currency), doneCount, summary.members.size),
-                    style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.weight(1f),
-                )
-                if (isOwner) TextButton(onClick = onSetup) { Text(stringResource(Res.string.kitty_settings)) }
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(Res.string.kitty_deposits), style = MaterialTheme.typography.titleMedium)
-            summary.members.forEach { row ->
-                val member = members.find(row.memberId)
-                val name = member?.displayName ?: "?"
-                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    MemberAvatar(name, row.memberId, size = 36.dp, isGuest = member != null && member.userId == null)
-                    Text(
-                        if (row.memberId == myMemberId) "$name (${stringResource(Res.string.shared_you).lowercase()})" else name,
-                        Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
-                    if (row.done || row.depositedMinor > 0) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(formatMoney(row.depositedMinor, currency), style = MaterialTheme.typography.titleSmall)
-                            if (row.done) Text(stringResource(Res.string.kitty_deposited), style = MaterialTheme.typography.bodySmall, color = scheme.primary)
-                        }
-                    }
-                    if (!row.done && member != null && row.memberId != myMemberId) {
-                        OutlinedButton(onClick = { onRemind(member, kitty.amountPerMemberMinor - row.depositedMinor) }, modifier = Modifier.heightIn(min = 40.dp)) {
-                            Symbol(Symbols.notificationsActive, size = 16.dp)
-                            Text(stringResource(Res.string.money_remind), Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
-                }
-            }
-        }
-        Row(
-            Modifier.fillMaxWidth().clip(IrisShape.md).background(scheme.primaryContainer).padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Symbol(Symbols.savings, size = 18.dp, filled = true, tint = scheme.onPrimaryContainer)
-            Text(stringResource(Res.string.kitty_note), style = MaterialTheme.typography.bodySmall, color = scheme.onPrimaryContainer)
-        }
-        if (canRecord) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onRecordDeposit, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                    Text(stringResource(Res.string.kitty_record_deposit))
-                }
-                if (onPayFromKitty != null) {
-                    Button(onClick = onPayFromKitty, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                        Text(stringResource(Res.string.kitty_pay_from))
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** OWNER: "Atur kas" — contribution per person and the treasurer. Not in the canvas yet; follows the sheet patterns. */
-@Composable
-fun KittySetupSheet(
-    members: List<TripMemberDto>,
-    currency: String,
-    current: KittyOverviewDto?,
-    myMemberId: String?,
-    busy: Boolean,
-    onSave: (amountMinor: Long, treasurerMemberId: String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val kitty = current?.kitty
-    var amountText by remember { mutableStateOf(kitty?.let { amountToInput(it.amountPerMemberMinor, currency) }.orEmpty()) }
-    var treasurer by remember { mutableStateOf(kitty?.treasurerMemberId ?: myMemberId ?: members.firstOrNull()?.memberId) }
-    val amount = parseAmountMinor(amountText, currency)
-    AdaptiveSheet(onDismiss = onDismiss) {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SheetHeader(stringResource(Res.string.kitty_setup_title), null, onDismiss)
-            AmountField(stringResource(Res.string.kitty_setup_amount), amountText, currency) { amountText = it }
-            Text(stringResource(Res.string.kitty_setup_treasurer), style = MaterialTheme.typography.labelLarge)
-            MemberChips(members, selected = treasurer, onSelect = { treasurer = it })
-            LoadingButton(
-                onClick = { if (amount != null && amount > 0 && treasurer != null) onSave(amount, treasurer!!) },
-                loading = busy,
-                enabled = amount != null && amount > 0 && treasurer != null,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) { Text(stringResource(Res.string.kitty_setup_save)) }
-        }
-    }
-}
-
-/** Design "CatatSetoran": who put money in and how much (the contribution by default). */
-@Composable
-fun DepositSheet(
-    members: List<TripMemberDto>,
-    overview: KittyOverviewDto,
-    currency: String,
-    busy: Boolean,
-    onSave: (memberId: String, amountMinor: Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val kitty = overview.kitty ?: return
-    val notDone = overview.summary.members.firstOrNull { !it.done }?.memberId
-    var member by remember { mutableStateOf(notDone ?: members.firstOrNull()?.memberId) }
-    val owed = overview.summary.members.firstOrNull { it.memberId == member }?.let { (kitty.amountPerMemberMinor - it.depositedMinor).coerceAtLeast(0) }
-    var amountText by remember(member) { mutableStateOf(amountToInput(owed?.takeIf { it > 0 } ?: kitty.amountPerMemberMinor, currency)) }
-    val amount = parseAmountMinor(amountText, currency)
-    val holder = members.nameOf(kitty.treasurerMemberId)
-    AdaptiveSheet(onDismiss = onDismiss) {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            SheetHeader(stringResource(Res.string.kitty_deposit_title), null, onDismiss)
-            Text(stringResource(Res.string.kitty_deposit_from), style = MaterialTheme.typography.labelLarge)
-            MemberChips(members, selected = member, onSelect = { member = it })
-            AmountField(null, amountText, currency) { amountText = it }
-            Text(stringResource(Res.string.kitty_deposit_hint, holder), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            LoadingButton(
-                onClick = { if (member != null && amount != null && amount > 0) onSave(member!!, amount) },
-                loading = busy,
-                enabled = member != null && amount != null && amount > 0,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) { Text(stringResource(Res.string.kitty_deposit_save)) }
-        }
-    }
-}
-
 // ── pieces ──────────────────────────────────────────────────────────────────
 
 @Composable
@@ -757,66 +546,3 @@ internal fun SheetHeader(title: String, subtitle: String?, onDismiss: () -> Unit
     }
 }
 
-@Composable
-internal fun AmountField(label: String?, value: String, currency: String, onChange: (String) -> Unit) {
-    IrisTextField(
-        label = label ?: "",
-        value = value,
-        onValueChange = { onChange(sanitizeAmountInput(it, currencyDecimals(currency))) },
-        visualTransformation = ThousandsVisualTransformation,
-        prefix = currencySymbol(currency),
-        placeholder = "0",
-        keyboardOptions = KeyboardOptions(keyboardType = if (currencyDecimals(currency) == 0) KeyboardType.Number else KeyboardType.Decimal),
-    )
-}
-
-/** One member picked from the trip, as avatar chips. */
-@Composable
-internal fun MemberChips(members: List<TripMemberDto>, selected: String?, onSelect: (String) -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        members.forEach { m ->
-            val isSelected = m.memberId == selected
-            Row(
-                Modifier
-                    .heightIn(min = 48.dp)
-                    .clip(CircleShape)
-                    .background(if (isSelected) scheme.primaryContainer else scheme.surface)
-                    .border(if (isSelected) 2.dp else 1.dp, if (isSelected) scheme.primary else scheme.outlineVariant, CircleShape)
-                    .clickable(role = Role.RadioButton) { onSelect(m.memberId) }
-                    .padding(start = 8.dp, end = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                MemberAvatar(m.displayName, m.memberId, size = 32.dp, isGuest = m.userId == null)
-                Text(m.displayName, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-            }
-        }
-    }
-}
-
-@Preview
-@Composable
-private fun KittyContentPreview() = IrisPreview {
-    val now = kotlin.time.Instant.parse("2026-11-21T12:00:00Z")
-    val members = listOf(
-        TripMemberDto(tripId = "t", memberId = "s", userId = "u1", displayName = "Septian", role = app.ransel.shared.model.Role.OWNER, joinedAt = now),
-        TripMemberDto(tripId = "t", memberId = "d", userId = "u2", displayName = "Dinda", role = app.ransel.shared.model.Role.EDITOR, joinedAt = now),
-        TripMemberDto(tripId = "t", memberId = "b", userId = null, displayName = "Bima", role = app.ransel.shared.model.Role.VIEWER, joinedAt = now),
-    )
-    KittyContent(
-        overview = KittyOverviewDto(
-            kitty = app.ransel.shared.dto.KittyDto("t", 500_000, "d", now, now),
-            summary = app.ransel.shared.dto.KittySummaryDto(
-                1_000_000, 200_000, 800_000,
-                listOf(
-                    app.ransel.shared.dto.KittyMemberDto("s", 500_000, true),
-                    app.ransel.shared.dto.KittyMemberDto("d", 500_000, true),
-                    app.ransel.shared.dto.KittyMemberDto("b", 0, false),
-                ),
-            ),
-        ),
-        members = members, myMemberId = "s", currency = "IDR", isOwner = true, canRecord = true,
-        onSetup = {}, onRecordDeposit = {}, onPayFromKitty = {}, onRemind = { _, _ -> },
-    )
-}

@@ -45,6 +45,8 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalDate
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -90,7 +92,14 @@ private const val CREDITS = """{"balance":10,"dailyFreeLeft":3,"dailyFreeLimit":
 @OptIn(ExperimentalCoroutinesApi::class)
 class GroupMoneyViewModelTest {
     @BeforeTest fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
-    @AfterTest fun tearDown() = Dispatchers.resetMain()
+
+    /** Every ViewModel made here; their loads are cancelled before Main goes away, so nothing leaks into later tests. */
+    private val made = mutableListOf<ExpensesViewModel>()
+
+    @AfterTest fun tearDown() {
+        made.forEach { it.viewModelScope.cancel() }
+        Dispatchers.resetMain()
+    }
 
     private val log = MutableStateFlow<List<Pair<String, String>>>(emptyList())
 
@@ -103,11 +112,6 @@ class GroupMoneyViewModelTest {
                     path.endsWith("/members") -> respond(membersJson, HttpStatusCode.OK, json)
                     path.endsWith("/balances") -> respond(
                         """{"data":{"baseCurrency":"IDR","members":[],"transfers":[{"fromMemberId":"$ME_MEMBER","toMemberId":"m-dinda","amountMinor":300000}]}}""",
-                        HttpStatusCode.OK, json,
-                    )
-                    path.endsWith("/kitty") -> respond(
-                        """{"data":{"kitty":{"tripId":"$TRIP","amountPerMemberMinor":500000,"treasurerMemberId":"m-dinda","createdAt":"2026-10-20T00:00:00Z","updatedAt":"2026-10-20T00:00:00Z"},
-                        "deposits":[],"summary":{"collectedMinor":0,"spentMinor":0,"leftMinor":0,"members":[]}}}""",
                         HttpStatusCode.OK, json,
                     )
                     path.endsWith("/settlements") -> respond("""{"data":[]}""", HttpStatusCode.OK, json)
@@ -128,22 +132,23 @@ class GroupMoneyViewModelTest {
     )
 
     private suspend fun vm(api: RanselApi) =
-        ExpensesViewModel(trip, InMemoryExpenseRepository(InMemoryStore()), api, signedIn(), InMemoryPreferencesRepository())
+        ExpensesViewModel(trip, InMemoryExpenseRepository(InMemoryStore()), api, signedIn(), InMemoryPreferencesRepository()).also { made += it }
 
     private val transfer = TransferDto(ME_MEMBER, "m-dinda", 300_000)
 
+    private fun moneyLoaded() = log.value.any { it.first.endsWith("/settlements") }
+
     @Test
-    fun aSharedTripLoadsTheKittyAndKnowsItsTreasurer() = runTest {
-        val vm = vm(api())
-        eventually { vm.money.value.kitty != null }
-        assertEquals("m-dinda", vm.treasurerId)
-        assertEquals(500_000L, vm.money.value.kitty?.kitty?.amountPerMemberMinor)
+    fun aSharedTripLoadsItsSettlementsAndNoKitty() = runTest {
+        vm(api())
+        eventually { moneyLoaded() }
+        assertTrue(log.value.none { "kitty" in it.first }, "the kitty is gone")
     }
 
     @Test
     fun payingOpensTheReceiversInfoAndClaimingClosesIt() = runTest {
         val vm = vm(api())
-        eventually { vm.money.value.kitty != null }
+        eventually { moneyLoaded() }
         vm.openPayTo(transfer)
         eventually { vm.money.value.payTo?.loading == false }
         assertEquals(listOf("BCA"), vm.money.value.payTo?.info?.methods?.map { it.provider })
@@ -158,7 +163,7 @@ class GroupMoneyViewModelTest {
     @Test
     fun aRefusedClaimSaysWhyAndKeepsTheSheet() = runTest {
         val vm = vm(api(claimStatus = HttpStatusCode.UnprocessableEntity))
-        eventually { vm.money.value.kitty != null }
+        eventually { moneyLoaded() }
         vm.openPayTo(transfer)
         vm.claim(transfer)
         assertEquals(MoneyEvent.Failed(ErrorCode.VALIDATION_FAILED), vm.events.first())
@@ -168,11 +173,11 @@ class GroupMoneyViewModelTest {
     @Test
     fun theReminderSwitchIsRememberedOnTheDevice() = runTest {
         val prefs = InMemoryPreferencesRepository()
-        val vm = ExpensesViewModel(trip, InMemoryExpenseRepository(InMemoryStore()), api(), signedIn(), prefs)
+        val vm = ExpensesViewModel(trip, InMemoryExpenseRepository(InMemoryStore()), api(), signedIn(), prefs).also { made += it }
         vm.setIncludePayInfo(false)
         eventually { true }
         assertEquals("false", prefs.getString(ExpensesViewModel.PAY_INFO_IN_REMINDERS))
-        val again = ExpensesViewModel(trip, InMemoryExpenseRepository(InMemoryStore()), api(), signedIn(), prefs)
+        val again = ExpensesViewModel(trip, InMemoryExpenseRepository(InMemoryStore()), api(), signedIn(), prefs).also { made += it }
         eventually { !again.money.value.includePayInfo }
     }
 }

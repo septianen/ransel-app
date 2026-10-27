@@ -91,9 +91,6 @@ import ransel.composeapp.generated.resources.expense_rate_daily
 import ransel.composeapp.generated.resources.expense_rate_own
 import ransel.composeapp.generated.resources.expense_estimate_banner
 import ransel.composeapp.generated.resources.expense_estimate_save
-import ransel.composeapp.generated.resources.expense_from_kitty
-import ransel.composeapp.generated.resources.expense_from_kitty_after
-import ransel.composeapp.generated.resources.expense_from_kitty_left
 import ransel.composeapp.generated.resources.expense_split_by_items
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_ok
@@ -120,15 +117,6 @@ private val CategoryOrder = listOf(
     Category.FOOD, Category.TRANSPORT, Category.LODGING, Category.ATTRACTION, Category.SHOPPING, Category.OTHER,
 )
 
-/** The trip's kitty as the expense sheet needs it (design "CatatPengeluaranKas"). Base currency. */
-data class KittyChoice(
-    val treasurerId: String,
-    val holderName: String,
-    val leftMinor: Long,
-    /** Who shares a kitty expense by default: the members who deposited. */
-    val shareIds: List<String>,
-)
-
 /** Record (existing == null) or edit an expense (design "Catat pengeluaran"). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,10 +130,6 @@ fun ExpenseSheet(
     members: List<TripMemberDto> = emptyList(),
     myMemberId: String? = null,
     api: RanselApi = koinInject(),
-    /** Non-null when the trip has a kitty: the "Ambil dari kas" switch shows. */
-    kitty: KittyChoice? = null,
-    /** "Bayar dari kas" opened the sheet: the switch starts on. */
-    startFromKitty: Boolean = false,
 ) {
     val tz = remember(trip.timeZone) { trip.zone() }
     val dates = rememberDateFormatter()
@@ -176,11 +160,6 @@ fun ExpenseSheet(
 
     val shared = members.size > 1
     val split = remember(members) { if (shared) SplitState(members, myMemberId, existing, currency) else null }
-    var fromKitty by remember { mutableStateOf(kitty != null && split != null && (existing?.paidFromKitty ?: startFromKitty)) }
-    androidx.compose.runtime.LaunchedEffect(split) {
-        // a new kitty expense starts with the depositors; an edited one keeps its people
-        if (split != null && kitty != null && fromKitty && existing == null) split.useKitty(kitty.treasurerId, kitty.shareIds)
-    }
 
     val foreign = !currency.equals(trip.baseCurrency, ignoreCase = true)
     androidx.compose.runtime.LaunchedEffect(currency, date, foreign) {
@@ -238,11 +217,9 @@ fun ExpenseSheet(
                 spentAt = LocalDate(date.year, date.month, date.day).let {
                     kotlinx.datetime.LocalDateTime(it, LocalTime(time.hour, time.minute)).toInstant(tz)
                 },
-                paidByMemberId = if (fromKitty) kitty?.treasurerId ?: existing?.paidByMemberId
-                else keptPayers?.firstOrNull()?.memberId ?: split?.paidBy ?: existing?.paidByMemberId,
-                payers = if (fromKitty) emptyList() else split?.toPayers(amountMinor, currency) ?: keptPayers.orEmpty(),
+                paidByMemberId = keptPayers?.firstOrNull()?.memberId ?: split?.paidBy ?: existing?.paidByMemberId,
+                payers = split?.toPayers(amountMinor, currency) ?: keptPayers.orEmpty(),
                 splits = split?.toSplits(amountMinor, currency) ?: keptSplits.orEmpty(),
-                paidFromKitty = fromKitty,
                 // saving an estimate records the real payment
                 isEstimate = false,
                 items = keptItems,
@@ -441,20 +418,6 @@ fun ExpenseSheet(
                 }
             }
 
-            if (split != null && kitty != null) {
-                KittySwitch(
-                    checked = fromKitty,
-                    kitty = kitty,
-                    afterMinor = kitty.leftMinor - (if (fromKitty) amountMinor ?: 0 else 0) + (if (existing?.paidFromKitty == true) existing.amountMinor else 0),
-                    currency = trip.baseCurrency,
-                    onChange = { on ->
-                        fromKitty = on
-                        if (on) split.useKitty(kitty.treasurerId, kitty.shareIds)
-                        else split.usePayer(myMemberId ?: split.paidBy)
-                    },
-                )
-            }
-
             val itemized = existing?.items?.isNotEmpty() == true && existing.amountMinor == amountMinor
             if (split != null && itemized) {
                 Text(
@@ -463,10 +426,7 @@ fun ExpenseSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else if (split != null) {
-                SplitSection(
-                    split, amountMinor, currency, myMemberId,
-                    payerSlot = if (fromKitty) ({}) else null,
-                )
+                SplitSection(split, amountMinor, currency, myMemberId)
             }
 
             Button(
@@ -525,40 +485,6 @@ fun ExpenseSheet(
                 TextButton(onClick = { pickDate = false }) { Text(stringResource(Res.string.action_cancel)) }
             },
         ) { DatePicker(state = state) }
-    }
-}
-
-/** "Ambil dari kas": when on, the kitty pays instead of a person and nobody owes anyone for it. */
-@Composable
-private fun KittySwitch(checked: Boolean, kitty: KittyChoice, afterMinor: Long, currency: String, onChange: (Boolean) -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(IrisShape.lg)
-            .background(if (checked) scheme.primaryContainer else scheme.surfaceContainerLow)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Symbol(Symbols.savings, filled = true, tint = if (checked) scheme.onPrimaryContainer else scheme.primary)
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(Res.string.expense_from_kitty), style = MaterialTheme.typography.titleSmall)
-                Text(
-                    stringResource(Res.string.expense_from_kitty_left, app.ransel.ui.format.formatMoney(kitty.leftMinor, currency), kitty.holderName),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.onSurfaceVariant,
-                )
-            }
-            androidx.compose.material3.Switch(checked = checked, onCheckedChange = onChange)
-        }
-        if (checked) {
-            Text(
-                stringResource(Res.string.expense_from_kitty_after, app.ransel.ui.format.formatMoney(afterMinor, currency)),
-                style = MaterialTheme.typography.bodySmall,
-                color = if (afterMinor < 0) scheme.error else scheme.onPrimaryContainer,
-            )
-        }
     }
 }
 

@@ -274,7 +274,7 @@ class RoomExpenseRepository(
                 // with several payers the first one is "who paid"
                 paidByMemberId = input.payers.firstOrNull()?.memberId ?: input.paidByMemberId ?: memberIdFor(tripId, currentUserId()),
                 splitsJson = input.splits.toSplitsJson(), payersJson = input.payers.toPayersJson(),
-                paidFromKitty = input.paidFromKitty, isEstimate = input.isEstimate, itemsJson = input.items.toItemsJson(),
+                isEstimate = input.isEstimate, itemsJson = input.items.toItemsJson(),
                 fxSource = input.fxSource?.name.takeIf { input.fxRateToBase != null }, fxDate = input.fxDate?.toString().takeIf { input.fxRateToBase != null },
                 createdAt = created, updatedAt = stamp, deletedAt = null,
             ),

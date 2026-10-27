@@ -14,9 +14,6 @@ import app.ransel.data.repository.ExpenseRepository
 import app.ransel.shared.dto.BalancesDto
 import app.ransel.shared.dto.ClaimSettlementRequest
 import app.ransel.shared.dto.CreateSettlementRequest
-import app.ransel.shared.dto.KittyDepositInput
-import app.ransel.shared.dto.KittyInput
-import app.ransel.shared.dto.KittyOverviewDto
 import app.ransel.shared.dto.PayInfoDto
 import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.SettlementDto
@@ -68,13 +65,11 @@ data class BalancesUiState(
     val settling: Boolean = false,
 )
 
-/** Kitty, open claims and the "Bayar ke" sheet (server data, signed-in only). */
+/** Open claims and the "Bayar ke" sheet (server data, signed-in only). */
 data class MoneyUiState(
-    /** Null until loaded; `kitty.kitty == null` = the trip has no kitty yet. */
-    val kitty: KittyOverviewDto? = null,
     /** Settlements of the trip; the CLAIMED_PAID ones wait for their receiver. */
     val settlements: List<SettlementDto> = emptyList(),
-    /** A kitty, deposit, claim or confirmation request is in flight. */
+    /** A claim or confirmation request is in flight. */
     val busy: Boolean = false,
     /** "Bayar ke": the receiver's info for the open transfer, while the sheet loads or shows it. */
     val payTo: PayToState? = null,
@@ -102,8 +97,6 @@ sealed interface MoneyEvent {
     data class Failed(val code: String) : MoneyEvent
     data object Claimed : MoneyEvent
     data object Confirmed : MoneyEvent
-    data object DepositSaved : MoneyEvent
-    data object KittySaved : MoneyEvent
 }
 
 class ExpensesViewModel(
@@ -157,11 +150,10 @@ class ExpensesViewModel(
         }
     }
 
-    /** Kitty and settlements; both are needed by the Saldo and Kas views. */
+    /** Settlements, for the Saldo view. */
     fun loadMoney() {
         if (session.user == null) return
         viewModelScope.launch {
-            (api.kitty(trip.id) as? ApiResult.Success)?.let { r -> _money.update { it.copy(kitty = r.value) } }
             (api.settlements(trip.id) as? ApiResult.Success)?.let { r -> _money.update { it.copy(settlements = r.value) } }
         }
     }
@@ -186,18 +178,6 @@ class ExpensesViewModel(
             refreshAfterMoneyChange()
         }
     }
-
-    /** OWNER: contribution per person and who holds the money. */
-    fun setKitty(amountPerMemberMinor: Long, treasurerMemberId: String) = moneyAction(
-        { api.setKitty(trip.id, KittyInput(amountPerMemberMinor, treasurerMemberId)) },
-        MoneyEvent.KittySaved,
-    ) { analytics.event(AnalyticsEvent.KittySet) }
-
-    /** "Catat setoran": [memberId] put [amountMinor] into the kitty (received by the current treasurer). */
-    fun addDeposit(memberId: String, amountMinor: Long) = moneyAction(
-        { api.addDeposit(trip.id, KittyDepositInput(newId(), memberId, amountMinor)) },
-        MoneyEvent.DepositSaved,
-    ) { analytics.event(AnalyticsEvent.KittyDeposit) }
 
     /** "Saya sudah bayar" for my open transfer; it counts once the receiver confirms. */
     fun claim(transfer: TransferDto) = moneyAction(
@@ -305,14 +285,11 @@ class ExpensesViewModel(
         val before = state.value.groups.flatMap { it.items }.firstOrNull { it.id == input.id }
         viewModelScope.launch {
             repository.save(trip.id, input)
-            // the kitty and the balances move with kitty expenses and paid estimates
-            if (input.paidFromKitty || before?.paidFromKitty == true || before?.isEstimate == true) refreshAfterMoneyChange()
+            // the balances move when a paid estimate becomes a payment
+            if (before?.isEstimate == true) refreshAfterMoneyChange()
         }
         if (before == null) analytics.event(AnalyticsEvent.ExpenseAdded(input.category, shared = input.splits.isNotEmpty()))
     }
-
-    /** The treasurer a kitty expense is paid by; null without a kitty (the toggle is then hidden). */
-    val treasurerId: String? get() = _money.value.kitty?.kitty?.treasurerMemberId
 
     companion object {
         /** Per-device preference behind "Sertakan di pengingat bayar". */

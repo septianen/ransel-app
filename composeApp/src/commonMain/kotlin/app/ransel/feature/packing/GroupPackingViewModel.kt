@@ -77,7 +77,7 @@ sealed interface GroupPackingEvent {
 /**
  * Pribadi (designs "PackingPribadiGunung", "PackingOwnerGunung") and the owner's member list ("MulaiDaftarAnggota",
  * "SusunDaftarAnggota", "KirimDaftarAnggota"). The member's own lines are local-first like other packing items; the
- * member list, its progress and the members are online only, like the kitty.
+ * member list, its progress and the members are online only, like balances.
  */
 class GroupPackingViewModel(
     private val tripId: String,

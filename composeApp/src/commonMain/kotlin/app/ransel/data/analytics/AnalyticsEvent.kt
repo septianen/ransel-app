@@ -29,8 +29,6 @@ sealed class AnalyticsEvent(val name: String, val params: Map<String, Any> = emp
     data object BalanceSettled : AnalyticsEvent("balance_settled")
 
     // Group money (stage 4).
-    data object KittySet : AnalyticsEvent("kitty_set")
-    data object KittyDeposit : AnalyticsEvent("kitty_deposit")
     data object SettlementClaimed : AnalyticsEvent("settlement_claimed")
     data object SettlementConfirmed : AnalyticsEvent("settlement_confirmed")
     data class ReceiptScanned(val readable: Boolean) : AnalyticsEvent("receipt_scanned", mapOf("readable" to readable))

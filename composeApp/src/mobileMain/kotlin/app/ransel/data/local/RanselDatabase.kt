@@ -17,7 +17,7 @@ import kotlinx.coroutines.Dispatchers
         ExpenseEntity::class,
         PreferenceEntity::class,
     ],
-    version = 9,
+    version = 10,
     autoMigrations = [
         AutoMigration(from = 1, to = 2), // expenses.splitsJson
         AutoMigration(from = 2, to = 3), // trips.myRole
@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
         AutoMigration(from = 6, to = 7), // trips.destPlaceId, destLat, destLng, destViewportJson
         AutoMigration(from = 7, to = 8), // trips.countryCode, localCurrency, timeZone; expenses.fxSource, fxDate
         AutoMigration(from = 8, to = 9), // packing_items.assigneeMemberId, personal_items
+        AutoMigration(from = 9, to = 10, spec = Migration9To10::class), // drop expenses.paidFromKitty (kitty removed)
     ],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)

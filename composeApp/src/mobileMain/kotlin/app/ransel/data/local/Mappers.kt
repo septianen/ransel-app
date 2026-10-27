@@ -87,7 +87,7 @@ fun ExpenseEntity.toDto() = ExpenseDto(
     note = note, spentAt = spentAt.toInstant(), paidByMemberId = paidByMemberId,
     payers = payersJson.toPayers(),
     splits = splitsJson.toSplits(),
-    paidFromKitty = paidFromKitty, isEstimate = isEstimate, items = itemsJson.toItems(),
+    isEstimate = isEstimate, items = itemsJson.toItems(),
     fxSource = fxSource?.let { s -> FxSource.entries.firstOrNull { it.name == s } }, fxDate = fxDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
@@ -124,7 +124,7 @@ fun ExpenseDto.toEntity() = ExpenseEntity(
     id = id, tripId = tripId, amountMinor = amountMinor, currency = currency, fxRateToBase = fxRateToBase,
     category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
     paidByMemberId = paidByMemberId, splitsJson = splits.toSplitsJson(), payersJson = payers.toPayersJson(),
-    paidFromKitty = paidFromKitty, isEstimate = isEstimate, itemsJson = items.toItemsJson(),
+    isEstimate = isEstimate, itemsJson = items.toItemsJson(),
     fxSource = fxSource?.name, fxDate = fxDate?.toString(),
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,

@@ -65,10 +65,6 @@ import app.ransel.shared.dto.PlaceSuggestionsDto
 import app.ransel.shared.dto.PopularDestinationDto
 import app.ransel.shared.dto.ReverseGeocodeDto
 import app.ransel.shared.dto.ClaimSettlementRequest
-import app.ransel.shared.dto.KittyDepositDto
-import app.ransel.shared.dto.KittyDepositInput
-import app.ransel.shared.dto.KittyInput
-import app.ransel.shared.dto.KittyOverviewDto
 import app.ransel.shared.dto.PayInfoDto
 import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.PaymentMethodInput
@@ -455,13 +451,7 @@ class RanselApi(
             parameter("date", date.toString())
         }) { it.body<ApiResponse<FxRateDto>>().data }
 
-    // ── group money: kitty, payment info, receipts ──────────────────────────
-    suspend fun kitty(tripId: String): ApiResult<KittyOverviewDto> = get(ApiRoutes.kitty(tripId))
-    suspend fun setKitty(tripId: String, request: KittyInput): ApiResult<KittyOverviewDto> =
-        send(HttpMethod.Put, ApiRoutes.kitty(tripId), request)
-    suspend fun addDeposit(tripId: String, request: KittyDepositInput): ApiResult<KittyDepositDto> =
-        send(HttpMethod.Post, ApiRoutes.kittyDeposits(tripId), request)
-    suspend fun deleteDeposit(tripId: String, depositId: String): ApiResult<Unit> = delete(ApiRoutes.kittyDeposit(tripId, depositId))
+    // ── group money: payment info, receipts ─────────────────────────────────
     suspend fun paymentMethods(): ApiResult<List<PaymentMethodDto>> = get(ApiRoutes.ME_PAYMENT_METHODS)
     suspend fun addPaymentMethod(request: PaymentMethodInput): ApiResult<PaymentMethodDto> =
         send(HttpMethod.Post, ApiRoutes.ME_PAYMENT_METHODS, request)

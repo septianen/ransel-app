@@ -111,23 +111,6 @@ class SplitState(
 
     // ── who owes ────────────────────────────────────────────────────────────
 
-    /** "Ambil dari kas": the kitty pays, so the treasurer is the one payer and [ids] share it equally. */
-    fun useKitty(treasurerId: String, ids: List<String>) {
-        payers.clear()
-        payers.add(treasurerId)
-        payersCustom = false
-        participants.clear()
-        participants.addAll(ids)
-        custom = false
-    }
-
-    /** Back to one person paying (the switch "Ambil dari kas" turned off). */
-    fun usePayer(memberId: String) {
-        payers.clear()
-        payers.add(memberId)
-        payersCustom = false
-    }
-
     fun toggle(memberId: String) {
         if (memberId in participants) participants.remove(memberId) else participants.add(memberId)
     }
