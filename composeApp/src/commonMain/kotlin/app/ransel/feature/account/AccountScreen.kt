@@ -1,5 +1,6 @@
 package app.ransel.feature.account
 
+import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -270,7 +271,7 @@ private val AppLanguage.label: StringResource
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 4.dp))
+        SectionHeader(title, Modifier.padding(bottom = 4.dp))
         content()
     }
 }

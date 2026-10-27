@@ -135,6 +135,9 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Section("IconFab") {
                     IconFab(Symbols.add, label = "Tambah", onClick = {})
                 }
+                Section("StatusTag") {
+                    app.ransel.ui.components.StatusTag("Diputuskan")
+                }
                 Section("SectionHeader") {
                     SectionHeader("Belum dijadwalkan", actionLabel = "Lihat semua", onAction = {})
                 }

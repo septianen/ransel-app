@@ -80,18 +80,12 @@ import ransel.composeapp.generated.resources.member_list_stale
 import ransel.composeapp.generated.resources.member_list_summary
 import ransel.composeapp.generated.resources.member_list_title
 import ransel.composeapp.generated.resources.packing_add
-import ransel.composeapp.generated.resources.packing_from_list_locked
-import ransel.composeapp.generated.resources.packing_from_owner
-import ransel.composeapp.generated.resources.packing_from_owner_body
-import ransel.composeapp.generated.resources.packing_my_extras
-import ransel.composeapp.generated.resources.packing_only_you
 import ransel.composeapp.generated.resources.packing_personal_count
 import ransel.composeapp.generated.resources.packing_personal_empty_body
 import ransel.composeapp.generated.resources.packing_personal_empty_title
 import ransel.composeapp.generated.resources.packing_personal_ready
 import ransel.composeapp.generated.resources.packing_required
 import ransel.composeapp.generated.resources.packing_required_count
-import ransel.composeapp.generated.resources.packing_trip_owner
 
 /** What the Pribadi tab is showing on top of the list. */
 private sealed interface PersonalSheet {
@@ -103,13 +97,14 @@ private sealed interface PersonalSheet {
 }
 
 /**
- * "Pribadi" in a group trip: the user's own bag. Editors see the members' list card with each member's required
- * progress ("PackingOwnerGunung"); a member who received a list sees where it came from ("PackingPribadiGunung").
+ * "Pribadi" in a group trip: the user's own bag, one list by category like every packing list. Lines the owner sent
+ * look and behave like the member's own (owner, 27 Oct 2026): tick, edit, delete; only "Wajib" shows. The OWNER also
+ * sees the members' list card with each member's required progress ("PackingOwnerGunung").
  */
 @Composable
 fun PersonalPackingTab(trip: TripDto, viewModel: GroupPackingViewModel, modifier: Modifier = Modifier) {
     val state by viewModel.state.collectAsState()
-    val canManage = trip.myRole.atLeast(TripRole.EDITOR)
+    val canManage = trip.myRole == TripRole.OWNER
     var sheet by remember { mutableStateOf<PersonalSheet?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -119,8 +114,7 @@ fun PersonalPackingTab(trip: TripDto, viewModel: GroupPackingViewModel, modifier
         "stale" to stringResource(Res.string.member_list_stale),
         "error" to stringResource(Res.string.member_list_error),
     )
-    val ownerName = state.member(state.list?.createdByMemberId)?.displayName ?: stringResource(Res.string.packing_trip_owner)
-    val lockedText = stringResource(Res.string.packing_from_list_locked, ownerName)
+    val requiredText = stringResource(Res.string.packing_required)
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
@@ -150,8 +144,6 @@ fun PersonalPackingTab(trip: TripDto, viewModel: GroupPackingViewModel, modifier
                     onSend = { sheet = PersonalSheet.Send },
                     onRemind = viewModel::remindNotReady,
                 )
-            } else if (state.receivedList) {
-                FromOwnerCard(ownerName, state.list?.createdByMemberId ?: "owner", state.fromList.sumOf { it.items.size }, state.requiredTotal)
             }
             if (state.total > 0) {
                 PersonalProgressCard(state, title = stringResource(if (canManage && state.list != null) Res.string.member_list_own else Res.string.packing_personal_ready))
@@ -165,18 +157,18 @@ fun PersonalPackingTab(trip: TripDto, viewModel: GroupPackingViewModel, modifier
                     )
                 }
             }
-            state.fromList.forEach { group ->
-                PersonalSection(PackingCategoryTitle(group), group.items, onToggle = viewModel::toggle) {
-                    scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(lockedText) }
-                }
-            }
-            if (state.receivedList) {
-                if (state.own.isNotEmpty()) {
-                    PersonalSection(SectionTitle.Extras, state.own, onToggle = viewModel::toggle) { sheet = PersonalSheet.Edit(it.id) }
-                }
-            } else {
-                state.ownGroups.forEach { group ->
-                    PersonalSection(PackingCategoryTitle(group), group.items, onToggle = viewModel::toggle) { sheet = PersonalSheet.Edit(it.id) }
+            val required = state.requiredIds
+            state.groups.forEach { group ->
+                PackingGroupSection(group) { item ->
+                    val line = state.personal.first { it.id == item.id }
+                    PackingRow(
+                        item,
+                        onToggle = { viewModel.toggle(line) },
+                        onLongPress = { sheet = PersonalSheet.Edit(item.id) },
+                        enabled = true,
+                        badge = requiredText.takeIf { item.id in required },
+                        menu = { ItemMenu(item.name, ownList = true, onEdit = { sheet = PersonalSheet.Edit(item.id) }, onDelete = { viewModel.delete(line) }) },
+                    )
                 }
             }
         }
@@ -201,7 +193,7 @@ fun PersonalPackingTab(trip: TripDto, viewModel: GroupPackingViewModel, modifier
             onDelete = null,
             onDismiss = { sheet = null },
         )
-        is PersonalSheet.Edit -> state.own.firstOrNull { it.id == target.itemId }?.let { item ->
+        is PersonalSheet.Edit -> state.personal.firstOrNull { it.id == target.itemId }?.let { item ->
             AddPackingItemSheet(
                 tripTitle = trip.title,
                 itemCount = state.total,
@@ -245,86 +237,6 @@ fun PersonalPackingTab(trip: TripDto, viewModel: GroupPackingViewModel, modifier
     }
 }
 
-/** A personal line shown in the shared add/edit sheet (same fields). */
-private fun PersonalItemDto.asPackingItem() = PackingItemDto(
-    id = id, tripId = tripId, category = category, name = name, quantity = quantity, isPacked = isPacked,
-    sortOrder = sortOrder, createdAt = createdAt, updatedAt = updatedAt,
-)
-
-private sealed interface SectionTitle {
-    data object Extras : SectionTitle
-}
-
-private data class PackingCategoryTitle(val group: PersonalGroup) : SectionTitle
-
-@Composable
-private fun PersonalSection(title: SectionTitle, items: List<PersonalItemDto>, onToggle: (PersonalItemDto) -> Unit, onLongPress: (PersonalItemDto) -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Column {
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            when (title) {
-                is PackingCategoryTitle -> {
-                    PackingCategoryIcon(title.group.category)
-                    Text(stringResource(title.group.category.label), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                }
-                SectionTitle.Extras -> {
-                    Box(Modifier.size(32.dp).clip(IrisShape.sm).background(scheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
-                        Symbol(Symbols.person, size = 18.dp, tint = scheme.onSurfaceVariant)
-                    }
-                    Text(stringResource(Res.string.packing_my_extras), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                }
-            }
-            Text("${items.count { it.isPacked }}/${items.size}", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-        }
-        Column(Modifier.padding(start = 44.dp, end = 12.dp)) {
-            items.forEach { item ->
-                PersonalRow(item, extras = title == SectionTitle.Extras, onToggle = { onToggle(item) }, onLongPress = { onLongPress(item) })
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun PersonalRow(item: PersonalItemDto, extras: Boolean, onToggle: () -> Unit, onLongPress: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 52.dp).combinedClickable(role = Role.Checkbox, onClick = onToggle, onLongClick = onLongPress),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        val packed = item.isPacked
-        Box(
-            Modifier.size(22.dp).clip(IrisShape.xs)
-                .then(if (packed) Modifier.background(scheme.primary) else Modifier.border(2.dp, scheme.outline, IrisShape.xs)),
-            contentAlignment = Alignment.Center,
-        ) { if (packed) Symbol(Symbols.check, size = 16.dp, tint = scheme.onPrimary) }
-        Text(
-            item.name,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = if (packed) FontWeight.Normal else FontWeight.SemiBold,
-                textDecoration = if (packed) TextDecoration.LineThrough else TextDecoration.None,
-            ),
-            color = if (packed) scheme.onSurfaceVariant else scheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        PendingMarker(item.id)
-        when {
-            item.required -> Text(
-                stringResource(Res.string.packing_required),
-                style = MaterialTheme.typography.labelMedium,
-                color = scheme.onErrorContainer,
-                modifier = Modifier.clip(IrisShape.xs).background(scheme.errorContainer).padding(horizontal = 8.dp, vertical = 2.dp),
-            )
-            extras -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Symbol(Symbols.lock, size = 14.dp, tint = scheme.onSurfaceVariant)
-                Text(stringResource(Res.string.packing_only_you), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-            }
-        }
-        if (item.quantity > 1) Text("×${item.quantity}", style = MaterialTheme.typography.titleSmall, color = scheme.onSurfaceVariant)
-    }
-}
-
 @Composable
 private fun Card(content: @Composable () -> Unit) {
     Column(
@@ -360,24 +272,7 @@ private fun PersonalProgressCard(state: GroupPackingUiState, title: String) = Ca
     }
 }
 
-/** A member's view: "Daftar bawaan dari Septian". */
-@Composable
-private fun FromOwnerCard(ownerName: String, ownerKey: String, count: Int, required: Int) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        Modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.primaryContainer).padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        MemberAvatar(ownerName, ownerKey, isOwner = true)
-        Column(Modifier.weight(1f)) {
-            Text(stringResource(Res.string.packing_from_owner, ownerName), style = MaterialTheme.typography.titleSmall, color = scheme.onPrimaryContainer)
-            Text(stringResource(Res.string.packing_from_owner_body, count, required), style = MaterialTheme.typography.bodySmall, color = scheme.onPrimaryContainer)
-        }
-    }
-}
-
-/** An editor's view: start a list, or the list with each recipient's required progress and "Ingatkan". */
+/** The OWNER's view: start a list, or the list with each recipient's required progress and "Ingatkan". */
 @Composable
 private fun MemberListCard(
     list: MemberListDto?,
@@ -473,20 +368,5 @@ private fun MemberListCardPreview() = IrisPreview {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         MemberListCard(list, state, {}, {}, {}, {})
         MemberListCard(null, state, {}, {}, {}, {})
-        FromOwnerCard("Septian", "me", 24, 8)
-    }
-}
-
-@Preview
-@Composable
-private fun PersonalSectionPreview() = IrisPreview {
-    val lines = listOf(
-        PersonalItemDto("1", "t", "me", PackingCategory.CLOTHING, "Jaket tebal", sourceItemId = "a", required = true, isPacked = true, createdAt = previewStamp, updatedAt = previewStamp),
-        PersonalItemDto("2", "t", "me", PackingCategory.CLOTHING, "Kaos kaki", quantity = 3, sourceItemId = "b", createdAt = previewStamp, updatedAt = previewStamp),
-    )
-    val own = listOf(PersonalItemDto("3", "t", "me", PackingCategory.ELECTRONICS, "Kamera mirrorless", createdAt = previewStamp, updatedAt = previewStamp))
-    Column(Modifier.padding(16.dp)) {
-        PersonalSection(PackingCategoryTitle(PersonalGroup(PackingCategory.CLOTHING, lines)), lines, {}, {})
-        PersonalSection(SectionTitle.Extras, own, {}, {})
     }
 }

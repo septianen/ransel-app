@@ -16,6 +16,7 @@ import app.ransel.shared.dto.MemberListItemDto
 import app.ransel.shared.dto.MemberListProgressDto
 import app.ransel.shared.dto.PackingTemplateDto
 import app.ransel.shared.dto.PatchPersonalItemRequest
+import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.SaveMemberListRequest
 import app.ransel.shared.dto.SendMemberListRequest
@@ -29,11 +30,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-/** One category of the Pribadi list. */
-data class PersonalGroup(val category: PackingCategory, val items: List<PersonalItemDto>) {
-    val packed: Int get() = items.count { it.isPacked }
-}
 
 data class GroupPackingUiState(
     val loading: Boolean = true,
@@ -49,23 +45,26 @@ data class GroupPackingUiState(
     val templates: List<PackingTemplateDto> = emptyList(),
     val busy: Boolean = false,
 ) {
-    /** Lines from the owner's list, by category. */
-    val fromList: List<PersonalGroup> get() = groups(personal.filter { it.sourceItemId != null })
-
-    /** The member's own lines: by category, or one "Tambahan saya" block when a list arrived too. */
-    val own: List<PersonalItemDto> get() = personal.filter { it.sourceItemId == null }
-    val ownGroups: List<PersonalGroup> get() = groups(own)
+    /**
+     * The Pribadi list by category, drawn like every packing list (`PackingGroupSection`). Lines from the owner's list
+     * look and behave like the member's own (owner, 27 Oct 2026); only "Wajib" shows.
+     */
+    val groups: List<PackingGroup> get() = PackingCategory.entries
+        .map { c -> PackingGroup(c, personal.filter { it.category == c }.sortedBy { it.sortOrder }.map { it.asPackingItem() }) }
+        .filter { it.items.isNotEmpty() }
+    val requiredIds: Set<String> get() = personal.filter { it.required }.map { it.id }.toSet()
     val total: Int get() = personal.size
     val packed: Int get() = personal.count { it.isPacked }
     val requiredTotal: Int get() = personal.count { it.required }
     val requiredDone: Int get() = personal.count { it.required && it.isPacked }
-    val receivedList: Boolean get() = personal.any { it.sourceItemId != null }
     fun member(id: String?): TripMemberDto? = members.firstOrNull { it.memberId == id }
-
-    private fun groups(items: List<PersonalItemDto>) = PackingCategory.entries
-        .map { c -> PersonalGroup(c, items.filter { it.category == c }) }
-        .filter { it.items.isNotEmpty() }
 }
+
+/** A personal line in the shape every packing list draws (same fields). */
+fun PersonalItemDto.asPackingItem() = PackingItemDto(
+    id = id, tripId = tripId, category = category, name = name, quantity = quantity, isPacked = isPacked,
+    sortOrder = sortOrder, createdAt = createdAt, updatedAt = updatedAt,
+)
 
 sealed interface GroupPackingEvent {
     data object Saved : GroupPackingEvent
@@ -99,7 +98,7 @@ class GroupPackingViewModel(
         refresh()
     }
 
-    /** Members, the list and (for editors) its progress. */
+    /** Members, and for the OWNER the members' list and its progress (owner only since 27 Oct 2026). */
     fun refresh() {
         viewModelScope.launch {
             val members = api.members(tripId)
@@ -118,7 +117,7 @@ class GroupPackingViewModel(
             is ApiResult.Failure -> if (result.error.isNotFound) _state.update { it.copy(list = null, progress = emptyList()) }
         }
         if (_state.value.list?.sentAt != null) {
-            // only editors may see it; a VIEWER simply gets nothing
+            // only the owner may see it; anyone else simply gets nothing
             (api.memberListProgress(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(progress = r.value) } }
         }
     }

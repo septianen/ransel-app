@@ -38,6 +38,7 @@ Room 3 notes: package `androidx.room3`, KSP only, DAO functions are `suspend` or
 - Components are stateless: data and lambdas in, no ViewModel, no repository. Pass `Modifier` as the first optional parameter.
 - **Every shared component and every screen's stateless content composable has a `@Preview` wrapped in `IrisPreview { }`** (`ui/preview/IrisPreview.kt`), which renders light and dark together. Add previews for the important states too (empty, error, long text).
 - Keep the debug Component Gallery screen up to date when a shared component is added or changed.
+- Section titles inside a screen use `SectionHeader` (IRIS `headline-small`, `onSurface`; owner, 27 Oct 2026). Not for app bar or sheet titles, nor for collapsible category headers of a list. Big top-of-tab cards use `HeroCard`; status pills use `StatusTag`.
 
 ## Architecture
 

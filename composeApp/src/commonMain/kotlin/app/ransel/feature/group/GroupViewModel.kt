@@ -43,6 +43,8 @@ data class GroupUiState(
     val loading: Boolean = true,
     val members: List<TripMemberDto> = emptyList(),
     val polls: List<PollDto> = emptyList(),
+    /** Documents of the trip, for "Dokumen trip 3 ›"; null until known (offline, not loaded). */
+    val documentCount: Int? = null,
     val failure: ApiFailure? = null,
     /** "Perlu tindakanmu" money: my open transfers and claims that wait for me (shared trips only). */
     val owes: List<TransferDto> = emptyList(),
@@ -87,6 +89,7 @@ class GroupViewModel(
             }
             // polls are a convenience on this tab: if they fail to load the rest still shows
             (api.polls(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(polls = r.value) } }
+            (api.documents(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(documentCount = r.value.items.size) } }
             // so is money: what I owe and what waits for my confirmation
             if (_state.value.members.size > 1) {
                 val me = myMemberId

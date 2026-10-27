@@ -1315,14 +1315,8 @@
     <string name="packing_personal_count">%1$d of %2$d items</string>
     <string name="packing_required_count">Required %1$d/%2$d</string>
     <string name="packing_required">Required</string>
-    <string name="packing_from_owner">Packing list from %1$s</string>
-    <string name="packing_from_owner_body">%1$d items · %2$d required · you can add your own</string>
-    <string name="packing_my_extras">My extras</string>
-    <string name="packing_only_you">Only you</string>
     <string name="packing_personal_empty_title">Your own bag is empty</string>
     <string name="packing_personal_empty_body">Only you can see the items here.</string>
-    <string name="packing_from_list_locked">This item is from %1$s's list. You can only tick it.</string>
-    <string name="packing_trip_owner">the trip owner</string>
     <string name="member_list_title">Members' packing list</string>
     <string name="member_list_summary">%1$d items · %2$d required · sent to %3$d members</string>
     <string name="member_list_draft">%1$d items · %2$d required · not sent yet</string>
@@ -1466,7 +1460,6 @@
     <string name="document_error_title">Write a name for the document</string>
     <string name="document_error_generic">The document was not saved. Try again.</string>
     <string name="group_documents">Documents</string>
-    <string name="group_documents_all">See all</string>
     <string name="recap_title">Trip recap</string>
     <string name="recap_brand">RANSEL · %1$s</string>
     <string name="recap_headline">%1$s, done!</string>
@@ -1511,4 +1504,8 @@
     <string name="receipt_per_person">Each person's share</string>
     <string name="receipt_per_person_extras">incl. tax %1$s</string>
     <string name="receipt_change_date">Change date</string>
+    <string name="document_pick_activity">Choose an activity</string>
+    <string name="document_search_activity">Search activities</string>
+    <string name="document_no_activity_found">No matching activity</string>
+    <string name="packing_item_delete_body_own">This item is removed from your list.</string>
 </resources>

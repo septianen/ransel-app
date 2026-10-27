@@ -14,11 +14,16 @@ import androidx.compose.ui.unit.dp
 import app.ransel.ui.preview.IrisPreview
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
-/** Section title with an optional "see all" link on the right. */
+/**
+ * The one style for section titles inside a screen (IRIS `headline-small`: "Judul section"; owner, 27 Oct 2026), e.g.
+ * "Perlu tindakanmu", "Transaksi", a day of the itinerary. Optional quiet [trailing] text ("3 anggota") or an action
+ * link on the right. Not for app bar or sheet titles, nor for the collapsible category headers of a list.
+ */
 @Composable
 fun SectionHeader(
     title: String,
     modifier: Modifier = Modifier,
+    trailing: String? = null,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
@@ -28,10 +33,13 @@ fun SectionHeader(
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
+        if (trailing != null) {
+            Text(trailing, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (actionLabel != null && onAction != null) {
             Text(
                 text = actionLabel,

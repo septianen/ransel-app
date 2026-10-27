@@ -1,5 +1,6 @@
 package app.ransel.feature.expenses
 
+import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -171,7 +172,7 @@ fun ExpensesTab(
                     // no "Posisimu" card here: the Saldo tab says the same (owner, 27 Oct 2026)
                     CategoryBreakdown(summary, trip.baseCurrency)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(Res.string.expenses_transactions), style = MaterialTheme.typography.titleLarge)
+                        SectionHeader(stringResource(Res.string.expenses_transactions))
                         state.groups.forEach { group ->
                             Row(
                                 Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -335,7 +336,7 @@ private fun CategoryBreakdown(
     val colors = slices.map { it.category.tileColor() }
     val total = summary.spentMinor.coerceAtLeast(1)
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(Res.string.expenses_by_category), style = MaterialTheme.typography.titleLarge)
+        SectionHeader(stringResource(Res.string.expenses_by_category))
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
             ExpenseDonut(
                 slices = slices.mapIndexed { i, s -> DonutSlice(s.amountMinor, colors[i]) },

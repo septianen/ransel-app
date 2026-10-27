@@ -235,13 +235,12 @@ class RoomPersonalItemRepository(
 
     override suspend fun update(tripId: String, itemId: String, patch: PatchPersonalItemRequest) {
         val current = db.personalItemDao().get(itemId) ?: return
-        // a line from the owner's list only takes its tick
-        val own = current.sourceItemId == null
+        // every line is the member's, also the copies of the owner's list (the server marks an edited copy)
         db.personalItemDao().upsert(
             current.copy(
-                category = patch.category?.name?.takeIf { own } ?: current.category,
-                name = patch.name?.trim()?.takeIf { own } ?: current.name,
-                quantity = patch.quantity?.takeIf { own } ?: current.quantity,
+                category = patch.category?.name ?: current.category,
+                name = patch.name?.trim() ?: current.name,
+                quantity = patch.quantity ?: current.quantity,
                 isPacked = patch.isPacked ?: current.isPacked,
                 sortOrder = patch.sortOrder ?: current.sortOrder,
                 updatedAt = now().toMillis(), syncState = SyncState.PENDING,

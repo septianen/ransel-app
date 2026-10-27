@@ -1,5 +1,6 @@
 package app.ransel.feature.recap
 
+import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -143,7 +144,7 @@ fun RecapScreen(
                             Modifier.fillMaxWidth().clip(IrisShape.lg).background(MaterialTheme.colorScheme.surfaceContainerLow).padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(stringResource(Res.string.recap_next_title), style = MaterialTheme.typography.titleMedium)
+                            SectionHeader(stringResource(Res.string.recap_next_title))
                             Text(stringResource(Res.string.recap_next_body), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             OutlinedButton(onClick = onNewTrip, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                                 Symbol(Symbols.add)

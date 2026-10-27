@@ -69,10 +69,9 @@ class InMemoryPersonalItemRepository(private val store: InMemoryStore, private v
         val stamp = now()
         store.personal.update { list ->
             list.map {
-                val own = it.sourceItemId == null
                 if (it.id != itemId) it else it.copy(
-                    category = patch.category?.takeIf { own } ?: it.category, name = patch.name?.takeIf { own } ?: it.name,
-                    quantity = patch.quantity?.takeIf { own } ?: it.quantity, isPacked = patch.isPacked ?: it.isPacked,
+                    category = patch.category ?: it.category, name = patch.name ?: it.name,
+                    quantity = patch.quantity ?: it.quantity, isPacked = patch.isPacked ?: it.isPacked,
                     sortOrder = patch.sortOrder ?: it.sortOrder, updatedAt = stamp,
                 )
             }
@@ -81,7 +80,7 @@ class InMemoryPersonalItemRepository(private val store: InMemoryStore, private v
 
     override suspend fun delete(tripId: String, itemId: String) {
         val stamp = now()
-        store.personal.update { l -> l.map { if (it.id == itemId && it.sourceItemId == null) it.copy(deletedAt = stamp, updatedAt = stamp) else it } }
+        store.personal.update { l -> l.map { if (it.id == itemId) it.copy(deletedAt = stamp, updatedAt = stamp) else it } }
     }
 }
 

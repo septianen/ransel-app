@@ -69,6 +69,7 @@ import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.packing_item_delete_confirm
 import ransel.composeapp.generated.resources.packing_item_delete_body
+import ransel.composeapp.generated.resources.packing_item_delete_body_own
 import ransel.composeapp.generated.resources.packing_item_delete_title
 import ransel.composeapp.generated.resources.packing_item_delete
 import ransel.composeapp.generated.resources.packing_item_edit
@@ -227,6 +228,7 @@ private fun PackingList(
                         }
                     },
                     onEdit = { sheet = SheetTarget.Edit(it.id) },
+                    onDelete = viewModel::delete,
                     onUncheckAll = viewModel::uncheckAll,
                     canEdit = canEdit,
                     onUseTemplate = if (canUseTemplates) ({ templates.load(); sheet = SheetTarget.UseTemplate }) else null,
@@ -325,6 +327,7 @@ private fun PackingItems(
     shared: SharedMode?,
     onToggle: (PackingItemDto) -> Unit,
     onEdit: (PackingItemDto) -> Unit,
+    onDelete: (PackingItemDto) -> Unit,
     onUncheckAll: () -> Unit,
     canEdit: Boolean,
     onUseTemplate: (() -> Unit)?,
@@ -339,7 +342,16 @@ private fun PackingItems(
     ) {
         if (shared != null) SharedSummaryCard(state, shared.myMemberId) else ProgressCard(trip, state, today, onUncheckAll, canEdit, onUseTemplate, onSaveTemplate)
         state.groups.forEach { group ->
-            PackingGroupSection(group, onToggle = onToggle, onEdit = onEdit, canEdit = canEdit, shared = shared)
+            PackingGroupSection(group) { item ->
+                if (shared != null) {
+                    SharedPackingRow(item, shared, onToggle = { onToggle(item) }, onLongPress = { if (canEdit) onEdit(item) })
+                } else {
+                    PackingRow(
+                        item, onToggle = { onToggle(item) }, onLongPress = { onEdit(item) }, enabled = canEdit,
+                        menu = if (canEdit) ({ ItemMenu(item.name, ownList = true, onEdit = { onEdit(item) }, onDelete = { onDelete(item) }) }) else null,
+                    )
+                }
+            }
         }
     }
 }
@@ -347,14 +359,12 @@ private fun PackingItems(
 /**
  * One category: a header that collapses/expands its items, and the items indented under the category
  * name (so they read as children of the header). Expanded state survives rotation, one flag per category.
+ * The one group component of every packing list (owner, 27 Oct 2026): solo, Bersama and Pribadi differ only in [row].
  */
 @Composable
-private fun PackingGroupSection(
+internal fun PackingGroupSection(
     group: PackingGroup,
-    onToggle: (PackingItemDto) -> Unit,
-    onEdit: (PackingItemDto) -> Unit,
-    canEdit: Boolean,
-    shared: SharedMode?,
+    row: @Composable (PackingItemDto) -> Unit,
 ) {
     var expanded by rememberSaveable(group.category.name) { mutableStateOf(true) }
     val chevron by animateFloatAsState(if (expanded) 180f else 0f, label = "packing-group-chevron")
@@ -417,13 +427,7 @@ private fun PackingGroupSection(
         ) {
             // Items start under the category name (tile 32 dp + gap 12 dp), with room on the right.
             Column(Modifier.padding(start = 44.dp, end = 12.dp)) {
-                group.items.forEach { item ->
-                    if (shared != null) {
-                        SharedPackingRow(item, shared, onToggle = { onToggle(item) }, onLongPress = { if (canEdit) onEdit(item) })
-                    } else {
-                        PackingRow(item, onToggle = { onToggle(item) }, onLongPress = { onEdit(item) }, enabled = canEdit)
-                    }
-                }
+                group.items.forEach { item -> row(item) }
             }
         }
     }
@@ -519,8 +523,19 @@ private fun ProgressCard(
 }
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+/**
+ * A ticked line of a packing list (solo and Pribadi). [badge] = a small red label such as "Wajib"; [menu] = the ⋮
+ * button with Ubah / Hapus ([ItemMenu]) when the user may change the line.
+ */
 @Composable
-private fun PackingRow(item: PackingItemDto, onToggle: () -> Unit, onLongPress: () -> Unit, enabled: Boolean) {
+internal fun PackingRow(
+    item: PackingItemDto,
+    onToggle: () -> Unit,
+    onLongPress: () -> Unit,
+    enabled: Boolean,
+    badge: String? = null,
+    menu: (@Composable () -> Unit)? = null,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -555,11 +570,20 @@ private fun PackingRow(item: PackingItemDto, onToggle: () -> Unit, onLongPress: 
             modifier = Modifier.weight(1f),
         )
         app.ransel.ui.components.PendingMarker(item.id)
+        if (badge != null) {
+            Text(
+                badge,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.clip(IrisShape.xs).background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+        }
         Text(
             "×${item.quantity}",
             style = MaterialTheme.typography.titleSmall,
             color = if (packed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
         )
+        menu?.invoke()
     }
 }
 
@@ -602,8 +626,6 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
     val bringer = item.assigneeMemberId
     val mine = bringer == shared.myMemberId
     var menu by remember { mutableStateOf(false) }
-    var itemMenu by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
     Row(
         Modifier
             .fillMaxWidth()
@@ -672,33 +694,43 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
         } else {
             Text("×${item.quantity}", style = MaterialTheme.typography.titleSmall, color = scheme.onSurfaceVariant)
         }
-        if (shared.canEdit) {
-            Box {
-                androidx.compose.material3.IconButton(onClick = { itemMenu = true }) {
-                    Symbol(Symbols.moreVert, tint = scheme.onSurfaceVariant, contentDescription = stringResource(Res.string.packing_item_more))
-                }
-                DropdownMenu(expanded = itemMenu, onDismissRequest = { itemMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.packing_item_edit)) },
-                        leadingIcon = { Symbol(Symbols.edit) },
-                        onClick = { itemMenu = false; onLongPress() },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.packing_item_delete), color = scheme.error) },
-                        leadingIcon = { Symbol(Symbols.delete, tint = scheme.error) },
-                        onClick = { itemMenu = false; confirmDelete = true },
-                    )
-                }
-            }
+        if (shared.canEdit) ItemMenu(item.name, ownList = false, onEdit = onLongPress, onDelete = { shared.onDelete(item) })
+    }
+}
+
+/**
+ * The ⋮ button of a packing line: "Ubah" and "Hapus" (which asks first). [ownList] = a list only the user sees (solo,
+ * Pribadi); otherwise the confirmation says the item leaves the shared list for everyone.
+ */
+@Composable
+internal fun ItemMenu(itemName: String, ownList: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    var open by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    Box {
+        androidx.compose.material3.IconButton(onClick = { open = true }) {
+            Symbol(Symbols.moreVert, tint = scheme.onSurfaceVariant, contentDescription = stringResource(Res.string.packing_item_more))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.packing_item_edit)) },
+                leadingIcon = { Symbol(Symbols.edit) },
+                onClick = { open = false; onEdit() },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.packing_item_delete), color = scheme.error) },
+                leadingIcon = { Symbol(Symbols.delete, tint = scheme.error) },
+                onClick = { open = false; confirmDelete = true },
+            )
         }
     }
     if (confirmDelete) {
         app.ransel.ui.components.ConfirmDialog(
-            title = stringResource(Res.string.packing_item_delete_title, item.name),
-            body = stringResource(Res.string.packing_item_delete_body),
+            title = stringResource(Res.string.packing_item_delete_title, itemName),
+            body = stringResource(if (ownList) Res.string.packing_item_delete_body_own else Res.string.packing_item_delete_body),
             confirmLabel = stringResource(Res.string.packing_item_delete_confirm),
             dismissLabel = stringResource(Res.string.action_cancel),
-            onConfirm = { confirmDelete = false; shared.onDelete(item) },
+            onConfirm = { confirmDelete = false; onDelete() },
             onDismiss = { confirmDelete = false },
             destructive = true,
             symbol = Symbols.delete,

@@ -121,7 +121,7 @@ class GroupPackingTest {
     )
 
     @Test
-    fun ownLinesAreAddedAndFromListLinesOnlyTick() = runTest {
+    fun listLinesAreTheMembersLikeTheirOwn() = runTest {
         val store = InMemoryStore()
         store.personal.value = listOf(
             PersonalItemDto("p1", TRIP, ME_MEMBER, PackingCategory.CLOTHING, "Jaket", sourceItemId = "l1", required = true, createdAt = stamp, updatedAt = stamp),
@@ -129,18 +129,19 @@ class GroupPackingTest {
         val vm = viewModel(store)
         eventually { vm.state.value.members.size == 2 }
         vm.add("Kamera", PackingCategory.ELECTRONICS, 1)
-        eventually { vm.state.value.own.size == 1 }
-        assertTrue(vm.state.value.receivedList)
-        assertEquals(1, vm.state.value.requiredTotal)
+        eventually { vm.state.value.personal.size == 2 }
+        // one list by category: the owner's line sits with the member's own, only "Wajib" tells it apart
+        assertEquals(listOf(PackingCategory.CLOTHING, PackingCategory.ELECTRONICS), vm.state.value.groups.map { it.category })
+        assertEquals(setOf("p1"), vm.state.value.requiredIds)
 
-        val fromList = vm.state.value.fromList.single().items.single()
-        vm.edit(fromList, "Jas", PackingCategory.OTHER, 3)
+        val fromList = vm.state.value.personal.single { it.id == "p1" }
         vm.toggle(fromList)
         eventually { vm.state.value.requiredDone == 1 }
-        val after = vm.state.value.fromList.single().items.single()
-        assertEquals("Jaket", after.name, "a line from the list keeps the owner's wording")
-        vm.delete(after)
-        assertEquals(2, vm.state.value.personal.size, "and cannot be deleted")
+        vm.edit(vm.state.value.personal.single { it.id == "p1" }, "Jas", PackingCategory.CLOTHING, 3)
+        eventually { vm.state.value.personal.single { it.id == "p1" }.name == "Jas" }
+        assertEquals(3, vm.state.value.personal.single { it.id == "p1" }.quantity, "the member may change it")
+        vm.delete(vm.state.value.personal.single { it.id == "p1" })
+        eventually { vm.state.value.personal.none { it.id == "p1" } }
     }
 
     @Test

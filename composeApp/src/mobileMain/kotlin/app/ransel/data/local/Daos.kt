@@ -68,7 +68,7 @@ interface PersonalItemDao {
     @Upsert
     suspend fun upsert(entity: PersonalItemEntity)
 
-    @Query("UPDATE personal_items SET deletedAt = :now, updatedAt = :now, syncState = 'PENDING' WHERE id = :id AND sourceItemId IS NULL")
+    @Query("UPDATE personal_items SET deletedAt = :now, updatedAt = :now, syncState = 'PENDING' WHERE id = :id")
     suspend fun softDelete(id: String, now: Long)
 }
 

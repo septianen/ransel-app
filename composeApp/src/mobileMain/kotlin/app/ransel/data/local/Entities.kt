@@ -89,7 +89,7 @@ data class PackingItemEntity(
     @ColumnInfo(defaultValue = "NULL") val assigneeMemberId: String? = null,
 )
 
-/** "Pribadi": the signed-in member's own lines in a group trip (DB v9). Lines with [sourceItemId] follow the owner's list. */
+/** "Pribadi": the signed-in member's own lines in a group trip (DB v9). Lines with [sourceItemId] came from the owner's list and are the member's too. */
 @Entity(tableName = "personal_items", indices = [Index("tripId")])
 data class PersonalItemEntity(
     @PrimaryKey val id: String,

@@ -1,5 +1,6 @@
 package app.ransel.feature.expenses
 
+import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -157,7 +158,7 @@ fun BalancesContent(
         else -> Column(modifier, verticalArrangement = Arrangement.spacedBy(24.dp)) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                    Text(stringResource(Res.string.shared_balances_title), style = MaterialTheme.typography.titleLarge)
+                    SectionHeader(stringResource(Res.string.shared_balances_title))
                     Text(
                         stringResource(Res.string.shared_balances_total, formatMoney(data.members.sumOf { it.paidMinor }, data.baseCurrency)),
                         style = MaterialTheme.typography.bodySmall,
@@ -169,7 +170,7 @@ fun BalancesContent(
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(Res.string.shared_settle_title), style = MaterialTheme.typography.titleLarge)
+                SectionHeader(stringResource(Res.string.shared_settle_title))
                 Text(
                     stringResource(Res.string.shared_settle_hint),
                     style = MaterialTheme.typography.bodyMedium,

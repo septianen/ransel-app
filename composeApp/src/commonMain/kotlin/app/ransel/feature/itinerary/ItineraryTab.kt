@@ -1,5 +1,6 @@
 package app.ransel.feature.itinerary
 
+import app.ransel.ui.components.SectionHeader
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -430,7 +431,7 @@ private fun DaySection(
                 }
             },
     ) {
-        Text(heading, style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 12.dp))
+        SectionHeader(heading, Modifier.padding(bottom = 12.dp))
         if (items.isEmpty()) {
             EmptyDay(title = emptyTitle, onExplore = onExplore)
             return@Column

@@ -1,5 +1,6 @@
 package app.ransel.feature.trips
 
+import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -215,7 +216,7 @@ private fun TripGroups(state: TripListUiState.Content, onOpenTrip: (String) -> U
 @Composable
 private fun Group(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(title, style = MaterialTheme.typography.titleLarge)
+        SectionHeader(title)
         content()
     }
 }

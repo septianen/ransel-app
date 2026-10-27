@@ -1,5 +1,6 @@
 package app.ransel.feature.group
 
+import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,7 @@ import androidx.compose.foundation.layout.heightIn
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
 import app.ransel.ui.components.HeroCard
+import app.ransel.ui.components.StatusTag
 import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.preview.IrisPreview
@@ -69,7 +71,6 @@ import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.group_documents
 import ransel.composeapp.generated.resources.documents_title
-import ransel.composeapp.generated.resources.group_documents_all
 import ransel.composeapp.generated.resources.group_countdown_finished
 import ransel.composeapp.generated.resources.group_countdown_ongoing
 import ransel.composeapp.generated.resources.group_guest_tag
@@ -146,6 +147,7 @@ fun GroupTab(
         currency = state.currency,
         onOpenMoney = onOpenMoney,
         onOpenDocuments = onOpenDocuments,
+        documentCount = state.documentCount,
     )
 }
 
@@ -173,6 +175,7 @@ fun GroupContent(
     currency: String = trip.baseCurrency,
     onOpenMoney: () -> Unit = {},
     onOpenDocuments: () -> Unit = {},
+    documentCount: Int? = null,
 ) {
     val dates = rememberDateFormatter()
     val pollNeeds = polls.mapNotNull { poll -> poll.needFor(myMemberId, isOwner)?.let { poll to it } }
@@ -229,7 +232,7 @@ fun GroupContent(
         }
 
         Section(stringResource(Res.string.group_documents)) {
-            LinkRow(Symbols.receiptLong, stringResource(Res.string.documents_title), stringResource(Res.string.group_documents_all), onOpenDocuments)
+            LinkRow(Symbols.receiptLong, stringResource(Res.string.documents_title), documentCount?.toString(), onOpenDocuments)
         }
 
         Section(
@@ -274,7 +277,6 @@ internal fun VotingEntryRow(
         is VotingEntry.Round -> VoteRoundRow(
             entry.round,
             isOwner = isOwner,
-            highlight = false,
             now = now,
             modifier = Modifier.heightIn(min = 64.dp),
             background = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -282,9 +284,9 @@ internal fun VotingEntryRow(
     }
 }
 
-/** A row that opens another screen: "Dokumen trip", "Riwayat voting". */
+/** A row that opens another screen: "Dokumen trip 3 ›", "Riwayat voting 5 ›". [count] null = not known, only the arrow. */
 @Composable
-private fun LinkRow(symbol: String, title: String, trailing: String, onClick: () -> Unit) {
+private fun LinkRow(symbol: String, title: String, count: String?, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(IrisShape.lg)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
@@ -294,7 +296,7 @@ private fun LinkRow(symbol: String, title: String, trailing: String, onClick: ()
     ) {
         Symbol(symbol, tint = MaterialTheme.colorScheme.primary)
         Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-        Text(trailing, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        if (count != null) Text(count, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -364,7 +366,7 @@ internal fun PollRow(poll: PollDto, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Tag(
+        StatusTag(
             stringResource(
                 when (poll.status) {
                     PollStatus.OPEN -> Res.string.poll_status_open
@@ -414,17 +416,7 @@ private fun SignInCard() {
 @Composable
 private fun Section(title: String, trailing: String? = null, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            if (trailing != null) {
-                Text(trailing, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+        SectionHeader(title, trailing = trailing)
         content()
     }
 }
@@ -454,23 +446,15 @@ private fun MemberLine(member: TripMemberDto, isMe: Boolean) {
             }
         }
         if (member.isGuest) {
-            Tag(stringResource(Res.string.group_guest_tag))
+            StatusTag(stringResource(Res.string.group_guest_tag))
         } else if (member.role != Role.EDITOR) {
-            Tag(stringResource(if (member.role == Role.OWNER) Res.string.role_owner else Res.string.role_viewer))
+            StatusTag(stringResource(if (member.role == Role.OWNER) Res.string.role_owner else Res.string.role_viewer))
         } else {
-            Tag(stringResource(Res.string.role_editor))
+            StatusTag(stringResource(Res.string.role_editor))
         }
     }
 }
 
-@Composable
-private fun Tag(text: String) {
-    Box(
-        Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 10.dp, vertical = 4.dp),
-    ) {
-        Text(text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
 
 private val previewTrip = TripDto(
     id = "t", ownerId = "u1", title = "Bali 4 hari", destination = "Bali",

@@ -1,5 +1,6 @@
 package app.ransel.feature.explore
 
+import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.CompositionLocalProvider
@@ -384,7 +385,7 @@ private fun Sections(
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        SectionHeader(title)
         content()
     }
 }

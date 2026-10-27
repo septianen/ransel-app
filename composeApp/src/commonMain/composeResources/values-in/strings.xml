@@ -1307,14 +1307,8 @@
     <string name="packing_personal_count">%1$d dari %2$d barang</string>
     <string name="packing_required_count">Wajib %1$d/%2$d</string>
     <string name="packing_required">Wajib</string>
-    <string name="packing_from_owner">Daftar bawaan dari %1$s</string>
-    <string name="packing_from_owner_body">%1$d barang · %2$d wajib · kamu bisa tambah barang sendiri</string>
-    <string name="packing_my_extras">Tambahan saya</string>
-    <string name="packing_only_you">Hanya kamu</string>
     <string name="packing_personal_empty_title">Tas pribadimu masih kosong</string>
     <string name="packing_personal_empty_body">Barang di sini hanya kamu yang lihat.</string>
-    <string name="packing_from_list_locked">Barang ini dari daftar %1$s. Kamu hanya bisa mencentangnya.</string>
-    <string name="packing_trip_owner">pemilik trip</string>
     <string name="member_list_title">Daftar bawaan anggota</string>
     <string name="member_list_summary">%1$d barang · %2$d wajib · dikirim ke %3$d anggota</string>
     <string name="member_list_draft">%1$d barang · %2$d wajib · belum dikirim</string>
@@ -1458,7 +1452,6 @@
     <string name="document_error_title">Tulis nama dokumen</string>
     <string name="document_error_generic">Dokumen belum tersimpan. Coba lagi.</string>
     <string name="group_documents">Dokumen</string>
-    <string name="group_documents_all">Lihat semua</string>
     <string name="recap_title">Rekap trip</string>
     <string name="recap_brand">RANSEL · %1$s</string>
     <string name="recap_headline">%1$s, beres!</string>
@@ -1503,4 +1496,8 @@
     <string name="receipt_per_person">Bagian tiap orang</string>
     <string name="receipt_per_person_extras">termasuk pajak %1$s</string>
     <string name="receipt_change_date">Ubah tanggal</string>
+    <string name="document_pick_activity">Pilih aktivitas</string>
+    <string name="document_search_activity">Cari aktivitas</string>
+    <string name="document_no_activity_found">Tidak ada aktivitas yang cocok</string>
+    <string name="packing_item_delete_body_own">Barang ini dihapus dari daftarmu.</string>
 </resources>

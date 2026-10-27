@@ -347,7 +347,7 @@ fun AddDocumentSheet(
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(DocumentCategory.TRAVEL) }
     var activity by remember { mutableStateOf<String?>(null) }
-    var activityMenu by remember { mutableStateOf(false) }
+    var pickActivity by remember { mutableStateOf(false) }
     val picker = rememberFilePickerLauncher(type = FileKitType.File(listOf("pdf", "jpg", "jpeg", "png", "webp", "heic"))) { picked ->
         if (picked != null) scope.launch {
             val name = picked.name
@@ -395,24 +395,14 @@ fun AddDocumentSheet(
                 }
             }
             if (activities.isNotEmpty()) {
-                Box {
-                    val chosen = activities.firstOrNull { it.id == activity }
-                    OutlinedButton(onClick = { activityMenu = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                        Text(
-                            chosen?.let { item -> listOfNotNull(activityText(item, tripStart), item.title).joinToString(" · ") } ?: stringResource(Res.string.document_activity_label),
-                            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
-                        )
-                        Symbol(Symbols.arrowDropDown)
-                    }
-                    DropdownMenu(expanded = activityMenu, onDismissRequest = { activityMenu = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(Res.string.document_no_activity)) }, onClick = { activity = null; activityMenu = false })
-                        activities.forEach { item ->
-                            DropdownMenuItem(
-                                text = { Text(listOfNotNull(activityText(item, tripStart), item.title).joinToString(" · ")) },
-                                onClick = { activity = item.id; activityMenu = false },
-                            )
-                        }
-                    }
+                // a full screen, not a dropdown: a long itinerary stays readable (owner, 27 Oct 2026)
+                val chosen = activities.firstOrNull { it.id == activity }
+                OutlinedButton(onClick = { pickActivity = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(
+                        chosen?.let { item -> listOfNotNull(activityText(item, tripStart), item.title).joinToString(" · ") } ?: stringResource(Res.string.document_activity_label),
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+                    )
+                    Symbol(Symbols.chevronRight)
                 }
             }
             problem?.let { Text(stringResource(problemText(it)), style = MaterialTheme.typography.bodySmall, color = scheme.error) }
@@ -422,6 +412,15 @@ fun AddDocumentSheet(
                 enabled = title.isNotBlank() && (file != null || link.isNotBlank()),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text(stringResource(Res.string.document_save)) }
+        }
+        if (pickActivity) {
+            ActivityPicker(
+                activities = activities,
+                tripStart = tripStart,
+                selectedId = activity,
+                onPick = { activity = it; pickActivity = false },
+                onDismiss = { pickActivity = false },
+            )
         }
     }
 }

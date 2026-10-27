@@ -36,6 +36,8 @@ import app.ransel.shared.dto.RoundSummaryDto
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
+import app.ransel.ui.components.SectionHeader
+import app.ransel.ui.components.StatusTag
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import kotlin.time.Clock
@@ -89,9 +91,9 @@ fun VoteListContent(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Section(Res.string.vote_list_section_action, state.action, state, highlight = true, onOpenRound = onOpenRound)
-                Section(Res.string.vote_list_section_waiting, state.waiting, state, highlight = false, onOpenRound = onOpenRound)
-                Section(Res.string.vote_list_section_done, state.done, state, highlight = false, onOpenRound = onOpenRound)
+                Section(Res.string.vote_list_section_action, state.action, state, onOpenRound = onOpenRound)
+                Section(Res.string.vote_list_section_waiting, state.waiting, state, onOpenRound = onOpenRound)
+                Section(Res.string.vote_list_section_done, state.done, state, onOpenRound = onOpenRound)
             }
         }
     }
@@ -102,18 +104,12 @@ private fun Section(
     title: StringResource,
     rounds: List<RoundSummaryDto>,
     state: VoteListUiState,
-    highlight: Boolean,
     onOpenRound: (roundId: String, showResult: Boolean) -> Unit,
 ) {
     if (rounds.isEmpty()) return
-    Text(
-        stringResource(title),
-        Modifier.padding(top = 8.dp, bottom = 4.dp),
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    SectionHeader(stringResource(title), Modifier.padding(top = 8.dp, bottom = 4.dp))
     rounds.forEach { round ->
-        VoteRoundRow(round, state.isOwner, highlight, state.now) { onOpenRound(round.id, round.opensResult(state.isOwner, state.now)) }
+        VoteRoundRow(round, state.isOwner, state.now) { onOpenRound(round.id, round.opensResult(state.isOwner, state.now)) }
     }
 }
 
@@ -126,7 +122,6 @@ fun RoundSummaryDto.opensResult(isOwner: Boolean, now: Instant): Boolean =
 fun VoteRoundRow(
     round: RoundSummaryDto,
     isOwner: Boolean,
-    highlight: Boolean,
     now: Instant,
     modifier: Modifier = Modifier,
     background: Color = MaterialTheme.colorScheme.surface,
@@ -146,6 +141,7 @@ fun VoteRoundRow(
     Row(
         modifier
             .fillMaxWidth()
+            .heightIn(min = 64.dp)
             .clip(IrisShape.lg)
             .background(background)
             .clickable(role = Role.Button, onClick = onClick)
@@ -153,16 +149,9 @@ fun VoteRoundRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            Modifier.size(40.dp).clip(CircleShape).background(if (highlight) IrisTheme.accents.magenta else scheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center,
-        ) {
-            Symbol(
-                if (roundState == RoundState.DECIDED) Symbols.checkCircle else Symbols.favorite,
-                size = 22.dp,
-                filled = true,
-                tint = if (highlight) IrisTheme.accents.onAccent else scheme.onSurfaceVariant,
-            )
+        // like a poll row: the tile says what kind of voting it is (Explore AI places), the tag where it stands
+        Box(Modifier.size(40.dp).clip(IrisShape.md).background(IrisTheme.accents.magenta), contentAlignment = Alignment.Center) {
+            Symbol(Symbols.autoAwesome, size = 22.dp, filled = true, tint = IrisTheme.accents.onAccent)
         }
         Column(Modifier.weight(1f)) {
             Text(
@@ -174,6 +163,15 @@ fun VoteRoundRow(
             )
             Text(status, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        StatusTag(
+            stringResource(
+                when (roundState) {
+                    RoundState.OPEN -> Res.string.poll_status_open
+                    RoundState.CLOSED -> Res.string.poll_status_closed
+                    RoundState.DECIDED -> Res.string.poll_status_decided
+                },
+            ),
+        )
     }
 }
 
