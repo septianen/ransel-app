@@ -106,7 +106,8 @@ class SplitState(
     fun payerDifference(amountMinor: Long, currency: String): Long =
         if (payers.size > 1 && payersCustom) splitDifference(amountMinor, typedPayerAmounts(currency).values) else 0L
 
-    private fun payersValid(amountMinor: Long, currency: String): Boolean =
+    /** Who paid adds up (always true for one payer or equal amounts); per-item receipts check only this. */
+    fun payersValid(amountMinor: Long, currency: String): Boolean =
         payerDifference(amountMinor, currency) == 0L && payerAmounts(amountMinor, currency).values.all { it > 0 }
 
     // ── who owes ────────────────────────────────────────────────────────────
@@ -153,6 +154,10 @@ class SplitState(
             .filterValues { it > 0 }
             .map { (id, share) -> ExpenseSplitDto(id, share) }
     }
+
+    /** Everything the form holds, to tell whether the person changed anything ("Buang perubahan?"). */
+    fun snapshot(): List<Any> =
+        listOf(payers.toList(), payersCustom, payerTexts.toMap(), participants.toList(), custom, shareTexts.toMap())
 
     /** Payers to send: empty for a single payer (then `paidByMemberId` is the only one), else who paid how much. */
     fun toPayers(amountMinor: Long, currency: String): List<ExpensePayerDto> {

@@ -118,7 +118,7 @@ The first tab of every trip, so new group features do not pile up in Itinerary (
 
 ### Biaya (expenses)
 
-- Record an expense: amount, currency, category (the same six as the itinerary and in the same colors, with noun labels that fit money: Makan / Food, Transport, Penginapan / Lodging, Aktivitas / Activities, Belanja / Shopping, Lainnya / Other), note, date (may fall outside the trip dates), and payment method. The + button asks **Foto struk** or **Catat manual**.
+- Record an expense: amount, currency, category (the same six as the itinerary and in the same colors, with noun labels that fit money: Makan / Food, Transport, Penginapan / Lodging, Aktivitas / Activities, Belanja / Shopping, Lainnya / Other), note, date (may fall outside the trip dates), and payment method. The + button asks **Foto struk** or **Catat manual**. The expense form and "Cek hasil struk" open as their own screen with Save pinned at the bottom (a dialog on wide web), not a bottom sheet that closes while scrolling; leaving with unsaved input asks "Buang perubahan?" (owner, 27 Oct 2026).
 - Ringkasan view: a green **HeroCard** with the remaining budget (or the total spent without a budget; it stays green over budget and reads "Melebihi budget"), unpaid estimates, a donut by category, transactions by day.
 - Shared trips add Paid by (one or several payers), Split equally / Set amounts, and the green **Ringkasan | Saldo** tabs (the same `SegmentedTabs` as Packing's Pribadi | Bersama). There is no Kas view (removed 27 Oct 2026).
 - See Getting paid and Receipt photo under Group trips.
@@ -232,6 +232,7 @@ Built in stage 4 (a third Biaya view "Kas", deposits, "Ambil dari kas"), then re
 
 - Foto struk reads the receipt with AI (place, date, items, total, tax; costs 1 credit, "Foto struk" in the credit history; nothing when unreadable) and opens "Cek hasil struk"; the user checks it before saving.
 - The date read stays, also outside the trip (a ticket can be bought earlier), but is editable; the year shows when it is not the trip's year.
+- "Cek hasil struk" has the same "Dibayar oleh" and "Dibagi ke" as the manual form (several payers, who takes part, Bagi rata or Atur nominal; only the payer ticked = a personal expense), plus "Per item" when the receipt has lines; Bagi rata is the default (owner, 27 Oct 2026).
 - "Per item" split lets each line go to different members. Tax and service added on top are spread in proportion to what each person had, said under the tax line, and "Bagian tiap orang" lists every share with its part of the tax. Tax already inside the prices ("Incl. Pb1 10%": the items alone make the total) is only a note. Save is enabled only when the items add up to the total.
 
 ### P2 · Trip documents

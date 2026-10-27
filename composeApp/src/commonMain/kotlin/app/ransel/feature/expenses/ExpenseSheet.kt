@@ -64,7 +64,7 @@ import app.ransel.ui.category.expenseLabel
 import app.ransel.ui.category.expenseSymbol
 import app.ransel.ui.category.label
 import app.ransel.ui.category.symbol
-import app.ransel.ui.components.AdaptiveSheet
+import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.format.amountToInput
 import app.ransel.ui.format.parseAmountMinor
@@ -227,208 +227,21 @@ fun ExpenseSheet(
         )
     }
 
-    AdaptiveSheet(onDismiss = onDismiss) {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        stringResource(
-                            if (existing == null) Res.string.expenses_record else Res.string.expense_sheet_edit_title,
-                        ),
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                    val dayNumber = trip.startDate.daysUntil(date) + 1
-                    Text(
-                        if (date >= trip.startDate && date <= trip.endDate) {
-                            stringResource(Res.string.expense_sheet_subtitle_day, trip.title, dayNumber)
-                        } else {
-                            trip.title
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Box(Modifier.size(48.dp).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
-                    Symbol(
-                        Symbols.close,
-                        contentDescription = stringResource(Res.string.itinerary_close),
-                        tint = MaterialTheme.colorScheme.onSurface,
-                    )
-                }
-            }
+    // what the form started with, to ask "Buang perubahan?" only when something changed
+    val initial = remember { listOf(currency, amountText, category, note, date, method, rateText) to split?.snapshot() }
+    val dirty = initial != (listOf(currency, amountText, category, note, date, method, rateText) to split?.snapshot())
+    val dayNumber = trip.startDate.daysUntil(date) + 1
 
-            IrisTextField(
-                label = stringResource(Res.string.expense_amount),
-                value = amountText,
-                onValueChange = { amountText = sanitizeAmountInput(it, currencyDecimals(currency)) },
-                visualTransformation = ThousandsVisualTransformation,
-                prefix = currencySymbol(currency),
-                placeholder = "0",
-                error = if (amountError) stringResource(Res.string.expense_error_amount) else null,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = if (currencyDecimals(currency) == 0) KeyboardType.Number else KeyboardType.Decimal,
-                ),
-                trailing = {
-                    Row(
-                        Modifier
-                            .clip(IrisShape.sm)
-                            .clickable(role = Role.Button) { pickCurrency = true }
-                            .padding(start = 8.dp, top = 8.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(currency, style = MaterialTheme.typography.labelLarge)
-                        Symbol(
-                            Symbols.expandMore,
-                            size = 20.dp,
-                            contentDescription = stringResource(Res.string.expense_change_currency),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-            )
-            if (foreign && rate != null && rate > 0.0 && amountMinor != null) {
-                val inBase = convertMinor(amountMinor, currency, trip.baseCurrency, rateText.trim().replace(',', '.'))
-                Text("≈ " + formatMoney(inBase, trip.baseCurrency), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            if (foreign && !showRateField && fxSource == FxSource.DAILY && rate != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        stringResource(
-                            Res.string.expense_rate_daily, currency, formatMoney(kotlin.math.round(rate).toLong(), trip.baseCurrency),
-                            fxDate?.let { dates.dayMonthYear(it) }.orEmpty(),
-                        ),
-                        Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TextButton(onClick = { showRateField = true }) { Text(stringResource(Res.string.expense_rate_own)) }
-                }
-            }
-            if (foreign && showRateField) {
-                IrisTextField(
-                    label = stringResource(Res.string.expense_rate, trip.baseCurrency),
-                    value = rateText,
-                    onValueChange = {
-                        rateText = it.filter { c -> c.isDigit() || c == ',' || c == '.' }
-                        fxSource = FxSource.MANUAL
-                        fxDate = null
-                    },
-                    prefix = currencySymbol(trip.baseCurrency),
-                    placeholder = stringResource(Res.string.expense_rate_hint, currency, trip.baseCurrency),
-                    error = if (rateError) stringResource(Res.string.expense_error_rate) else null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(Res.string.activity_category), style = MaterialTheme.typography.labelLarge)
-                CategoryOrder.chunked(3).forEach { row ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        row.forEach { option ->
-                            val selected = option == category
-                            Row(
-                                Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 48.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (selected) MaterialTheme.colorScheme.primaryContainer
-                                        else MaterialTheme.colorScheme.surface,
-                                    )
-                                    .border(
-                                        BorderStroke(
-                                            if (selected) 2.dp else 1.dp,
-                                            if (selected) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.outlineVariant,
-                                        ),
-                                        CircleShape,
-                                    )
-                                    .clickable(role = Role.RadioButton) { category = option }
-                                    .padding(horizontal = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
-                            ) {
-                                Symbol(
-                                    option.expenseSymbol, size = 18.dp, filled = selected,
-                                    tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                Text(
-                                    stringResource(option.expenseLabel),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // date and payment method come before the note: they are picked, the note is typed last
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(Res.string.expense_date), style = MaterialTheme.typography.labelLarge)
-                    PickerButton(Symbols.calendarMonth, dates.weekdayDayMonth(date), onClick = { pickDate = true })
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(Res.string.expense_paid_with), style = MaterialTheme.typography.labelLarge)
-                    Box {
-                        PickerButton(
-                            method.symbol,
-                            stringResource(method.label),
-                            trailingChevron = true,
-                            onClick = { methodMenu = true },
-                        )
-                        DropdownMenu(expanded = methodMenu, onDismissRequest = { methodMenu = false }) {
-                            PaymentMethod.entries.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(option.label)) },
-                                    leadingIcon = { Symbol(option.symbol) },
-                                    onClick = {
-                                        method = option
-                                        methodMenu = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            IrisTextField(
-                label = stringResource(Res.string.expense_note),
-                value = note,
-                onValueChange = { note = it },
-            )
-
-            if (existing?.isEstimate == true) {
-                Row(
-                    Modifier.fillMaxWidth().clip(IrisShape.md).background(MaterialTheme.colorScheme.tertiaryContainer).padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Symbol(Symbols.info, size = 18.dp, tint = MaterialTheme.colorScheme.onTertiaryContainer)
-                    Text(
-                        stringResource(Res.string.expense_estimate_banner),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    )
-                }
-            }
-
-            val itemized = existing?.items?.isNotEmpty() == true && existing.amountMinor == amountMinor
-            if (split != null && itemized) {
-                Text(
-                    stringResource(Res.string.expense_split_by_items, existing!!.items.size),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else if (split != null) {
-                SplitSection(split, amountMinor, currency, myMemberId)
-            }
-
+    AdaptiveFormScreen(
+        title = stringResource(if (existing == null) Res.string.expenses_record else Res.string.expense_sheet_edit_title),
+        subtitle = if (date >= trip.startDate && date <= trip.endDate) {
+            stringResource(Res.string.expense_sheet_subtitle_day, trip.title, dayNumber)
+        } else {
+            trip.title
+        },
+        onDismiss = onDismiss,
+        confirmDiscard = dirty,
+        footer = {
             Button(
                 onClick = ::save,
                 enabled = split == null || split.isValid(amountMinor, currency) || amountMinor == null,
@@ -453,6 +266,178 @@ fun ExpenseSheet(
                     )
                 }
             }
+        },
+    ) {
+        IrisTextField(
+            label = stringResource(Res.string.expense_amount),
+            value = amountText,
+            onValueChange = { amountText = sanitizeAmountInput(it, currencyDecimals(currency)) },
+            visualTransformation = ThousandsVisualTransformation,
+            prefix = currencySymbol(currency),
+            placeholder = "0",
+            error = if (amountError) stringResource(Res.string.expense_error_amount) else null,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (currencyDecimals(currency) == 0) KeyboardType.Number else KeyboardType.Decimal,
+            ),
+            trailing = {
+                Row(
+                    Modifier
+                        .clip(IrisShape.sm)
+                        .clickable(role = Role.Button) { pickCurrency = true }
+                        .padding(start = 8.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(currency, style = MaterialTheme.typography.labelLarge)
+                    Symbol(
+                        Symbols.expandMore,
+                        size = 20.dp,
+                        contentDescription = stringResource(Res.string.expense_change_currency),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+        )
+        if (foreign && rate != null && rate > 0.0 && amountMinor != null) {
+            val inBase = convertMinor(amountMinor, currency, trip.baseCurrency, rateText.trim().replace(',', '.'))
+            Text("≈ " + formatMoney(inBase, trip.baseCurrency), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        }
+        if (foreign && !showRateField && fxSource == FxSource.DAILY && rate != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(
+                        Res.string.expense_rate_daily, currency, formatMoney(kotlin.math.round(rate).toLong(), trip.baseCurrency),
+                        fxDate?.let { dates.dayMonthYear(it) }.orEmpty(),
+                    ),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(onClick = { showRateField = true }) { Text(stringResource(Res.string.expense_rate_own)) }
+            }
+        }
+        if (foreign && showRateField) {
+            IrisTextField(
+                label = stringResource(Res.string.expense_rate, trip.baseCurrency),
+                value = rateText,
+                onValueChange = {
+                    rateText = it.filter { c -> c.isDigit() || c == ',' || c == '.' }
+                    fxSource = FxSource.MANUAL
+                    fxDate = null
+                },
+                prefix = currencySymbol(trip.baseCurrency),
+                placeholder = stringResource(Res.string.expense_rate_hint, currency, trip.baseCurrency),
+                error = if (rateError) stringResource(Res.string.expense_error_rate) else null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(Res.string.activity_category), style = MaterialTheme.typography.labelLarge)
+            CategoryOrder.chunked(3).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { option ->
+                        val selected = option == category
+                        Row(
+                            Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (selected) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surface,
+                                )
+                                .border(
+                                    BorderStroke(
+                                        if (selected) 2.dp else 1.dp,
+                                        if (selected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outlineVariant,
+                                    ),
+                                    CircleShape,
+                                )
+                                .clickable(role = Role.RadioButton) { category = option }
+                                .padding(horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+                        ) {
+                            Symbol(
+                                option.expenseSymbol, size = 18.dp, filled = selected,
+                                tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                stringResource(option.expenseLabel),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // date and payment method come before the note: they are picked, the note is typed last
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(Res.string.expense_date), style = MaterialTheme.typography.labelLarge)
+                PickerButton(Symbols.calendarMonth, dates.weekdayDayMonth(date), onClick = { pickDate = true })
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(Res.string.expense_paid_with), style = MaterialTheme.typography.labelLarge)
+                Box {
+                    PickerButton(
+                        method.symbol,
+                        stringResource(method.label),
+                        trailingChevron = true,
+                        onClick = { methodMenu = true },
+                    )
+                    DropdownMenu(expanded = methodMenu, onDismissRequest = { methodMenu = false }) {
+                        PaymentMethod.entries.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(option.label)) },
+                                leadingIcon = { Symbol(option.symbol) },
+                                onClick = {
+                                    method = option
+                                    methodMenu = false
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        IrisTextField(
+            label = stringResource(Res.string.expense_note),
+            value = note,
+            onValueChange = { note = it },
+        )
+
+        if (existing?.isEstimate == true) {
+            Row(
+                Modifier.fillMaxWidth().clip(IrisShape.md).background(MaterialTheme.colorScheme.tertiaryContainer).padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Symbol(Symbols.info, size = 18.dp, tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                Text(
+                    stringResource(Res.string.expense_estimate_banner),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+            }
+        }
+
+        val itemized = existing?.items?.isNotEmpty() == true && existing.amountMinor == amountMinor
+        if (split != null && itemized) {
+            Text(
+                stringResource(Res.string.expense_split_by_items, existing!!.items.size),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (split != null) {
+            SplitSection(split, amountMinor, currency, myMemberId)
         }
     }
 

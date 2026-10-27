@@ -3,6 +3,7 @@ package app.ransel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.test.setMain
 import kotlin.coroutines.CoroutineContext
 
@@ -15,6 +16,6 @@ private object StoppedMain : CoroutineDispatcher() {
     override fun dispatch(context: CoroutineContext, block: Runnable) = Unit
 }
 
-/** Use in `@AfterTest` instead of `stopTestMain()`. */
+/** Use in `@AfterTest` instead of `Dispatchers.resetMain()`. */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun stopTestMain() = Dispatchers.setMain(StoppedMain)

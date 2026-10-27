@@ -273,6 +273,10 @@ fun SplitSection(
     currency: String,
     myMemberId: String?,
     modifier: Modifier = Modifier,
+    /** A receipt with lines also offers "Per item" (null = not offered); the lines themselves are the caller's. */
+    perItemLabel: String? = null,
+    perItem: Boolean = false,
+    onPerItemChange: (Boolean) -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
     val you = stringResource(Res.string.shared_you)
@@ -317,13 +321,18 @@ fun SplitSection(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(Res.string.shared_split_title), style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SplitModeChip(stringResource(Res.string.shared_split_equal), selected = !split.custom) { split.useEqual() }
-                SplitModeChip(stringResource(Res.string.shared_split_custom), selected = split.custom) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SplitModeChip(stringResource(Res.string.shared_split_equal), selected = !perItem && !split.custom) {
+                    onPerItemChange(false)
+                    split.useEqual()
+                }
+                SplitModeChip(stringResource(Res.string.shared_split_custom), selected = !perItem && split.custom) {
+                    onPerItemChange(false)
                     split.useCustom(amountMinor, currency)
                 }
+                if (perItemLabel != null) SplitModeChip(perItemLabel, selected = perItem) { onPerItemChange(true) }
             }
-            split.members.forEach { m ->
+            if (!perItem) split.members.forEach { m ->
                 val ticked = m.memberId in split.participants
                 Row(
                     Modifier.fillMaxWidth().heightIn(min = 52.dp),
@@ -380,7 +389,7 @@ fun SplitSection(
                     }
                 }
             }
-            SplitSummary(split, amountMinor, currency, shares)
+            if (!perItem) SplitSummary(split, amountMinor, currency, shares)
         }
     }
 }

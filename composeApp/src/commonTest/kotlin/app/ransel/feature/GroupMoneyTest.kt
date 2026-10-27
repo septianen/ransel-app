@@ -17,8 +17,10 @@ import app.ransel.feature.expenses.receipt.ReceiptImage
 import app.ransel.feature.expenses.receipt.ReceiptStep
 import app.ransel.feature.expenses.receipt.ReceiptViewModel
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.model.Role
 import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.AuthSessionDto
+import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.CreditCostsDto
 import app.ransel.shared.dto.CreditsDto
 import app.ransel.shared.dto.MeDto
@@ -196,9 +198,39 @@ class ReceiptTest {
         taxMinor = 26_000, totalMinor = 286_000, credits = wallet,
     )
 
+    private val receiptMembers = listOf("a", "b").map {
+        TripMemberDto(tripId = "t1", memberId = it, displayName = it.uppercase(), role = Role.EDITOR, joinedAt = Instant.parse("2026-10-01T00:00:00Z"))
+    }
+
+    @Test
+    fun aReceiptForMyselfIsAPersonalExpense() {
+        // owner, 27 Oct 2026: the receipt form offers the same "Dibagi ke" as the manual form
+        val form = ReceiptFormState(draft, receiptMembers, "a", "Pajak")
+        form.split!!.toggle("b")
+        assertTrue(form.canSave)
+        val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
+        assertEquals("a", input.paidByMemberId)
+        assertTrue(input.splits.isEmpty(), "only the payer takes part: nobody owes anything")
+    }
+
+    @Test
+    fun aReceiptCanUseSetAmountsAndSeveralPayers() {
+        val form = ReceiptFormState(draft, receiptMembers, "a", "Pajak")
+        val split = form.split!!
+        split.useCustom(form.total, "IDR")
+        split.shareTexts["a"] = "86000"
+        assertFalse(form.canSave, "shares short of the total")
+        split.shareTexts["b"] = "200000"
+        assertTrue(form.canSave)
+        split.togglePayer("b")
+        val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
+        assertEquals(mapOf("a" to 86_000L, "b" to 200_000L), input.splits.associate { it.memberId to it.shareMinor })
+        assertEquals(mapOf("a" to 143_000L, "b" to 143_000L), input.payers.associate { it.memberId to it.amountMinor })
+    }
+
     @Test
     fun equalSplitNeedsNothingButATotal() {
-        val form = ReceiptFormState(draft, listOf("a", "b"), "a", "Pajak")
+        val form = ReceiptFormState(draft, receiptMembers, "a", "Pajak")
         assertTrue(form.canSave)
         val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
         assertEquals(mapOf("a" to 143_000L, "b" to 143_000L), input.splits.associate { it.memberId to it.shareMinor })
@@ -208,7 +240,7 @@ class ReceiptTest {
 
     @Test
     fun perItemSendsTheLinesAndSpreadsTheTax() {
-        val form = ReceiptFormState(draft, listOf("a", "b"), "a", "Pajak")
+        val form = ReceiptFormState(draft, receiptMembers, "a", "Pajak")
         form.perItem = true
         form.toggle(1, "a") // Sate only for b
         val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
@@ -221,7 +253,7 @@ class ReceiptTest {
 
     @Test
     fun perItemWaitsUntilTheLinesMatchTheTotal() {
-        val form = ReceiptFormState(draft.copy(totalMinor = 300_000), listOf("a", "b"), "a", "Pajak")
+        val form = ReceiptFormState(draft.copy(totalMinor = 300_000), receiptMembers, "a", "Pajak")
         form.perItem = true
         assertEquals(-14_000L, form.difference)
         assertFalse(form.canSave)
@@ -237,7 +269,7 @@ class ReceiptTest {
             items = listOf(ReceiptLineDto("Cafe latte", 1, 35_000), ReceiptLineDto("Creamcheese walnut bread", 1, 40_000)),
             taxMinor = 6_818, totalMinor = 75_000, credits = wallet,
         )
-        val form = ReceiptFormState(included, listOf("a", "b"), "a", "Pajak")
+        val form = ReceiptFormState(included, receiptMembers, "a", "Pajak")
         assertEquals(6_818L, form.includedExtrasMinor)
         assertEquals(-1, form.extrasIndex)
         form.perItem = true
@@ -252,7 +284,7 @@ class ReceiptTest {
 
     @Test
     fun eachPersonsShareShowsTheirPartOfTheTax() {
-        val form = ReceiptFormState(draft, listOf("a", "b"), "a", "Pajak")
+        val form = ReceiptFormState(draft, receiptMembers, "a", "Pajak")
         assertEquals(0L, form.includedExtrasMinor, "286.000 = items + tax: the tax comes on top")
         form.perItem = true
         form.toggle(1, "a") // Sate only for b
@@ -264,7 +296,7 @@ class ReceiptTest {
 
     @Test
     fun theReceiptDateCanBeFixed() {
-        val form = ReceiptFormState(draft.copy(spentOn = LocalDate(2017, 12, 3)), listOf("a", "b"), "a", "Pajak")
+        val form = ReceiptFormState(draft.copy(spentOn = LocalDate(2017, 12, 3)), receiptMembers, "a", "Pajak")
         assertEquals(LocalDate(2017, 12, 3), form.date, "the date read is kept, also outside the trip")
         form.date = LocalDate(2026, 11, 21)
         assertEquals(LocalDate(2026, 11, 21), form.date)
@@ -272,7 +304,7 @@ class ReceiptTest {
 
     @Test
     fun aLineNobodySharesBlocksSaving() {
-        val form = ReceiptFormState(draft, listOf("a", "b"), "a", "Pajak")
+        val form = ReceiptFormState(draft, receiptMembers, "a", "Pajak")
         form.perItem = true
         form.toggle(0, "a")
         form.toggle(0, "b")

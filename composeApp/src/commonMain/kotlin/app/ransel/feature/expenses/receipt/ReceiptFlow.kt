@@ -43,7 +43,9 @@ import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Category
 import app.ransel.ui.category.expenseLabel
 import app.ransel.ui.category.expenseSymbol
+import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.components.AdaptiveSheet
+import app.ransel.feature.expenses.SplitSection
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.format.formatMoney
@@ -96,14 +98,12 @@ import ransel.composeapp.generated.resources.receipt_gallery
 import ransel.composeapp.generated.resources.receipt_manual_instead
 import ransel.composeapp.generated.resources.receipt_match
 import ransel.composeapp.generated.resources.receipt_mismatch
-import ransel.composeapp.generated.resources.receipt_paid_by
 import ransel.composeapp.generated.resources.receipt_per_item
 import ransel.composeapp.generated.resources.receipt_place
 import ransel.composeapp.generated.resources.receipt_reading
 import ransel.composeapp.generated.resources.receipt_result_hint
 import ransel.composeapp.generated.resources.receipt_result_title
 import ransel.composeapp.generated.resources.receipt_retry
-import ransel.composeapp.generated.resources.receipt_split_equal
 import ransel.composeapp.generated.resources.receipt_tip
 import ransel.composeapp.generated.resources.receipt_title
 import ransel.composeapp.generated.resources.shared_you
@@ -177,6 +177,13 @@ fun ReceiptFlow(
     val camera = rememberReceiptCamera(onFile)
     val gallery = rememberFilePickerLauncher(type = FileKitType.Image, onResult = onFile)
 
+    // the result is a long form: its own screen (phones) or a dialog (wide web), not a sheet that closes while scrolling
+    (step as? ReceiptStep.Draft)?.let { s ->
+        val extras = stringResource(Res.string.receipt_extras)
+        val form = remember(s.draft) { ReceiptFormState(s.draft, members, myMemberId, extras) }
+        ReceiptResult(form, trip, members, myMemberId, onSave, onDismiss)
+        return
+    }
     AdaptiveSheet(onDismiss = onDismiss) {
         when (val s = step) {
             ReceiptStep.Pick, ReceiptStep.Reading -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -225,13 +232,7 @@ fun ReceiptFlow(
                     Text(stringResource(Res.string.receipt_manual_instead))
                 }
             }
-            is ReceiptStep.Draft -> {
-                val extras = stringResource(Res.string.receipt_extras)
-                val form = remember(s.draft) {
-                    ReceiptFormState(s.draft, members.takeIf { it.size > 1 }.orEmpty().map { it.memberId }, myMemberId, extras)
-                }
-                ReceiptResult(form, trip, members, myMemberId, onSave, onDismiss)
-            }
+            is ReceiptStep.Draft -> Unit
         }
     }
 }
@@ -257,9 +258,27 @@ private fun ReceiptResult(
     val you = stringResource(Res.string.shared_you)
     fun name(id: String) = members.firstOrNull { it.memberId == id }?.displayName?.let { if (id == myMemberId) "$it ($you)" else it } ?: "?"
     var pickDate by remember { mutableStateOf(false) }
+    val split = form.split
 
-    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SheetHeader(stringResource(Res.string.receipt_result_title), trip.title, onDismiss)
+    AdaptiveFormScreen(
+        title = stringResource(Res.string.receipt_result_title),
+        subtitle = trip.title,
+        onDismiss = onDismiss,
+        // the receipt was read (and paid for with a credit): leaving asks first
+        confirmDiscard = true,
+        footer = {
+            Button(
+                onClick = {
+                    val tz = TimeZone.currentSystemDefault()
+                    val time = now().toLocalDateTime(tz).time
+                    val spentAt = LocalDateTime(form.date ?: today(), time).toInstant(tz)
+                    onSave(form.toInput(newId(), spentAt, if (foreign) rateText.trim().replace(',', '.') else null))
+                },
+                enabled = form.canSave && (!foreign || (rate != null && rate > 0.0)),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            ) { Text(stringResource(Res.string.action_save), style = MaterialTheme.typography.titleMedium) }
+        },
+    ) {
         Row(
             Modifier.fillMaxWidth().clip(IrisShape.md).background(scheme.tertiaryContainer).padding(12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -302,15 +321,14 @@ private fun ReceiptResult(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
         }
-        if (shared) {
-            Text(stringResource(Res.string.receipt_paid_by), style = MaterialTheme.typography.labelLarge)
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                form.memberIds.forEach { id -> Choice(name(id), selected = form.payer == id) { form.payer = id } }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Choice(stringResource(Res.string.receipt_split_equal), selected = !form.perItem) { form.perItem = false }
-                Choice(stringResource(Res.string.receipt_per_item), selected = form.perItem) { form.perItem = true }
-            }
+        if (split != null) {
+            // the same "Dibayar oleh" / "Dibagi ke" as the manual form, plus "Per item" for a receipt with lines
+            SplitSection(
+                split, form.total, currency, myMemberId,
+                perItemLabel = if (form.canSplitPerItem) stringResource(Res.string.receipt_per_item) else null,
+                perItem = form.perItem,
+                onPerItemChange = { form.perItem = it },
+            )
         }
         form.lines.forEachIndexed { index, line ->
             Column(
@@ -384,16 +402,6 @@ private fun ReceiptResult(
                 Text(formatMoney(form.total, currency), style = MaterialTheme.typography.titleSmall)
             }
         }
-        Button(
-            onClick = {
-                val tz = TimeZone.currentSystemDefault()
-                val time = now().toLocalDateTime(tz).time
-                val spentAt = LocalDateTime(form.date ?: today(), time).toInstant(tz)
-                onSave(form.toInput(newId(), spentAt, if (foreign) rateText.trim().replace(',', '.') else null))
-            },
-            enabled = form.canSave && (!foreign || (rate != null && rate > 0.0)),
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text(stringResource(Res.string.action_save), style = MaterialTheme.typography.titleMedium) }
     }
     if (pickDate) {
         val state = androidx.compose.material3.rememberDatePickerState(initialSelectedDateMillis = (form.date ?: today()).toPickerMillis())

@@ -49,6 +49,7 @@ import ransel.composeapp.generated.resources.explore_loading_2
 import ransel.composeapp.generated.resources.explore_loading_3
 import ransel.composeapp.generated.resources.explore_loading_4
 import ransel.composeapp.generated.resources.explore_loading_hint
+import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.FormScaffold
 import app.ransel.ui.preview.IrisPreview
@@ -65,6 +66,7 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     var showDialog by remember { mutableStateOf(false) }
     var showSheet by remember { mutableStateOf(false) }
     var showForm by remember { mutableStateOf(false) }
+    var showAdaptiveForm by remember { mutableStateOf(false) }
 
     if (showForm) {
         FormScaffold(
@@ -166,10 +168,11 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         hint = stringResource(Res.string.explore_loading_hint),
                     )
                 }
-                Section("ConfirmDialog / AdaptiveSheet / FormScaffold") {
+                Section("ConfirmDialog / AdaptiveSheet / FormScaffold / AdaptiveFormScreen") {
                     Button(onClick = { showDialog = true }) { Text("ConfirmDialog") }
                     Button(onClick = { showSheet = true }) { Text("AdaptiveSheet") }
                     Button(onClick = { showForm = true }) { Text("FormScaffold") }
+                    Button(onClick = { showAdaptiveForm = true }) { Text("AdaptiveFormScreen") }
                 }
             }
         }
@@ -186,6 +189,17 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             destructive = true,
             symbol = Symbols.delete,
         )
+    }
+    if (showAdaptiveForm) {
+        AdaptiveFormScreen(
+            title = "Catat pengeluaran",
+            subtitle = "Bali 4 hari · Hari 2",
+            onDismiss = { showAdaptiveForm = false },
+            confirmDiscard = true,
+            footer = { Button(onClick = { showAdaptiveForm = false }, modifier = Modifier.fillMaxWidth()) { Text("Simpan") } },
+        ) {
+            repeat(20) { Text("Field ${it + 1}", style = MaterialTheme.typography.bodyLarge) }
+        }
     }
     if (showSheet) {
         AdaptiveSheet(onDismiss = { showSheet = false }) {
