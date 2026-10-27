@@ -98,7 +98,7 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     )
                 }
                 Section("TripHeader") {
-                    TripHeader("Bali 4 hari", "20–23 Nov 2026", TripTab.ITINERARY, {}, {}, onMembers = {})
+                    TripHeader("Bali 4 hari", "20–23 Nov 2026", TripTab.ITINERARY, {}, {}, onEdit = {})
                 }
                 Section("CategoryIcon / PackingCategoryIcon") {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -134,6 +134,9 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 }
                 Section("IconFab") {
                     IconFab(Symbols.add, label = "Tambah", onClick = {})
+                }
+                Section("SegmentedTabs") {
+                    app.ransel.ui.components.SegmentedTabs(listOf("Pribadi", "Bersama"), selected = "Pribadi", label = { it }, onSelect = {})
                 }
                 Section("StatusTag") {
                     app.ransel.ui.components.StatusTag("Diputuskan")

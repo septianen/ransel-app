@@ -88,38 +88,16 @@ private fun List<TripMemberDto>.nameOf(memberId: String, myMemberId: String?, yo
 
 enum class SharedTab { SUMMARY, BALANCES }
 
-/** The switch at the top of the shared Expenses tab ("Ringkasan | Saldo"). */
+/** The switch at the top of the shared Expenses tab ("Ringkasan | Saldo"), the same green tabs as Packing. */
 @Composable
 fun SharedTabSwitch(selected: SharedTab, onSelect: (SharedTab) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        SharedTab.entries.forEach { tab ->
-            val isSelected = tab == selected
-            val scheme = MaterialTheme.colorScheme
-            Row(
-                Modifier
-                    .heightIn(min = 40.dp)
-                    .clip(CircleShape)
-                    .background(if (isSelected) scheme.primaryContainer else scheme.surface)
-                    .border(1.dp, if (isSelected) scheme.primary else scheme.outlineVariant, CircleShape)
-                    .clickable(role = Role.Tab) { onSelect(tab) }
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                if (isSelected) Symbol(Symbols.check, size = 18.dp, tint = scheme.onPrimaryContainer)
-                Text(
-                    stringResource(
-                        when (tab) {
-                            SharedTab.SUMMARY -> Res.string.shared_tab_summary
-                            SharedTab.BALANCES -> Res.string.shared_tab_balances
-                        },
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (isSelected) scheme.onPrimaryContainer else scheme.onSurface,
-                )
-            }
-        }
-    }
+    app.ransel.ui.components.SegmentedTabs(
+        options = SharedTab.entries,
+        selected = selected,
+        label = { stringResource(if (it == SharedTab.SUMMARY) Res.string.shared_tab_summary else Res.string.shared_tab_balances) },
+        onSelect = onSelect,
+        modifier = modifier,
+    )
 }
 
 /** Card colours for my balance on the balances tab: green when money comes back, red when I owe, neutral when even. */

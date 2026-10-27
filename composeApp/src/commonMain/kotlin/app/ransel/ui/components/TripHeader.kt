@@ -32,7 +32,6 @@ import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.recap_title
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_edit_trip
-import ransel.composeapp.generated.resources.action_members
 import ransel.composeapp.generated.resources.trip_tab_expenses
 import ransel.composeapp.generated.resources.trip_tab_group
 import ransel.composeapp.generated.resources.trip_tab_itinerary
@@ -46,9 +45,9 @@ enum class TripTab(val label: StringResource) {
 }
 
 /**
- * Header shared by Group, Itinerary, Packing and Expenses: back, trip title + dates, the `group_add`
- * members button, and the four trip tabs. Pass [onMembers] = null to hide the button
- * (Phase 1-3; it appears in Phase 4).
+ * Header shared by Group, Itinerary, Packing and Expenses: back, trip title + dates, "Rekap trip" once it ended, the
+ * OWNER's edit button, and the four trip tabs. Members open from the Group tab's "Anggota" section (owner, 27 Oct
+ * 2026: no members button here any more).
  */
 @Composable
 fun TripHeader(
@@ -58,7 +57,6 @@ fun TripHeader(
     onTabSelected: (TripTab) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    onMembers: (() -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     /** "Rekap trip": shown once the trip has ended. */
     onRecap: (() -> Unit)? = null,
@@ -91,9 +89,6 @@ fun TripHeader(
             }
             if (onEdit != null) {
                 HeaderIconButton(Symbols.edit, stringResource(Res.string.action_edit_trip), onEdit)
-            }
-            if (onMembers != null) {
-                HeaderIconButton(Symbols.groupAdd, stringResource(Res.string.action_members), onMembers)
             }
         }
         PrimaryTabRow(
@@ -148,6 +143,6 @@ private fun TripHeaderPreview() = IrisPreview {
         selectedTab = TripTab.ITINERARY,
         onTabSelected = {},
         onBack = {},
-        onMembers = {},
+        onEdit = {},
     )
 }

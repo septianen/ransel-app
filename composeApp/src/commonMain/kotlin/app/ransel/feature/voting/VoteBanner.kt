@@ -40,33 +40,25 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.*
 
 /**
- * The voting banner on the trip screens (design `VotingBanner`): one banner, about the round that needs the user:
- * "Rina meminta pilihanmu" while they still have cards to vote on, or "ready to decide" for the owner of a closed
- * round. [moreActions] other rounds waiting for them are counted in the text. With no [round] it is a quiet link to
- * the history of [roundCount] rounds. A tap always opens the voting list.
+ * A place-voting round that waits for the user, as a card in "Perlu tindakanmu" (design `VotingBanner`; one card per
+ * round, owner 27 Oct 2026): "Rina meminta pilihanmu" while they still have cards to vote on, or "ready to decide" for
+ * the owner of a closed round. A tap opens that round directly (the cards, or the owner's result).
  */
 @Composable
 fun VoteBanner(
-    round: RoundSummaryDto?,
-    roundCount: Int,
+    round: RoundSummaryDto,
     destination: String,
     isOwner: Boolean,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
-    moreActions: Int = 0,
     /** The signed-in user: the one who searched is asked to continue, not "asked for their picks" by themselves. */
     myUserId: String? = null,
     now: Instant = Clock.System.now(),
 ) {
     val scheme = MaterialTheme.colorScheme
-    val hours = if (round != null) hoursLeft(now, round.closesAt) else 0
-    val mine = round != null && myUserId != null && round.createdByUserId == myUserId
-    val (title, bodyText, action) = when {
-        round == null -> Triple(
-            stringResource(Res.string.vote_banner_history),
-            stringResource(Res.string.vote_banner_history_body, roundCount),
-            stringResource(Res.string.vote_banner_see),
-        )
+    val hours = hoursLeft(now, round.closesAt)
+    val mine = myUserId != null && round.createdByUserId == myUserId
+    val (title, body, action) = when {
         round.needsMyVote(now) && mine -> Triple(
             stringResource(Res.string.vote_banner_own_request),
             stringResource(Res.string.vote_banner_own_request_body, round.myVoteCount, round.placeCount, hours),
@@ -88,33 +80,31 @@ fun VoteBanner(
             stringResource(Res.string.vote_banner_see),
         )
     }
-    val body = if (moreActions > 0) bodyText + " · " + stringResource(Res.string.vote_banner_more, moreActions) else bodyText
-    val quiet = round == null
-    val state = if (round != null) roundState(now, round.closesAt, round.decidedAt) else RoundState.DECIDED
+    val state = roundState(now, round.closesAt, round.decidedAt)
     Row(
         modifier
             .fillMaxWidth()
             .clip(IrisShape.lg)
-            .background(if (quiet) scheme.surface else scheme.secondaryContainer)
-            .border(1.dp, if (quiet) scheme.outlineVariant else scheme.secondary.copy(alpha = 0.3f), IrisShape.lg)
+            .background(scheme.secondaryContainer)
+            .border(1.dp, scheme.secondary.copy(alpha = 0.3f), IrisShape.lg)
             .clickable(role = Role.Button, onClickLabel = action, onClick = onOpen)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(if (quiet) scheme.surfaceContainerHigh else IrisTheme.accents.magenta), contentAlignment = Alignment.Center) {
-            // Design: how_to_vote; not in the app's icon subset.
-            Symbol(if (state == RoundState.DECIDED) Symbols.checkCircle else Symbols.favorite, size = 22.dp, filled = true, tint = if (quiet) scheme.onSurfaceVariant else IrisTheme.accents.onAccent)
+        Box(Modifier.size(40.dp).clip(CircleShape).background(IrisTheme.accents.magenta), contentAlignment = Alignment.Center) {
+            // the same mark as the place-voting rows (VoteRoundRow): Explore AI
+            Symbol(Symbols.autoAwesome, size = 22.dp, filled = true, tint = IrisTheme.accents.onAccent)
         }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(body, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(
-            Modifier.heightIn(min = 36.dp).clip(CircleShape).background(if (quiet) scheme.surfaceContainerHigh else IrisTheme.accents.magenta).padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier.heightIn(min = 36.dp).clip(CircleShape).background(IrisTheme.accents.magenta).padding(horizontal = 16.dp, vertical = 8.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(action, style = MaterialTheme.typography.labelLarge, color = if (quiet) scheme.onSurface else IrisTheme.accents.onAccent, fontWeight = FontWeight.Bold)
+            Text(action, style = MaterialTheme.typography.labelLarge, color = IrisTheme.accents.onAccent, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -128,11 +118,10 @@ private fun VoteBannerPreview() = IrisPreview {
         closesAt = now + 23.hours, placeCount = 12, myVoteCount = 0,
     )
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        VoteBanner(round, 1, "Bali", isOwner = false, onOpen = {}, now = now)
-        VoteBanner(round.copy(createdByName = "Dinda"), 2, "Bali", isOwner = true, onOpen = {}, now = now)
-        VoteBanner(round.copy(myVoteCount = 4), 1, "Bali", isOwner = true, onOpen = {}, myUserId = "u", now = now)
-        VoteBanner(round, 3, "Bali", isOwner = false, onOpen = {}, moreActions = 2, now = now)
-        VoteBanner(round.copy(closesAt = now - 1.hours), 1, "Bali", isOwner = true, onOpen = {}, now = now)
-        VoteBanner(null, 4, "Bali", isOwner = false, onOpen = {}, now = now)
+        VoteBanner(round, "Bali", isOwner = false, onOpen = {}, now = now)
+        VoteBanner(round.copy(createdByName = "Dinda"), "Bali", isOwner = true, onOpen = {}, now = now)
+        VoteBanner(round.copy(myVoteCount = 4), "Bali", isOwner = true, onOpen = {}, myUserId = "u", now = now)
+        VoteBanner(round, "Bali", isOwner = false, onOpen = {}, now = now)
+        VoteBanner(round.copy(closesAt = now - 1.hours), "Bali", isOwner = true, onOpen = {}, now = now)
     }
 }

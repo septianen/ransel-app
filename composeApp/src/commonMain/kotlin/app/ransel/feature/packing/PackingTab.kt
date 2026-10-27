@@ -131,17 +131,13 @@ fun PackingTab(
     }
     var section by rememberSaveable { mutableStateOf(PackingSection.PERSONAL) }
     Column(modifier.fillMaxSize()) {
-        androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp)) {
-            PackingSection.entries.forEachIndexed { index, option ->
-                SegmentedButton(
-                    selected = section == option,
-                    onClick = { section = option },
-                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, PackingSection.entries.size),
-                ) {
-                    Text(stringResource(if (option == PackingSection.PERSONAL) Res.string.packing_tab_personal else Res.string.packing_tab_shared))
-                }
-            }
-        }
+        app.ransel.ui.components.SegmentedTabs(
+            options = PackingSection.entries,
+            selected = section,
+            label = { stringResource(if (it == PackingSection.PERSONAL) Res.string.packing_tab_personal else Res.string.packing_tab_shared) },
+            onSelect = { section = it },
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+        )
         when (section) {
             PackingSection.PERSONAL -> PersonalPackingTab(trip, group, Modifier.weight(1f))
             PackingSection.SHARED -> PackingList(trip, Modifier.weight(1f), group = group, viewModel = viewModel)

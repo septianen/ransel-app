@@ -1,6 +1,7 @@
 package app.ransel.feature.trip
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -52,6 +53,7 @@ import app.ransel.data.remote.RanselApi
 import app.ransel.data.voting.VotingStore
 import app.ransel.data.voting.actionRounds
 import app.ransel.feature.voting.VoteBanner
+import app.ransel.feature.voting.opensResult
 
 /**
  * Trip detail: shared header + the three tabs. Full screen over the bottom tabs (the designs show
@@ -68,9 +70,7 @@ fun TripScreen(
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
-    /** Opens the list of all voting rounds of this trip, where the "Perlu tindakanmu" banner leads. */
-    onOpenVoteList: (() -> Unit)? = null,
-    /** Opens one voting round from the Group tab's "Voting" list (the OWNER sees the result of a closed round). */
+    /** Opens one voting round, from "Perlu tindakanmu" or the Group tab's lists (the OWNER sees the result of a closed round). */
     onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
     /** "Riwayat voting" on the Group tab. */
     onOpenVotingHistory: () -> Unit = {},
@@ -146,7 +146,6 @@ fun TripScreen(
                 onBack = onBack,
                 onEdit = if (current?.myRole == app.ransel.shared.model.Role.OWNER) onEditTrip else null,
                 onRecap = current?.takeIf { app.ransel.shared.domain.recapAvailable(it.endDate, app.ransel.util.today()) }?.let { { onOpenRecap() } },
-                onMembers = if (signedIn) onMembers else null,
             )
             if (offline) app.ransel.ui.components.OfflineBanner()
             Box(Modifier.weight(1f).navigationBarsPadding()) {
@@ -164,16 +163,19 @@ fun TripScreen(
                             signedIn = signedIn,
                             hasNeeds = actionRounds.isNotEmpty(),
                             needs = {
-                                if (onOpenVoteList != null) {
-                                    VoteBanner(
-                                        round = actionRounds.firstOrNull(),
-                                        roundCount = tripRounds.size,
-                                        moreActions = (actionRounds.size - 1).coerceAtLeast(0),
-                                        destination = current.destination,
-                                        isOwner = isOwner,
-                                        myUserId = session.user?.id,
-                                        onOpen = onOpenVoteList,
-                                    )
+                                // one card per round waiting for me; a tap opens its cards (or the owner's decision) at once
+                                val now = kotlin.time.Clock.System.now()
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    actionRounds.forEach { round ->
+                                        VoteBanner(
+                                            round = round,
+                                            destination = current.destination,
+                                            isOwner = isOwner,
+                                            myUserId = session.user?.id,
+                                            onOpen = { onOpenRound(round.id, round.opensResult(isOwner, now)) },
+                                            now = now,
+                                        )
+                                    }
                                 }
                             },
                             onOpenMembers = onMembers,

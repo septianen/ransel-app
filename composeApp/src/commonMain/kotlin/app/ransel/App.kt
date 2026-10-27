@@ -126,11 +126,9 @@ import app.ransel.navigation.ExploreRoute
 import app.ransel.navigation.HomeRoute
 import app.ransel.navigation.JoinTripRoute
 import app.ransel.navigation.SwipeRoute
-import app.ransel.navigation.VoteListRoute
 import app.ransel.navigation.VoteRoute
 import ransel.composeapp.generated.resources.place_detail_vote_strip
 import app.ransel.feature.voting.VoteMode
-import app.ransel.feature.voting.VoteListScreen
 import app.ransel.feature.voting.VoteScreen
 import app.ransel.feature.voting.VoteViewModel
 import app.ransel.feature.voting.voteViewModelKey
@@ -614,14 +612,6 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             },
         )
     }
-    page<VoteListRoute> { entry ->
-        val route = entry.toRoute<VoteListRoute>()
-        VoteListScreen(
-            tripId = route.tripId,
-            onBack = { navController.popBackStack() },
-            onOpenRound = { roundId, showResult -> navController.navigate(VoteRoute(route.tripId, roundId, showResult)) },
-        )
-    }
     page<VoteRoute> { entry ->
         val route = entry.toRoute<VoteRoute>()
         VoteScreen(
@@ -630,8 +620,6 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             showResult = route.showResult,
             onClose = { navController.popBackStack() },
             onOpenItinerary = {
-                // Opened from the voting list: drop it too, so the trip below is the one that shows.
-                navController.popBackStack<VoteListRoute>(inclusive = true)
                 navController.navigate(TripRoute(route.tripId, TripTab.ITINERARY.name)) {
                     popUpTo<VoteRoute> { inclusive = true }
                     launchSingleTop = true
@@ -751,7 +739,6 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onOpenPlaceDetail = { placeId, name, currency ->
                 navController.navigate(PlaceDetailRoute(placeId, fromItinerary = true, name = name, currency = currency))
             },
-            onOpenVoteList = { navController.navigate(VoteListRoute(route.tripId)) },
             onOpenRound = { roundId, showResult -> navController.navigate(VoteRoute(route.tripId, roundId, showResult)) },
             onOpenVotingHistory = { navController.navigate(app.ransel.navigation.VotingHistoryRoute(route.tripId)) },
             onCreatePoll = { kind -> navController.navigate(CreatePollRoute(route.tripId, kind.name)) },
