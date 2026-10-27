@@ -29,7 +29,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.trips.countdownLabel
 import app.ransel.feature.polls.PollNeed
-import app.ransel.feature.polls.forDisplay
+import app.ransel.data.voting.actionRounds
+import app.ransel.feature.voting.VoteRoundRow
+import app.ransel.feature.voting.opensResult
+import app.ransel.shared.domain.RoundState
+import app.ransel.shared.domain.roundState
+import app.ransel.shared.dto.RoundSummaryDto
+import kotlin.time.Clock
 import app.ransel.feature.polls.needFor
 import app.ransel.feature.polls.symbol
 import app.ransel.feature.polls.tileColor
@@ -89,7 +95,8 @@ import ransel.composeapp.generated.resources.role_owner
 import ransel.composeapp.generated.resources.role_viewer
 
 /**
- * The first tab of a trip: its hub. A countdown, "Perlu tindakanmu" (open votings today; polls and money later) and the
+ * The first tab of a trip: its hub. A countdown, "Perlu tindakanmu" (votings and money that wait for the user), every
+ * voting of the trip (polls and place-voting rounds; the other tabs show none), documents and the
  * members, with the ones added by name tagged "Tanpa akun". [needs] draws what asks for the user, [hasNeeds] says whether
  * there is anything.
  */
@@ -103,6 +110,9 @@ fun GroupTab(
     onOpenPoll: (pollId: String) -> Unit,
     refreshKey: Int,
     modifier: Modifier = Modifier,
+    /** The trip's place-voting rounds (Explore on a group trip), listed with the polls. */
+    rounds: List<RoundSummaryDto> = emptyList(),
+    onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
     /** A money item in "Perlu tindakanmu" opens the Pengeluaran tab. */
     onOpenMoney: () -> Unit = {},
     onOpenDocuments: () -> Unit = {},
@@ -123,6 +133,8 @@ fun GroupTab(
         needs = needs,
         onOpenMembers = onOpenMembers,
         onOpenPoll = onOpenPoll,
+        rounds = rounds,
+        onOpenRound = onOpenRound,
         modifier = modifier,
         owes = state.owes,
         claimsToConfirm = state.claimsToConfirm,
@@ -147,6 +159,9 @@ fun GroupContent(
     onOpenMembers: () -> Unit,
     onOpenPoll: (pollId: String) -> Unit,
     modifier: Modifier = Modifier,
+    rounds: List<RoundSummaryDto> = emptyList(),
+    onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
+    now: Instant = Clock.System.now(),
     owes: List<TransferDto> = emptyList(),
     claimsToConfirm: List<SettlementDto> = emptyList(),
     currency: String = trip.baseCurrency,
@@ -183,16 +198,31 @@ fun GroupContent(
             )
         }
 
+        // Every voting of the trip lives here: polls and place-voting rounds, ongoing first, then newest first.
         Section(stringResource(Res.string.group_polls_title)) {
-            if (polls.isEmpty()) {
+            val votings = votingEntries(polls, rounds, now)
+            if (votings.isEmpty()) {
                 Text(
                     stringResource(Res.string.group_polls_empty),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
+                val actionRounds = rounds.actionRounds(isOwner, now).toSet()
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    polls.forDisplay().forEach { PollRow(it) { onOpenPoll(it.id) } }
+                    votings.forEach { entry ->
+                        when (entry) {
+                            is VotingEntry.Poll -> PollRow(entry.poll) { onOpenPoll(entry.poll.id) }
+                            is VotingEntry.Round -> VoteRoundRow(
+                                entry.round,
+                                isOwner = isOwner,
+                                highlight = entry.round in actionRounds,
+                                now = now,
+                                modifier = Modifier.heightIn(min = 64.dp),
+                                background = MaterialTheme.colorScheme.surfaceContainerLow,
+                            ) { onOpenRound(entry.round.id, entry.round.opensResult(isOwner, now)) }
+                        }
+                    }
                 }
             }
         }
@@ -224,6 +254,24 @@ fun GroupContent(
         }
     }
 }
+
+private sealed interface VotingEntry {
+    val ongoing: Boolean
+    val createdAt: Instant
+
+    data class Poll(val poll: PollDto) : VotingEntry {
+        override val ongoing get() = poll.status == PollStatus.OPEN
+        override val createdAt get() = poll.createdAt
+    }
+
+    data class Round(val round: RoundSummaryDto, override val ongoing: Boolean) : VotingEntry {
+        override val createdAt get() = round.createdAt
+    }
+}
+
+private fun votingEntries(polls: List<PollDto>, rounds: List<RoundSummaryDto>, now: Instant): List<VotingEntry> =
+    (polls.map { VotingEntry.Poll(it) } + rounds.map { VotingEntry.Round(it, roundState(now, it.closesAt, it.decidedAt) != RoundState.DECIDED) })
+        .sortedWith(compareByDescending<VotingEntry> { it.ongoing }.thenByDescending { it.createdAt })
 
 /** A poll that asks something of the user: vote, or (creator and owner) confirm the result. */
 @Composable
@@ -441,6 +489,14 @@ private fun GroupTabPreview() = IrisPreview {
     GroupContent(
         previewTrip, LocalDate(2026, 11, 2), previewMembers, signedIn = true, myUserId = "u1", polls = previewPolls, myMemberId = "m1", isOwner = true,
         hasNeeds = false, needs = {}, onOpenMembers = {}, onOpenPoll = {},
+        rounds = listOf(
+            RoundSummaryDto(
+                id = "r", tripId = "t", createdByUserId = "u2", createdByName = "Dinda", createdAt = Instant.parse("2026-10-23T00:00:00Z"),
+                closesAt = Instant.parse("2026-10-24T00:00:00Z"), placeCount = 12, myVoteCount = 12,
+                decidedAt = Instant.parse("2026-10-24T02:00:00Z"), chosenCount = 3,
+            ),
+        ),
+        now = Instant.parse("2026-11-02T00:00:00Z"),
     )
 }
 

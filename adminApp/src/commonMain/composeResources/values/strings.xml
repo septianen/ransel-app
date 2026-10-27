@@ -143,6 +143,7 @@
     <string name="ledger_action_search">New search</string>
     <string name="ledger_action_next_batch">Next cards</string>
     <string name="ledger_action_place_detail">Place details</string>
+    <string name="ledger_action_receipt">Receipt photo</string>
     <string name="ledger_source_free">from the free allowance</string>
     <string name="ledger_source_wallet">from the balance</string>
     <string name="actions_title">Actions</string>

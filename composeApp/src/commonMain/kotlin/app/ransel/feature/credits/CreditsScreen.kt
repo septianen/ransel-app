@@ -265,7 +265,8 @@ private fun entryTitle(entry: CreditLedgerEntryDto): String {
             CreditLedgerKind.SPEND -> when (entry.action) {
                 CreditAction.NEXT_BATCH -> Res.string.credits_action_next_batch
                 CreditAction.PLACE_DETAIL -> Res.string.credits_action_place_detail
-                else -> Res.string.credits_action_search
+                CreditAction.RECEIPT -> Res.string.credits_action_receipt
+                CreditAction.SEARCH, null -> Res.string.credits_action_search
             }
         },
     )

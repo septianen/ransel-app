@@ -94,6 +94,7 @@ import app.ransel.admin.generated.resources.done_password_reset
 import app.ransel.admin.generated.resources.done_sign_out_all
 import app.ransel.admin.generated.resources.ledger_action_next_batch
 import app.ransel.admin.generated.resources.ledger_action_place_detail
+import app.ransel.admin.generated.resources.ledger_action_receipt
 import app.ransel.admin.generated.resources.ledger_action_search
 import app.ransel.admin.generated.resources.ledger_adjust
 import app.ransel.admin.generated.resources.ledger_col_balance
@@ -522,7 +523,8 @@ private fun ledgerNote(entry: CreditLedgerEntryDto): String = when (entry.kind) 
             when (entry.action) {
                 CreditAction.NEXT_BATCH -> Res.string.ledger_action_next_batch
                 CreditAction.PLACE_DETAIL -> Res.string.ledger_action_place_detail
-                else -> Res.string.ledger_action_search
+                CreditAction.RECEIPT -> Res.string.ledger_action_receipt
+                CreditAction.SEARCH, null -> Res.string.ledger_action_search
             },
         )
         val source = when (entry.source) {

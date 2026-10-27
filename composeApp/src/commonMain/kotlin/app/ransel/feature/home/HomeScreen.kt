@@ -93,7 +93,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 
 /** Which part of the trip a Home shortcut opens. */
-enum class TripSection { ITINERARY, PACKING, EXPENSES }
+enum class TripSection { GROUP, ITINERARY, PACKING, EXPENSES }
 
 @Composable
 fun HomeScreen(
@@ -229,7 +229,8 @@ private fun HomeTripContent(
     ) {
         Header(title = stringResource(Res.string.home_title), bell = bell)
         recap?.invoke()
-        FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, TripSection.ITINERARY) })
+        // the nearest trip opens on the Group tab when it is shared, on the itinerary when it is solo
+        FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, if (state.isGroup) TripSection.GROUP else TripSection.ITINERARY) })
         val canExplore = onExplore != null && state.trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
         TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) })
         if (canExplore && onExplore != null) ExploreCallout(state.trip.destination, onTry = onExplore)

@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,6 +40,7 @@ import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -47,7 +49,7 @@ import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.*
 
 /**
- * Every voting round of a trip, in three groups (needs you, waiting, done). Opened from the itinerary banner; a row
+ * Every voting round of a trip, in three groups (needs you, waiting, done). Opened from the Group tab's banner; a row
  * opens its round (the OWNER goes to the result when the round is closed and not decided).
  */
 @Composable
@@ -111,31 +113,41 @@ private fun Section(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     rounds.forEach { round ->
-        RoundRow(round, state, highlight) {
-            val closed = roundState(state.now, round.closesAt, round.decidedAt) == RoundState.CLOSED
-            onOpenRound(round.id, state.isOwner && closed)
-        }
+        VoteRoundRow(round, state.isOwner, highlight, state.now) { onOpenRound(round.id, round.opensResult(state.isOwner, state.now)) }
     }
 }
 
+/** The OWNER opens a closed, undecided round on its result; everyone else opens the cards. */
+fun RoundSummaryDto.opensResult(isOwner: Boolean, now: Instant): Boolean =
+    isOwner && roundState(now, closesAt, decidedAt) == RoundState.CLOSED
+
+/** One voting round: who searched, how many places, and where it stands. Also used in the Group tab's "Voting" list. */
 @Composable
-private fun RoundRow(round: RoundSummaryDto, state: VoteListUiState, highlight: Boolean, onClick: () -> Unit) {
+fun VoteRoundRow(
+    round: RoundSummaryDto,
+    isOwner: Boolean,
+    highlight: Boolean,
+    now: Instant,
+    modifier: Modifier = Modifier,
+    background: Color = MaterialTheme.colorScheme.surface,
+    onClick: () -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
-    val roundState = roundState(state.now, round.closesAt, round.decidedAt)
+    val roundState = roundState(now, round.closesAt, round.decidedAt)
     val status = when {
         roundState == RoundState.OPEN && round.myVoteCount < round.placeCount ->
-            stringResource(Res.string.vote_list_row_open, hoursLeft(state.now, round.closesAt))
+            stringResource(Res.string.vote_list_row_open, hoursLeft(now, round.closesAt))
         roundState == RoundState.OPEN -> stringResource(Res.string.vote_banner_waiting)
-        roundState == RoundState.CLOSED && state.isOwner -> stringResource(Res.string.vote_banner_ready)
+        roundState == RoundState.CLOSED && isOwner -> stringResource(Res.string.vote_banner_ready)
         roundState == RoundState.CLOSED -> stringResource(Res.string.vote_banner_closed_body)
         (round.chosenCount ?: 0) == 0 -> stringResource(Res.string.vote_banner_decided_none)
         else -> stringResource(Res.string.vote_banner_decided, round.chosenCount ?: 0)
     }
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .clip(IrisShape.lg)
-            .background(scheme.surface)
+            .background(background)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,

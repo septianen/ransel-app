@@ -68,8 +68,10 @@ fun TripScreen(
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
-    /** Opens the list of all voting rounds of this trip, the one place the banner leads to. */
+    /** Opens the list of all voting rounds of this trip, where the "Perlu tindakanmu" banner leads. */
     onOpenVoteList: (() -> Unit)? = null,
+    /** Opens one voting round from the Group tab's "Voting" list (the OWNER sees the result of a closed round). */
+    onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
     /** Polls live on their own screens: create one of a kind, or open one. */
     onCreatePoll: (PollKind) -> Unit = {},
     onOpenPoll: (pollId: String) -> Unit = {},
@@ -93,7 +95,7 @@ fun TripScreen(
     // Members live on the server: only signed-in users see the button (guests have no one to share with).
     val session: SessionManager = koinInject()
     val signedIn = session.state.collectAsState().value is SessionState.SignedIn
-    // Voting rounds are server data too (docs/specs/voting-spec.md): the banner shows for signed-in users only.
+    // Voting rounds are server data too (docs/specs/voting-spec.md); like polls they only show on the Group tab.
     val voting: VotingStore = koinInject()
     val api: RanselApi = koinInject()
     val rounds by voting.rounds.collectAsState()
@@ -145,19 +147,6 @@ fun TripScreen(
                 onMembers = if (signedIn) onMembers else null,
             )
             if (offline) app.ransel.ui.components.OfflineBanner()
-            // One banner: the round that needs the user (vote, or decide for the owner), else a quiet link to the list.
-            if (tab != TripTab.GROUP && tripRounds.isNotEmpty() && current != null && onOpenVoteList != null) {
-                VoteBanner(
-                    round = actionRounds.firstOrNull(),
-                    roundCount = tripRounds.size,
-                    moreActions = (actionRounds.size - 1).coerceAtLeast(0),
-                    destination = current.destination,
-                    isOwner = isOwner,
-                    myUserId = session.user?.id,
-                    onOpen = onOpenVoteList,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
-                )
-            }
             Box(Modifier.weight(1f).navigationBarsPadding()) {
             PullToRefresh(
                 enabled = signedIn,
@@ -187,6 +176,8 @@ fun TripScreen(
                             },
                             onOpenMembers = onMembers,
                             onOpenPoll = onOpenPoll,
+                            rounds = tripRounds,
+                            onOpenRound = onOpenRound,
                             onOpenDocuments = { onOpenDocuments(false) },
                             refreshKey = refreshCount,
                         )

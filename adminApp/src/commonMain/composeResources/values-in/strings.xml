@@ -143,6 +143,7 @@
     <string name="ledger_action_search">Pencarian baru</string>
     <string name="ledger_action_next_batch">Kartu berikutnya</string>
     <string name="ledger_action_place_detail">Detail tempat</string>
+    <string name="ledger_action_receipt">Foto struk</string>
     <string name="ledger_source_free">dari jatah gratis</string>
     <string name="ledger_source_wallet">dari saldo</string>
     <string name="actions_title">Tindakan</string>

@@ -31,7 +31,7 @@ data class VoteListUiState(
     val isEmpty: Boolean get() = action.isEmpty() && waiting.isEmpty() && done.isEmpty()
 }
 
-/** All voting rounds of a trip (docs/specs/voting-spec.md), opened from the itinerary banner. */
+/** All voting rounds of a trip (docs/specs/voting-spec.md), opened from the Group tab. */
 class VoteListViewModel(
     private val tripId: String,
     private val voting: VotingStore,

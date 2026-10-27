@@ -540,6 +540,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { id, section ->
                 val tab = when (section) {
+                    TripSection.GROUP -> TripTab.GROUP
                     TripSection.ITINERARY -> TripTab.ITINERARY
                     TripSection.PACKING -> TripTab.PACKING
                     TripSection.EXPENSES -> TripTab.EXPENSES
@@ -751,6 +752,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
                 navController.navigate(PlaceDetailRoute(placeId, fromItinerary = true, name = name, currency = currency))
             },
             onOpenVoteList = { navController.navigate(VoteListRoute(route.tripId)) },
+            onOpenRound = { roundId, showResult -> navController.navigate(VoteRoute(route.tripId, roundId, showResult)) },
             onCreatePoll = { kind -> navController.navigate(CreatePollRoute(route.tripId, kind.name)) },
             onOpenPoll = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) },
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },

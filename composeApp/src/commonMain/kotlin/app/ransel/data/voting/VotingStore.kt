@@ -14,7 +14,7 @@ import kotlin.time.Instant
 
 /**
  * The voting rounds of the trips the user looked at (docs/specs/voting-spec.md). Server data only, like members:
- * the trip list dot and the itinerary banner read it, the vote screen refreshes it after every change.
+ * the trip list dot and the Group tab read it, the vote screen refreshes it after every change.
  */
 class VotingStore {
     private val _rounds = MutableStateFlow<Map<String, List<RoundSummaryDto>>>(emptyMap())
@@ -41,7 +41,7 @@ fun RoundSummaryDto.needsMyVote(now: Instant = Clock.System.now()): Boolean =
 
 /**
  * The rounds the user has to act on, newest first: vote (open, cards left) or, for the OWNER, decide (voting closed,
- * not decided yet). The itinerary banner shows the first one; all rounds are in the voting list.
+ * not decided yet). The Group tab banner shows the first one; all rounds are in its "Voting" list.
  */
 fun List<RoundSummaryDto>.actionRounds(isOwner: Boolean, now: Instant = Clock.System.now()): List<RoundSummaryDto> =
     filter { round ->

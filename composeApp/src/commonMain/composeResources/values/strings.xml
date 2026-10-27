@@ -795,6 +795,7 @@
     <string name="credits_action_search">New search</string>
     <string name="credits_action_next_batch">More results</string>
     <string name="credits_action_place_detail">Place details</string>
+    <string name="credits_action_receipt">Receipt photo</string>
     <string name="credits_source_free">free daily</string>
     <string name="account_credits">Credits</string>
     <string name="explore_credits_left">%1$d credits left</string>
@@ -1118,8 +1119,8 @@
     <string name="poll_delete_option_body">Votes on this option are cleared.</string>
     <string name="poll_option_edit">Edit</string>
     <string name="poll_option_delete">Delete</string>
-    <string name="group_polls_title">Polls</string>
-    <string name="group_polls_empty">No polls yet. Tap + to ask the group.</string>
+    <string name="group_polls_title">Voting</string>
+    <string name="group_polls_empty">No votes yet. Tap + to ask the group.</string>
     <string name="poll_need_vote">You have not voted yet</string>
     <string name="poll_need_decide">Waiting for your decision</string>
     <string name="notification_poll_open">%1$s started a poll</string>
@@ -1140,7 +1141,7 @@
         <item quantity="other">%1$d votes</item>
     </plurals>
     <string name="poll_link_fetch">Fetch info</string>
-    <string name="poll_link_error">This link can\'t be read. Fill it in by hand.</string>
+    <string name="poll_link_error">This link can't be read. Fill it in by hand.</string>
     <string name="poll_search_action">Find with Jelajah</string>
     <string name="poll_search_title">Find with Jelajah</string>
     <string name="poll_search_area">Area</string>
@@ -1196,8 +1197,8 @@
     <string name="payto_holder">name:</string>
     <string name="payto_copy">Copy</string>
     <string name="payto_no_info">%1$s has not added payment info yet. Ask them where to transfer.</string>
-    <string name="payto_note">RANSEL does not move money. After you transfer, tap \"I\'ve paid\" so %1$s can confirm.</string>
-    <string name="payto_claim">I\'ve paid</string>
+    <string name="payto_note">RANSEL does not move money. After you transfer, tap "I've paid" so %1$s can confirm.</string>
+    <string name="payto_claim">I've paid</string>
     <string name="kitty_tab">Kitty</string>
     <string name="kitty_left">Kitty balance</string>
     <string name="kitty_holds">%1$s holds it</string>
@@ -1295,7 +1296,7 @@
     <string name="destination_denied_settings">Open settings</string>
     <string name="destination_recent">Recently used</string>
     <string name="destination_popular">Popular for group trips</string>
-    <string name="destination_use_typed">Use \"%1$s\"</string>
+    <string name="destination_use_typed">Use "%1$s"</string>
     <string name="destination_suggestions_note">Cities and regions come first. Attractions can be picked too and become the centre of Explore searches.</string>
     <string name="destination_fallback">Suggestions come from the built-in city list for now. Type an overseas destination as it is.</string>
     <string name="destination_attribution">Location suggestions by Google</string>
@@ -1327,7 +1328,7 @@
     <string name="notification_packing_list_sent">%1$s sent a packing list</string>
     <string name="notification_packing_list_sent_someone">New packing list</string>
     <string name="notification_packing_list_updated">Packing list updated</string>
-    <string name="notification_packing_list_remind">Don\'t forget your packing</string>
+    <string name="notification_packing_list_remind">Don't forget your packing</string>
     <string name="notification_packing_list_remind_body">%1$s required items left · %2$s</string>
     <string name="packing_tab_personal">Personal</string>
     <string name="packing_tab_shared">Shared</string>
@@ -1336,7 +1337,7 @@
     <string name="packing_shared_mine">You bring %1$d items</string>
     <string name="packing_shared_open">%1$d still unclaimed</string>
     <string name="packing_shared_nobody">Nobody is bringing it yet</string>
-    <string name="packing_bring">I\'ll bring it</string>
+    <string name="packing_bring">I'll bring it</string>
     <string name="packing_bringer">%1$s brings it</string>
     <string name="packing_bringer_me">You bring it</string>
     <string name="packing_give_back">Give it back</string>
@@ -1344,7 +1345,7 @@
     <string name="packing_who_brings">Who brings it?</string>
     <string name="packing_who_unset">Not decided</string>
     <string name="packing_who_you">You</string>
-    <string name="packing_who_hint">If nobody is chosen, others can tap \"I\'ll bring it\".</string>
+    <string name="packing_who_hint">If nobody is chosen, others can tap "I'll bring it".</string>
     <string name="packing_only_bringer">Only %1$s can tick this item</string>
     <string name="packing_shared_empty_title">No shared items yet</string>
     <string name="packing_shared_empty_body">Tent, stove, first aid: add what the group shares on %1$s.</string>
@@ -1358,9 +1359,9 @@
     <string name="packing_only_you">Only you</string>
     <string name="packing_personal_empty_title">Your own bag is empty</string>
     <string name="packing_personal_empty_body">Only you can see the items here.</string>
-    <string name="packing_from_list_locked">This item is from %1$s\'s list. You can only tick it.</string>
+    <string name="packing_from_list_locked">This item is from %1$s's list. You can only tick it.</string>
     <string name="packing_trip_owner">the trip owner</string>
-    <string name="member_list_title">Members\' packing list</string>
+    <string name="member_list_title">Members' packing list</string>
     <string name="member_list_summary">%1$d items · %2$d required · sent to %3$d members</string>
     <string name="member_list_draft">%1$d items · %2$d required · not sent yet</string>
     <string name="member_list_edit">Edit</string>
@@ -1382,7 +1383,7 @@
     <string name="member_list_start_note">Members get the same list in their Personal tab. They can still add their own items.</string>
     <string name="member_list_name">List name</string>
     <string name="member_list_default_name">Personal packing for %1$s</string>
-    <string name="member_list_required_hint">Mark items that must not be left behind as \"Required\".</string>
+    <string name="member_list_required_hint">Mark items that must not be left behind as "Required".</string>
     <string name="member_list_required_toggle">Required?</string>
     <string name="member_list_add_item">Add item</string>
     <string name="member_list_add_category">Add category</string>
@@ -1399,10 +1400,10 @@
     <string name="member_list_send_guest">Through the trip link on the web</string>
     <string name="member_list_save_template">Save as my template</string>
     <string name="member_list_save_template_hint">Use it again on your next trip</string>
-    <string name="member_list_send_note">If you change this list later, the changes reach every member\'s list. Their ticks and own items stay.</string>
+    <string name="member_list_send_note">If you change this list later, the changes reach every member's list. Their ticks and own items stay.</string>
     <string name="member_list_send_button">Send to %1$d members</string>
     <string name="member_list_sent">List sent</string>
-    <string name="member_list_offline">The members\' list needs an internet connection.</string>
+    <string name="member_list_offline">The members' list needs an internet connection.</string>
     <string name="deadline_time">%1$s %2$s:%3$s</string>
     <string name="notification_member_joined_link">%1$s joined through a link</string>
     <string name="guest_sign_in">Sign in</string>
@@ -1413,13 +1414,13 @@
     <string name="guest_who_title">Which one are you?</string>
     <string name="guest_who_body">Pick your name so your choices count.</string>
     <string name="guest_taken">In use on another device</string>
-    <string name="guest_not_listed">My name isn\'t here</string>
+    <string name="guest_not_listed">My name isn't here</string>
     <string name="guest_name_label">Your name</string>
     <string name="guest_name_continue">Continue</string>
     <string name="guest_name_error_REQUIRED">Write your name</string>
     <string name="guest_name_error_TOO_LONG">40 characters at most</string>
     <string name="guest_same_name">%1$s is already in this trip. Is that you?</string>
-    <string name="guest_same_name_yes">Yes, that\'s me</string>
+    <string name="guest_same_name_yes">Yes, that's me</string>
     <string name="guest_same_name_no">No, change the name</string>
     <string name="guest_voting_as">Voting as %1$s</string>
     <string name="guest_not_me">Not %1$s?</string>
@@ -1433,11 +1434,11 @@
     <string name="guest_sent">Your choice was sent</string>
     <string name="guest_stale">An option changed. Check again, then send.</string>
     <string name="guest_closed">This poll is closed.</string>
-    <string name="guest_failed">That didn\'t work. Try again.</string>
+    <string name="guest_failed">That didn't work. Try again.</string>
     <string name="guest_name_taken">This name is in use on another device. Ask the trip owner to release it.</string>
     <string name="guest_no_polls">No open polls right now.</string>
     <string name="guest_packing_title">Packing list from %1$s</string>
-    <string name="guest_open_app">You\'re a member of this trip</string>
+    <string name="guest_open_app">You're a member of this trip</string>
     <string name="guest_open_app_button">Open in RANSEL</string>
     <string name="guest_footer">Create an account to plan along</string>
     <string name="guest_link_off_title">This link is no longer active</string>
@@ -1448,7 +1449,7 @@
     <string name="poll_share_title">Share the poll</string>
     <string name="poll_share_subtitle">Tell the group so the votes come in fast</string>
     <string name="poll_share_message_label">Message</string>
-    <string name="poll_share_message">Vote on \"%1$s\" for %2$s before %3$s 🙏 %4$s</string>
+    <string name="poll_share_message">Vote on "%1$s" for %2$s before %3$s 🙏 %4$s</string>
     <string name="poll_share_preview_note">The link preview shows the question and the number of options.</string>
     <string name="poll_share_guest_note">%1$s has no account yet. They can still vote in a browser after picking their name.</string>
     <string name="poll_share_whatsapp">Share to WhatsApp</string>
@@ -1456,7 +1457,7 @@
     <string name="poll_share_copied">Link copied</string>
     <string name="poll_share_off">Turn off the link</string>
     <string name="poll_share_off_done">Link turned off. Share again for a new link.</string>
-    <string name="poll_share_failed">Couldn\'t make the link. Try again.</string>
+    <string name="poll_share_failed">Couldn't make the link. Try again.</string>
     <string name="member_release_guest">Release from browser</string>
     <string name="member_guest_browser">In use in a browser</string>
     <string name="member_released">Name released. It can be picked on another device.</string>
@@ -1480,9 +1481,9 @@
     <string name="document_type_image">Image</string>
     <string name="document_type_link">Link</string>
     <string name="document_offline">Saved on this phone</string>
-    <string name="document_open_failed">The document can\'t be opened yet. Try again with signal.</string>
+    <string name="document_open_failed">The document can't be opened yet. Try again with signal.</string>
     <string name="document_delete">Delete document</string>
-    <string name="document_delete_confirm">Delete \"%1$s\" for every member?</string>
+    <string name="document_delete_confirm">Delete "%1$s" for every member?</string>
     <string name="document_deleted">Document deleted</string>
     <string name="document_more">Options for %1$s</string>
     <string name="document_upload_title">Add a document</string>
@@ -1497,7 +1498,7 @@
     <string name="document_save">Save</string>
     <string name="document_added">Document added</string>
     <string name="document_error_FILE_TOO_LARGE">The file is over 20 MB.</string>
-    <string name="document_error_STORAGE_FULL">This trip\'s document space (200 MB) is full. Delete old documents first.</string>
+    <string name="document_error_STORAGE_FULL">This trip's document space (200 MB) is full. Delete old documents first.</string>
     <string name="document_error_UNSUPPORTED_FILE">Only PDF files and images can be added.</string>
     <string name="document_error_link">The link must start with https://</string>
     <string name="document_error_title">Write a name for the document</string>
@@ -1532,6 +1533,6 @@
     <string name="trip_template_use">Use a trip template</string>
     <string name="trip_template_none">No template</string>
     <string name="trip_template_hint">%1$d days · %2$d activities · %3$d items</string>
-    <string name="trip_template_applied">Itinerary and packing from \"%1$s\" added</string>
+    <string name="trip_template_applied">Itinerary and packing from "%1$s" added</string>
     <string name="trip_template_delete">Delete template</string>
 </resources>

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.ransel.navigation.SheetBackHandler
 import app.ransel.ui.adaptive.rememberIsExpanded
 import app.ransel.ui.theme.IrisShape
 
@@ -34,6 +35,8 @@ fun AdaptiveSheet(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    // back closes the sheet first, the screen stays (Android back, the browser's back button)
+    SheetBackHandler(onDismiss)
     if (rememberIsExpanded()) {
         Dialog(
             onDismissRequest = onDismiss,
