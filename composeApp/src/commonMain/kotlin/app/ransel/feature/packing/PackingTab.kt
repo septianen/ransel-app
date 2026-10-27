@@ -76,6 +76,7 @@ import ransel.composeapp.generated.resources.packing_item_edit
 import ransel.composeapp.generated.resources.packing_item_more
 import ransel.composeapp.generated.resources.ic_packing_empty
 import ransel.composeapp.generated.resources.packing_add
+import ransel.composeapp.generated.resources.packing_required_count
 import ransel.composeapp.generated.resources.packing_complete
 import ransel.composeapp.generated.resources.packing_departs
 import ransel.composeapp.generated.resources.packing_empty_body
@@ -160,7 +161,7 @@ private fun PackingList(
     // Templates live on the server: they need an account (guests keep the plain list).
     val session: app.ransel.data.auth.SessionManager = org.koin.compose.koinInject()
     val signedIn = session.state.collectAsState().value is app.ransel.data.auth.SessionState.SignedIn
-    val canUseTemplates = canEdit && signedIn && group == null
+    val canUseTemplates = canEdit && signedIn
     val onlyBringerText = stringResource(Res.string.packing_only_bringer, "%s")
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val templates: PackingTemplatesViewModel =
@@ -190,6 +191,8 @@ private fun PackingList(
             state.total == 0 && group != null -> FullScreenState(
                 title = stringResource(Res.string.packing_shared_empty_title),
                 body = stringResource(Res.string.packing_shared_empty_body, trip.title),
+                secondaryLabel = if (canUseTemplates) stringResource(Res.string.template_apply_title) else null,
+                onSecondary = if (canUseTemplates) ({ templates.load(); sheet = SheetTarget.UseTemplate }) else null,
                 illustration = painterResource(Res.drawable.ic_packing_empty),
             )
             state.total == 0 -> FullScreenState(
@@ -336,7 +339,14 @@ private fun PackingItems(
             .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        if (shared != null) SharedSummaryCard(state, shared.myMemberId) else ProgressCard(trip, state, today, onUncheckAll, canEdit, onUseTemplate, onSaveTemplate)
+        if (shared != null) {
+            SharedSummaryCard(state, shared.myMemberId, onUseTemplate, onSaveTemplate)
+        } else {
+            PackingProgressCard(
+                trip, today, state.packed, state.total,
+                onUseTemplate = onUseTemplate, onSaveTemplate = onSaveTemplate, onUncheckAll = onUncheckAll.takeIf { canEdit },
+            )
+        }
         state.groups.forEach { group ->
             PackingGroupSection(group) { item ->
                 if (shared != null) {
@@ -429,96 +439,104 @@ internal fun PackingGroupSection(
     }
 }
 
+/**
+ * "Siap dibawa": the progress of a list the user ticks (solo, Pribadi), with "Wajib x/y" when some lines are required
+ * and the ⋮ menu: use or save a template, untick everything (owner, 27 Oct 2026: the same card in solo and group
+ * trips). The menu shows when any action is given.
+ */
 @Composable
-private fun ProgressCard(
+internal fun PackingProgressCard(
     trip: TripDto,
-    state: PackingUiState,
     today: kotlinx.datetime.LocalDate,
-    onUncheckAll: () -> Unit,
-    canEdit: Boolean,
-    onUseTemplate: (() -> Unit)?,
-    onSaveTemplate: (() -> Unit)?,
+    packed: Int,
+    total: Int,
+    requiredDone: Int = 0,
+    requiredTotal: Int = 0,
+    onUseTemplate: (() -> Unit)? = null,
+    onSaveTemplate: (() -> Unit)? = null,
+    onUncheckAll: (() -> Unit)? = null,
 ) {
-    var menu by remember { mutableStateOf(false) }
+    val scheme = MaterialTheme.colorScheme
+    val percent = if (total == 0) 0 else (packed * 100 + total / 2) / total
     Column(
         Modifier
             .fillMaxWidth()
             .shadow(2.dp, IrisShape.lg, ambientColor = Color.Black.copy(alpha = .06f), spotColor = Color.Black.copy(alpha = .06f))
-            .background(MaterialTheme.colorScheme.surface, IrisShape.lg)
+            .background(scheme.surface, IrisShape.lg)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(Res.string.packing_progress_title),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    stringResource(Res.string.packing_progress_count, state.packed, state.total),
-                    style = MaterialTheme.typography.displaySmall,
-                )
+                Text(stringResource(Res.string.packing_progress_title), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                Text(stringResource(Res.string.packing_progress_count, packed, total), style = MaterialTheme.typography.displaySmall)
             }
-            Text(
-                "${state.percent}%",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            if (canEdit) Box {
-                Box(
-                    Modifier
-                        .size(40.dp)
-                        .clickableSemantics(stringResource(Res.string.packing_menu)) { menu = true },
-                    contentAlignment = Alignment.Center,
-                ) { Symbol(Symbols.moreVert, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    if (onUseTemplate != null) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.template_apply_title)) },
-                            leadingIcon = { Symbol(Symbols.contentCopy) },
-                            onClick = { menu = false; onUseTemplate() },
-                        )
-                    }
-                    if (onSaveTemplate != null) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.template_save_title)) },
-                            leadingIcon = { Symbol(Symbols.bookmarkAdd) },
-                            onClick = { menu = false; onSaveTemplate() },
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text(stringResource(Res.string.packing_uncheck_all)) },
-                        leadingIcon = { Symbol(Symbols.checklist) },
-                        enabled = state.packed > 0,
-                        onClick = {
-                            menu = false
-                            onUncheckAll()
-                        },
-                    )
-                }
+            if (requiredTotal > 0) {
+                Text(
+                    stringResource(Res.string.packing_required_count, requiredDone, requiredTotal),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (requiredDone == requiredTotal) scheme.primary else scheme.error,
+                )
+            } else {
+                Text("$percent%", style = MaterialTheme.typography.titleSmall, color = scheme.primary)
             }
+            PackingListMenu(onUseTemplate, onSaveTemplate, onUncheckAll, uncheckEnabled = packed > 0)
         }
-        Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
-            Box(
-                Modifier
-                    .fillMaxWidth(state.percent / 100f)
-                    .height(8.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-            )
+        Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(scheme.surfaceContainerHigh)) {
+            Box(Modifier.fillMaxWidth(percent / 100f).height(8.dp).clip(CircleShape).background(scheme.primary))
         }
         if (trip.phase(today) == TripPhase.UPCOMING) {
             Text(
                 stringResource(Res.string.packing_departs, countdownLabel(trip.daysUntilStart(today))),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = scheme.onSurfaceVariant,
             )
         }
     }
 }
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+/** The ⋮ of a packing card: "Pakai template", "Simpan sebagai template", "Hapus semua centang"; nothing when no action. */
+@Composable
+private fun PackingListMenu(
+    onUseTemplate: (() -> Unit)?,
+    onSaveTemplate: (() -> Unit)?,
+    onUncheckAll: (() -> Unit)?,
+    uncheckEnabled: Boolean,
+) {
+    if (onUseTemplate == null && onSaveTemplate == null && onUncheckAll == null) return
+    var menu by remember { mutableStateOf(false) }
+    Box {
+        Box(
+            Modifier.size(40.dp).clickableSemantics(stringResource(Res.string.packing_menu)) { menu = true },
+            contentAlignment = Alignment.Center,
+        ) { Symbol(Symbols.moreVert, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            if (onUseTemplate != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.template_apply_title)) },
+                    leadingIcon = { Symbol(Symbols.contentCopy) },
+                    onClick = { menu = false; onUseTemplate() },
+                )
+            }
+            if (onSaveTemplate != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.template_save_title)) },
+                    leadingIcon = { Symbol(Symbols.bookmarkAdd) },
+                    onClick = { menu = false; onSaveTemplate() },
+                )
+            }
+            if (onUncheckAll != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.packing_uncheck_all)) },
+                    leadingIcon = { Symbol(Symbols.checklist) },
+                    enabled = uncheckEnabled,
+                    onClick = { menu = false; onUncheckAll() },
+                )
+            }
+        }
+    }
+}
+
 /**
  * A ticked line of a packing list (solo and Pribadi). [badge] = a small red label such as "Wajib"; [menu] = the ⋮
  * button with Ubah / Hapus ([ItemMenu]) when the user may change the line.
@@ -585,7 +603,7 @@ internal fun PackingRow(
 
 /** Design "PackingBersama": how many items have a bringer, and how many the user brings. */
 @Composable
-private fun SharedSummaryCard(state: PackingUiState, myMemberId: String) {
+private fun SharedSummaryCard(state: PackingUiState, myMemberId: String, onUseTemplate: (() -> Unit)?, onSaveTemplate: (() -> Unit)?) {
     val items = state.groups.flatMap { it.items }
     val claimed = items.count { it.assigneeMemberId != null }
     val mine = items.count { it.assigneeMemberId == myMemberId }
@@ -598,8 +616,14 @@ private fun SharedSummaryCard(state: PackingUiState, myMemberId: String) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(stringResource(Res.string.packing_shared_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(stringResource(Res.string.packing_shared_count, claimed, items.size), style = MaterialTheme.typography.titleLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(Res.string.packing_shared_title), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(Res.string.packing_shared_count, claimed, items.size), style = MaterialTheme.typography.titleLarge)
+            }
+            // templates for the shared list (owner and editors); the ticks belong to the bringers, so no "untick all"
+            PackingListMenu(onUseTemplate, onSaveTemplate, onUncheckAll = null, uncheckEnabled = false)
+        }
         Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
             Box(Modifier.fillMaxWidth(percent / 100f).height(8.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary))
         }

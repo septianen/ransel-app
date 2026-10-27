@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.remote.ApiFailure
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
+import app.ransel.data.repository.PersonalItemRepository
+import app.ransel.shared.dto.CreatePersonalItemRequest
 import app.ransel.data.repository.PackingRepository
 import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.CreatePackingTemplateRequest
@@ -51,11 +53,20 @@ fun templateItemsToAdd(template: PackingTemplateDto, existing: List<PackingItemD
     return template.items.filter { key(it.category, it.name) !in have }
 }
 
+/**
+ * "Pakai template" / "Simpan sebagai template" for one packing list: the trip-wide list (solo, Bersama), or the
+ * user's own Pribadi list when [personal] is set (owner, 27 Oct 2026).
+ */
 class PackingTemplatesViewModel(
     private val tripId: String,
     private val api: RanselApi,
     private val packing: PackingRepository,
+    private val personal: PersonalItemRepository? = null,
 ) : ViewModel() {
+    /** The lines of the list templates read from and add to. */
+    private suspend fun current(): List<PackingItemDto> =
+        personal?.observe(tripId)?.first()?.map { it.asPackingItem() } ?: packing.observe(tripId).first()
+
     private val _state = MutableStateFlow(TemplatesUiState())
     val state: StateFlow<TemplatesUiState> = _state.asStateFlow()
 
@@ -89,16 +100,24 @@ class PackingTemplatesViewModel(
         if (s.busy) return
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
-            val existing = packing.observe(tripId).first()
+            val existing = current()
             val toAdd = templateItemsToAdd(template, existing, s.skipExisting)
             var order = (existing.maxOfOrNull { it.sortOrder } ?: 0.0)
-            packing.addAll(
-                tripId,
-                toAdd.map { item ->
+            val own = personal
+            if (own != null) {
+                toAdd.forEach { item ->
                     order += 1.0
-                    CreatePackingItemRequest(newId(), item.category, item.name, item.quantity ?: 1, order)
-                },
-            )
+                    own.add(tripId, CreatePersonalItemRequest(newId(), item.category, item.name, item.quantity ?: 1, order))
+                }
+            } else {
+                packing.addAll(
+                    tripId,
+                    toAdd.map { item ->
+                        order += 1.0
+                        CreatePackingItemRequest(newId(), item.category, item.name, item.quantity ?: 1, order)
+                    },
+                )
+            }
             _state.update { it.copy(busy = false) }
             events.send(TemplateEvent.Applied(toAdd.size))
         }
@@ -109,7 +128,7 @@ class PackingTemplatesViewModel(
         if (_state.value.busy) return
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
-            val items = packing.observe(tripId).first().map {
+            val items = current().map {
                 TemplateItem(it.category, it.name, it.quantity.takeIf { keepQuantities })
             }
             val request = CreatePackingTemplateRequest(

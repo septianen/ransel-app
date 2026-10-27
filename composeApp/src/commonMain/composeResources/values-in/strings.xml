@@ -1494,4 +1494,9 @@
     <string name="packing_item_delete_body_own">Barang ini dihapus dari daftarmu.</string>
     <string name="overview_invite_title">Ajak teman</string>
     <string name="overview_invite_body">Trip ini masih kamu sendiri. Ajak teman untuk merencanakan, voting, dan patungan bersama.</string>
+    <string name="member_progress_title">Progres anggota</string>
+    <string name="member_progress_summary">%1$d dari %2$d anggota siap</string>
+    <string name="member_list_draft_row">Draf daftar anggota · %1$d barang · belum dikirim</string>
+    <string name="member_progress_all">Semua %1$d/%2$d</string>
+    <string name="member_progress_remind_one">Ingatkan %1$s</string>
 </resources>

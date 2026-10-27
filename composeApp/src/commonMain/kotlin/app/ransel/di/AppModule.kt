@@ -74,7 +74,8 @@ val commonModule: Module = module {
     viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get(), get()) }
     viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> PackingViewModel(params.get(), get(), get()) }
-    viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get()) }
+    // parametersOf(tripId) = the trip-wide list; parametersOf(tripId, true) = the user's Pribadi list
+    viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get(), if (params.values.getOrNull(1) == true) get() else null) }
     viewModel { params -> app.ransel.feature.packing.GroupPackingViewModel(params.get(), get(), get(), get(), get()) }
     viewModel { params -> TripSidePanelViewModel(params.get(), get(), get()) }
     viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get(), get(), get()) }

@@ -60,6 +60,9 @@ data class GroupPackingUiState(
     fun member(id: String?): TripMemberDto? = members.firstOrNull { it.memberId == id }
 }
 
+/** Ready to go: every required line ticked, or every line when none is required. */
+val MemberListProgressDto.ready: Boolean get() = if (requiredTotal > 0) requiredDone >= requiredTotal else done >= total
+
 /** A personal line in the shape every packing list draws (same fields). */
 fun PersonalItemDto.asPackingItem() = PackingItemDto(
     id = id, tripId = tripId, category = category, name = name, quantity = quantity, isPacked = isPacked,
@@ -145,6 +148,13 @@ class GroupPackingViewModel(
         }
     }
 
+    /** "Hapus semua centang" on my own list. */
+    fun uncheckAll() {
+        viewModelScope.launch {
+            _state.value.personal.filter { it.isPacked }.forEach { personal.update(tripId, it.id, PatchPersonalItemRequest(isPacked = false)) }
+        }
+    }
+
     fun delete(item: PersonalItemDto) {
         viewModelScope.launch { personal.delete(tripId, item.id) }
     }
@@ -212,8 +222,10 @@ class GroupPackingViewModel(
     }
 
     /** "Ingatkan yang belum siap": every recipient with required lines left. */
-    fun remindNotReady() {
-        val ids = _state.value.progress.filter { it.requiredDone < it.requiredTotal }.map { it.memberId }
+    fun remindNotReady() = remind(_state.value.progress.filterNot { it.ready }.map { it.memberId })
+
+    /** "Ingatkan" for the chosen members (one bell per member on "Progres anggota"). */
+    fun remind(ids: List<String>) {
         if (ids.isEmpty() || _state.value.busy) return
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
