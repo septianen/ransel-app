@@ -70,9 +70,6 @@ private suspend fun Api.balances(tripId: String): Map<String, Long> =
     get("/trips/$tripId/balances").data().jsonObject.getValue("members").jsonArray
         .map { it.jsonObject }.associate { it.str("memberId") to it.long("balanceMinor") }
 
-private suspend fun Api.deposit(tripId: String, memberId: String, amount: Long): HttpResponse =
-    post("/trips/$tripId/kitty/deposits", """{"id":"${UUID.randomUUID()}","memberId":"$memberId","amountMinor":$amount}""")
-
 private suspend fun Api.inboxOf(session: Session): List<JsonObject> {
     val back = session()
     use(session)
@@ -106,48 +103,6 @@ private suspend fun Api.uploadReceipt(tripId: String, bytes: ByteArray, type: Co
     }
 
 class GroupMoneyRoutesTest {
-    @Test
-    fun theKittyGoesThroughTheTreasurer() = apiTest {
-        val g = group()
-        // no kitty yet: an expense from the kitty has nobody to pay it
-        val early = post("/trips/${g.tripId}/expenses", expenseJson(100_000, extra = ""","paidFromKitty":true"""))
-        assertEquals(HttpStatusCode.UnprocessableEntity, early.status)
-        assertEquals("NO_KITTY", early.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("paidFromKitty"))
-
-        val set = put("/trips/${g.tripId}/kitty", """{"amountPerMemberMinor":500000,"treasurerMemberId":"${g.mb}"}""")
-        assertEquals(HttpStatusCode.OK, set.status, set.bodyAsText())
-
-        // the treasurer records everyone's deposit
-        use(g.b)
-        listOf(g.ma, g.mb, g.mc).forEach { assertEquals(HttpStatusCode.Created, deposit(g.tripId, it, 500_000).status) }
-        // a VIEWER who is not the treasurer may not
-        use(g.c)
-        assertEquals(HttpStatusCode.Forbidden, deposit(g.tripId, g.mc, 1).status)
-
-        // dinner 600.000 from the kitty for A and B only; the device said A paid, the server makes it the treasurer
-        use(g.a)
-        val dinner = post(
-            "/trips/${g.tripId}/expenses",
-            expenseJson(600_000, mapOf(g.ma to 300_000L, g.mb to 300_000L), paidBy = g.ma, extra = ""","paidFromKitty":true"""),
-        )
-        assertEquals(HttpStatusCode.Created, dinner.status, dinner.bodyAsText())
-        assertEquals(g.mb, dinner.data().jsonObject.str("paidByMemberId"))
-
-        val kitty = get("/trips/${g.tripId}/kitty").data().jsonObject
-        val summary = kitty.getValue("summary").jsonObject
-        assertEquals(1_500_000L, summary.long("collectedMinor"))
-        assertEquals(600_000L, summary.long("spentMinor"))
-        assertEquals(900_000L, summary.long("leftMinor"))
-        assertTrue(summary.getValue("members").jsonArray.all { it.jsonObject.str("done") == "true" })
-
-        // what is left (900.000) is owed by the treasurer to the depositors
-        val balances = balances(g.tripId)
-        assertEquals(200_000L, balances.getValue(g.ma))
-        assertEquals(500_000L, balances.getValue(g.mc))
-        assertEquals(-700_000L, balances.getValue(g.mb))
-        assertEquals(0L, balances.values.sum())
-    }
-
     @Test
     fun aClaimCountsOnlyOnceTheReceiverConfirms() = apiTest {
         val g = group()
@@ -312,28 +267,10 @@ class GroupMoneyRoutesTest {
     }
 
     @Test
-    fun kittyDepositsAndClaimsSyncLikeOtherRows() = apiTest {
+    fun claimsSyncLikeOtherRows() = apiTest {
         val g = group()
         val now = "2026-10-26T08:00:00Z"
         val later = "2099-01-01T00:00:00Z"
-        val depositId = UUID.randomUUID().toString()
-        val push = post(
-            "/sync",
-            """{"changes":{
-                "kitties":[{"tripId":"${g.tripId}","amountPerMemberMinor":300000,"treasurerMemberId":"${g.ma}","createdAt":"$now","updatedAt":"$later"}],
-                "kittyDeposits":[{"id":"$depositId","tripId":"${g.tripId}","memberId":"${g.mb}","amountMinor":300000,"receivedByMemberId":"${g.mb}","receivedAt":"$now","createdAt":"$now","updatedAt":"$later"}]
-            }}""",
-        )
-        assertEquals(HttpStatusCode.OK, push.status, push.bodyAsText())
-        val pushed = push.data().jsonObject
-        assertEquals(2, pushed.getValue("accepted").jsonArray.size, pushed.toString())
-
-        val pulled = get("/sync").data().jsonObject.getValue("changes").jsonObject
-        assertEquals(1, pulled.getValue("kitties").jsonArray.size)
-        val deposit = pulled.getValue("kittyDeposits").jsonArray.single().jsonObject
-        assertEquals(g.ma, deposit.str("receivedByMemberId"), "the receiver is the treasurer the server knows")
-        assertEquals(300_000L, balances(g.tripId).getValue(g.mb))
-
         // a claim pushed by someone who is not its payer is refused; a confirmation by someone who is not the receiver too
         val claimId = UUID.randomUUID().toString()
         val claim = """{"id":"$claimId","tripId":"${g.tripId}","fromMemberId":"${g.mb}","toMemberId":"${g.ma}","amountMinor":1000,"settledAt":"$now","status":"CLAIMED_PAID","createdAt":"$now","updatedAt":"$now"}"""
@@ -350,31 +287,6 @@ class GroupMoneyRoutesTest {
         use(g.a)
         val byA = post("/sync", """{"changes":{"settlements":[$confirm]}}""").data().jsonObject
         assertEquals(1, byA.getValue("accepted").jsonArray.size, byA.toString())
-        assertEquals(301_000L, balances(g.tripId).getValue(g.mb), "300.000 into the kitty plus the 1.000 paid to A")
-    }
-
-    @Test
-    fun claimingANamedTreasurerMovesTheKittyToTheNewAccount() = apiTest {
-        val g = group()
-        val guestId = UUID.randomUUID().toString()
-        assertEquals(HttpStatusCode.Created, post("/trips/${g.tripId}/members", """{"id":"$guestId","displayName":"Bima"}""").status)
-        put("/trips/${g.tripId}/kitty", """{"amountPerMemberMinor":100000,"treasurerMemberId":"$guestId"}""")
-        assertEquals(HttpStatusCode.Created, deposit(g.tripId, guestId, 100_000).status)
-        assertEquals(HttpStatusCode.Created, deposit(g.tripId, g.ma, 100_000).status)
-
-        // Bima signs up, joins, and says "that's me"
-        val code = post("/trips/${g.tripId}/invites", """{"role":"EDITOR","expiresAt":"2099-01-01T00:00:00Z"}""").data().jsonObject.str("code")
-        signUp()
-        post("/invites/$code/accept")
-        val bima = session()
-        assertEquals(HttpStatusCode.NoContent, post("/trips/${g.tripId}/members/$guestId/claim").status)
-
-        val kitty = get("/trips/${g.tripId}/kitty").data().jsonObject
-        val mb = bima.memberId(g.tripId)
-        assertEquals(mb, kitty.getValue("kitty").jsonObject.str("treasurerMemberId"))
-        val deposits = kitty.getValue("deposits").jsonArray.map { it.jsonObject }
-        assertTrue(deposits.all { it.str("receivedByMemberId") == mb })
-        assertTrue(deposits.any { it.str("memberId") == mb })
-        assertEquals(-100_000L, balances(g.tripId).getValue(mb))
+        assertEquals(1_000L, balances(g.tripId).getValue(g.mb), "the 1.000 B paid to A counts once A confirmed it")
     }
 }

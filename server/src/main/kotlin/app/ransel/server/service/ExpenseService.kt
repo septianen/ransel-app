@@ -53,7 +53,7 @@ object ExpenseService {
     fun create(userId: UUID, tripId: UUID, expenseId: UUID, raw: ExpenseInput): ExpenseDto {
         requireRole(tripId, userId, Role.EDITOR)
         return transaction {
-            val payer = if (raw.paidFromKitty) kittyPayer(tripId, raw, before = null) else resolvePayer(userId, tripId, raw)
+            val payer = resolvePayer(userId, tripId, raw)
             val body = withItemSplits(raw, payer)
             validate(body, payer, tripId)
             if (Expenses.select(Expenses.id).where { Expenses.id eq expenseId }.any()) throw conflict("Expense id already exists")
@@ -75,7 +75,7 @@ object ExpenseService {
         requireRole(tripId, userId, Role.EDITOR)
         return transaction {
             val before = load(tripId, expenseId)
-            val payer = if (raw.paidFromKitty) kittyPayer(tripId, raw, before) else resolvePayer(userId, tripId, raw)
+            val payer = resolvePayer(userId, tripId, raw)
             val body = withItemSplits(raw, payer)
             // Someone who has since left may still be on this expense; editing the note must not fail.
             val keep = (before.splits.map { it.memberId } + before.payers.map { it.memberId } + before.paidByMemberId).map(UUID::fromString).toSet()
@@ -121,16 +121,6 @@ object ExpenseService {
             runCatching { UUID.fromString(raw) }.getOrNull()
                 ?: throw validation("paidByMemberId" to "INVALID_UUID")
         } ?: callerMemberId(tripId, callerId)
-    }
-
-    /**
-     * A kitty expense is paid by the treasurer: the current one for a new expense or one that was not from the kitty
-     * before, the stored payer when it already was (a later change of treasurer does not move old expenses).
-     */
-    internal fun kittyPayer(tripId: UUID, body: ExpenseInput, before: ExpenseDto?): UUID {
-        if (body.payers.isNotEmpty()) throw validation("payers" to "NOT_WITH_KITTY")
-        if (before != null && before.paidFromKitty) return UUID.fromString(before.paidByMemberId)
-        return KittyService.treasurerOf(tripId) ?: throw validation("paidFromKitty" to "NO_KITTY")
     }
 
     /** With receipt items the splits come from domain.splitByItems; the items must add up to the amount. */
@@ -241,7 +231,6 @@ object ExpenseService {
         it[Expenses.note] = body.note
         it[Expenses.spentAt] = body.spentAt.toJavaInstant()
         it[Expenses.paidByMemberId] = payer
-        it[Expenses.paidFromKitty] = body.paidFromKitty
         it[Expenses.isEstimate] = body.isEstimate
         // a rate source only means something for a foreign amount
         it[Expenses.fxSource] = body.fxSource.takeIf { body.fxRateToBase != null }

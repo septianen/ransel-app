@@ -299,7 +299,6 @@ object Expenses : Table("expenses") {
     val note = text("note").nullable()
     val spentAt = timestamp("spent_at")
     val paidByMemberId = javaUUID("paid_by_member_id")
-    val paidFromKitty = bool("paid_from_kitty")
     /** A planned cost (V18), e.g. the stay chosen in a poll; left out of balances. */
     val isEstimate = bool("is_estimate")
     /** V20: where fx_rate_to_base came from and the day of the reference rate. */
@@ -399,30 +398,6 @@ object Settlements : Table("settlements") {
     val settledAt = timestamp("settled_at")
     val status = enumerationByName<SettlementStatus>("status", 16)
     val claimedAt = timestamp("claimed_at").nullable()
-    val createdAt = timestamp("created_at")
-    val updatedAt = timestamp("updated_at")
-    val deletedAt = timestamp("deleted_at").nullable()
-    override val primaryKey = PrimaryKey(id)
-}
-
-/** One kitty per trip (V18): contribution per person and the treasurer who holds the money. */
-object Kitties : Table("kitty") {
-    val tripId = javaUUID("trip_id")
-    val amountPerMemberMinor = long("amount_per_member_minor")
-    val treasurerMemberId = javaUUID("treasurer_member_id")
-    val createdAt = timestamp("created_at")
-    val updatedAt = timestamp("updated_at")
-    val deletedAt = timestamp("deleted_at").nullable()
-    override val primaryKey = PrimaryKey(tripId)
-}
-
-object KittyDeposits : Table("kitty_deposits") {
-    val id = javaUUID("id")
-    val tripId = javaUUID("trip_id")
-    val memberId = javaUUID("member_id")
-    val amountMinor = long("amount_minor")
-    val receivedByMemberId = javaUUID("received_by_member_id")
-    val receivedAt = timestamp("received_at")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()

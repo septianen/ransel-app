@@ -5,8 +5,6 @@ import app.ransel.shared.dto.ExpenseItemDto
 import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
-import app.ransel.shared.dto.KittyDepositDto
-import app.ransel.shared.dto.KittyDto
 import app.ransel.shared.dto.MemberListItemDto
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PersonalItemDto
@@ -130,7 +128,6 @@ fun ResultRow.toExpenseDto(
             .thenBy { it.memberId },
     ),
     splits = splits,
-    paidFromKitty = this[Expenses.paidFromKitty],
     isEstimate = this[Expenses.isEstimate],
     items = items,
     fxSource = this[Expenses.fxSource],
@@ -154,26 +151,6 @@ fun ResultRow.toSettlementDto() = SettlementDto(
     deletedAt = this[Settlements.deletedAt]?.toTimestamp(),
 )
 
-fun ResultRow.toKittyDto() = KittyDto(
-    tripId = this[Kitties.tripId].toString(),
-    amountPerMemberMinor = this[Kitties.amountPerMemberMinor],
-    treasurerMemberId = this[Kitties.treasurerMemberId].toString(),
-    createdAt = this[Kitties.createdAt].toTimestamp(),
-    updatedAt = this[Kitties.updatedAt].toTimestamp(),
-    deletedAt = this[Kitties.deletedAt]?.toTimestamp(),
-)
-
-fun ResultRow.toKittyDepositDto() = KittyDepositDto(
-    id = this[KittyDeposits.id].toString(),
-    tripId = this[KittyDeposits.tripId].toString(),
-    memberId = this[KittyDeposits.memberId].toString(),
-    amountMinor = this[KittyDeposits.amountMinor],
-    receivedByMemberId = this[KittyDeposits.receivedByMemberId].toString(),
-    receivedAt = this[KittyDeposits.receivedAt].toTimestamp(),
-    createdAt = this[KittyDeposits.createdAt].toTimestamp(),
-    updatedAt = this[KittyDeposits.updatedAt].toTimestamp(),
-    deletedAt = this[KittyDeposits.deletedAt]?.toTimestamp(),
-)
 
 fun ResultRow.toPaymentMethodDto() = PaymentMethodDto(
     id = this[PaymentMethods.id].toString(),

@@ -24,7 +24,6 @@ import app.ransel.server.routes.adminRoutes
 import app.ransel.server.routes.authRoutes
 import app.ransel.server.routes.creditRoutes
 import app.ransel.server.routes.balanceRoutes
-import app.ransel.server.routes.kittyRoutes
 import app.ransel.server.routes.paymentMethodRoutes
 import app.ransel.server.routes.placeRoutes
 import app.ransel.server.routes.fxRoutes
@@ -237,7 +236,6 @@ fun Application.module(
                 pollRoutes(config.appBaseUrl) { user, poll, body -> recommendations.searchForPoll(user, poll, body) }
                 linkPreviewRoutes(linkPreviews)
                 balanceRoutes()
-                kittyRoutes()
                 paymentMethodRoutes()
                 receiptRoutes(ReceiptService(aiServices, credits))
                 packingTemplateRoutes()

@@ -748,7 +748,6 @@ object PollService {
             it[note] = option[PollOptions.label]
             it[spentAt] = start.atStartOfDay(java.time.ZoneId.of("Asia/Jakarta")).toInstant()
             it[paidByMemberId] = payer
-            it[paidFromKitty] = false
             it[isEstimate] = true
         }
         val shares = splitEqually(amount, members.ifEmpty { listOf(payer.toString()) }, payer.toString())

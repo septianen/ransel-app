@@ -5,8 +5,6 @@ import app.ransel.server.db.ExpensePayers
 import app.ransel.server.db.ExpenseSplits
 import app.ransel.server.db.Expenses
 import app.ransel.server.db.MemberClaims
-import app.ransel.server.db.Kitties
-import app.ransel.server.db.KittyDeposits
 import app.ransel.server.db.Settlements
 import app.ransel.server.db.TripMembers
 import app.ransel.server.db.Users
@@ -229,9 +227,6 @@ internal object MemberMoves {
     private const val SETTLEMENTS_DROPPED = "settlementsDropped"
     private const val ITEMS = "items"
     private const val ITEMS_MERGED = "itemsMerged"
-    private const val DEPOSITS = "deposits"
-    private const val DEPOSITS_RECEIVED = "depositsReceived"
-    private const val TREASURER = "treasurer"
 
     fun move(tripId: UUID, from: UUID, to: UUID): Map<String, List<String>> {
         val log = linkedMapOf<String, List<String>>()
@@ -328,20 +323,6 @@ internal object MemberMoves {
             if (mergedItems.isNotEmpty()) log[ITEMS_MERGED] = mergedItems
         }
 
-        val deposits = KittyDeposits.selectAll().where { (KittyDeposits.tripId eq tripId) and (KittyDeposits.memberId eq from) }.map { it[KittyDeposits.id] }
-        if (deposits.isNotEmpty()) {
-            KittyDeposits.update({ KittyDeposits.id inList deposits }) { it[memberId] = to }
-            log[DEPOSITS] = deposits.map(UUID::toString)
-        }
-        val received = KittyDeposits.selectAll().where { (KittyDeposits.tripId eq tripId) and (KittyDeposits.receivedByMemberId eq from) }.map { it[KittyDeposits.id] }
-        if (received.isNotEmpty()) {
-            KittyDeposits.update({ KittyDeposits.id inList received }) { it[receivedByMemberId] = to }
-            log[DEPOSITS_RECEIVED] = received.map(UUID::toString)
-        }
-        if (Kitties.update({ (Kitties.tripId eq tripId) and (Kitties.treasurerMemberId eq from) }) { it[treasurerMemberId] = to } > 0) {
-            log[TREASURER] = listOf(tripId.toString())
-        }
-
         bump(touched)
         return log
     }
@@ -403,15 +384,6 @@ internal object MemberMoves {
             val ids = ExpenseItems.selectAll().where { where }.singleOrNull()?.get(ExpenseItems.memberIds) ?: return@forEach
             if (guest.toString() !in ids) ExpenseItems.update({ where }) { it[memberIds] = ids + guest.toString() }
             touched += expense
-        }
-        ids(DEPOSITS).takeIf { it.isNotEmpty() }?.let { list ->
-            KittyDeposits.update({ (KittyDeposits.id inList list) and (KittyDeposits.memberId eq claimer) }) { it[memberId] = guest }
-        }
-        ids(DEPOSITS_RECEIVED).takeIf { it.isNotEmpty() }?.let { list ->
-            KittyDeposits.update({ (KittyDeposits.id inList list) and (KittyDeposits.receivedByMemberId eq claimer) }) { it[receivedByMemberId] = guest }
-        }
-        if (moved[TREASURER] != null) {
-            Kitties.update({ (Kitties.tripId eq tripId) and (Kitties.treasurerMemberId eq claimer) }) { it[treasurerMemberId] = guest }
         }
         bump(touched)
     }

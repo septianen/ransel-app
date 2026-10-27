@@ -42,8 +42,7 @@ import kotlin.time.toJavaInstant
 
 /**
  * Balances in the trip's base currency, always through the shared `tripBalances` / `fewestTransfers` so the numbers
- * equal what the app shows offline: estimates are left out, settlements count once CONFIRMED, kitty deposits count as
- * payments to the treasurer.
+ * equal what the app shows offline: estimates are left out, settlements count once CONFIRMED.
  */
 object BalanceService {
     fun balances(userId: UUID, tripId: UUID): BalancesDto {
@@ -166,7 +165,7 @@ object BalanceService {
         val settlements = Settlements.selectAll()
             .where { (Settlements.tripId eq tripId) and Settlements.deletedAt.isNull() }
             .map { it.toSettlementDto() }
-        return tripBalances(memberIds, ExpenseService.loadAll(tripId), settlements, KittyService.loadDeposits(tripId), base)
+        return tripBalances(memberIds, ExpenseService.loadAll(tripId), settlements, base)
     }
 
     private fun parsePair(fromRaw: String, toRaw: String, amountMinor: Long): Pair<UUID, UUID> {
