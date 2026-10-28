@@ -68,6 +68,9 @@ import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.format.amountToInput
 import app.ransel.ui.format.parseAmountMinor
+import app.ransel.ui.format.FX_RATE_INPUT_DECIMALS
+import app.ransel.ui.format.fxRateFromInput
+import app.ransel.ui.format.fxRateToInput
 import app.ransel.ui.format.sanitizeAmountInput
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.symbols.Symbol
@@ -147,7 +150,7 @@ fun ExpenseSheet(
     var note by remember { mutableStateOf(existing?.note.orEmpty()) }
     var date by remember { mutableStateOf(existingLocal?.date ?: defaultDate) }
     var method by remember { mutableStateOf(existing?.paymentMethod ?: PaymentMethod.CASH) }
-    var rateText by remember { mutableStateOf(existing?.fxRateToBase.orEmpty()) }
+    var rateText by remember { mutableStateOf(existing?.fxRateToBase?.let(::fxRateToInput).orEmpty()) }
     var fxSource by remember { mutableStateOf(existing?.fxSource) }
     var fxDate by remember { mutableStateOf(existing?.fxDate) }
     var dailyRate by remember { mutableStateOf<app.ransel.shared.dto.FxRateDto?>(null) }
@@ -167,7 +170,7 @@ fun ExpenseSheet(
         when (val r = api.fxRate(currency, trip.baseCurrency, date)) {
             is ApiResult.Success -> {
                 dailyRate = r.value
-                rateText = r.value.rate
+                rateText = fxRateToInput(r.value.rate)
                 fxSource = FxSource.DAILY
                 fxDate = r.value.date
             }
@@ -176,12 +179,14 @@ fun ExpenseSheet(
         }
     }
     val amountMinor = parseAmountMinor(amountText, currency)
-    val rate = rateText.trim().replace(',', '.').toDoubleOrNull()
+    // "," starts the decimals, as in the amount field; the field shows the thousands, so "16.250" is never typed
+    val storedRate = fxRateFromInput(rateText)
+    val rate = storedRate?.toDouble()
     val amountError = showErrors && (amountMinor == null || amountMinor <= 0)
-    val rateError = showErrors && foreign && (rate == null || rate <= 0.0)
+    val rateError = showErrors && foreign && rate == null
 
     fun save() {
-        if (amountMinor == null || amountMinor <= 0 || (foreign && (rate == null || rate <= 0.0))) {
+        if (amountMinor == null || amountMinor <= 0 || (foreign && rate == null)) {
             showErrors = true
             return
         }
@@ -208,7 +213,7 @@ fun ExpenseSheet(
                 id = existing?.id ?: newId(),
                 amountMinor = amountMinor,
                 currency = currency,
-                fxRateToBase = if (foreign) rateText.trim().replace(',', '.') else null,
+                fxRateToBase = if (foreign) storedRate else null,
                 fxSource = if (foreign) fxSource ?: FxSource.MANUAL else null,
                 fxDate = if (foreign && fxSource == FxSource.DAILY) fxDate else null,
                 category = category,
@@ -297,8 +302,8 @@ fun ExpenseSheet(
                 }
             },
         )
-        if (foreign && rate != null && rate > 0.0 && amountMinor != null) {
-            val inBase = convertMinor(amountMinor, currency, trip.baseCurrency, rateText.trim().replace(',', '.'))
+        if (foreign && rate != null && amountMinor != null) {
+            val inBase = convertMinor(amountMinor, currency, trip.baseCurrency, storedRate)
             Text("≈ " + formatMoney(inBase, trip.baseCurrency), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         }
         if (foreign && !showRateField && fxSource == FxSource.DAILY && rate != null) {
@@ -320,10 +325,11 @@ fun ExpenseSheet(
                 label = stringResource(Res.string.expense_rate, trip.baseCurrency),
                 value = rateText,
                 onValueChange = {
-                    rateText = it.filter { c -> c.isDigit() || c == ',' || c == '.' }
+                    rateText = sanitizeAmountInput(it, FX_RATE_INPUT_DECIMALS)
                     fxSource = FxSource.MANUAL
                     fxDate = null
                 },
+                visualTransformation = ThousandsVisualTransformation,
                 prefix = currencySymbol(trip.baseCurrency),
                 placeholder = stringResource(Res.string.expense_rate_hint, currency, trip.baseCurrency),
                 error = if (rateError) stringResource(Res.string.expense_error_rate) else null,

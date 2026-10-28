@@ -21,12 +21,17 @@ class RoomSessionHooks(
             if (dao.guestRowCount(LOCAL_USER_ID) == 0) return@withWriteTransaction
             // The guest's member in each trip becomes the account's, so who paid and who shares stay on the same person.
             dao.guestTripIds(LOCAL_USER_ID).forEach { tripId ->
-                dao.reownExpenseMember(tripId, memberIdFor(tripId, LOCAL_USER_ID), memberIdFor(tripId, userId))
+                val guest = memberIdFor(tripId, LOCAL_USER_ID)
+                val account = memberIdFor(tripId, userId)
+                dao.reownExpenseMember(tripId, guest, account)
+                dao.reownPersonalMember(tripId, guest, account)
+                dao.reownPackingAssignee(tripId, guest, account)
             }
             dao.reownTrips(LOCAL_USER_ID, userId)
             dao.markAllTripsPending()
             dao.markAllItemsPending()
             dao.markAllPackingPending()
+            dao.markAllPersonalPending()
             dao.markAllExpensesPending()
         }
     }

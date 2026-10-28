@@ -35,3 +35,26 @@ class SanitizeAmountTest {
         assertEquals("1,23", app.ransel.ui.format.sanitizeAmountInput("1,234,5", 2))
     }
 }
+
+class FxRateInputTest {
+    @Test fun storedRateShowsWithAComma() = assertEquals("16250,5", app.ransel.ui.format.fxRateToInput("16250.500000"))
+    @Test fun wholeStoredRateDropsTheZeros() = assertEquals("16250", app.ransel.ui.format.fxRateToInput("16250.000000"))
+    @Test fun commaIsTheDecimal() = assertEquals("0.62", app.ransel.ui.format.fxRateFromInput("0,62"))
+    @Test fun wholeRateStaysWhole() = assertEquals("16250", app.ransel.ui.format.fxRateFromInput("16250"))
+    @Test fun zeroOrEmptyIsNoRate() {
+        assertEquals(null, app.ransel.ui.format.fxRateFromInput("0"))
+        assertEquals(null, app.ransel.ui.format.fxRateFromInput(""))
+    }
+
+    /** "16.250" typed the Indonesian way: the field turns the first separator into the decimal, so it reads 16,25 on screen. */
+    @Test fun aTypedDotBecomesTheVisibleDecimal() {
+        val field = app.ransel.ui.format.sanitizeAmountInput("16.250", app.ransel.ui.format.FX_RATE_INPUT_DECIMALS)
+        assertEquals("16,250", field)
+        assertEquals("16.250", app.ransel.ui.format.fxRateFromInput(field))
+    }
+
+    @Test fun roundTripKeepsTheRate() {
+        val stored = "16333.3333"
+        assertEquals(stored, app.ransel.ui.format.fxRateFromInput(app.ransel.ui.format.fxRateToInput(stored)))
+    }
+}

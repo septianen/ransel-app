@@ -97,6 +97,29 @@ fun amountToInput(amountMinor: Long, currency: String): String {
     return if (fraction.isEmpty()) "$whole" else "$whole,$fraction"
 }
 
+/** Decimals a typed exchange rate keeps (the server stores rates with 6). */
+const val FX_RATE_INPUT_DECIMALS = 6
+
+/**
+ * A stored rate ("16250.5", decimal point) as the text of a rate field, which follows the amount fields: ","
+ * starts the decimals and the field groups thousands itself. "16250.500000" → "16250,5".
+ */
+fun fxRateToInput(rate: String): String {
+    val trimmed = rate.trim()
+    val plain = if ('.' in trimmed) trimmed.trimEnd('0').trimEnd('.') else trimmed
+    return plain.replace('.', ',')
+}
+
+/**
+ * Inverse of [fxRateToInput]: the field's text (cleaned by [sanitizeAmountInput]) as a stored rate, or null when it
+ * is empty or not above zero. "16250" → "16250", "0,62" → "0.62".
+ */
+fun fxRateFromInput(text: String): String? {
+    val rate = text.trim().replace(',', '.').trimEnd('.')
+    val value = rate.toDoubleOrNull() ?: return null
+    return rate.takeIf { value > 0.0 }
+}
+
 /**
  * Cleans text typed into an amount field: digits only, plus one decimal separator when [decimals] > 0.
  * "." and "," both count as the separator; the result always uses "," and keeps at most [decimals]

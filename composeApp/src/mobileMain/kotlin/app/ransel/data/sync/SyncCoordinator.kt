@@ -10,7 +10,6 @@ import app.ransel.data.local.toDto
 import app.ransel.data.local.toEntity
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
-import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
@@ -64,6 +63,11 @@ class SyncCoordinator(
     private val kick = Channel<Unit>(Channel.CONFLATED)
     private val runLock = Mutex()
     private var changesWhileOffline = 0
+    /**
+     * Set by [wipe] until the next sign-in. The session is still SignedIn between the wipe and the end of sign-out,
+     * so without it a queued sync would pull the whole account back onto a device that was just cleared.
+     */
+    private var wiped = false
 
     init {
         scope.launch {
@@ -78,7 +82,12 @@ class SyncCoordinator(
                 ?.let(Instant::fromEpochMilliseconds)
         }
         scope.launch {
-            session.state.collectLatest { state -> if (state is SessionState.SignedIn) loop() }
+            session.state.collectLatest { state ->
+                if (state is SessionState.SignedIn) {
+                    runLock.withLock { wiped = false }
+                    loop()
+                }
+            }
         }
     }
 
@@ -111,6 +120,7 @@ class SyncCoordinator(
     private enum class Outcome { OK, OFFLINE, FAILED }
 
     private suspend fun syncOnce(): Outcome = runLock.withLock {
+        if (wiped) return Outcome.OK
         _syncing.value = true
         try {
             val pushed = push()
@@ -182,7 +192,9 @@ class SyncCoordinator(
                         sendExpenses.forEach { settle(accepted, rejected, "expense", it.id) { s -> dao.setExpenseState(it.id, it.updatedAt, s) } }
                         sendPersonal.forEach { settle(accepted, rejected, "personalItem", it.id) { s -> dao.setPersonalState(it.id, it.updatedAt, s) } }
                     }
-                    if (response.rejected.any { it.code == ErrorCode.CONFLICT }) needsFullPull = true
+                    // Any rejection (not only CONFLICT) leaves the local copy different from the server's; a full
+                    // pull puts the server's copy back. A row the server never had stays REJECTED.
+                    if (response.rejected.isNotEmpty()) needsFullPull = true
                     // A batch that settled nothing would loop forever: stop and retry on the next tick.
                     if (accepted.isEmpty() && rejected.isEmpty()) return PushResult(needsFullPull)
                     if (sent < MAX_PUSH_ROWS) {
@@ -267,7 +279,9 @@ class SyncCoordinator(
     }
 
     /** Sign-out on this device: drop everything that belongs to the account. */
-    internal suspend fun wipe() {
+    internal suspend fun wipe() = runLock.withLock {
+        // Under the lock, so a sync that is already running finishes first and none starts until the next sign-in.
+        wiped = true
         val dao = db.syncDao()
         db.withWriteTransaction {
             dao.clearItems()

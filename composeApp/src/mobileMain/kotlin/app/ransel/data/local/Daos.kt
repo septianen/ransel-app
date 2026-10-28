@@ -237,6 +237,17 @@ interface SyncDao {
     )
     suspend fun reownExpenseMember(tripId: String, oldId: String, newId: String)
 
+    /** The guest's own packing lines: the server only takes lines whose owner is the caller's member. */
+    @Query("UPDATE personal_items SET ownerMemberId = :newId WHERE tripId = :tripId AND ownerMemberId = :oldId")
+    suspend fun reownPersonalMember(tripId: String, oldId: String, newId: String)
+
+    /** Bersama items the guest said they bring. */
+    @Query("UPDATE packing_items SET assigneeMemberId = :newId WHERE tripId = :tripId AND assigneeMemberId = :oldId")
+    suspend fun reownPackingAssignee(tripId: String, oldId: String, newId: String)
+
+    @Query("UPDATE personal_items SET syncState = 'PENDING'")
+    suspend fun markAllPersonalPending()
+
     @Query("UPDATE trips SET syncState = 'PENDING'")
     suspend fun markAllTripsPending()
 
