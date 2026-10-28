@@ -55,6 +55,7 @@ import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -84,7 +85,28 @@ class RecommendationService(
 ) {
     private val log = LoggerFactory.getLogger(RecommendationService::class.java)
 
-    suspend fun recommend(userId: UUID, body: RecommendationRequest): RecommendationResponse {
+    /**
+     * Users with a search running. The credit check comes before the LLM call and the charge after it, so parallel
+     * requests would all pass the check and all cost an LLM call while only one can be paid for. One at a time per
+     * user closes that; the server runs as a single instance, so memory is enough.
+     */
+    private val searching: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+
+    private inline fun <T> oneSearchAtATime(userId: UUID, block: () -> T): T {
+        if (!searching.add(userId)) {
+            throw ApiException(HttpStatusCode.TooManyRequests, ErrorCode.RATE_LIMITED, "A search is already running")
+        }
+        try {
+            return block()
+        } finally {
+            searching.remove(userId)
+        }
+    }
+
+    suspend fun recommend(userId: UUID, body: RecommendationRequest): RecommendationResponse =
+        oneSearchAtATime(userId) { recommendNow(userId, body) }
+
+    private suspend fun recommendNow(userId: UUID, body: RecommendationRequest): RecommendationResponse {
         val tripId = runCatching { UUID.fromString(body.tripId) }.getOrNull()
             ?: throw validationFailed(mapOf("tripId" to "INVALID_UUID"))
         validate(body)
@@ -186,7 +208,10 @@ class RecommendationService(
      * Jelajah for a poll (PRD "Adding options"): the same pipeline as Explore, narrowed to lodging or food, with an
      * optional area, budget and wishes. Nothing is cached or put in a round; the caller picks what becomes an option.
      */
-    suspend fun searchForPoll(userId: UUID, pollId: UUID, body: PollSearchRequest, polls: PollService.SearchContext = PollService.searchContext(userId, pollId)): PollSearchResponse {
+    suspend fun searchForPoll(userId: UUID, pollId: UUID, body: PollSearchRequest, polls: PollService.SearchContext = PollService.searchContext(userId, pollId)): PollSearchResponse =
+        oneSearchAtATime(userId) { searchForPollNow(userId, pollId, body, polls) }
+
+    private suspend fun searchForPollNow(userId: UUID, pollId: UUID, body: PollSearchRequest, polls: PollService.SearchContext): PollSearchResponse {
         val area = body.area?.trim()?.takeIf { it.isNotEmpty() }
         val needs = body.needs?.trim()?.takeIf { it.isNotEmpty() }
         val lo = body.minMinor

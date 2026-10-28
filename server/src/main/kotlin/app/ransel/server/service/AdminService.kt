@@ -101,12 +101,15 @@ class AdminService(
 ) {
     private val wib = TimeZone.of("Asia/Jakarta")
 
-    /** 403 unless the account is active and its email is in `ADMIN_EMAILS` (checked per request, so removal is instant). */
+    /**
+     * 403 unless the account is active, its email is verified and in `ADMIN_EMAILS` (checked per request, so removal
+     * is instant). Verification matters because sign-up is open: anyone could register a listed address first.
+     */
     fun requireAdmin(userId: UUID): AdminPrincipal = transaction {
         val row = Users.selectAll().where { Users.id eq userId }.singleOrNull()
         val email = row?.get(Users.email)
         if (row == null || email == null || row[Users.deletedAt] != null || row[Users.disabledAt] != null ||
-            email.lowercase() !in config.adminEmails
+            row[Users.emailVerifiedAt] == null || email.lowercase() !in config.adminEmails
         ) {
             throw ApiException(HttpStatusCode.Forbidden, ErrorCode.FORBIDDEN, "Admins only")
         }

@@ -117,10 +117,16 @@ object BalanceService {
         val role = requireRole(tripId, userId, Role.VIEWER)
         transaction {
             val row = liveRow(tripId, settlementId)
-            val me = callerMemberId(tripId, userId)
-            if (role != Role.OWNER && me != row[Settlements.fromMemberId] && me != row[Settlements.toMemberId]) throw forbidden()
+            if (!mayRemove(tripId, userId, role, row[Settlements.fromMemberId], row[Settlements.toMemberId])) throw forbidden()
             Settlements.update({ Settlements.id eq settlementId }) { it[deletedAt] = Instant.now() }
         }
+    }
+
+    /** Who may remove (or, through sync, restore) a settlement: its payer, its receiver or the OWNER. Call inside a transaction. */
+    internal fun mayRemove(tripId: UUID, userId: UUID, role: Role, from: UUID, to: UUID): Boolean {
+        if (role == Role.OWNER) return true
+        val me = callerMemberId(tripId, userId)
+        return me == from || me == to
     }
 
     /**

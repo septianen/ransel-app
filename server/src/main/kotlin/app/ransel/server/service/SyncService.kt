@@ -254,7 +254,8 @@ class SyncService {
         }
 
         val role = memberRole(id, userId) ?: throw ApiException(HttpStatusCode.NotFound, ErrorCode.TRIP_NOT_FOUND, "Trip not found")
-        val needed = if (dto.deletedAt != null) Role.OWNER else Role.EDITOR
+        // Deleting is the OWNER's, and so is anything on a deleted trip: an EDITOR must not bring it back.
+        val needed = if (dto.deletedAt != null || existing[Trips.deletedAt] != null) Role.OWNER else Role.EDITOR
         if (!role.atLeast(needed)) throw forbidden()
         requireNewer(dto.updatedAt, existing[Trips.updatedAt])
 
@@ -506,14 +507,14 @@ class SyncService {
             if (before == SettlementStatus.CONFIRMED && dto.status == SettlementStatus.CLAIMED_PAID) throw conflict("Settlement is already confirmed")
             val confirming = before == SettlementStatus.CLAIMED_PAID && dto.status == SettlementStatus.CONFIRMED
             if (confirming && !BalanceService.mayConfirm(tripId, userId, role, existing[Settlements.toMemberId])) throw forbidden()
-            // the people and the amount of a claim are fixed; only its status and deletion change
-            val claim = before == SettlementStatus.CLAIMED_PAID
+            // Like REST, which has no edit: the people and the amount are fixed once recorded; only status and deletion change.
+            val oldFrom = existing[Settlements.fromMemberId]
+            val oldTo = existing[Settlements.toMemberId]
+            if (from != oldFrom || to != oldTo || dto.amountMinor != existing[Settlements.amountMinor]) throw forbidden()
+            // Removing or restoring one is for the people in it or the OWNER, as with the REST delete.
+            val removedBefore = existing[Settlements.deletedAt] != null
+            if (removedBefore != (dto.deletedAt != null) && !BalanceService.mayRemove(tripId, userId, role, oldFrom, oldTo)) throw forbidden()
             Settlements.update({ Settlements.id eq id }) {
-                if (!claim) {
-                    it[fromMemberId] = from
-                    it[toMemberId] = to
-                    it[amountMinor] = dto.amountMinor
-                }
                 it[settledAt] = dto.settledAt.toJavaInstant()
                 it[status] = dto.status
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()

@@ -253,6 +253,26 @@ class SyncRoutesTest {
     }
 
     @Test
+    fun anEditorCannotBringBackATripTheOwnerDeleted() = apiTest {
+        val tripId = id()
+        push(SyncChanges(trips = listOf(trip(tripId))))
+        val owner = session()
+        val code = post("/trips/$tripId/invites", """{"role":"EDITOR","expiresAt":"2099-01-01T00:00:00Z"}""")
+            .data().jsonObject.getValue("code").jsonPrimitive.content
+        signUp()
+        post("/invites/$code/accept")
+        val editor = session()
+
+        use(owner)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/$tripId").status)
+        use(editor)
+        val revive = push(SyncChanges(trips = listOf(trip(tripId, updatedAt = Clock.System.now() + 1.hours).copy(ownerId = owner.userId))))
+        assertEquals("FORBIDDEN", revive.rejected.single().code)
+        use(owner)
+        assertEquals(HttpStatusCode.NotFound, get("/trips/$tripId").status)
+    }
+
+    @Test
     fun invalidSinceIs422() = apiTest {
         assertEquals(HttpStatusCode.UnprocessableEntity, get("/sync?since=yesterday").status)
     }

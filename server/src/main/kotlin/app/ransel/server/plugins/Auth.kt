@@ -24,6 +24,7 @@ const val JWT_AUTH = "jwt"
 val AuthRateLimit = RateLimitName("auth")
 val PhotoRateLimit = RateLimitName("photo")
 val InvitePreviewRateLimit = RateLimitName("invite-preview")
+val InviteAcceptRateLimit = RateLimitName("invite-accept")
 val LinkPreviewRateLimit = RateLimitName("link-preview")
 val SuggestionsRateLimit = RateLimitName("suggestions")
 val RedeemRateLimit = RateLimitName("redeem")
@@ -91,6 +92,11 @@ fun Application.configureRateLimit(config: AppConfig) {
         register(InvitePreviewRateLimit) {
             rateLimiter(limit = config.invitePreviewRateLimitPerMinute, refillPeriod = 1.minutes)
             requestKey { call -> call.request.origin.remoteHost }
+        }
+        // Per user: people join a handful of trips; this stops a script from guessing codes.
+        register(InviteAcceptRateLimit) {
+            rateLimiter(limit = 10, refillPeriod = 10.minutes)
+            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
         }
         // The guest page is public: per address. Picking or writing a name is rarer, so it is held tighter.
         register(GuestRateLimit) {

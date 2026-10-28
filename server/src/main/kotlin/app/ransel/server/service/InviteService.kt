@@ -31,12 +31,17 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
+import java.security.SecureRandom
 import java.time.Instant
 import java.util.UUID
+import kotlin.random.asKotlinRandom
 import kotlin.time.toJavaInstant
 
-/** Invite codes: `BALI-7K2Q`. Only the OWNER creates, lists and revokes; any signed-in user can preview and accept. */
+/** Invite codes: `BALI-7K2QM9XA`. Only the OWNER creates, lists and revokes; any signed-in user can preview and accept. */
 class InviteService(private val config: AppConfig) {
+    /** The code is the only thing between a stranger and the trip, so it must not be predictable. */
+    private val secureRandom = SecureRandom().asKotlinRandom()
+
     fun create(userId: UUID, tripId: UUID, body: CreateInviteRequest): InviteDto {
         requireRole(tripId, userId, Role.OWNER)
         requireValid(
@@ -48,7 +53,7 @@ class InviteService(private val config: AppConfig) {
         )
         return transaction {
             val title = Trips.selectAll().where { Trips.id eq tripId }.single()[Trips.title]
-            val code = generateSequence { generateInviteCode(title) }
+            val code = generateSequence { generateInviteCode(title, secureRandom) }
                 .take(20)
                 .firstOrNull { candidate -> TripInvites.selectAll().where { TripInvites.code eq candidate }.empty() }
                 ?: throw ApiException(HttpStatusCode.InternalServerError, ErrorCode.INTERNAL_ERROR, "Could not generate a code")

@@ -1,5 +1,6 @@
 package app.ransel.server.routes
 
+import app.ransel.server.plugins.InviteAcceptRateLimit
 import app.ransel.server.plugins.InvitePreviewRateLimit
 import app.ransel.server.service.GuestService
 import app.ransel.server.plugins.validationFailed
@@ -33,9 +34,11 @@ fun Route.memberRoutes(invites: InviteService) {
             call.respondNoContent()
         }
     }
-    route("/invites/{code}") {
-        post("/accept") {
-            call.respondData(HttpStatusCode.OK, invites.accept(call.userId(), call.parameters["code"].orEmpty()))
+    rateLimit(InviteAcceptRateLimit) {
+        route("/invites/{code}") {
+            post("/accept") {
+                call.respondData(HttpStatusCode.OK, invites.accept(call.userId(), call.parameters["code"].orEmpty()))
+            }
         }
     }
 

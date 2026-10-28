@@ -185,4 +185,31 @@ class BalanceRoutesTest {
         assertEquals(1, changes.getValue("settlements").jsonArray.size)
         assertEquals(3, changes.getValue("members").jsonArray.size)
     }
+
+    @Test
+    fun syncCannotRewriteOrRemoveSomeoneElsesSettlement() = apiTest {
+        val g = group()
+        val id = UUID.randomUUID().toString()
+        post("/trips/${g.tripId}/settlements", """{"id":"$id","fromMemberId":"${g.m(g.b)}","toMemberId":"${g.m(g.a)}","amountMinor":500}""")
+
+        fun pushed(amount: Long = 500, deletedAt: String? = null): String {
+            val deleted = if (deletedAt != null) "\"$deletedAt\"" else "null"
+            val row = """{"id":"$id","tripId":"${g.tripId}","fromMemberId":"${g.m(g.b)}","toMemberId":"${g.m(g.a)}",""" +
+                """"amountMinor":$amount,"settledAt":"2026-11-20T05:00:00Z","status":"CONFIRMED",""" +
+                """"createdAt":"2026-11-20T05:00:00Z","updatedAt":"2099-01-01T00:00:00Z","deletedAt":$deleted}"""
+            return """{"changes":{"settlements":[$row]}}"""
+        }
+        suspend fun rejectionOf(body: String) =
+            post("/sync", body).data().jsonObject.getValue("rejected").jsonArray.singleOrNull()?.jsonObject?.str("code")
+
+        // C is neither payer nor receiver: no new amount, no removal.
+        use(g.c)
+        assertEquals("FORBIDDEN", rejectionOf(pushed(amount = 1)))
+        assertEquals("FORBIDDEN", rejectionOf(pushed(deletedAt = "2099-01-01T00:00:00Z")))
+        // The payer may remove it, but not change the amount either.
+        use(g.b)
+        assertEquals("FORBIDDEN", rejectionOf(pushed(amount = 1)))
+        assertEquals(null, rejectionOf(pushed(deletedAt = "2099-01-01T00:00:00Z")))
+        assertEquals(0, get("/trips/${g.tripId}/settlements").data().jsonArray.size)
+    }
 }

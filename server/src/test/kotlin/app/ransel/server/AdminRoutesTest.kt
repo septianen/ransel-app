@@ -58,6 +58,15 @@ class AdminRoutesTest {
     }
 
     @Test
+    fun anUnverifiedAccountWithAnAdminEmailIsNotAnAdmin() = apiTest(adminConfig) {
+        // Sign-up is open, so whoever registers a listed address first must not get Karung before proving it.
+        signUp(email = adminEmail, verified = false)
+        val response = get("/admin/me")
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+        assertEquals("FORBIDDEN", response.errorCode())
+    }
+
+    @Test
     fun meTellsTheEnvironmentAndThatResetEmailIsOff() = apiTest(adminConfig) {
         userAndAdmin()
         val me = get("/admin/me").data().jsonObject
