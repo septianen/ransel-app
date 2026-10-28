@@ -13,12 +13,15 @@ import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
 import app.ransel.server.security.TokenService
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.domain.fewestTransfers
 import app.ransel.shared.domain.guestNameProblem
 import app.ransel.shared.domain.sameNameMember
 import app.ransel.shared.dto.GuestIdentityDto
 import app.ransel.shared.dto.GuestIdentityRequest
 import app.ransel.shared.dto.GuestMemberDto
+import app.ransel.shared.dto.GuestMoneyDto
 import app.ransel.shared.dto.GuestPageDto
+import app.ransel.shared.dto.GuestTransferDto
 import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.VotePollRequest
@@ -49,7 +52,8 @@ import java.util.UUID
  * The guest page (PRD "Sharing to WhatsApp"). A link code leads to a trip: a poll's share code (/p/) or a live invite
  * code (/j/, "Lihat tanpa akun"). A guest is a member without an account; the browser proves which one with a token,
  * of which only the hash is stored. One browser per member: a second browser gets GUEST_NAME_TAKEN until the OWNER
- * releases the name. Guests see names, dates and polls, never amounts, phones or emails.
+ * releases the name. Guests see names, dates and polls, and only their own amounts ("Bagianmu"); never other
+ * members' balances, phones, emails or payment info.
  */
 object GuestService {
     private val random = SecureRandom()
@@ -198,6 +202,28 @@ object GuestService {
                 .where { (PersonalItems.ownerMemberId eq me) and PersonalItems.deletedAt.isNull() }
                 .orderBy(PersonalItems.category to SortOrder.ASC, PersonalItems.sortOrder to SortOrder.ASC)
                 .map { it.toPersonalItemDto() },
+            myMoney = me?.let { myMoney(target.tripId, it, trip[Trips.baseCurrency]) },
+        )
+    }
+
+    /**
+     * [me]'s own balance and the "Supaya lunas" transfers involving [me], through the same `BalanceService.compute`
+     * and `fewestTransfers` as `GET /balances`. Null when [me] has no part in any expense or settlement.
+     */
+    private fun myMoney(tripId: UUID, me: UUID, base: String): GuestMoneyDto? {
+        val balances = BalanceService.compute(tripId, base)
+        val mine = balances.firstOrNull { it.memberId == me.toString() } ?: return null
+        if (mine.paidMinor == 0L && mine.shareMinor == 0L && mine.balanceMinor == 0L) return null
+        val transfers = fewestTransfers(balances).filter { it.fromMemberId == mine.memberId || it.toMemberId == mine.memberId }
+        // memberNames also knows members who left but still appear in old expenses
+        val names = memberNames(transfers.flatMap { listOf(UUID.fromString(it.fromMemberId), UUID.fromString(it.toMemberId)) })
+            .mapKeys { it.key.toString() }
+        return GuestMoneyDto(
+            baseCurrency = base,
+            paidMinor = mine.paidMinor,
+            shareMinor = mine.shareMinor,
+            balanceMinor = mine.balanceMinor,
+            transfers = transfers.map { GuestTransferDto(it.fromMemberId, names[it.fromMemberId].orEmpty(), it.toMemberId, names[it.toMemberId].orEmpty(), it.amountMinor) },
         )
     }
 

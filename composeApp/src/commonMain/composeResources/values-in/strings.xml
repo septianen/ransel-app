@@ -1387,6 +1387,15 @@
     <string name="guest_link_off_title">Link ini sudah tidak aktif</string>
     <string name="guest_link_off_body">Minta link baru ke yang membagikannya.</string>
     <string name="guest_retry">Coba lagi</string>
+    <string name="guest_money_title">Bagianmu</string>
+    <string name="guest_money_share">Bagianmu dari pengeluaran</string>
+    <string name="guest_money_paid">Sudah kamu bayar</string>
+    <string name="guest_money_collect">Kamu dapat kembali %1$s</string>
+    <string name="guest_money_owe">Kamu perlu bayar %1$s</string>
+    <string name="guest_money_even">Kamu sudah impas</string>
+    <string name="guest_money_pay_to">Kamu perlu bayar %1$s ke %2$s</string>
+    <string name="guest_money_get_from">%1$s perlu bayar %2$s ke kamu</string>
+    <string name="guest_money_note">Sudah bayar? Minta %1$s menandainya lunas.</string>
     <string name="poll_share">Bagikan</string>
     <string name="poll_share_title_new">Polling sudah dibuat</string>
     <string name="poll_share_title">Bagikan polling</string>

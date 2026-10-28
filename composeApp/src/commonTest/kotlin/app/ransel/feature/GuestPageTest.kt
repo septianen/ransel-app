@@ -57,6 +57,7 @@ private fun pageJson(code: String, me: Boolean) = """{"data":{"code":"$code","tr
     "startDate":"2026-11-20","endDate":"2026-11-23","ownerName":"Septian",
     "members":[{"memberId":"s","name":"Septian","hasAccount":true},{"memberId":"b","name":"Bima","hasAccount":false}],
     ${if (me) "\"me\":{\"memberId\":\"b\",\"name\":\"Bima\",\"hasAccount\":false}," else ""}
+    ${if (me) "\"myMoney\":{\"baseCurrency\":\"IDR\",\"paidMinor\":0,\"shareMinor\":30000,\"balanceMinor\":-30000,\"transfers\":[{\"fromMemberId\":\"b\",\"fromName\":\"Bima\",\"toMemberId\":\"s\",\"toName\":\"Septian\",\"amountMinor\":30000}]}," else ""}
     "focusPollId":${if (code == "POLL01") "\"p1\"" else "null"},
     "polls":[{"id":"p1","tripId":"t1","kind":"CUSTOM","question":"Makan di mana?","createdByMemberId":"s","createdByName":"Septian",
       "createdAt":"2026-10-26T00:00:00Z","closesAt":"2099-01-01T00:00:00Z","status":"OPEN","memberCount":2,
@@ -104,9 +105,15 @@ class GuestPageTest {
         eventually { vm.state.value.page != null }
         assertTrue(vm.state.value.choosingName)
         assertEquals(listOf("Bima"), vm.state.value.pickable.map { it.name })
+        assertNull(vm.state.value.page?.myMoney, "no money before a name is picked")
 
         vm.pick("b")
         eventually { vm.state.value.me != null }
+        // "Bagianmu": the guest's own balance and transfer come with the page
+        eventually { vm.state.value.page?.myMoney != null }
+        val money = vm.state.value.page!!.myMoney!!
+        assertEquals(-30_000L, money.balanceMinor)
+        assertEquals("Septian", money.transfers.single().toName)
         assertEquals("tok-1", prefs.getString(GuestPageViewModel.tokenKey("t1")))
 
         vm.toggle(vm.state.value.page!!.polls.single(), "o1")

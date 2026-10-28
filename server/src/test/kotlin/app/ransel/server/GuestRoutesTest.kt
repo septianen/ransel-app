@@ -164,6 +164,54 @@ class GuestRoutesTest {
     }
 
     @Test
+    fun aGuestSeesOnlyTheirOwnShareOfTheExpenses() = apiTest {
+        val trip = guestTrip()
+        val owner = trip.owner.memberId(trip.id)
+        val rina = UUID.randomUUID().toString()
+        post("/trips/${trip.id}/members", """{"id":"$rina","displayName":"Rina","phone":"6281234567890"}""")
+        val dewi = UUID.randomUUID().toString()
+        post("/trips/${trip.id}/members", """{"id":"$dewi","displayName":"Dewi"}""")
+        val splits = listOf(owner, trip.bima, rina).joinToString(",") { """{"memberId":"$it","shareMinor":30000}""" }
+        val expense = post(
+            "/trips/${trip.id}/expenses",
+            """{"id":"${UUID.randomUUID()}","amountMinor":90000,"currency":"IDR","spentAt":"2026-11-20T05:00:00Z","paidByMemberId":"$owner","splits":[$splits]}""",
+        )
+        assertEquals(HttpStatusCode.Created, expense.status, expense.bodyAsText())
+
+        // no name picked: no money
+        assertNull(guest(HttpMethod.Get, "/guest/${trip.code}").data().jsonObject.obj("myMoney"))
+
+        val token = guest(HttpMethod.Post, "/guest/${trip.code}/identity", body = """{"memberId":"${trip.bima}"}""").data().jsonObject.str("token")
+        val page = guest(HttpMethod.Get, "/guest/${trip.code}", token).data().jsonObject
+        val money = page.obj("myMoney")!!
+        assertEquals("IDR", money.str("baseCurrency"))
+        assertEquals(0L, money.str("paidMinor").toLong())
+        assertEquals(30_000L, money.str("shareMinor").toLong())
+        assertEquals(-30_000L, money.str("balanceMinor").toLong())
+        // only Bima's own transfer; Rina's debt to the owner stays hidden
+        val transfer = money.getValue("transfers").jsonArray.single().jsonObject
+        assertEquals(trip.bima, transfer.str("fromMemberId"))
+        assertEquals("Bima", transfer.str("fromName"))
+        assertEquals(owner, transfer.str("toMemberId"))
+        assertEquals(30_000L, transfer.str("amountMinor").toLong())
+        val ownerName = page.getValue("members").jsonArray.map { it.jsonObject }.single { it.str("memberId") == owner }.str("name")
+        assertEquals(ownerName, transfer.str("toName"))
+        assertTrue("6281234567890" !in page.toString() && rina !in money.toString(), "no phones, no other members' money")
+
+        // the owner records Bima's payment ("Tandai lunas"): Bima is even and the card stays with the share
+        val settled = post("/trips/${trip.id}/settlements", """{"id":"${UUID.randomUUID()}","fromMemberId":"${trip.bima}","toMemberId":"$owner","amountMinor":30000}""")
+        assertEquals(HttpStatusCode.Created, settled.status, settled.bodyAsText())
+        val even = guest(HttpMethod.Get, "/guest/${trip.code}", token).data().jsonObject.obj("myMoney")!!
+        assertEquals(0L, even.str("balanceMinor").toLong())
+        assertEquals(30_000L, even.str("shareMinor").toLong())
+        assertTrue(even.getValue("transfers").jsonArray.isEmpty())
+
+        // a guest with no part in any expense gets no card
+        val dewiToken = guest(HttpMethod.Post, "/guest/${trip.code}/identity", body = """{"memberId":"$dewi"}""").data().jsonObject.str("token")
+        assertNull(guest(HttpMethod.Get, "/guest/${trip.code}", dewiToken).data().jsonObject.obj("myMoney"))
+    }
+
+    @Test
     fun crawlersGetOpenGraphTags() = apiTest {
         val trip = guestTrip()
         val poll = guest(HttpMethod.Get, "/og/p/${trip.code}")
