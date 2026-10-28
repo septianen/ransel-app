@@ -58,7 +58,10 @@ class RecapViewModel(
     init {
         viewModelScope.launch {
             combine(trips.observeTrip(tripId), itinerary.observe(tripId), expenses.observe(tripId)) { trip, items, costs ->
-                trip to trip?.let { tripRecap(it.startDate, it.endDate, it.baseCurrency, items, costs, it.zone()) }
+                // a trip without dates has no recap (the entry points are hidden too)
+                val start = trip?.startDate
+                val end = trip?.endDate
+                trip to if (trip != null && start != null && end != null) tripRecap(start, end, trip.baseCurrency, items, costs, trip.zone()) else null
             }.collect { (trip, recap) -> _state.update { it.copy(trip = trip, recap = recap) } }
         }
         if (session.user != null) {

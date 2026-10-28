@@ -31,8 +31,9 @@ data class ExploreForm(
     val tripId: String,
     val tripTitle: String,
     val destination: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
+    /** Null for a trip without dates ("Tanggal belum pasti"). */
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
     val priceLevel: PriceLevel = PriceLevel.MEDIUM,
     val interests: List<Interest> = emptyList(),
     /** Ticked "Khas <destination>" chips, sent as `extraInterests`. */

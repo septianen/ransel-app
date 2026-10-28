@@ -299,7 +299,7 @@ private fun ReceiptResult(
             ) {
                 Symbol(Symbols.calendarMonth, size = 18.dp, tint = scheme.primary)
                 Text(
-                    dates.weekdayDayMonth(day) + if (day.year != trip.startDate.year) " ${day.year}" else "",
+                    dates.weekdayDayMonth(day) + if (day.year != (trip.startDate ?: today()).year) " ${day.year}" else "",
                     style = MaterialTheme.typography.bodyMedium, color = scheme.primary,
                 )
             }

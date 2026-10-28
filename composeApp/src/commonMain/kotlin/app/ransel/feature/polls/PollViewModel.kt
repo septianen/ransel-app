@@ -131,7 +131,7 @@ class PollViewModel(
                     _state.update {
                         it.copy(
                             currency = trip.baseCurrency, myRole = trip.myRole, destination = trip.destination,
-                            tripNights = trip.startDate.daysUntil(trip.endDate),
+                            tripNights = trip.startDate?.let { start -> trip.endDate?.let { start.daysUntil(it) } } ?: 0,
                             tripStart = trip.startDate, tripEnd = trip.endDate, tripPlace = trip.destinationPlace,
                             tripTitle = trip.title, tripZone = trip.zone(),
                         )

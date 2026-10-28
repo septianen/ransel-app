@@ -53,8 +53,8 @@ class TripTemplatesViewModel(
         }
     }
 
-    /** Fills the new trip; [done] runs when everything is written. */
-    fun applyTo(tripId: String, start: LocalDate, end: LocalDate, done: () -> Unit) {
+    /** Fills the new trip; [done] runs when everything is written. Without dates every activity is unscheduled. */
+    fun applyTo(tripId: String, start: LocalDate?, end: LocalDate?, done: () -> Unit) {
         val template = _state.value.chosen ?: return done()
         viewModelScope.launch {
             val fill = startFromTemplate(template, start, end, ::newId)

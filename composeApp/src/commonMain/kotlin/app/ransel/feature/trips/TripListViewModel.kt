@@ -88,7 +88,7 @@ class TripListViewModel(
                     val all = cards.toList()
                     TripListUiState.Content(
                         ongoing = all.filter { it.trip.phase(today) == TripPhase.ONGOING }.sortedBy { it.trip.endDate },
-                        upcoming = all.filter { it.trip.phase(today) == TripPhase.UPCOMING }.sortedBy { it.trip.startDate },
+                        upcoming = all.filter { it.trip.phase(today) == TripPhase.UPCOMING }.sortedWith(compareBy(upcomingOrder) { it.trip }),
                         finished = all.filter { it.trip.phase(today) == TripPhase.FINISHED }
                             .sortedByDescending { it.trip.endDate },
                         today = today,

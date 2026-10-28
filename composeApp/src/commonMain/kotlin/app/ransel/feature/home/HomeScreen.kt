@@ -69,6 +69,7 @@ import ransel.composeapp.generated.resources.home_empty_action
 import ransel.composeapp.generated.resources.home_empty_body
 import ransel.composeapp.generated.resources.home_empty_title
 import ransel.composeapp.generated.resources.home_prep_days_filled
+import ransel.composeapp.generated.resources.home_prep_ideas
 import ransel.composeapp.generated.resources.home_prep_items_ready
 import ransel.composeapp.generated.resources.home_explore_body
 import ransel.composeapp.generated.resources.home_explore_cta
@@ -281,7 +282,7 @@ private fun FeaturedTripCard(state: HomeUiState.Content, dates: DateFormatter, o
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val range = dates.range(trip.startDate, trip.endDate)
+                val range = dates.tripRange(trip.startDate, trip.endDate)
                 Text(
                     if (state.firstDayCount > 0) {
                         stringResource(Res.string.home_trip_meta_day1, range, state.firstDayCount)
@@ -322,14 +323,16 @@ private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSe
             )
         }
         Row {
+            // a trip without dates has no days to fill yet: its place ideas count instead
+            val undated = trip.startDate == null || trip.endDate == null
             PrepColumn(
                 modifier = Modifier.weight(1f),
                 symbol = Symbols.map,
                 tile = IrisTheme.accents.teal,
-                valueText = "${summary.daysFilled}",
-                totalText = "/${summary.daysTotal}",
-                fraction = fractionOf(summary.daysFilled.toLong(), summary.daysTotal.toLong()),
-                label = stringResource(Res.string.home_prep_days_filled),
+                valueText = if (undated) "${summary.unscheduledCount}" else "${summary.daysFilled}",
+                totalText = if (undated) "" else "/${summary.daysTotal}",
+                fraction = if (undated) 0f else fractionOf(summary.daysFilled.toLong(), summary.daysTotal.toLong()),
+                label = stringResource(if (undated) Res.string.home_prep_ideas else Res.string.home_prep_days_filled),
                 onClick = { onOpen(TripSection.ITINERARY) },
             )
             PrepColumn(

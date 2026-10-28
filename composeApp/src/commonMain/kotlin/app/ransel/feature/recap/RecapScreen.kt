@@ -115,7 +115,9 @@ fun RecapScreen(
             }
             val trip = state.trip
             val recap = state.recap
-            if (trip != null && recap != null) {
+            val start = trip?.startDate
+            val end = trip?.endDate
+            if (trip != null && recap != null && start != null && end != null) {
                 // the card is drawn into a layer as well, which becomes the shared picture
                 Box(
                     Modifier.widthIn(max = 480.dp).drawWithContent {
@@ -123,7 +125,7 @@ fun RecapScreen(
                         drawLayer(layer)
                     },
                 ) {
-                    RecapCard(trip.title, trip.startDate, trip.endDate, trip.baseCurrency, recap, state.members, state.openTransfers)
+                    RecapCard(trip.title, start, end, trip.baseCurrency, recap, state.members, state.openTransfers)
                 }
                 Column(Modifier.widthIn(max = 480.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = share, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {

@@ -179,7 +179,7 @@ fun ExpensesTab(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
-                                    if (group.date < trip.startDate) {
+                                    if (trip.startDate?.let { group.date < it } == true) {
                                         stringResource(Res.string.expenses_before_trip)
                                     } else {
                                         dates.fullWeekdayDayMonth(group.date)

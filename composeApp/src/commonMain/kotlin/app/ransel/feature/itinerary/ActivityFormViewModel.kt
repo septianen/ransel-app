@@ -74,16 +74,19 @@ class ActivityFormViewModel(
     init {
         viewModelScope.launch {
             val trip: TripDto? = trips.observeTrip(tripId).first()
-            val days = trip?.let { t -> (0..t.startDate.daysUntil(t.endDate)).map { t.startDate.plusDays(it) } }.orEmpty()
+            // a trip without dates has no days: its activities are unscheduled ideas only
+            val start = trip?.startDate
+            val end = trip?.endDate
+            val days = if (start != null && end != null) (0..start.daysUntil(end)).map { start.plusDays(it) } else emptyList()
             val item = itemId?.let { id -> itinerary.observe(tripId).first().firstOrNull { it.id == id } }
             original = item
             _state.update { s ->
                 if (item == null) {
-                    s.copy(loading = false, tripTitle = trip?.title.orEmpty(), days = days, day = s.day ?: days.firstOrNull())
+                    s.copy(loading = false, tripTitle = trip?.title.orEmpty(), days = days, day = (s.day ?: days.firstOrNull())?.takeIf { it in days })
                 } else {
                     s.copy(
                         loading = false, tripTitle = trip?.title.orEmpty(), days = days,
-                        title = item.title, category = item.category, day = item.dayDate,
+                        title = item.title, category = item.category, day = item.dayDate?.takeIf { days.isNotEmpty() },
                         start = item.startTime, end = item.endTime, placeName = item.placeName.orEmpty(),
                         notes = item.notes.orEmpty(), bookingUrl = item.bookingUrl.orEmpty(),
                     )

@@ -416,14 +416,22 @@ private fun TripsCard(trips: List<AdminTripDto>) {
                 rows = trips.map { trip ->
                     listOf<@Composable () -> Unit>(
                         { Text(trip.destination, style = body, fontWeight = FontWeight.Bold) },
-                        { Text(format.dateRange(trip.startDate, trip.endDate), style = body, color = scheme.onSurfaceVariant) },
+                        {
+                            // a trip whose dates are still being polled has none: "—"
+                            val start = trip.startDate
+                            val end = trip.endDate
+                            Text(if (start != null && end != null) format.dateRange(start, end) else "—", style = body, color = scheme.onSurfaceVariant)
+                        },
                         { Text(roleLabel(trip.role), style = body) },
                         { Text(format.number(trip.memberCount), style = body) },
                         { Text(format.number(trip.itemCount), style = body) },
                         {
+                            val start = trip.startDate
+                            val end = trip.endDate
                             when {
-                                today < trip.startDate -> Pill(stringResource(Res.string.trip_upcoming), scheme.tertiaryContainer, scheme.onTertiaryContainer)
-                                today > trip.endDate -> Pill(stringResource(Res.string.trip_finished), scheme.surfaceContainer, scheme.onSurfaceVariant)
+                                // no dates yet = still being planned
+                                start == null || end == null || today < start -> Pill(stringResource(Res.string.trip_upcoming), scheme.tertiaryContainer, scheme.onTertiaryContainer)
+                                today > end -> Pill(stringResource(Res.string.trip_finished), scheme.surfaceContainer, scheme.onSurfaceVariant)
                                 else -> Pill(stringResource(Res.string.trip_ongoing), scheme.primaryContainer, scheme.onPrimaryContainer)
                             }
                         },

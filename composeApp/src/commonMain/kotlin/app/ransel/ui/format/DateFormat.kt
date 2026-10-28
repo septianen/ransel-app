@@ -10,6 +10,7 @@ import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.deadline_time
 import ransel.composeapp.generated.resources.months_full
 import ransel.composeapp.generated.resources.months_short
+import ransel.composeapp.generated.resources.trip_dates_not_set
 import ransel.composeapp.generated.resources.weekdays_full
 import ransel.composeapp.generated.resources.weekdays_short
 
@@ -25,6 +26,8 @@ class DateFormatter(
     private val monthsFull: List<String>,
     private val weekdaysShort: List<String>,
     private val weekdaysFull: List<String>,
+    /** "Tanggal belum ditetapkan": the dates of a trip that has none yet. */
+    private val noDates: String = "",
 ) {
     private fun month(d: LocalDate) = monthsShort.getOrNull(d.month.ordinal) ?: (d.month.ordinal + 1).toString()
     fun weekdayShort(d: LocalDate) = weekdaysShort.getOrNull(d.dayOfWeek.ordinal) ?: ""
@@ -52,6 +55,10 @@ class DateFormatter(
         start.month != end.month -> "${dayMonth(start)} – ${dayMonthYear(end)}"
         else -> "${start.day}–${end.day} ${month(end)} ${end.year}"
     }
+
+    /** A trip's dates: the [range], or "Tanggal belum ditetapkan" for a trip without dates. */
+    fun tripRange(start: LocalDate?, end: LocalDate?): String =
+        if (start != null && end != null) range(start, end) else noDates
 }
 
 @Composable
@@ -60,8 +67,9 @@ fun rememberDateFormatter(): DateFormatter {
     val monthsFull = stringArrayResource(Res.array.months_full)
     val weekdaysShort = stringArrayResource(Res.array.weekdays_short)
     val weekdaysFull = stringArrayResource(Res.array.weekdays_full)
-    return remember(monthsShort, monthsFull, weekdaysShort, weekdaysFull) {
-        DateFormatter(monthsShort, monthsFull, weekdaysShort, weekdaysFull)
+    val noDates = org.jetbrains.compose.resources.stringResource(Res.string.trip_dates_not_set)
+    return remember(monthsShort, monthsFull, weekdaysShort, weekdaysFull, noDates) {
+        DateFormatter(monthsShort, monthsFull, weekdaysShort, weekdaysFull, noDates)
     }
 }
 
