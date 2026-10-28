@@ -109,7 +109,7 @@ class DomainTest {
         assertTrue(checkPassword("rahasia123").isValid)
         assertTrue(!checkPassword("pendek1").isValid)
         val code = generateInviteCode("Bali 4 hari", Random(42))
-        assertTrue(code.matches(Regex("^BALI-[2-9A-HJKMNP-Z]{4}$")), code)
+        assertTrue(code.matches(Regex("^BALI-[2-9A-HJKMNP-Z]{8}$")), code)
         assertEquals("https://ransel.mietek.tech/j/$code", inviteUrl(code))
     }
 }

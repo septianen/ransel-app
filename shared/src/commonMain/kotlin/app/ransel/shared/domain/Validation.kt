@@ -36,12 +36,19 @@ fun validateTrip(title: String, startDate: LocalDate, endDate: LocalDate, baseCu
 /** No look-alikes: 0/O, 1/I/L removed. */
 private const val INVITE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"
 
-/** "Bali 4 hari" → "BALI-7K2Q". Prefix = first word, letters only, max 8, fallback "TRIP". */
+/** Random part of a new code: 31^8 ≈ 8.5 × 10^11, too many to guess even with the prefix known. */
+const val INVITE_SUFFIX_LENGTH = 8
+
+/**
+ * "Bali 4 hari" → "BALI-7K2QM9XA". Prefix = first word, letters only, max 8, fallback "TRIP". The prefix is easy to
+ * guess, so only the suffix protects the trip: the server passes a secure [random]. Codes made before 28 Oct 2026
+ * have a 4-character suffix and stay valid; nothing parses the length.
+ */
 fun generateInviteCode(tripTitle: String, random: Random = Random.Default): String {
     val prefix = tripTitle.trim().split(Regex("\\s+")).firstOrNull()
         ?.filter { it in 'a'..'z' || it in 'A'..'Z' }?.uppercase()?.take(8)
         ?.takeIf { it.length >= 2 } ?: "TRIP"
-    val suffix = (1..4).map { INVITE_ALPHABET[random.nextInt(INVITE_ALPHABET.length)] }.joinToString("")
+    val suffix = (1..INVITE_SUFFIX_LENGTH).map { INVITE_ALPHABET[random.nextInt(INVITE_ALPHABET.length)] }.joinToString("")
     return "$prefix-$suffix"
 }
 

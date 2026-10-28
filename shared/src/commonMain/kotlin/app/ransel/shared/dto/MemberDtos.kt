@@ -65,7 +65,7 @@ data class CreateInviteRequest(
 
 @Serializable
 data class InviteDto(
-    /** e.g. "BALI-7K2Q" (domain.generateInviteCode). */
+    /** e.g. "BALI-7K2QM9XA" (domain.generateInviteCode; older codes have a 4-character suffix). */
     val code: String,
     val tripId: String,
     val role: Role,
