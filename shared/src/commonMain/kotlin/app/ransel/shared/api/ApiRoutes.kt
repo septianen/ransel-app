@@ -57,7 +57,7 @@ object ApiRoutes {
     const val AUTH_EMAIL_VERIFY = "/auth/email/verify"             // POST VerifyEmailRequest → VerifyEmailResponse (no token needed; the link is the proof)
     const val AUTH_EMAIL_RESEND = "/auth/email/resend"             // POST (bearer) → 204, sends a new link and voids older ones; 204 too when already verified
     const val ME = "/me"                                           // GET MeDto, PATCH UpdateMeRequest
-    const val SYNC = "/sync"                                       // GET ?since=<ISO instant> → SyncPullResponse, POST SyncPushRequest → SyncPushResponse
+    const val SYNC = "/sync"                                       // GET ?since=<ISO instant>&tripLimit=&afterTripId= → SyncPullResponse (paging in its KDoc), POST SyncPushRequest → SyncPushResponse
 
     // Phase 4 ─ members, invites, balances, templates
     fun invites(tripId: String) = "/trips/$tripId/invites"         // GET list InviteDto, POST CreateInviteRequest (OWNER)

@@ -67,10 +67,22 @@ data class SyncRejection(
     val message: String? = null,
 )
 
-/** GET /sync?since= */
+/** Most trips one page of GET /sync may cover; a larger `tripLimit` is lowered to this. */
+const val SYNC_MAX_TRIPS_PER_PAGE = 50
+
+/**
+ * GET /sync?since=&tripLimit=&afterTripId=
+ *
+ * Paging (optional, so an older app still gets everything at once): with `tripLimit` the response covers the changes
+ * of at most that many of the user's trips, in trip id order, starting after `afterTripId`. While [nextTripId] is set,
+ * ask again with the same `since` and `afterTripId = nextTripId`. Keep the [serverTime] of the FIRST page and store it
+ * as lastSyncAt only after the last page, so nothing that changed while paging is skipped.
+ */
 @Serializable
 data class SyncPullResponse(
     val changes: SyncChanges,
-    /** Store as lastSyncAt and send as `since` next time. */
+    /** Store as lastSyncAt and send as `since` next time (from the first page when paging). */
     val serverTime: Timestamp,
+    /** Set when more trips follow: the `afterTripId` of the next page. Null on the last (or only) page. */
+    val nextTripId: String? = null,
 )
