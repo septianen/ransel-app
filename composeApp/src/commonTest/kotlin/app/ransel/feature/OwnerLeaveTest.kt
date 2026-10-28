@@ -141,7 +141,16 @@ class OwnerLeaveTest {
         val dialog = assertIs<MembersDialog.PickNewOwner>(vm.state.value.dialog)
         // editors first, then viewers; never me, never a person added by name
         assertEquals(listOf("Dinda", "Maya"), dialog.candidates.map { it.displayName })
-        assertEquals("u2", dialog.selected)
+        assertEquals(null, dialog.selected)
+    }
+
+    @Test
+    fun nothingHappensUntilANewOwnerIsPicked() = runTest {
+        val vm = vm(api())
+        vm.askLeave()
+        vm.confirmDialog()
+        assertIs<MembersDialog.PickNewOwner>(vm.state.value.dialog)
+        assertTrue(calls.isEmpty())
     }
 
     @Test
@@ -166,7 +175,7 @@ class OwnerLeaveTest {
         val vm = vm(api())
         vm.askLeave()
         vm.pickNewOwner(vm.state.value.members.first { it.isGuest })
-        assertEquals("u2", (vm.state.value.dialog as MembersDialog.PickNewOwner).selected)
+        assertEquals(null, (vm.state.value.dialog as MembersDialog.PickNewOwner).selected)
     }
 
     @Test
@@ -183,6 +192,7 @@ class OwnerLeaveTest {
     fun aFailedTransferDoesNotLeave() = runTest {
         val vm = vm(api(transferStatus = HttpStatusCode.Forbidden))
         vm.askLeave()
+        vm.pickNewOwner(vm.state.value.members.first { it.displayName == "Dinda" })
         vm.confirmDialog()
         assertEquals(MembersEvent.Problem("FORBIDDEN"), vm.nextEvent())
         assertEquals(listOf("POST /api/v1/trips/$TRIP/transfer-ownership"), calls)
@@ -195,6 +205,7 @@ class OwnerLeaveTest {
     fun aFailedLeaveAfterTheTransferReportsTheProblem() = runTest {
         val vm = vm(api(leaveStatus = HttpStatusCode.ServiceUnavailable))
         vm.askLeave()
+        vm.pickNewOwner(vm.state.value.members.first { it.displayName == "Dinda" })
         vm.confirmDialog()
         assertEquals(MembersEvent.Problem(ErrorCode.NETWORK_UNAVAILABLE), vm.nextEvent())
         assertEquals(2, calls.size)

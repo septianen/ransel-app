@@ -42,6 +42,8 @@ fun ConfirmDialog(
     symbol: String? = null,
     /** Non-null = the confirm action waits for something: a [LoadingButton] that cannot be pressed while true, and the dialog cannot be closed. */
     confirmLoading: Boolean? = null,
+    /** False = the confirm button is disabled (e.g. nothing picked yet in [extra]). */
+    confirmEnabled: Boolean = true,
     extra: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val busy = confirmLoading == true
@@ -76,6 +78,7 @@ fun ConfirmDialog(
                 LoadingButton(
                     onClick = onConfirm,
                     loading = confirmLoading,
+                    enabled = confirmEnabled,
                     colors = if (destructive) {
                         ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
                     } else {
@@ -85,6 +88,7 @@ fun ConfirmDialog(
             } else {
                 TextButton(
                     onClick = onConfirm,
+                    enabled = confirmEnabled,
                     colors = if (destructive) {
                         ButtonDefaults.textButtonColors(
                             containerColor = MaterialTheme.colorScheme.error,

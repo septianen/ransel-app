@@ -740,6 +740,7 @@ private fun NewOwnerDialog(
         destructive = true,
         symbol = Symbols.logout,
         confirmLoading = leaving,
+        confirmEnabled = dialog.selected != null,
         extra = { NewOwnerOptions(dialog, enabled = !leaving, onPick = onPick) },
     )
 }

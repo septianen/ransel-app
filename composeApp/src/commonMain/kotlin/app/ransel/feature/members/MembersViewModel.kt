@@ -263,9 +263,9 @@ class MembersViewModel(
     private fun leaveDialog(state: MembersUiState): MembersDialog {
         if (!state.isOwner) return MembersDialog.Leave
         val candidates = newOwnerCandidates(state.members, state.myUserId)
-        // Preselect the first one (editors before viewers, then by join time) so confirming is one tap.
+        // Nobody is preselected: the owner must choose (owner, 28 Oct 2026); confirm stays disabled until then.
         return if (candidates.isEmpty()) MembersDialog.NoNewOwner
-        else MembersDialog.PickNewOwner(candidates, candidates.first().userId)
+        else MembersDialog.PickNewOwner(candidates, selected = null)
     }
 
     fun pickNewOwner(member: TripMemberDto) = _state.update { state ->
