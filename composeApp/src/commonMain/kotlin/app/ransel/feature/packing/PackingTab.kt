@@ -486,7 +486,7 @@ internal fun PackingProgressCard(
         Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(scheme.surfaceContainerHigh)) {
             Box(Modifier.fillMaxWidth(percent / 100f).height(8.dp).clip(CircleShape).background(scheme.primary))
         }
-        if (trip.phase(today) == TripPhase.UPCOMING) {
+        if (trip.phase(today) == TripPhase.UPCOMING && trip.startDate != null) {
             Text(
                 stringResource(Res.string.packing_departs, countdownLabel(trip.daysUntilStart(today))),
                 style = MaterialTheme.typography.bodyMedium,

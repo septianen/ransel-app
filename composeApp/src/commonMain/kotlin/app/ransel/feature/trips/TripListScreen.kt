@@ -250,7 +250,7 @@ private fun OngoingCard(card: TripCardData, state: TripListUiState.Content, date
                 )
                 Text(
                     stringResource(Res.string.trip_day_of, trip.dayNumber(state.today), trip.totalDays()) +
-                        " · " + dates.range(trip.startDate, trip.endDate),
+                        " · " + dates.tripRange(trip.startDate, trip.endDate),
                     style = MaterialTheme.typography.bodyMedium,
                     color = onPrimary,
                 )
@@ -284,7 +284,7 @@ private fun OngoingCard(card: TripCardData, state: TripListUiState.Content, date
 @Composable
 private fun UpcomingCard(card: TripCardData, state: TripListUiState.Content, dates: DateFormatter, onClick: () -> Unit) {
     val trip = card.trip
-    val soon = trip.daysUntilStart(state.today) < 60
+    val soon = (trip.daysUntilStart(state.today) ?: Int.MAX_VALUE) < 60
     Row(
         Modifier
             .fillMaxWidth()
@@ -301,7 +301,7 @@ private fun UpcomingCard(card: TripCardData, state: TripListUiState.Content, dat
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(trip.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                dates.range(trip.startDate, trip.endDate),
+                dates.tripRange(trip.startDate, trip.endDate),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -371,7 +371,7 @@ private fun FinishedRow(card: TripCardData, dates: DateFormatter, onClick: () ->
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                dates.range(trip.startDate, trip.endDate),
+                dates.tripRange(trip.startDate, trip.endDate),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

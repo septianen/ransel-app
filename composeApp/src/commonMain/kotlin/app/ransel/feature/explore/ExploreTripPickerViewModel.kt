@@ -69,7 +69,7 @@ class ExploreTripPickerViewModel(
         // The server only lets editors and owners search; finished trips cannot be searched either (422 TRIP_ENDED).
         val list = all
             .filter { it.myRole.atLeast(Role.EDITOR) && it.phase(today) != TripPhase.FINISHED }
-            .sortedWith(compareBy({ it.phase(today) != TripPhase.ONGOING }, { if (it.phase(today) == TripPhase.ONGOING) it.endDate else it.startDate }))
+            .sortedWith(compareBy({ it.phase(today) != TripPhase.ONGOING }, { it.startDate == null }, { if (it.phase(today) == TripPhase.ONGOING) it.endDate else it.startDate }))
         if (list.isEmpty()) flowOf(emptyList())
         else combine(list.map { trip -> trips.observeSummary(trip.id) }) { summaries ->
             list.mapIndexed { i, trip -> ExplorePickerTrip(trip, trip.phase(today), summaries[i]) }

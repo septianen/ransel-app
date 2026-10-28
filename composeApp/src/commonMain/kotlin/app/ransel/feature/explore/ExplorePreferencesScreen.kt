@@ -251,8 +251,8 @@ private fun PreferencesForm(
     }
     if (showDates) {
         TripDateRangePicker(
-            start = state.startDate,
-            end = state.endDate,
+            start = state.startDate ?: app.ransel.util.today(),
+            end = state.endDate ?: state.startDate ?: app.ransel.util.today(),
             onConfirm = { s, e -> vm.setDates(s, e); showDates = false },
             onDismiss = { showDates = false },
             earliest = app.ransel.util.today(),
@@ -274,7 +274,8 @@ private fun TripCard(state: ExplorePreferencesState, onChange: () -> Unit) {
             Text(stringResource(Res.string.explore_for_trip), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
             Text(state.tripTitle, style = MaterialTheme.typography.titleMedium, maxLines = 1)
             Text(
-                "${state.tripDestination} · ${dates.range(state.startDate, state.endDate)} · " + pluralStringResource(Res.plurals.explore_days, state.days, state.days),
+                "${state.tripDestination} · ${dates.tripRange(state.startDate, state.endDate)}" +
+                    if (state.hasDates) " · " + pluralStringResource(Res.plurals.explore_days, state.days, state.days) else "",
                 style = MaterialTheme.typography.bodyMedium,
                 color = scheme.onSurfaceVariant,
             )
@@ -301,7 +302,7 @@ private fun DatesField(state: ExplorePreferencesState, onClick: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Symbol(Symbols.calendarMonth, tint = scheme.onSurfaceVariant)
-            Text(dates.range(state.startDate, state.endDate), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Text(dates.tripRange(state.startDate, state.endDate), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
             Text(pluralStringResource(Res.plurals.explore_days, state.days, state.days), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
         }
     }

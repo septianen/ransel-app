@@ -89,6 +89,14 @@ import ransel.composeapp.generated.resources.trip_save_changes
 import ransel.composeapp.generated.resources.trip_shorten_hint
 import ransel.composeapp.generated.resources.trip_start_date
 import ransel.composeapp.generated.resources.trips_create
+import ransel.composeapp.generated.resources.trip_form_create_with_poll
+import ransel.composeapp.generated.resources.trip_form_pick_dates
+import ransel.composeapp.generated.resources.trip_form_poll_failed_body
+import ransel.composeapp.generated.resources.trip_form_poll_failed_ok
+import ransel.composeapp.generated.resources.trip_form_poll_failed_title
+import app.ransel.feature.polls.DatePollSetupSheet
+import app.ransel.feature.polls.defaultQuestion
+import app.ransel.shared.model.PollKind
 
 /** Create trip (`tripId == null`) and Edit trip. One screen, like the two designs share one layout. */
 @Composable
@@ -105,12 +113,18 @@ fun TripFormScreen(
     val templates: TripTemplatesViewModel? = if (tripId == null) koinViewModel(key = "trip-templates") else null
     val templateState = templates?.state?.collectAsState()?.value
     var templateSheet by rememberSaveable { mutableStateOf(false) }
+    val pollQuestion = PollKind.DATE.defaultQuestion()
+    LaunchedEffect(pollQuestion) { viewModel.prefillPollQuestion(pollQuestion) }
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
                 is TripFormEvent.Saved -> if (templates != null) {
                     val s = viewModel.state.value
-                    templates.applyTo(event.tripId, s.startDate, s.endDate) { onSaved(event.tripId) }
+                    // a trip made without dates takes the template as unscheduled ideas
+                    val undecided = s.datesUndecided && s.canAskDates
+                    templates.applyTo(
+                        event.tripId, s.startDate.takeUnless { undecided }, s.endDate.takeUnless { undecided },
+                    ) { onSaved(event.tripId) }
                 } else {
                     onSaved(event.tripId)
                 }
@@ -129,7 +143,13 @@ fun TripFormScreen(
         onBack = onClose,
         navigationSymbol = Symbols.close,
         navigationDescription = stringResource(Res.string.trip_close),
-        saveLabel = stringResource(if (state.isEditing) Res.string.trip_save_changes else Res.string.trips_create),
+        saveLabel = stringResource(
+            when {
+                state.isEditing -> Res.string.trip_save_changes
+                state.datesUndecided -> Res.string.trip_form_create_with_poll
+                else -> Res.string.trips_create
+            },
+        ),
         onSave = viewModel::save,
         saveEnabled = !state.loading,
         saving = state.saving,
@@ -161,27 +181,34 @@ fun TripFormScreen(
             TemplateField(templateState.chosen) { templateSheet = true }
         }
 
-        // Dates
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // "Tanggal belum pasti" (signed in, new trip): a DATE poll instead of the dates
+        if (state.canAskDates) UndatedSwitchRow(state.datesUndecided, viewModel::onDatesUndecided)
+        if (state.datesUndecided) {
+            DatePollDraftCard(state.pollOptions, state.pollClosingDays, state.pollError, onEdit = viewModel::openPollSheet)
+        } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Dates (an undated trip being edited shows "Pilih tanggal" until a range is picked)
+            val start = state.startDate
+            val end = state.endDate
+            val pick = stringResource(Res.string.trip_form_pick_dates)
             Text(stringResource(Res.string.trip_dates), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DateButton(
                     symbol = Symbols.flightTakeoff,
-                    text = dates.weekdayDayMonth(state.startDate),
+                    text = start?.let(dates::weekdayDayMonth) ?: pick,
                     description = stringResource(Res.string.trip_start_date),
                     modifier = Modifier.weight(1f),
                     onClick = { showDates = true },
                 )
                 DateButton(
                     symbol = Symbols.flightLand,
-                    text = dates.weekdayDayMonth(state.endDate),
+                    text = end?.let(dates::weekdayDayMonth) ?: pick,
                     description = stringResource(Res.string.trip_end_date),
                     modifier = Modifier.weight(1f),
                     onClick = { showDates = true },
                 )
             }
-            val days = state.startDate.daysUntil(state.endDate) + 1
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (start != null && end != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                val days = start.daysUntil(end) + 1
                 Symbol(Symbols.calendarMonth, size = 18.dp, filled = true, tint = MaterialTheme.colorScheme.primary)
                 Text(
                     if (days <= 1) stringResource(Res.string.trip_duration_one)
@@ -190,7 +217,7 @@ fun TripFormScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (state.isEditing) {
+            if (state.isEditing && state.savedStartDate != null) {
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -270,8 +297,8 @@ fun TripFormScreen(
 
     if (showDates) {
         TripDateRangePicker(
-            start = state.startDate,
-            end = state.endDate,
+            start = state.startDate ?: app.ransel.util.today(),
+            end = state.endDate ?: state.startDate ?: app.ransel.util.today(),
             onConfirm = { s, e ->
                 viewModel.onDatesChange(s, e)
                 showDates = false
@@ -279,6 +306,29 @@ fun TripFormScreen(
             onDismiss = { showDates = false },
             // no day before today; a trip under way may keep the start it already has
             earliest = minOf(app.ransel.util.today(), state.savedStartDate ?: app.ransel.util.today()),
+        )
+    }
+    if (state.pollSheet) {
+        DatePollSetupSheet(
+            options = state.pollOptions,
+            closingDays = state.pollClosingDays,
+            currency = state.currency,
+            onClosingDays = viewModel::onPollClosingDays,
+            onSaveOption = viewModel::savePollOption,
+            onRemoveOption = viewModel::removePollOption,
+            onDismiss = viewModel::closePollSheet,
+        )
+    }
+    if (state.pollFailedTripId != null) {
+        // the trip is saved either way: one button, and closing the dialog goes on too
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = viewModel::acknowledgePollFailure,
+            icon = { Symbol(Symbols.info, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            title = { Text(stringResource(Res.string.trip_form_poll_failed_title)) },
+            text = { Text(stringResource(Res.string.trip_form_poll_failed_body)) },
+            confirmButton = {
+                TextButton(onClick = viewModel::acknowledgePollFailure) { Text(stringResource(Res.string.trip_form_poll_failed_ok)) }
+            },
         )
     }
     if (showCurrency) {

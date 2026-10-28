@@ -98,6 +98,9 @@ import ransel.composeapp.generated.resources.group_signin_title
 import ransel.composeapp.generated.resources.members_count
 import ransel.composeapp.generated.resources.members_you
 import ransel.composeapp.generated.resources.role_editor
+import ransel.composeapp.generated.resources.group_date_poll_body
+import ransel.composeapp.generated.resources.group_date_poll_start
+import app.ransel.ui.components.DatePollCard
 import ransel.composeapp.generated.resources.role_owner
 import ransel.composeapp.generated.resources.role_viewer
 
@@ -128,6 +131,8 @@ fun GroupTab(
     onOpenDocuments: () -> Unit = {},
     /** "Ajak teman" on a solo trip (the OWNER); null = not offered. */
     onInvite: (() -> Unit)? = null,
+    /** "Mulai polling tanggal" on a trip without dates and no open DATE poll (OWNER, EDITOR); null = not offered. */
+    onStartDatePoll: (() -> Unit)? = null,
     viewModel: GroupViewModel = koinViewModel(key = "group-${trip.id}") { parametersOf(trip.id) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -157,6 +162,7 @@ fun GroupTab(
         documentCount = state.documentCount,
         solo = state.solo && trip.myRole == Role.OWNER,
         onInvite = onInvite,
+        onStartDatePoll = onStartDatePoll,
     )
 }
 
@@ -187,14 +193,24 @@ fun GroupContent(
     documentCount: Int? = null,
     solo: Boolean = false,
     onInvite: (() -> Unit)? = null,
+    onStartDatePoll: (() -> Unit)? = null,
 ) {
     val dates = rememberDateFormatter()
-    val pollNeeds = polls.mapNotNull { poll -> poll.needFor(myMemberId, isOwner)?.let { poll to it } }
+    // a trip without dates shows its open DATE poll as a card under the countdown (design ItineraryPolling), not twice
+    val undated = trip.startDate == null || trip.endDate == null
+    val datePoll = if (undated) polls.filter { it.kind == PollKind.DATE && it.isOpen }.maxByOrNull { it.createdAt } else null
+    val listedPolls = polls.filter { it.id != datePoll?.id }
+    val pollNeeds = listedPolls.mapNotNull { poll -> poll.needFor(myMemberId, isOwner)?.let { poll to it } }
     Column(
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).padding(bottom = 72.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        CountdownCard(countdown = countdownFor(trip, today), tripTitle = trip.title, dates = dates.range(trip.startDate, trip.endDate))
+        CountdownCard(countdown = countdownFor(trip, today), tripTitle = trip.title, dates = dates.tripRange(trip.startDate, trip.endDate))
+        if (signedIn && datePoll != null) {
+            DatePollCard(poll = datePoll, mine = datePoll.createdByMemberId == myMemberId, onOpen = { onOpenPoll(datePoll.id) })
+        } else if (signedIn && undated && onStartDatePoll != null) {
+            StartDatePollCard(onStartDatePoll)
+        }
 
         if (!signedIn) {
             SignInCard()
@@ -240,7 +256,7 @@ fun GroupContent(
         // finished ones only behind "Riwayat voting".
         val actionRounds = rounds.actionRounds(isOwner, now).toSet()
         val ongoing = votingEntries(
-            polls.filter { it.status != PollStatus.DECIDED && it.needFor(myMemberId, isOwner) == null },
+            listedPolls.filter { it.status != PollStatus.DECIDED && it.needFor(myMemberId, isOwner) == null },
             rounds.filter { roundState(now, it.closesAt, it.decidedAt) != RoundState.DECIDED && it !in actionRounds },
         )
         Section(stringResource(Res.string.group_votings_ongoing)) {
@@ -443,9 +459,29 @@ private fun CountdownCard(countdown: Countdown, tripTitle: String, dates: String
         is Countdown.Upcoming -> countdownLabel(countdown.days)
         is Countdown.Ongoing -> stringResource(Res.string.group_countdown_ongoing, countdown.day, countdown.totalDays)
         Countdown.Finished -> stringResource(Res.string.group_countdown_finished)
+        Countdown.NoDates -> countdownLabel(null)
     }
     HeroCard(label = tripTitle, value = label, symbol = Symbols.calendarMonth) {
         Text(dates, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimary)
+    }
+}
+
+/** A trip without dates and no DATE poll yet (e.g. it could not be made offline): "Mulai polling tanggal". */
+@Composable
+private fun StartDatePollCard(onStart: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().clip(IrisShape.lg).background(MaterialTheme.colorScheme.surfaceContainerLow).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            stringResource(Res.string.group_date_poll_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        androidx.compose.material3.Button(onClick = onStart, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Symbol(Symbols.eventAvailable, size = 20.dp, tint = MaterialTheme.colorScheme.onPrimary)
+            Text(stringResource(Res.string.group_date_poll_start), Modifier.padding(start = 8.dp))
+        }
     }
 }
 
@@ -565,6 +601,16 @@ private fun GroupTabMoneyNeedsPreview() = IrisPreview {
             ),
         ),
         now = Instant.parse("2026-11-02T00:00:00Z"),
+    )
+}
+
+@Preview
+@Composable
+private fun GroupTabUndatedPreview() = IrisPreview {
+    GroupContent(
+        previewTrip.copy(startDate = null, endDate = null), LocalDate(2026, 11, 2), previewMembers.take(1), signedIn = true, myUserId = "u1",
+        polls = emptyList(), myMemberId = "m1", isOwner = true,
+        hasNeeds = false, needs = {}, onOpenMembers = {}, onOpenPoll = {}, solo = true, onInvite = {}, onStartDatePoll = {},
     )
 }
 

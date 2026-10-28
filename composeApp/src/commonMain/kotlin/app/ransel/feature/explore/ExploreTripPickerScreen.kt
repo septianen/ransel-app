@@ -152,12 +152,15 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
                         TripCover(trip.id, Modifier.size(56.dp))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(trip.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(dates.range(trip.startDate, trip.endDate), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+                            Text(dates.tripRange(trip.startDate, trip.endDate), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
                             Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 val days = trip.daysUntilStart(today())
                                 Text(
-                                    if (row.phase == TripPhase.ONGOING) stringResource(Res.string.trips_ongoing)
-                                    else pluralStringResource(Res.plurals.explore_picker_in_days, days, days),
+                                    when {
+                                        row.phase == TripPhase.ONGOING -> stringResource(Res.string.trips_ongoing)
+                                        days == null -> app.ransel.feature.trips.countdownLabel(null)
+                                        else -> pluralStringResource(Res.plurals.explore_picker_in_days, days, days)
+                                    },
                                     Modifier.clip(IrisShape.xs).background(scheme.surfaceVariant).padding(horizontal = 8.dp, vertical = 2.dp),
                                     style = MaterialTheme.typography.labelMedium,
                                 )

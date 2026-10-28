@@ -1526,4 +1526,46 @@
     <string name="activity_delete_body">This activity is removed from the itinerary and cannot be brought back.</string>
     <string name="activity_delete_confirm">Delete</string>
     <string name="itinerary_remove_from_list">Remove from list</string>
+    <string name="trip_dates_not_set">Dates not set yet</string>
+    <string name="trip_countdown_no_dates">Dates to be decided</string>
+    <string name="date_poll_card_title">%1$s asks you to pick the dates</string>
+    <string name="date_poll_card_title_mine">Your date poll is open</string>
+    <string name="date_poll_card_pick">Pick dates</string>
+    <string name="date_poll_card_open">See poll</string>
+    <string name="itinerary_undated_hint">The trip\'s days appear once the dates are set. Until then, keep your place ideas below.</string>
+    <string name="itinerary_undated_empty">No place ideas yet. Tap + to add one.</string>
+    <string name="itinerary_add_idea">Add a place idea</string>
+    <string name="group_date_poll_body">Let the group pick the dates in a poll. The trip\'s days appear once the dates are set.</string>
+    <string name="group_date_poll_start">Start a date poll</string>
+    <string name="trip_form_undated">Dates not decided yet</string>
+    <string name="trip_form_undated_hint">Ask your friends with a date poll</string>
+    <string name="trip_form_poll_edit">Edit</string>
+    <string name="trip_form_poll_add">Add</string>
+    <string name="trip_form_poll_empty">Add 2–5 date options for your friends to pick from.</string>
+    <string name="trip_form_poll_error">Add 2–5 date options, starting today or later.</string>
+    <string name="trip_form_undated_info">The trip is created now. The itinerary and packing can be filled in day by day once the dates are set; until then every idea goes to “Unscheduled”.</string>
+    <string name="trip_form_create_with_poll">Create trip and share the poll</string>
+    <string name="trip_form_poll_sheet_title">Date poll</string>
+    <string name="trip_form_poll_sheet_done">Done</string>
+    <string name="trip_form_poll_failed_title">The date poll was not created</string>
+    <string name="trip_form_poll_failed_body">Your trip is saved. Start the date poll from Overview once you are online.</string>
+    <string name="trip_form_poll_failed_ok">Continue</string>
+    <string name="trip_form_pick_dates">Pick dates</string>
+    <plurals name="date_poll_options">
+        <item quantity="one">%1$d option</item>
+        <item quantity="other">%1$d options</item>
+    </plurals>
+    <plurals name="date_poll_closes_days">
+        <item quantity="one">closes in %1$d day</item>
+        <item quantity="other">closes in %1$d days</item>
+    </plurals>
+    <plurals name="date_poll_closes_hours">
+        <item quantity="one">closes in %1$d hour</item>
+        <item quantity="other">closes in %1$d hours</item>
+    </plurals>
+    <plurals name="trip_form_poll_options">
+        <item quantity="one">%1$d date option</item>
+        <item quantity="other">%1$d date options</item>
+    </plurals>
+    <string name="home_prep_ideas">place ideas</string>
 </resources>

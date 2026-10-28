@@ -157,8 +157,8 @@ fun ActivityFormScreen(
             }
         }
 
-        // Day
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Day (none on a trip without dates: everything is unscheduled until the dates are set)
+        if (state.days.isNotEmpty()) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(Res.string.activity_day), style = MaterialTheme.typography.labelLarge)
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),

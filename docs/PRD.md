@@ -181,7 +181,7 @@ These close the gaps found when RANSEL is used by a group where not everyone has
 | P0 | Join from the invite link without signing in | WebGabungPratinjau | Built (guest page) |
 | P0 | Group-first onboarding and an invite step after creating a trip | OnboardingGrup1–3, AjakTeman | Built |
 | P0 | Payment info, reminders and "I've paid" | SaldoTagih, IngatkanWA, BayarKe, InfoPembayaran | Built |
-| P1 | Date poll | BuatPolling, PollingTanggal | Built; a trip without dates ("Tanggal belum pasti", BuatTripTanggalBelumPasti) is not built yet |
+| P1 | Date poll | BuatPolling, PollingTanggal, BuatTripTanggalBelumPasti, ItineraryPolling | Built, including a trip without dates ("Tanggal belum pasti") in the app; the server side follows the contract of 28 Oct 2026 |
 | P1 | Shared packing items (who brings what) | PackingBersama, TambahBarangBersama | Built |
 | P1 | Group kitty (iuran) | KasBersama, CatatSetoran | Removed 27 Oct 2026 |
 | P2 | Receipt photo with split per item | FotoStruk, HasilStruk | Built |
@@ -219,7 +219,8 @@ These close the gaps found when RANSEL is used by a group where not everyone has
 - The owner or an editor creates a date poll with 2–5 date ranges (none before today) and a closing time; members tick every range they can make, multiple choice by default.
 - Members without an account vote from the guest link. The creator sees who has not voted and can remind them through WhatsApp.
 - The creator or the owner confirms a range, which sets the trip dates (activities on removed days become unscheduled).
-- Not built yet: creating a trip with "Tanggal belum pasti" (no days until the poll is decided); a trip always has dates today.
+- A signed-in user can create a trip with "Tanggal belum pasti" (built in the app, 28 Oct 2026): instead of the dates, Buat trip takes the 2–5 ranges and the closing time (1–3 days) of a DATE poll; "Buat trip dan bagikan polling" saves the trip without dates, makes the poll once the trip reached the server, and opens Ajak teman. If the poll cannot be made (offline), the trip stays and Ringkasan offers "Mulai polling tanggal". A guest always picks dates (polls need an account).
+- Until the dates are set the trip has no days: the header says "Tanggal belum ditetapkan", Itinerary shows the open date poll and only "Belum dijadwalkan" (+ adds an idea), the activity form has no day picker, there is no countdown or recap, and the trip counts as upcoming (after the dated ones). Edit trip can give it dates with the range picker.
 
 ### P1 · Shared packing items
 
@@ -410,4 +411,4 @@ Added on 24 Oct 2026 with the group trip features:
 - [x] Storage limit per trip for documents (200 MB, 20 MB per file), kept while the trip exists.
 - [x] Kitty in a trip with several currencies: moot, the kitty was removed.
 - [ ] Whether a member without an account can be removed after expenses were recorded for them.
-- [ ] Group-first onboarding, the invite step after Buat trip, and trips without dates (P0/P1 not built yet).
+- [ ] Group-first onboarding, the invite step after Buat trip, and trips without dates (P0/P1; trips without dates built in the app 28 Oct 2026).

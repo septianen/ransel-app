@@ -137,7 +137,8 @@ fun ExpenseSheet(
     val tz = remember(trip.timeZone) { trip.zone() }
     val dates = rememberDateFormatter()
     val defaultDate = remember {
-        today().takeIf { it >= trip.startDate && it <= trip.endDate } ?: trip.startDate
+        // today inside the trip, else its first day; a trip without dates just takes today
+        today().takeIf { it.inTrip(trip) } ?: trip.startDate ?: today()
     }
     val existingLocal = remember(existing) { existing?.spentAt?.toLocalDateTime(tz) }
 
@@ -235,11 +236,11 @@ fun ExpenseSheet(
     // what the form started with, to ask "Buang perubahan?" only when something changed
     val initial = remember { listOf(currency, amountText, category, note, date, method, rateText) to split?.snapshot() }
     val dirty = initial != (listOf(currency, amountText, category, note, date, method, rateText) to split?.snapshot())
-    val dayNumber = trip.startDate.daysUntil(date) + 1
+    val dayNumber = trip.startDate?.daysUntil(date)?.plus(1) ?: 0
 
     AdaptiveFormScreen(
         title = stringResource(if (existing == null) Res.string.expenses_record else Res.string.expense_sheet_edit_title),
-        subtitle = if (date >= trip.startDate && date <= trip.endDate) {
+        subtitle = if (date.inTrip(trip)) {
             stringResource(Res.string.expense_sheet_subtitle_day, trip.title, dayNumber)
         } else {
             trip.title
@@ -501,4 +502,11 @@ private fun PickerButton(
         Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 1)
         if (trailingChevron) Symbol(Symbols.expandMore, size = 20.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+/** True when the day is one of the trip's days (never for a trip without dates). */
+private fun LocalDate.inTrip(trip: TripDto): Boolean {
+    val start = trip.startDate ?: return false
+    val end = trip.endDate ?: return false
+    return this in start..end
 }

@@ -72,8 +72,8 @@ class RoomTripRepository(
         val stamp = now().toMillis()
         val entity = TripEntity(
             id = request.id, ownerId = currentUserId(), title = request.title.trim(),
-            destination = request.destination.trim(), startDate = request.startDate.toString(),
-            endDate = request.endDate.toString(), baseCurrency = request.baseCurrency,
+            destination = request.destination.trim(), startDate = request.startDate?.toString(),
+            endDate = request.endDate?.toString(), baseCurrency = request.baseCurrency,
             budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
             createdAt = stamp, updatedAt = stamp, deletedAt = null,
             countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone,
@@ -88,7 +88,7 @@ class RoomTripRepository(
             db.tripDao().upsert(
                 current.copy(
                     title = request.title.trim(), destination = request.destination.trim(),
-                    startDate = request.startDate.toString(), endDate = request.endDate.toString(),
+                    startDate = request.startDate?.toString(), endDate = request.endDate?.toString(),
                     baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
                     updatedAt = stamp, syncState = SyncState.PENDING,
                 ).let {

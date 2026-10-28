@@ -1,5 +1,6 @@
 package app.ransel.data.repository
 
+import app.ransel.shared.domain.dayFitsTrip
 import app.ransel.shared.domain.summarizeExpenses
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ItineraryItemDto
@@ -26,12 +27,11 @@ fun buildTripSummary(
     val livePacking = packing.filter { it.deletedAt == null }
     val liveExpenses = expenses.filter { it.deletedAt == null }
     val money = summarizeExpenses(trip.baseCurrency, trip.budgetMinor, liveExpenses, timeZone)
-    val days = trip.startDate.daysUntil(trip.endDate) + 1
+    // A trip without dates has no days yet (every item is unscheduled): 0 of 0.
+    val days = trip.startDate?.let { start -> trip.endDate?.let { end -> start.daysUntil(end) + 1 } } ?: 0
     return TripSummaryDto(
         daysTotal = days,
-        daysFilled = scheduled.mapNotNull { it.dayDate }.distinct().count {
-            it >= trip.startDate && it <= trip.endDate
-        },
+        daysFilled = scheduled.mapNotNull { it.dayDate }.distinct().count { dayFitsTrip(it, trip.startDate, trip.endDate) },
         activityCount = scheduled.size,
         unscheduledCount = liveItems.size - scheduled.size,
         packingTotal = livePacking.size,

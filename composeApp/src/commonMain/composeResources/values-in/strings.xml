@@ -1518,4 +1518,42 @@
     <string name="activity_delete_body">Kegiatan ini hilang dari itinerary dan tidak bisa dikembalikan.</string>
     <string name="activity_delete_confirm">Hapus</string>
     <string name="itinerary_remove_from_list">Hapus dari daftar</string>
+    <string name="trip_dates_not_set">Tanggal belum ditetapkan</string>
+    <string name="trip_countdown_no_dates">Tanggal belum pasti</string>
+    <string name="date_poll_card_title">%1$s minta kamu pilih tanggal</string>
+    <string name="date_poll_card_title_mine">Polling tanggalmu sedang berjalan</string>
+    <string name="date_poll_card_pick">Pilih tanggal</string>
+    <string name="date_poll_card_open">Lihat polling</string>
+    <string name="itinerary_undated_hint">Hari-hari trip muncul setelah tanggal ditetapkan. Sampai saat itu, simpan dulu ide tempat di bawah.</string>
+    <string name="itinerary_undated_empty">Belum ada ide tempat. Ketuk + untuk menambah.</string>
+    <string name="itinerary_add_idea">Tambah ide tempat</string>
+    <string name="group_date_poll_body">Ajak grup memilih tanggal lewat polling. Hari-hari trip muncul setelah tanggal ditetapkan.</string>
+    <string name="group_date_poll_start">Mulai polling tanggal</string>
+    <string name="trip_form_undated">Tanggal belum pasti</string>
+    <string name="trip_form_undated_hint">Tanya teman lewat polling tanggal</string>
+    <string name="trip_form_poll_edit">Ubah</string>
+    <string name="trip_form_poll_add">Tambah</string>
+    <string name="trip_form_poll_empty">Tambah 2–5 pilihan tanggal untuk dipilih teman.</string>
+    <string name="trip_form_poll_error">Isi 2–5 pilihan tanggal, mulai hari ini atau sesudahnya.</string>
+    <string name="trip_form_undated_info">Trip dibuat sekarang. Itinerary dan packing bisa diisi per hari setelah tanggal ditetapkan; sebelum itu semua ide masuk ke “Belum dijadwalkan”.</string>
+    <string name="trip_form_create_with_poll">Buat trip dan bagikan polling</string>
+    <string name="trip_form_poll_sheet_title">Polling tanggal</string>
+    <string name="trip_form_poll_sheet_done">Selesai</string>
+    <string name="trip_form_poll_failed_title">Polling tanggal belum dibuat</string>
+    <string name="trip_form_poll_failed_body">Trip-mu sudah tersimpan. Mulai polling tanggal dari Ringkasan saat kamu online.</string>
+    <string name="trip_form_poll_failed_ok">Lanjut</string>
+    <string name="trip_form_pick_dates">Pilih tanggal</string>
+    <plurals name="date_poll_options">
+        <item quantity="other">%1$d pilihan</item>
+    </plurals>
+    <plurals name="date_poll_closes_days">
+        <item quantity="other">tutup %1$d hari lagi</item>
+    </plurals>
+    <plurals name="date_poll_closes_hours">
+        <item quantity="other">tutup %1$d jam lagi</item>
+    </plurals>
+    <plurals name="trip_form_poll_options">
+        <item quantity="other">%1$d pilihan tanggal</item>
+    </plurals>
+    <string name="home_prep_ideas">ide tempat</string>
 </resources>

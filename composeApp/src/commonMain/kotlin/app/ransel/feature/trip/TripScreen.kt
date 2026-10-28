@@ -140,7 +140,7 @@ fun TripScreen(
                 // abroad or in WITA/WIT the header says how far local time is from WIB
                 dates = current?.let { trip ->
                     val zone = trip.timeZone?.takeIf { z -> (app.ransel.shared.domain.minutesFromWib(z, kotlin.time.Clock.System.now()) ?: 0) != 0 }
-                    dates.range(trip.startDate, trip.endDate) + (zone?.let { z -> " · " + zoneCity(z) + ", " + zoneDifferenceText(z).orEmpty() } ?: "")
+                    dates.tripRange(trip.startDate, trip.endDate) + (zone?.let { z -> " · " + zoneCity(z) + ", " + zoneDifferenceText(z).orEmpty() } ?: "")
                 }.orEmpty(),
                 selectedTab = tab,
                 onTabSelected = { tab = it },
@@ -186,6 +186,7 @@ fun TripScreen(
                             onOpenVotingHistory = onOpenVotingHistory,
                             onOpenDocuments = { onOpenDocuments(false) },
                             onInvite = if (isOwner) ({ inviteSheetOpen = true }) else null,
+                            onStartDatePoll = if (canAsk) ({ onCreatePoll(PollKind.DATE) }) else null,
                             refreshKey = refreshCount,
                         )
                         TripTab.ITINERARY -> ItineraryTab(
@@ -193,6 +194,7 @@ fun TripScreen(
                             onExplore = if (signedIn) onExplore else null,
                             // The place text lives on the server: guests have no account to ask it with.
                             onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
+                            onOpenPoll = if (signedIn) onOpenPoll else null,
                         )
                         TripTab.PACKING -> PackingTab(current)
                         TripTab.EXPENSES -> ExpensesTab(current, refreshKey = refreshCount, onOpenPaymentMethods = onOpenPaymentMethods)

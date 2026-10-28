@@ -211,7 +211,7 @@ private fun TripHeader(page: GuestPageDto, invite: Boolean) {
             color = scheme.onSurfaceVariant,
         )
         if (invite) Text(page.tripTitle, style = MaterialTheme.typography.headlineMedium)
-        Text(listOf(dates.range(page.startDate, page.endDate), page.destination).filter { it.isNotBlank() }.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        Text(listOf(dates.tripRange(page.startDate, page.endDate), page.destination).filter { it.isNotBlank() }.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
     }
 }
 

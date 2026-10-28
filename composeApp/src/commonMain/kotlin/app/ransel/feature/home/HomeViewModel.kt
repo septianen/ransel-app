@@ -62,7 +62,7 @@ class HomeViewModel(
                     HomeUiState.Content(
                         trip = featured,
                         summary = summary,
-                        firstDayCount = items.count { it.dayDate == featured.startDate },
+                        firstDayCount = featured.startDate?.let { first -> items.count { it.dayDate == first } } ?: 0,
                         today = today,
                         // a trip someone else owns is shared by definition; otherwise the summary (web) or the server count
                         isGroup = featured.myRole != Role.OWNER || maxOf(summary.memberCount, counts[featured.id] ?: 0) > 1,
@@ -83,8 +83,10 @@ class HomeViewModel(
     val recapTrip: StateFlow<TripDto?> = trips.observeTrips()
         .map { list ->
             val today = today()
-            list.filter { app.ransel.shared.domain.recapAvailable(it.endDate, today) && it.endDate >= today.minus(kotlinx.datetime.DatePeriod(days = RECAP_CARD_DAYS)) }
-                .maxByOrNull { it.endDate }
+            val since = today.minus(kotlinx.datetime.DatePeriod(days = RECAP_CARD_DAYS))
+            // recapAvailable is false without dates, so every trip left here has an end date
+            list.mapNotNull { trip -> trip.endDate?.takeIf { app.ransel.shared.domain.recapAvailable(it, today) && it >= since }?.let { trip to it } }
+                .maxByOrNull { it.second }?.first
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

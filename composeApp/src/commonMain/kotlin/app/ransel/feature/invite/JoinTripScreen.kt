@@ -199,7 +199,7 @@ fun JoinTripContent(
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(preview.tripTitle, style = MaterialTheme.typography.titleMedium, maxLines = 2)
                             Text(
-                                dates.range(preview.startDate, preview.endDate),
+                                dates.tripRange(preview.startDate, preview.endDate),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )

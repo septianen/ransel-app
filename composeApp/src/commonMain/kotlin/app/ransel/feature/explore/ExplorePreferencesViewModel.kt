@@ -62,8 +62,9 @@ data class ExplorePreferencesState(
     val destinationPlace: TripPlaceDto? = null,
     /** Country, local currency and zone of the picked destination (new trip). */
     val locale: app.ransel.shared.domain.TripLocale? = null,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
+    /** An existing trip without dates ("Tanggal belum pasti") has none; a new trip always has both. */
+    val startDate: LocalDate?,
+    val endDate: LocalDate?,
     /** null = follow the default "Trip ke <destination>". */
     val tripName: String? = null,
     val priceLevel: PriceLevel = PriceLevel.MEDIUM,
@@ -82,9 +83,10 @@ data class ExplorePreferencesState(
     val memberCount: Int = 1,
     val showErrors: Boolean = false,
 ) {
-    val days: Int get() = startDate.daysUntil(endDate) + 1
+    val days: Int get() = if (startDate != null && endDate != null) startDate.daysUntil(endDate) + 1 else 0
+    val hasDates: Boolean get() = startDate != null && endDate != null
     val hasInterest: Boolean get() = interests.isNotEmpty() || extraInterests.isNotEmpty()
-    val tripReady: Boolean get() = destination.isNotBlank() && (if (newTrip) endDate >= startDate else !loading)
+    val tripReady: Boolean get() = destination.isNotBlank() && (if (newTrip) startDate != null && endDate != null && endDate >= startDate else !loading)
     val canSearch: Boolean get() = tripReady && hasInterest
 }
 
@@ -172,7 +174,7 @@ class ExplorePreferencesViewModel(
 
     private fun requestSuggestions(debounce: Boolean) {
         val s = _state.value
-        val query = SuggestionsQuery(tripId, s.destination, s.startDate.monthKey(), debounce, nonce++)
+        val query = SuggestionsQuery(tripId, s.destination, (s.startDate ?: today()).monthKey(), debounce, nonce++)
         // Blur right after the debounce already loaded this exact query: nothing to do.
         if (!debounce && query.key == lastKey) return
         queries.value = query
@@ -245,7 +247,7 @@ class ExplorePreferencesViewModel(
     fun onDestinationBlur() = requestSuggestions(debounce = false)
 
     fun setDates(start: LocalDate, end: LocalDate) {
-        val monthChanged = start.monthKey() != _state.value.startDate.monthKey()
+        val monthChanged = start.monthKey() != _state.value.startDate?.monthKey()
         _state.update { it.copy(startDate = start, endDate = if (end < start) start else end) }
         if (monthChanged) requestSuggestions(debounce = false)
     }

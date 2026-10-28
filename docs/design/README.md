@@ -370,7 +370,7 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 
 | File | Code name | Board title | Width |
 | --- | --- | --- | --- |
-| `screens/BuatTripTanggalBelumPasti.html` |  | Buat trip: tanggal belum pasti | 390 |
+| `screens/BuatTripTanggalBelumPasti.html` | `TripFormScreen` (`UndatedSwitchRow`, `DatePollDraftCard`, `DatePollSetupSheet`) | Buat trip: tanggal belum pasti | 390 |
 | `screens/BuatPolling.html` |  | Atur polling tanggal (bottom sheet) | 390 |
 | `screens/PollingTanggal.html` |  | Polling tanggal: pilih dan tetapkan | 390 |
 | `screens/PackingBersama.html` | `PackingList` Bersama (`SharedPackingRow`, `SharedSummaryCard`) | Packing: barang bersama | 390 |
@@ -392,7 +392,7 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | File | Code name | Board title | Width |
 | --- | --- | --- | --- |
 | `screens/NotifikasiGrup.html` |  | Notifikasi: polling, bayar, dokumen, rekap | 390 |
-| `screens/ItineraryPolling.html` |  | Itinerary: tanggal masih dipolling (anggota) | 390 |
+| `screens/ItineraryPolling.html` | `UndatedItineraryContent` + `DatePollCard` | Itinerary: tanggal masih dipolling (anggota) | 390 |
 | `screens/PollingTanggalAnggota.html` |  | Polling tanggal: tampilan anggota | 390 |
 | `screens/WebPollingTamu.html` | `GuestPageContent` | Web di HP: polling dari link WhatsApp, tanpa akun | 390 |
 | `screens/TambahPengeluaranPilih.html` | `AddExpenseChooserSheet` | Tambah pengeluaran: pilih cara (tombol +) | 390 |
