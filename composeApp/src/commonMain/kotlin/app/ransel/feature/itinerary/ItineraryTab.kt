@@ -802,7 +802,6 @@ internal fun UnscheduledRow(
                 )
             }
         }
-        PlaceDetailButton(item)
         if (onSchedule != null) {
             // icon only (owner, 27 Oct 2026): the title needs the room; the label is for screen readers
             Box(
@@ -812,6 +811,8 @@ internal fun UnscheduledRow(
                 Symbol(Symbols.eventAvailable, contentDescription = stringResource(Res.string.itinerary_schedule), tint = MaterialTheme.colorScheme.primary)
             }
         }
+        // last, at the right edge (owner, 27 Oct 2026)
+        PlaceDetailButton(item)
     }
 }
 

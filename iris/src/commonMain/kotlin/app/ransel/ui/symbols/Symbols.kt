@@ -56,6 +56,7 @@ object Symbols {
     const val flightLand = "\ue904"
     const val flightTakeoff = "\ue905"
     const val forest = "\uea99"
+    const val frontHand = "\ue769"
     const val groupAdd = "\ue7f0"
     const val help = "\ue8fd"
     const val hiking = "\ue50a"

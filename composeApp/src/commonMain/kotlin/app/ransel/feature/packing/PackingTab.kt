@@ -16,6 +16,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -549,40 +550,52 @@ internal fun PackingRow(
     enabled: Boolean,
     badge: String? = null,
     menu: (@Composable () -> Unit)? = null,
+    /** Replaces the check box (Bersama: the hand of an item nobody brings yet). */
+    leading: (@Composable () -> Unit)? = null,
+    /** A line under the name (Bersama: who brings it). */
+    subtitle: (@Composable () -> Unit)? = null,
+    /** Null for a row a tap does not tick. */
+    role: Role? = Role.Checkbox,
 ) {
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .combinedClickable(enabled = enabled, role = Role.Checkbox, onClick = onToggle, onLongClick = onLongPress),
+            .combinedClickable(enabled = enabled, role = role, onClick = onToggle, onLongClick = onLongPress),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         val packed = item.isPacked
-        Box(
-            Modifier
-                .size(22.dp)
-                .clip(IrisShape.xs)
-                .then(
-                    if (packed) {
-                        Modifier.background(MaterialTheme.colorScheme.primary)
-                    } else {
-                        Modifier.border(2.dp, MaterialTheme.colorScheme.outline, IrisShape.xs)
-                    },
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (packed) Symbol(Symbols.check, size = 16.dp, tint = MaterialTheme.colorScheme.onPrimary)
+        if (leading != null) {
+            leading()
+        } else {
+            Box(
+                Modifier
+                    .size(22.dp)
+                    .clip(IrisShape.xs)
+                    .then(
+                        if (packed) {
+                            Modifier.background(MaterialTheme.colorScheme.primary)
+                        } else {
+                            Modifier.border(2.dp, MaterialTheme.colorScheme.outline, IrisShape.xs)
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (packed) Symbol(Symbols.check, size = 16.dp, tint = MaterialTheme.colorScheme.onPrimary)
+            }
         }
-        Text(
-            item.name,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = if (packed) FontWeight.Normal else FontWeight.SemiBold,
-                textDecoration = if (packed) TextDecoration.LineThrough else TextDecoration.None,
-            ),
-            color = if (packed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                item.name,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = if (packed) FontWeight.Normal else FontWeight.SemiBold,
+                    textDecoration = if (packed) TextDecoration.LineThrough else TextDecoration.None,
+                ),
+                color = if (packed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+            )
+            subtitle?.invoke()
+        }
         app.ransel.ui.components.PendingMarker(item.id)
         if (badge != null) {
             Text(
@@ -636,86 +649,91 @@ private fun SharedSummaryCard(state: PackingUiState, myMemberId: String, onUseTe
 }
 
 /**
- * A Bersama row: nobody brings it yet ("Saya bawa"), or the bringer's avatar and name; only the bringer ticks it.
- * Tapping the bringer opens "Batal bawa" for them, and for editors on anyone's item.
+ * A Bersama row is the same [PackingRow] as every other list (owner, 27 Oct 2026). Left: the check box once someone
+ * brings the item (only the bringer ticks it), or a hand while nobody does: one tap on it is "Saya bawa". The ⋮ menu
+ * is there for every role: "Saya bawa" or "Batal bawa" (the bringer, and editors on anyone's), who brings it for
+ * the others, and "Ubah" / "Hapus" for editors.
  */
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle: () -> Unit, onLongPress: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val bringer = item.assigneeMemberId
     val mine = bringer == shared.myMemberId
-    var menu by remember { mutableStateOf(false) }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            // a tap ticks (only once someone brings it); a long press edits, also before anyone brings it
-            .combinedClickable(
-                enabled = bringer != null || shared.canEdit,
-                role = if (bringer != null) Role.Checkbox else null,
-                onClick = { if (bringer != null) onToggle() },
-                onLongClick = if (shared.canEdit) onLongPress else null,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (bringer != null) {
-            val packed = item.isPacked
-            Box(
-                Modifier.size(22.dp).clip(IrisShape.xs).then(
-                    when {
-                        packed -> Modifier.background(if (mine) scheme.primary else scheme.outline)
-                        else -> Modifier.border(2.dp, if (mine) scheme.outline else scheme.outlineVariant, IrisShape.xs)
-                    },
-                ),
-                contentAlignment = Alignment.Center,
-            ) { if (packed) Symbol(Symbols.check, size = 16.dp, tint = scheme.onPrimary) }
-        }
-        Column(Modifier.weight(1f)) {
-            Text(
-                if (item.quantity > 1 && bringer == null) "${item.name} ×${item.quantity}" else item.name,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    textDecoration = if (item.isPacked) TextDecoration.LineThrough else TextDecoration.None,
-                ),
-                color = if (item.isPacked) scheme.onSurfaceVariant else scheme.onSurface,
-            )
-            // nobody brings it yet: the "Saya bawa" button says so, no extra line (owner, 27 Oct 2026)
-            if (bringer != null) {
-                val member = shared.members.firstOrNull { it.memberId == bringer }
-                Box {
-                    Row(
-                        Modifier.clip(IrisShape.xs).clickable(enabled = mine || shared.canEdit, role = Role.Button) { menu = true }.padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    val member = bringer?.let { id -> shared.members.firstOrNull { it.memberId == id } }
+    val bringerName = member?.displayName.orEmpty()
+    PackingRow(
+        item,
+        // a tap ticks (only once someone brings it); a long press edits, also before anyone brings it
+        onToggle = { if (bringer != null) onToggle() },
+        onLongPress = onLongPress,
+        enabled = bringer != null || shared.canEdit,
+        role = if (bringer != null) Role.Checkbox else null,
+        leading = {
+            Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                if (bringer == null) {
+                    Box(
+                        Modifier.size(40.dp).clip(CircleShape).clickable(role = Role.Button) { shared.onBring(item) },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        app.ransel.ui.components.MemberAvatar(member?.displayName ?: "?", bringer, size = 20.dp)
-                        Text(
-                            if (mine) stringResource(Res.string.packing_bringer_me) else stringResource(Res.string.packing_bringer, member?.displayName.orEmpty()),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.onSurfaceVariant,
-                        )
+                        Symbol(Symbols.frontHand, contentDescription = stringResource(Res.string.packing_bring), tint = scheme.onSurfaceVariant)
                     }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.packing_give_back)) },
-                            leadingIcon = { Symbol(Symbols.close) },
-                            onClick = { menu = false; shared.onGiveBack(item) },
-                        )
-                    }
+                } else {
+                    val packed = item.isPacked
+                    Box(
+                        Modifier.size(22.dp).clip(IrisShape.xs).then(
+                            when {
+                                packed -> Modifier.background(if (mine) scheme.primary else scheme.outline)
+                                else -> Modifier.border(2.dp, if (mine) scheme.outline else scheme.outlineVariant, IrisShape.xs)
+                            },
+                        ),
+                        contentAlignment = Alignment.Center,
+                    ) { if (packed) Symbol(Symbols.check, size = 16.dp, tint = scheme.onPrimary) }
                 }
             }
-        }
-        app.ransel.ui.components.PendingMarker(item.id)
-        if (bringer == null) {
-            androidx.compose.material3.OutlinedButton(onClick = { shared.onBring(item) }, modifier = Modifier.heightIn(min = 40.dp)) {
-                Text(stringResource(Res.string.packing_bring), style = MaterialTheme.typography.labelLarge)
+        },
+        subtitle = if (bringer != null) {
+            {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    app.ransel.ui.components.MemberAvatar(bringerName.ifEmpty { "?" }, bringer, size = 20.dp)
+                    Text(
+                        if (mine) stringResource(Res.string.packing_bringer_me) else stringResource(Res.string.packing_bringer, bringerName),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                    )
+                }
             }
         } else {
-            Text("×${item.quantity}", style = MaterialTheme.typography.titleSmall, color = scheme.onSurfaceVariant)
-        }
-        if (shared.canEdit) ItemMenu(item.name, ownList = false, onEdit = onLongPress, onDelete = { shared.onDelete(item) })
-    }
+            null
+        },
+        menu = {
+            ItemMenu(
+                itemName = item.name,
+                ownList = false,
+                onEdit = if (shared.canEdit) onLongPress else null,
+                onDelete = if (shared.canEdit) ({ shared.onDelete(item) }) else null,
+            ) { close ->
+                when {
+                    bringer == null -> DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.packing_bring)) },
+                        leadingIcon = { Symbol(Symbols.frontHand) },
+                        onClick = { close(); shared.onBring(item) },
+                    )
+                    mine || shared.canEdit -> DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.packing_give_back)) },
+                        leadingIcon = { Symbol(Symbols.close) },
+                        onClick = { close(); shared.onGiveBack(item) },
+                    )
+                    // someone else brings it and this person cannot change that: say who, so the menu is never empty
+                    else -> DropdownMenuItem(
+                        text = { Text(stringResource(Res.string.packing_bringer, bringerName)) },
+                        leadingIcon = { Symbol(Symbols.person) },
+                        enabled = false,
+                        onClick = {},
+                    )
+                }
+            }
+        },
+    )
 }
 
 /**
@@ -723,7 +741,14 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
  * Pribadi); otherwise the confirmation says the item leaves the shared list for everyone.
  */
 @Composable
-internal fun ItemMenu(itemName: String, ownList: Boolean, onEdit: () -> Unit, onDelete: () -> Unit) {
+internal fun ItemMenu(
+    itemName: String,
+    ownList: Boolean,
+    onEdit: (() -> Unit)?,
+    onDelete: (() -> Unit)?,
+    /** Items above Ubah / Hapus (Bersama: Saya bawa, Batal bawa); gets a function that closes the menu. */
+    extra: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
+) {
     val scheme = MaterialTheme.colorScheme
     var open by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -732,16 +757,21 @@ internal fun ItemMenu(itemName: String, ownList: Boolean, onEdit: () -> Unit, on
             Symbol(Symbols.moreVert, tint = scheme.onSurfaceVariant, contentDescription = stringResource(Res.string.packing_item_more))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.packing_item_edit)) },
-                leadingIcon = { Symbol(Symbols.edit) },
-                onClick = { open = false; onEdit() },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.packing_item_delete), color = scheme.error) },
-                leadingIcon = { Symbol(Symbols.delete, tint = scheme.error) },
-                onClick = { open = false; confirmDelete = true },
-            )
+            extra?.invoke(this) { open = false }
+            if (onEdit != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.packing_item_edit)) },
+                    leadingIcon = { Symbol(Symbols.edit) },
+                    onClick = { open = false; onEdit() },
+                )
+            }
+            if (onDelete != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.packing_item_delete), color = scheme.error) },
+                    leadingIcon = { Symbol(Symbols.delete, tint = scheme.error) },
+                    onClick = { open = false; confirmDelete = true },
+                )
+            }
         }
     }
     if (confirmDelete) {
@@ -750,7 +780,7 @@ internal fun ItemMenu(itemName: String, ownList: Boolean, onEdit: () -> Unit, on
             body = stringResource(if (ownList) Res.string.packing_item_delete_body_own else Res.string.packing_item_delete_body),
             confirmLabel = stringResource(Res.string.packing_item_delete_confirm),
             dismissLabel = stringResource(Res.string.action_cancel),
-            onConfirm = { confirmDelete = false; onDelete() },
+            onConfirm = { confirmDelete = false; onDelete?.invoke() },
             onDismiss = { confirmDelete = false },
             destructive = true,
             symbol = Symbols.delete,

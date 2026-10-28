@@ -223,7 +223,7 @@ These close the gaps found when RANSEL is used by a group where not everyone has
 ### P1 · Shared packing items
 
 - Packing has two green tabs: Pribadi (each member's own list) and Bersama (one list for the group).
-- A Bersama item has a quantity and an optional person who brings it. An unassigned item shows a "Saya bawa" button (no extra "Belum ada yang bawa" text since 27 Oct 2026). Only the person who brings an item ticks it as packed; the bringer or an editor gives it back.
+- A Bersama item has a quantity and an optional person who brings it. A Bersama row is the same row as in every other list (27 Oct 2026): a check box once someone brings the item, a raised hand while nobody does (one tap = "Saya bawa"), no extra "Belum ada yang bawa" text. Only the person who brings an item ticks it as packed. Every role has the ⋮ menu: "Saya bawa" or "Batal bawa" (the bringer, and editors on anyone's item, so someone else can take it), a disabled "<name> bawa" line for a viewer on someone else's item, and "Ubah" / "Hapus" for owner and editors.
 - Its summary card ("x dari y sudah ada yang bawa") has a ⋮ menu for the owner and editors with Pakai template and Simpan sebagai template; no "untick all", since the ticks belong to the bringers.
 
 ### P1 · Group kitty (removed)
