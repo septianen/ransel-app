@@ -117,9 +117,9 @@ class SyncService {
     }
 
     fun pull(userId: UUID, since: kotlin.time.Instant?): SyncPullResponse = transaction {
-        // Taken before reading, minus a margin: a concurrent transaction that started earlier but commits
-        // after our snapshot would otherwise fall between two pulls. Re-delivered rows are harmless (LWW).
-        val serverTime = dbNow().minusSeconds(PULL_MARGIN_SECONDS)
+        // Taken before reading: a concurrent transaction that started earlier but commits after our snapshot
+        // would otherwise fall between two pulls. Re-delivered rows are harmless (LWW).
+        val serverTime = pullCursor()
         val sinceJava = since?.toJavaInstant()
 
         val myRoles = TripMembers.selectAll().where { (TripMembers.userId eq userId) and TripMembers.active() }
@@ -562,6 +562,21 @@ class SyncService {
     private fun dbNow(): Instant =
         org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager.current()
             .exec("SELECT now()") { rs -> rs.next(); rs.getTimestamp(1).toInstant() }!!
+
+    /**
+     * The `since` for the next pull. `updated_at` is `now()`, the start of the writing transaction, so a push batch
+     * still running can commit rows stamped before any fixed margin. The cursor therefore never passes the start of
+     * a transaction that is still open (the server is the only client of its database), minus a small margin.
+     */
+    private fun pullCursor(): Instant =
+        org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager.current().exec(
+            """
+            SELECT LEAST(now(), COALESCE(
+                (SELECT min(xact_start) FROM pg_stat_activity
+                  WHERE datname = current_database() AND xact_start IS NOT NULL AND pid <> pg_backend_pid()),
+                now()))
+            """.trimIndent(),
+        ) { rs -> rs.next(); rs.getTimestamp(1).toInstant() }!!.minusSeconds(PULL_MARGIN_SECONDS)
 
     private companion object {
         const val MAX_ROWS = 1000
