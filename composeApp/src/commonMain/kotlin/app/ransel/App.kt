@@ -752,6 +752,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenDocuments = { upload -> navController.navigate(DocumentsRoute(route.tripId, upload)) },
             onOpenRecap = { navController.navigate(RecapRoute(route.tripId)) },
+            onOpenAllTransactions = { navController.navigate(app.ransel.navigation.AllTransactionsRoute(route.tripId)) },
         )
     }
     page<PollRoute> { entry ->
@@ -765,6 +766,10 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onClose = { navController.popBackStack() },
             onNewTrip = { navController.navigate(CreateTripRoute) },
         )
+    }
+    page<app.ransel.navigation.AllTransactionsRoute> { entry ->
+        val route = entry.toRoute<app.ransel.navigation.AllTransactionsRoute>()
+        app.ransel.feature.expenses.AllTransactionsScreen(tripId = route.tripId, onBack = { navController.popBackStack() })
     }
     page<app.ransel.navigation.VotingHistoryRoute> { entry ->
         val route = entry.toRoute<app.ransel.navigation.VotingHistoryRoute>()

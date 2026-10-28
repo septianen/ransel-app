@@ -1556,4 +1556,24 @@
         <item quantity="other">%1$d pilihan tanggal</item>
     </plurals>
     <string name="home_prep_ideas">ide tempat</string>
+
+    <!-- All transactions (not designed yet) -->
+    <string name="transactions_title">Semua transaksi</string>
+    <string name="transactions_filter_all">Semua</string>
+    <string name="transactions_filter_expenses">Pengeluaran</string>
+    <string name="transactions_filter_payments">Pembayaran</string>
+    <string name="transactions_filter_mine">Melibatkan saya</string>
+    <plurals name="transactions_count">
+        <item quantity="other">%1$d transaksi</item>
+    </plurals>
+    <string name="transactions_total_spent">Total pengeluaran %1$s</string>
+    <string name="transactions_total_paid">Total dibayar %1$s</string>
+    <string name="transactions_payment_title">%1$s bayar ke %2$s</string>
+    <string name="transactions_payment_label">Pembayaran</string>
+    <string name="transactions_you">Kamu</string>
+    <string name="transactions_waiting">Menunggu konfirmasi</string>
+    <string name="transactions_payments_offline">Pembayaran antar anggota tidak bisa dimuat. Coba lagi saat online.</string>
+    <string name="transactions_empty_title">Belum ada transaksi</string>
+    <string name="transactions_empty_filtered">Tidak ada transaksi untuk filter ini.</string>
+    <string name="transactions_retry">Coba lagi</string>
 </resources>

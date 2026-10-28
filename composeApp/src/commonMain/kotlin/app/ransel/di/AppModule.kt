@@ -108,6 +108,7 @@ val commonModule: Module = module {
     viewModel { params -> MembersViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> GroupViewModel(params.get(), get(), get()) }
     viewModel { params -> app.ransel.feature.group.VotingHistoryViewModel(params.get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.expenses.AllTransactionsViewModel(params.get(), get(), get(), get(), get()) }
     viewModel { params -> CommentsViewModel(params.get(), get(), get()) }
     // two String parameters: take them by position
     viewModel { params -> PollViewModel(params.get<String>(0), params.get<String>(1), get(), get(), get()) }
