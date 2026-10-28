@@ -18,6 +18,8 @@ import app.ransel.server.db.toTimestamp
 import app.ransel.server.db.toTripDto
 import app.ransel.server.plugins.ApiException
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.domain.dayFitsTrip
+import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.domain.validateTrip
 import app.ransel.shared.domain.validateTripLocale
 import app.ransel.shared.domain.validateTripPlace
@@ -247,8 +249,8 @@ class SyncService {
                 it[ownerId] = userId // never trust the DTO: the caller owns what they create
                 it[title] = dto.title.trim()
                 it[destination] = dto.destination
-                it[startDate] = dto.startDate.toJavaLocalDate()
-                it[endDate] = dto.endDate.toJavaLocalDate()
+                it[startDate] = dto.startDate?.toJavaLocalDate()
+                it[endDate] = dto.endDate?.toJavaLocalDate()
                 it[baseCurrency] = dto.baseCurrency
                 it[budgetMinor] = dto.budgetMinor
                 it[coverUrl] = dto.coverUrl
@@ -278,8 +280,8 @@ class SyncService {
             TripService.localeUpdate(it, dto.countryCode, dto.localCurrency, dto.timeZone, nameChanged = existing[Trips.destination] != dto.destination)
             it[title] = dto.title.trim()
             it[destination] = dto.destination
-            it[startDate] = dto.startDate.toJavaLocalDate()
-            it[endDate] = dto.endDate.toJavaLocalDate()
+            it[startDate] = dto.startDate?.toJavaLocalDate()
+            it[endDate] = dto.endDate?.toJavaLocalDate()
             it[baseCurrency] = dto.baseCurrency
             it[budgetMinor] = dto.budgetMinor
             it[coverUrl] = dto.coverUrl
@@ -298,14 +300,19 @@ class SyncService {
         val id = uuid(dto.id, "id")
         val tripId = uuid(dto.tripId, "tripId")
         requireEditorOnLiveTrip(tripId, userId)
-        val input = ItineraryItemInput(
+        val asSent = ItineraryItemInput(
             id = dto.id, dayDate = dto.dayDate, startTime = dto.startTime, endTime = dto.endTime, title = dto.title,
             category = dto.category, placeName = dto.placeName, placeId = dto.placeId, lat = dto.lat, lng = dto.lng,
             durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, source = dto.source,
             sortOrder = dto.sortOrder,
         )
-        val problems = ItineraryService.validate(input)
+        val problems = ItineraryService.validate(asSent)
         if (problems.isNotEmpty()) throw validation(problems)
+        // A day that is not (or no longer) a day of the trip, e.g. another member cleared or moved the dates while this
+        // device was offline: the item is kept but unscheduled, like when a trip is shortened. The changed row comes
+        // back on the next pull. (REST answers 422 OUTSIDE_TRIP instead.)
+        val (start, end) = ItineraryService.tripDates(tripId)
+        val input = if (dayFitsTrip(asSent.dayDate, start, end)) asSent else dto.toUnscheduledInput()
 
         val existing = ItineraryItems.selectAll().where { ItineraryItems.id eq id }.singleOrNull()
         if (existing == null) {

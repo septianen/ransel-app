@@ -104,11 +104,13 @@ class ExploreSuggestionService(
 
     private fun loadTrip(tripId: UUID): TripFacts = transaction {
         val row = Trips.selectAll().where { (Trips.id eq tripId) and Trips.deletedAt.isNull() }.single()
-        val start = row[Trips.startDate].toKotlinLocalDate()
+        val start = row[Trips.startDate]?.toKotlinLocalDate()
+        val end = row[Trips.endDate]?.toKotlinLocalDate()
         TripFacts(
             destination = row[Trips.destination],
-            month = "%04d-%02d".format(start.year, start.monthNumber),
-            days = start.daysUntil(row[Trips.endDate].toKotlinLocalDate()) + 1,
+            // a trip without dates uses the neutral month and length of UndatedTrip
+            month = start?.let { "%04d-%02d".format(it.year, it.monthNumber) } ?: UndatedTrip.month(),
+            days = if (start != null && end != null) start.daysUntil(end) + 1 else UndatedTrip.DAYS,
             members = TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and TripMembers.active() }.count().toInt(),
             budgetMinor = row[Trips.budgetMinor],
             currency = row[Trips.baseCurrency],

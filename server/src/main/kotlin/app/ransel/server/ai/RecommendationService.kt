@@ -118,7 +118,8 @@ class RecommendationService(
             body.destination?.trim()?.takeIf { it.isNotEmpty() && !it.equals(t.destination.trim(), ignoreCase = true) }
                 ?.let { t.copy(destination = it, center = null) } ?: t
         }
-        if (todayWib() > trip.endDate) throw validationFailed(mapOf("tripId" to "TRIP_ENDED"))
+        // A trip without dates has not ended; it searches with the neutral dates of UndatedTrip.
+        if (trip.endDate != null && todayWib() > trip.endDate) throw validationFailed(mapOf("tripId" to "TRIP_ENDED"))
 
         // A trip with 2+ members turns the search into a voting round (docs/specs/voting-spec.md).
         val requestedRound = body.roundId?.let { runCatching { UUID.fromString(it) }.getOrNull() ?: throw validationFailed(mapOf("roundId" to "INVALID_UUID")) }
@@ -148,7 +149,7 @@ class RecommendationService(
 
         metrics.searches.incrementAndGet()
         val key = cacheKey(body, trip)
-        val guide = suggestions?.priceGuide(trip.destination, monthOf(trip.startDate))
+        val guide = suggestions?.priceGuide(trip.destination, monthOf(trip.searchStart))
         val cached = readCache(key)
         val candidates: List<CachedPlace> = if (cached != null) {
             metrics.cacheHits.incrementAndGet()
@@ -158,8 +159,8 @@ class RecommendationService(
                 center = trip.center,
                 destination = trip.destination.trim(),
                 priceGuide = guide,
-                days = trip.startDate.daysUntil(trip.endDate) + 1,
-                startDate = trip.startDate.toString(),
+                days = trip.searchDays,
+                startDate = trip.searchStart.toString(),
                 priceLevel = body.priceLevel,
                 interests = body.interests.distinct(),
                 extraInterests = body.extraInterests.map { it.trim() }.filter { it.isNotEmpty() }.distinct(),
@@ -234,8 +235,8 @@ class RecommendationService(
         val query = LlmQuery(
             destination = area ?: polls.destination.trim(),
             priceGuide = null,
-            days = polls.startDate.daysUntil(polls.endDate) + 1,
-            startDate = polls.startDate.toString(),
+            days = TripFacts(polls.destination, polls.startDate, polls.endDate).searchDays,
+            startDate = (polls.startDate ?: UndatedTrip.startDate()).toString(),
             priceLevel = PriceLevel.MEDIUM,
             interests = emptyList(),
             extraInterests = emptyList(),
@@ -458,7 +459,7 @@ class RecommendationService(
     internal fun cacheKey(body: RecommendationRequest, trip: TripFacts): String {
         val text = listOf(
             normalizeDestination(trip.destination),
-            monthOf(trip.startDate),
+            monthOf(trip.searchStart),
             body.interests.map { it.name }.distinct().sorted().joinToString(","),
             body.extraInterests.map(::normalizeDestination).filter { it.isNotEmpty() }.distinct().sorted().joinToString(","),
             body.priceLevel.name,
@@ -469,20 +470,24 @@ class RecommendationService(
         return MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
+    /** [startDate] and [endDate] are null for a trip without dates; the search then uses [UndatedTrip]. */
     internal data class TripFacts(
         val destination: String,
-        val startDate: LocalDate,
-        val endDate: LocalDate,
+        val startDate: LocalDate?,
+        val endDate: LocalDate?,
         val baseCurrency: String = "IDR",
         val center: Pair<Double, Double>? = null,
-    )
+    ) {
+        val searchStart: LocalDate get() = startDate ?: UndatedTrip.startDate()
+        val searchDays: Int get() = if (startDate != null && endDate != null) startDate.daysUntil(endDate) + 1 else UndatedTrip.DAYS
+    }
 
     private fun loadTrip(tripId: UUID): TripFacts = transaction {
         val row = Trips.selectAll().where { (Trips.id eq tripId) and Trips.deletedAt.isNull() }.single()
         val lat = row[Trips.destLat]
         val lng = row[Trips.destLng]
         TripFacts(
-            row[Trips.destination], row[Trips.startDate].toKotlinLocalDate(), row[Trips.endDate].toKotlinLocalDate(), row[Trips.baseCurrency].trim(),
+            row[Trips.destination], row[Trips.startDate]?.toKotlinLocalDate(), row[Trips.endDate]?.toKotlinLocalDate(), row[Trips.baseCurrency].trim(),
             center = if (lat != null && lng != null) lat to lng else null,
         )
     }

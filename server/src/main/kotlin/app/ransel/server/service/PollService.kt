@@ -23,6 +23,7 @@ import app.ransel.shared.domain.PollAction
 import app.ransel.shared.domain.PollOutcome
 import app.ransel.shared.domain.actionFor
 import app.ransel.shared.domain.canChangeAnonymous
+import app.ransel.shared.domain.dayFitsTrip
 import app.ransel.shared.domain.effectiveAnonymous
 import app.ransel.shared.domain.isAnonymousForced
 import app.ransel.shared.domain.optionChangesVotes
@@ -236,8 +237,9 @@ object PollService {
         val tripId: UUID,
         val kind: PollKind,
         val destination: String,
-        val startDate: kotlinx.datetime.LocalDate,
-        val endDate: kotlinx.datetime.LocalDate,
+        /** Null on a trip without dates; the search then uses neutral dates (`UndatedTrip`). */
+        val startDate: kotlinx.datetime.LocalDate?,
+        val endDate: kotlinx.datetime.LocalDate?,
         val currency: String,
         val placeIds: Set<String>,
     )
@@ -253,7 +255,7 @@ object PollService {
             if (loadRow(pollId)[Polls.status] != PollStatus.OPEN) throw closed()
             val trip = Trips.selectAll().where { Trips.id eq tripId }.single()
             SearchContext(
-                tripId, kind, trip[Trips.destination], trip[Trips.startDate].toKotlinLocalDate(), trip[Trips.endDate].toKotlinLocalDate(),
+                tripId, kind, trip[Trips.destination], trip[Trips.startDate]?.toKotlinLocalDate(), trip[Trips.endDate]?.toKotlinLocalDate(),
                 trip[Trips.baseCurrency].trim(), activeOptions(pollId).mapNotNull { it[PollOptions.placeId] }.toSet(),
             )
         }
@@ -704,9 +706,11 @@ object PollService {
     private fun applyAction(poll: ResultRow, option: ResultRow) {
         val tripId = poll[Polls.tripId]
         when (actionFor(poll[Polls.kind])) {
+            // Also how a trip without dates ("Tanggal belum pasti") gets them; its items are all unscheduled, so none moves.
             PollAction.SET_TRIP_DATES -> {
                 val start = option[PollOptions.startDate] ?: return
                 val end = option[PollOptions.endDate] ?: return
+                if (end < start) return
                 Trips.update({ Trips.id eq tripId }) {
                     it[startDate] = start
                     it[endDate] = end
@@ -730,7 +734,9 @@ object PollService {
         val tripId = poll[Polls.tripId]
         val trip = Trips.selectAll().where { Trips.id eq tripId }.single()
         val start = trip[Trips.startDate]
-        val nights = java.time.temporal.ChronoUnit.DAYS.between(start, trip[Trips.endDate]).toInt()
+        val end = trip[Trips.endDate]
+        // a trip without dates has no known nights yet: one night (stayEstimateMinor's minimum), spent today
+        val nights = if (start != null && end != null) java.time.temporal.ChronoUnit.DAYS.between(start, end).toInt() else 1
         val members = TripMembers.select(TripMembers.id)
             .where { (TripMembers.tripId eq tripId) and TripMembers.active() }
             .orderBy(TripMembers.joinedAt)
@@ -746,7 +752,7 @@ object PollService {
             it[category] = Category.LODGING
             it[paymentMethod] = PaymentMethod.TRANSFER
             it[note] = option[PollOptions.label]
-            it[spentAt] = start.atStartOfDay(java.time.ZoneId.of("Asia/Jakarta")).toInstant()
+            it[spentAt] = (start ?: java.time.LocalDate.now(java.time.ZoneId.of("Asia/Jakarta"))).atStartOfDay(java.time.ZoneId.of("Asia/Jakarta")).toInstant()
             it[paidByMemberId] = payer
             it[isEstimate] = true
         }
@@ -754,6 +760,12 @@ object PollService {
         ExpenseService.replaceSplits(expenseId, shares.map { ExpenseSplitDto(it.key, it.value) })
         // the booking page goes to "Dokumen trip" (Menginap)
         option[PollOptions.url]?.let { url -> DocumentService.addPollLink(tripId, payer, option[PollOptions.label], url) }
+    }
+
+    /** The poll's day may no longer be a day of the trip (dates changed or cleared): then the place goes in unscheduled. */
+    private fun dayFits(tripId: UUID, day: java.time.LocalDate): Boolean {
+        val trip = Trips.select(Trips.startDate, Trips.endDate).where { Trips.id eq tripId }.single()
+        return dayFitsTrip(day.toKotlinLocalDate(), trip[Trips.startDate]?.toKotlinLocalDate(), trip[Trips.endDate]?.toKotlinLocalDate())
     }
 
     private fun addItem(tripId: UUID, option: ResultRow, category: Category, day: java.time.LocalDate?, time: java.time.LocalTime?) {
@@ -769,7 +781,7 @@ object PollService {
             it[bookingUrl] = option[PollOptions.url]
             it[itemSource] = ItemSource.MANUAL
             it[sortOrder] = last + 1.0
-            if (day != null && time != null) {
+            if (day != null && time != null && dayFits(tripId, day)) {
                 it[dayDate] = day
                 it[startTime] = time
                 it[durationMin] = FOOD_MINUTES

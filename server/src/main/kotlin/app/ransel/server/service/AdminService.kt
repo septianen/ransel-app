@@ -168,8 +168,8 @@ class AdminService(
                     AdminTripDto(
                         id = tripId.toString(),
                         destination = t[Trips.destination],
-                        startDate = t[Trips.startDate].toKotlinLocalDate(),
-                        endDate = t[Trips.endDate].toKotlinLocalDate(),
+                        startDate = t[Trips.startDate]?.toKotlinLocalDate(),
+                        endDate = t[Trips.endDate]?.toKotlinLocalDate(),
                         role = t[TripMembers.role],
                         memberCount = TripMembers.selectAll().where { (TripMembers.tripId eq tripId) and TripMembers.active() }.count().toInt(),
                         itemCount = (

@@ -45,6 +45,7 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
         if (local.hour < config.notifyPackingHour) return
         val departure = local.toLocalDate().plusDays(1)
         transaction {
+            // a trip without dates (null start_date) never matches: no departure, no reminder
             Trips.selectAll().where { (Trips.startDate eq departure) and Trips.deletedAt.isNull() }.forEach { trip ->
                 val tripId = trip[Trips.id]
                 val remaining = PackingItems.selectAll()
@@ -90,6 +91,7 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
         if (local.hour < RECAP_HOUR) return
         val today = local.toLocalDate()
         transaction {
+            // a trip without dates (null end_date) never matches: no recap until it has dates
             Trips.selectAll()
                 .where { (Trips.endDate less today) and (Trips.endDate greaterEq today.minusDays(7)) and Trips.deletedAt.isNull() }
                 .forEach { trip ->

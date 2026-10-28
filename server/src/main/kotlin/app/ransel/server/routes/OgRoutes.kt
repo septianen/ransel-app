@@ -53,7 +53,12 @@ fun Route.ogRoutes(invites: InviteService, appBaseUrl: String) {
                 title = preview?.let { if (en) "${it.ownerName} invites you to ${it.tripTitle}" else "${it.ownerName} ngajak kamu ke ${it.tripTitle}" } ?: "RANSEL",
                 description = preview?.let {
                     val people = if (en) "${it.memberCount} people" else "${it.memberCount} orang"
-                    listOf(dateRange(it.startDate.toJavaLocalDate(), it.endDate.toJavaLocalDate(), en), people, if (en) "open it without signing up" else "buka tanpa harus daftar").joinToString(" · ")
+                    val start = it.startDate
+                    val end = it.endDate
+                    // a trip without dates says so, like the app's "Tanggal belum ditetapkan"
+                    val dates = if (start != null && end != null) dateRange(start.toJavaLocalDate(), end.toJavaLocalDate(), en)
+                    else if (en) "dates not set yet" else "tanggal belum ditetapkan"
+                    listOf(dates, people, if (en) "open it without signing up" else "buka tanpa harus daftar").joinToString(" · ")
                 } ?: generic(en),
                 image = "$base/og/invite.png",
                 url = "$base/j/$code",

@@ -18,7 +18,7 @@ server/src/main/kotlin/app/ransel/server/
   ai/                   LLM + Places clients, prompt, cache (Phase 5)
 server/src/main/resources/
   application.yaml
-  db/migration/V1__init.sql … (one file per change, V25 on 28 Oct 2026)
+  db/migration/V1__init.sql … (one file per change, V26 on 28 Oct 2026)
 server/src/test/kotlin/  testApplication + Postgres (Testcontainers or docker compose)
 ```
 
