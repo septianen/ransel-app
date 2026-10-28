@@ -5,7 +5,22 @@ import app.ransel.data.analytics.AnalyticsEvent
 import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.ransel.data.auth.SessionManager
+import app.ransel.data.remote.ApiResult
+import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.PreferencesRepository
+import app.ransel.data.sync.NoSyncStatus
+import app.ransel.data.sync.SyncStatus
+import app.ransel.feature.polls.DATE_POLL_MAX_OPTIONS
+import app.ransel.feature.polls.datePollOptionsValid
+import app.ransel.shared.domain.defaultMultiChoice
+import app.ransel.shared.domain.effectiveAnonymous
+import app.ransel.shared.dto.CreatePollRequest
+import app.ransel.shared.dto.PollOptionInput
+import app.ransel.shared.model.PollKind
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlinx.coroutines.withTimeoutOrNull
 import app.ransel.data.repository.TripRepository
 import app.ransel.shared.domain.currencyDecimals
 import app.ransel.shared.domain.validateTrip
@@ -39,8 +54,9 @@ data class TripFormState(
     val countryCode: String? = null,
     val localCurrency: String? = null,
     val timeZone: String? = null,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
+    /** Null only while editing a trip that has no dates yet and none were picked. */
+    val startDate: LocalDate?,
+    val endDate: LocalDate?,
     val currency: String = "IDR",
     /** Whole units of the currency, digits only ("5000000"). Shown with thousand separators. */
     val budgetDigits: String = "",
@@ -52,8 +68,24 @@ data class TripFormState(
     val savedStartDate: LocalDate? = null,
     /** Counts for the delete dialog; non-null = dialog visible. */
     val deleteSummary: TripSummaryDto? = null,
+    /** "Tanggal belum pasti" can be switched on: a new trip of a signed-in user (polls need an account). */
+    val canAskDates: Boolean = false,
+    /** The switch is on: the trip is made without dates and the group picks them in a DATE poll. */
+    val datesUndecided: Boolean = false,
+    /** The DATE poll draft: its ranges and when voting closes (design: "tutup 3 hari lagi"). */
+    val pollOptions: List<PollOptionInput> = emptyList(),
+    val pollClosingDays: Int = 3,
+    /** The question the poll is made with ("Kapan berangkat?"), from the screen's strings. */
+    val pollQuestion: String = "",
+    /** "Ubah": the date poll sheet is open. */
+    val pollSheet: Boolean = false,
+    /** The trip was saved but its DATE poll could not be made (offline): the dialog that says so. */
+    val pollFailedTripId: String? = null,
 ) {
     val titleError: Boolean get() = showErrors && title.isBlank()
+
+    /** The options are not 2–5 ranges from today on (shown after a save attempt). */
+    val pollError: Boolean get() = showErrors && datesUndecided && !datePollOptionsValid(pollOptions, today())
 }
 
 sealed interface TripFormEvent {
@@ -66,9 +98,16 @@ class TripFormViewModel(
     private val trips: TripRepository,
     private val preferences: PreferencesRepository,
     private val analytics: Analytics = NoAnalytics,
+    /** The DATE poll of a trip without dates is made through the API (signed in only). */
+    private val api: RanselApi? = null,
+    private val session: SessionManager? = null,
+    private val sync: SyncStatus = NoSyncStatus,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
-        TripFormState(isEditing = tripId != null, startDate = today(), endDate = today().plusDays(3)),
+        TripFormState(
+            isEditing = tripId != null, startDate = today(), endDate = today().plusDays(3),
+            canAskDates = tripId == null && api != null && session?.user != null,
+        ),
     )
     val state: StateFlow<TripFormState> = _state.asStateFlow()
 
@@ -96,6 +135,7 @@ class TripFormViewModel(
                             countryCode = trip.countryCode,
                             localCurrency = trip.localCurrency,
                             timeZone = trip.timeZone,
+                            // a trip without dates gets them here with the range picker
                             startDate = trip.startDate,
                             savedStartDate = trip.startDate,
                             endDate = trip.endDate,
@@ -129,12 +169,39 @@ class TripFormViewModel(
     fun onDatesChange(start: LocalDate, end: LocalDate) =
         _state.update { it.copy(startDate = start, endDate = if (end < start) start else end) }
 
+    // ── "Tanggal belum pasti" (new trips, signed in) ─────────────────────────
+
+    fun onDatesUndecided(value: Boolean) = _state.update { if (it.canAskDates) it.copy(datesUndecided = value) else it }
+    fun prefillPollQuestion(text: String) = _state.update { if (it.pollQuestion.isEmpty()) it.copy(pollQuestion = text) else it }
+    fun openPollSheet() = _state.update { it.copy(pollSheet = true) }
+    fun closePollSheet() = _state.update { it.copy(pollSheet = false) }
+    fun onPollClosingDays(days: Int) = _state.update { it.copy(pollClosingDays = days) }
+
+    fun savePollOption(input: PollOptionInput) = _state.update { s ->
+        val exists = s.pollOptions.any { it.id == input.id }
+        if (!exists && s.pollOptions.size >= DATE_POLL_MAX_OPTIONS) return@update s
+        s.copy(pollOptions = if (exists) s.pollOptions.map { if (it.id == input.id) input else it } else s.pollOptions + input)
+    }
+
+    fun removePollOption(id: String) = _state.update { it.copy(pollOptions = it.pollOptions.filterNot { o -> o.id == id }) }
+
+    /** "Lanjut" on the "polling belum dibuat" dialog: the trip is there, go on as after any save. */
+    fun acknowledgePollFailure() {
+        val id = _state.value.pollFailedTripId ?: return
+        _state.update { it.copy(pollFailedTripId = null) }
+        viewModelScope.launch { events.send(TripFormEvent.Saved(id)) }
+    }
+
     fun save() {
         val s = _state.value
         if (s.saving) return
         val budgetMinor = s.budgetDigits.takeIf { it.isNotEmpty() }?.toLongOrNull()?.times(pow10(currencyDecimals(s.currency)))
-        val problems = validateTrip(s.title, s.startDate, s.endDate, s.currency, budgetMinor)
-        if (problems.isNotEmpty()) {
+        // the switch drops the dates; editing a trip without dates keeps none until some are picked
+        val undecided = s.datesUndecided && s.canAskDates
+        val start = if (undecided) null else s.startDate
+        val end = if (undecided) null else s.endDate
+        val problems = validateTrip(s.title, start, end, s.currency, budgetMinor)
+        if (problems.isNotEmpty() || (undecided && !datePollOptionsValid(s.pollOptions, today()))) {
             _state.update { it.copy(showErrors = true) }
             return
         }
@@ -144,19 +211,24 @@ class TripFormViewModel(
             if (tripId == null) {
                 trips.create(
                     CreateTripRequest(
-                        id = id, title = s.title, destination = s.destination, startDate = s.startDate,
-                        endDate = s.endDate, baseCurrency = s.currency, budgetMinor = budgetMinor,
+                        id = id, title = s.title, destination = s.destination, startDate = start,
+                        endDate = end, baseCurrency = s.currency, budgetMinor = budgetMinor,
                         destinationPlace = s.destinationPlace,
                         countryCode = s.countryCode, localCurrency = s.localCurrency, timeZone = s.timeZone,
                     ),
                 )
                 analytics.event(AnalyticsEvent.TripCreated)
+                if (undecided && !createDatePoll(id, s)) {
+                    // the trip stays; the poll can be started from Ringkasan later
+                    _state.update { it.copy(saving = false, pollFailedTripId = id) }
+                    return@launch
+                }
             } else {
                 trips.update(
                     tripId,
                     UpdateTripRequest(
-                        title = s.title, destination = s.destination, startDate = s.startDate,
-                        endDate = s.endDate, baseCurrency = s.currency, budgetMinor = budgetMinor,
+                        title = s.title, destination = s.destination, startDate = start,
+                        endDate = end, baseCurrency = s.currency, budgetMinor = budgetMinor,
                         destinationPlace = s.destinationPlace,
                         countryCode = s.countryCode, localCurrency = s.localCurrency, timeZone = s.timeZone,
                     ),
@@ -164,6 +236,29 @@ class TripFormViewModel(
             }
             events.send(TripFormEvent.Saved(id))
         }
+    }
+
+    /**
+     * Makes the DATE poll of the trip just created. Mobile saves the trip locally first and the server only takes a poll
+     * for a trip it has, so the push is started and awaited a little (like "Ajak teman"). False when it did not work.
+     */
+    private suspend fun createDatePoll(tripId: String, s: TripFormState): Boolean {
+        val api = api ?: return false
+        if (tripId in sync.pendingIds.value) {
+            sync.syncNow()
+            withTimeoutOrNull(TRIP_SYNC_WAIT_MILLIS) { sync.pendingIds.first { tripId !in it } }
+        }
+        val request = CreatePollRequest(
+            id = newId(),
+            kind = PollKind.DATE,
+            question = s.pollQuestion.trim().ifEmpty { "?" },
+            closesAt = Clock.System.now() + s.pollClosingDays.days,
+            multiChoice = defaultMultiChoice(PollKind.DATE),
+            anonymous = effectiveAnonymous(PollKind.DATE, false),
+            applyWinner = true,
+            options = s.pollOptions,
+        )
+        return api.createPoll(tripId, request) is ApiResult.Success
     }
 
     fun requestDelete() {
@@ -191,3 +286,6 @@ class TripFormViewModel(
         return r
     }
 }
+
+/** How long Buat trip waits for a new trip to reach the server before making its DATE poll. */
+private const val TRIP_SYNC_WAIT_MILLIS = 10_000L

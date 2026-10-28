@@ -71,8 +71,8 @@ val commonModule: Module = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::TripListViewModel)
     viewModelOf(::AccountViewModel)
-    viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get(), get()) }
-    viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get()) }
+    viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get()) }
+    viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get(), get<RanselApi>(), get<SessionManager>()) }
     viewModel { params -> PackingViewModel(params.get(), get(), get()) }
     // parametersOf(tripId) = the trip-wide list; parametersOf(tripId, true) = the user's Pribadi list
     viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get(), if (params.values.getOrNull(1) == true) get() else null) }

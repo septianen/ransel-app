@@ -134,7 +134,7 @@ fun CreatePollScreen(
     }
 }
 
-private fun PollOptionInput.asOptionDto() = app.ransel.shared.dto.PollOptionDto(
+internal fun PollOptionInput.asOptionDto() = app.ransel.shared.dto.PollOptionDto(
     id = id, label = label, startDate = startDate, endDate = endDate, placeId = placeId, url = url, imageUrl = imageUrl,
     priceMinor = priceMinor, priceUnit = priceUnit, minMinor = minMinor, maxMinor = maxMinor,
 )
@@ -190,7 +190,7 @@ fun CreatePollContent(
                     SwitchRow(stringResource(Res.string.poll_apply_winner), applyHint(state.kind), state.applyWinner, true, onApplyWinner)
                 }
             }
-            OptionsSection(state, onAddOption, onEditOption, onRemoveOption)
+            PollOptionsSection(state.kind, state.options, state.currency, onAddOption, onEditOption, onRemoveOption)
             if (state.failed) {
                 Text(stringResource(Res.string.poll_create_error), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             }
@@ -223,9 +223,10 @@ private fun KindHeader(kind: PollKind) {
     }
 }
 
+/** "Voting ditutup dalam": 1, 2 or 3 days. Also on Buat trip's date poll ([DatePollSetupSheet]). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ClosingChoice(selected: Int, onSelect: (Int) -> Unit) {
+internal fun ClosingChoice(selected: Int, onSelect: (Int) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(Res.string.poll_closes_label), style = MaterialTheme.typography.labelLarge)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -294,22 +295,33 @@ private fun SwitchRow(title: String, hint: String?, checked: Boolean, enabled: B
     }
 }
 
+/** The options of a poll being made, each with "Ubah" and "Hapus", and "Tambah opsi". Also on Buat trip's date poll. */
 @Composable
-private fun OptionsSection(state: CreatePollUiState, onAdd: () -> Unit, onEdit: (String) -> Unit, onRemove: (String) -> Unit) {
+internal fun PollOptionsSection(
+    kind: PollKind,
+    options: List<PollOptionInput>,
+    currency: String,
+    onAdd: () -> Unit,
+    onEdit: (String) -> Unit,
+    onRemove: (String) -> Unit,
+    /** Hides "Tambah opsi" (e.g. a date poll at its maximum). */
+    canAdd: Boolean = true,
+    emptyText: String? = null,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(Res.string.poll_options_title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (state.options.isEmpty()) {
-            Text(stringResource(Res.string.poll_options_empty), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (options.isEmpty()) {
+            Text(emptyText ?: stringResource(Res.string.poll_options_empty), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        state.options.forEach { option ->
+        options.forEach { option ->
             val dto = option.asOptionDto()
             Row(
                 Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(IrisShape.md).background(MaterialTheme.colorScheme.surfaceContainerLow).padding(start = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(app.ransel.shared.domain.pollOptionLabel(state.kind, option), style = MaterialTheme.typography.titleSmall)
-                    pollOptionSubtitle(dto, state.currency)?.let {
+                    Text(app.ransel.shared.domain.pollOptionLabel(kind, option), style = MaterialTheme.typography.titleSmall)
+                    pollOptionSubtitle(dto, currency)?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -319,9 +331,11 @@ private fun OptionsSection(state: CreatePollUiState, onAdd: () -> Unit, onEdit: 
                 }
             }
         }
-        TextButton(onClick = onAdd) {
-            Symbol(Symbols.add, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
-            Text(stringResource(Res.string.poll_add_option), Modifier.padding(start = 8.dp))
+        if (canAdd) {
+            TextButton(onClick = onAdd) {
+                Symbol(Symbols.add, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
+                Text(stringResource(Res.string.poll_add_option), Modifier.padding(start = 8.dp))
+            }
         }
     }
 }
