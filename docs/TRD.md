@@ -164,7 +164,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | DELETE ★ | /trips/{id}/invites/{code} | Revoke an invite | 4 |
 | GET ★ | /invites/{code} | Trip preview for the Join trip screen. **Public** (no bearer, rate limited per IP): initials of the members, names of the members added by name, activity count, total shared spend; no amount per person, phone or payment info | 4 |
 | POST | /invites/{code}/accept | Join the trip | 4 |
-| GET ★ | /guest/{code} | Guest page (stage 8). **Public**, rate limited per IP; {code} = a poll share code or a live invite code; header `X-Guest-Token`. Trip title and dates, member names, the guest's own member, open polls (plus the linked one), the guest's packing lines from the owner's list | 4 |
+| GET ★ | /guest/{code} | Guest page (stage 8). **Public**, rate limited per IP; {code} = a poll share code or a live invite code; header `X-Guest-Token`. Trip title and dates, member names, the guest's own member, open polls (plus the linked one), the guest's packing lines from the owner's list, and `myMoney`: the guest's own paid, share and balance in the base currency plus the "Supaya lunas" transfers that involve them (null without a name or without a part in any expense; never other members' balances or payment info) | 4 |
 | POST ★ | /guest/{code}/identity | Pick a member without an account or write a new name (it becomes a member without an account, role VIEWER, owner notified); one browser per name; 409 GUEST_NAME_TAKEN / GUEST_NAME_EXISTS | 4 |
 | POST ★ | /guest/{code}/polls/{pollId}/votes | A guest's vote, same rules as members (401 GUEST_NAME_REQUIRED without a token) | 4 |
 | PATCH ★ | /guest/{code}/personal-items/{itemId} | A guest ticks a line of their packing list | 4 |

@@ -42,6 +42,37 @@ data class GuestPageDto(
     val polls: List<PollDto> = emptyList(),
     /** [me]'s packing lines from the owner's list (empty until a name is picked). */
     val packing: List<PersonalItemDto> = emptyList(),
+    /**
+     * [me]'s own share of the expenses ("Bagianmu"). Null while no name is picked, and when [me] has no part in
+     * any counted expense or confirmed settlement (paid, share and balance all 0), e.g. a trip without shared
+     * expenses. Only [me]'s numbers: other members' balances, phones and payment info never reach the guest page.
+     */
+    val myMoney: GuestMoneyDto? = null,
+)
+
+/**
+ * A guest's money in the trip's base currency, the same numbers as [me]'s row of `GET /trips/{id}/balances`
+ * ([MemberBalanceDto]): estimates left out, settlements counted once CONFIRMED.
+ */
+@Serializable
+data class GuestMoneyDto(
+    val baseCurrency: String,
+    val paidMinor: Long,
+    val shareMinor: Long,
+    /** paid − share + settlements paid − settlements received. > 0 = others owe the guest, < 0 = the guest owes. */
+    val balanceMinor: Long,
+    /** The "Supaya lunas" transfers ([BalancesDto.transfers]) in which the guest pays or receives; empty when settled. */
+    val transfers: List<GuestTransferDto> = emptyList(),
+)
+
+/** One "Supaya lunas" transfer involving the guest; one side is always the guest's own member. */
+@Serializable
+data class GuestTransferDto(
+    val fromMemberId: String,
+    val fromName: String,
+    val toMemberId: String,
+    val toName: String,
+    val amountMinor: Long,
 )
 
 /**
