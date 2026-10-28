@@ -202,8 +202,13 @@ class RanselApi(
     suspend fun updateMe(request: UpdateMeRequest): ApiResult<MeDto> = send(HttpMethod.Patch, ApiRoutes.ME, request)
 
     // ── sync (mobile, Phase 3) ──────────────────────────────────────────────
-    suspend fun syncPull(since: Instant?): ApiResult<SyncPullResponse> =
-        call(HttpMethod.Get, ApiRoutes.SYNC, bodyOf = { if (since != null) parameter("since", since.toString()) }) {
+    /** One page of changes; [tripLimit] null = everything at once (see SyncPullResponse for paging). */
+    suspend fun syncPull(since: Instant?, tripLimit: Int? = null, afterTripId: String? = null): ApiResult<SyncPullResponse> =
+        call(HttpMethod.Get, ApiRoutes.SYNC, bodyOf = {
+            if (since != null) parameter("since", since.toString())
+            if (tripLimit != null) parameter("tripLimit", tripLimit)
+            if (afterTripId != null) parameter("afterTripId", afterTripId)
+        }) {
             it.body<ApiResponse<SyncPullResponse>>().data
         }
     suspend fun syncPush(request: SyncPushRequest): ApiResult<SyncPushResponse> =

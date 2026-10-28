@@ -11,7 +11,6 @@ import app.ransel.data.local.toEntity
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.shared.dto.SyncChanges
-import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncRejection
 import kotlin.math.min
@@ -32,6 +31,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 private const val LAST_SYNC_KEY = "last_sync_at"
 private const val MAX_PUSH_ROWS = 500
+private const val PULL_TRIPS_PER_PAGE = 20
 private const val PERIOD_SECONDS = 60L
 private const val DEBOUNCE_MILLIS = 1_500L
 
@@ -221,27 +221,44 @@ class SyncCoordinator(
         }
     }
 
-    /** Pulls and applies changes. False = offline. */
+    /**
+     * Pulls and applies changes, a few trips per page. The first page's server time becomes lastSyncAt only after
+     * the last page, so a change made while paging is fetched again next time instead of skipped. False = offline.
+     */
     private suspend fun pull(full: Boolean): Boolean {
         val since = if (full) null else _lastSyncAt.value
-        return when (val result = api.syncPull(since)) {
-            is ApiResult.Failure -> {
-                if (result.error.isConnection) {
-                    _offline.value = true
-                    false
-                } else true
+        var cursor: Instant? = null
+        var after: String? = null
+        do {
+            when (val result = api.syncPull(since, PULL_TRIPS_PER_PAGE, after)) {
+                is ApiResult.Failure -> {
+                    if (result.error.isConnection) {
+                        _offline.value = true
+                        return false
+                    }
+                    // A server error mid-way: keep the old cursor, the next tick starts over.
+                    return true
+                }
+                is ApiResult.Success -> {
+                    val page = result.value
+                    if (cursor == null) cursor = page.serverTime
+                    apply(page.changes)
+                    after = page.nextTripId
+                }
             }
-            is ApiResult.Success -> {
-                apply(result.value)
-                true
-            }
-        }
+        } while (after != null)
+        cursor?.let { saveCursor(it) }
+        return true
+    }
+
+    private suspend fun saveCursor(serverTime: Instant) {
+        db.preferenceDao().set(PreferenceEntity(LAST_SYNC_KEY, serverTime.toEpochMilliseconds().toString()))
+        _lastSyncAt.value = serverTime
     }
 
     /** Server rows win unless a newer local edit is still waiting to be sent (last write wins). */
-    private suspend fun apply(response: SyncPullResponse) {
+    private suspend fun apply(c: SyncChanges) {
         val dao = db.syncDao()
-        val c = response.changes
         db.withWriteTransaction {
             c.trips.forEach { dto ->
                 val local = dao.trip(dto.id)
@@ -273,9 +290,7 @@ class SyncCoordinator(
                     dao.putExpense(dto.toEntity())
                 }
             }
-            db.preferenceDao().set(PreferenceEntity(LAST_SYNC_KEY, response.serverTime.toEpochMilliseconds().toString()))
         }
-        _lastSyncAt.value = response.serverTime
     }
 
     /** Sign-out on this device: drop everything that belongs to the account. */
