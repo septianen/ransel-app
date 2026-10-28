@@ -5,6 +5,9 @@ import app.ransel.data.analytics.AnalyticsEvent
 import app.ransel.data.analytics.NoAnalytics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.ransel.data.auth.SessionManager
+import app.ransel.data.remote.ApiResult
+import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.shared.domain.Slot
@@ -20,7 +23,9 @@ import app.ransel.shared.domain.scheduleAtEndOfDay
 import app.ransel.shared.dto.DayOrderItem
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.model.PollKind
 import app.ransel.util.plusDays
 import app.ransel.util.today
 import kotlinx.coroutines.channels.Channel
@@ -47,6 +52,13 @@ data class ItineraryUiState(
     /** "Jadwalkan otomatis" is saving: the dialog shows progress and ignores taps. */
     val autoScheduling: Boolean = false,
     val loading: Boolean = true,
+    /**
+     * The trip has no dates yet ("Tanggal belum pasti", design ItineraryPolling): no days, no day chips, no scheduling;
+     * everything goes to "Belum dijadwalkan".
+     */
+    val undated: Boolean = false,
+    /** The open DATE poll of an undated trip (signed in, online); null = none or not known. */
+    val datePoll: PollDto? = null,
 ) {
     val selectedIndex: Int get() = days.indexOf(selectedDay).coerceAtLeast(0)
     val selectedItems: List<ItineraryItemDto> get() = selectedDay?.let { itemsByDay[it] }.orEmpty()
@@ -87,28 +99,37 @@ class ItineraryViewModel(
     private val itinerary: ItineraryRepository,
     private val preferences: PreferencesRepository,
     private val analytics: Analytics = NoAnalytics,
+    /** Polls are server data: the open DATE poll of an undated trip is asked for when signed in (null = never). */
+    private val api: RanselApi? = null,
+    private val session: SessionManager? = null,
 ) : ViewModel() {
+    private val datePoll = MutableStateFlow<PollDto?>(null)
     private val selectedDay = MutableStateFlow<LocalDate?>(null)
     private val pending = MutableStateFlow<PendingReorder?>(null)
     private val autoRunning = MutableStateFlow(false)
     private val events = Channel<ItineraryEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
-    private val days: List<LocalDate> =
-        (0..trip.startDate.daysUntil(trip.endDate)).map { trip.startDate.plusDays(it) }
+    /** The trip's days; none for a trip without dates. */
+    private val days: List<LocalDate> = run {
+        val start = trip.startDate ?: return@run emptyList()
+        val end = trip.endDate ?: return@run emptyList()
+        (0..start.daysUntil(end)).map { start.plusDays(it) }
+    }
+    private val undated = days.isEmpty()
 
     val state: StateFlow<ItineraryUiState> = combine(
-        itinerary.observe(trip.id),
+        combine(itinerary.observe(trip.id), datePoll, ::Pair),
         selectedDay,
         pending,
         preferences.observe(),
         autoRunning,
-    ) { items, selected, pendingReorder, prefs, auto ->
+    ) { (items, poll), selected, pendingReorder, prefs, auto ->
         val scheduled = items.filter { it.dayDate != null }
         val byDay = days.associateWith { day ->
             scheduled.filter { it.dayDate == day }.sortedWith(compareBy({ it.sortOrder }, { it.startTime }))
         }
-        val chosen = selected?.takeIf { it in days } ?: today().takeIf { it in days } ?: days.first()
+        val chosen = selected?.takeIf { it in days } ?: today().takeIf { it in days } ?: days.firstOrNull()
         ItineraryUiState(
             days = days,
             selectedDay = chosen,
@@ -118,8 +139,27 @@ class ItineraryViewModel(
             pendingReorder = pendingReorder,
             autoScheduling = auto,
             loading = false,
+            undated = undated,
+            datePoll = poll,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItineraryUiState(days = days))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItineraryUiState(days = days, undated = undated))
+
+    init {
+        if (undated) loadDatePoll()
+    }
+
+    /** My member id in this trip (signed in), to tell my own date poll from someone else's. */
+    val myMemberId: String? get() = session?.user?.id?.let { app.ransel.shared.domain.memberIdFor(trip.id, it) }
+
+    /** The newest open DATE poll, for the card above "Belum dijadwalkan"; quietly nothing when offline or a guest. */
+    fun loadDatePoll() {
+        val api = api ?: return
+        if (session?.user == null) return
+        viewModelScope.launch {
+            val polls = (api.polls(trip.id) as? ApiResult.Success)?.value ?: return@launch
+            datePoll.value = polls.filter { it.kind == PollKind.DATE && it.isOpen }.maxByOrNull { it.createdAt }
+        }
+    }
 
     fun selectDay(day: LocalDate) {
         selectedDay.value = day
@@ -225,6 +265,7 @@ class ItineraryViewModel(
     }
 
     fun schedule(item: ItineraryItemDto, day: LocalDate, start: LocalTime, end: LocalTime) {
+        if (day !in days) return
         // "Ubah" may pick a time earlier than the day's last activity: keep the day chronological.
         val order = sortOrderForStart(state.value.itemsByDay[day].orEmpty(), start)
         viewModelScope.launch {
@@ -256,7 +297,7 @@ class ItineraryViewModel(
     /** The plan for the dialog; nothing is saved. Null when there is nothing to schedule. */
     fun previewAutoSchedule(): AutoPlan? {
         val s = state.value
-        if (s.unscheduled.isEmpty()) return null
+        if (s.unscheduled.isEmpty() || undated) return null
         val places = s.unscheduled.map { AutoPlace(it.id, it.category, it.lat, it.lng, it.durationMin) }
         val result = autoSchedule(places, autoDays(s))
         return AutoPlan(result, result.scheduled.map { dayNumber(it.date) }.distinct().sorted())

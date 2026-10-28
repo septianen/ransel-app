@@ -31,10 +31,13 @@ sealed interface Countdown {
     data class Upcoming(val days: Int) : Countdown
     data class Ongoing(val day: Int, val totalDays: Int) : Countdown
     data object Finished : Countdown
+
+    /** The trip has no dates yet ("Tanggal belum pasti"). */
+    data object NoDates : Countdown
 }
 
 fun countdownFor(trip: TripDto, today: LocalDate): Countdown = when (trip.phase(today)) {
-    TripPhase.UPCOMING -> Countdown.Upcoming(trip.daysUntilStart(today))
+    TripPhase.UPCOMING -> trip.daysUntilStart(today)?.let { Countdown.Upcoming(it) } ?: Countdown.NoDates
     TripPhase.ONGOING -> Countdown.Ongoing(trip.dayNumber(today), trip.totalDays())
     TripPhase.FINISHED -> Countdown.Finished
 }

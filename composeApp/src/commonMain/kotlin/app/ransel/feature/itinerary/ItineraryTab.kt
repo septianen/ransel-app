@@ -110,6 +110,13 @@ import ransel.composeapp.generated.resources.itinerary_auto_done_left
 import ransel.composeapp.generated.resources.action_undo
 import ransel.composeapp.generated.resources.ic_itinerary_empty
 import ransel.composeapp.generated.resources.itinerary_add_activity
+import ransel.composeapp.generated.resources.itinerary_add_idea
+import ransel.composeapp.generated.resources.itinerary_undated_empty
+import ransel.composeapp.generated.resources.itinerary_undated_hint
+import app.ransel.shared.dto.PollDto
+import app.ransel.ui.components.DatePollCard
+import app.ransel.ui.preview.IrisPreview
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.place_detail_open
 import ransel.composeapp.generated.resources.itinerary_explore_ai
 import ransel.composeapp.generated.resources.itinerary_day_chip
@@ -141,7 +148,10 @@ fun ItineraryTab(
     onExplore: (() -> Unit)? = null,
     /** Opens the saved detail of an AI place (design `ItineraryLihatDetail`); null hides the info buttons. */
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
-    viewModel: ItineraryViewModel = koinViewModel(key = "itinerary-${trip.id}") { parametersOf(trip) },
+    /** Opens a poll (the DATE poll card of a trip without dates); null hides the card. */
+    onOpenPoll: ((pollId: String) -> Unit)? = null,
+    // the days come from the trip's dates: new dates (a decided DATE poll, Edit trip) make a new ViewModel
+    viewModel: ItineraryViewModel = koinViewModel(key = "itinerary-${trip.id}-${trip.startDate}-${trip.endDate}") { parametersOf(trip) },
 ) {
     val state by viewModel.state.collectAsState()
     // Viewers see the plan but cannot change it (PRD "Roles"); the server refuses their writes anyway.
@@ -198,6 +208,7 @@ fun ItineraryTab(
                 canEdit = canEdit,
                 onExplore = if (canEdit) onExplore else null,
                 viewModel = viewModel,
+                onOpenPoll = onOpenPoll,
             )
         }
         SnackbarHost(
@@ -233,7 +244,29 @@ private fun ItineraryContent(
     canEdit: Boolean,
     onExplore: (() -> Unit)?,
     viewModel: ItineraryViewModel,
+    onOpenPoll: ((String) -> Unit)? = null,
 ) {
+    if (state.undated) {
+        // no days yet: the date poll, a line about it and the ideas; the + adds an unscheduled idea
+        Box(Modifier.fillMaxSize()) {
+            UndatedItineraryContent(
+                unscheduled = state.unscheduled,
+                datePoll = state.datePoll?.takeIf { onOpenPoll != null },
+                datePollMine = state.datePoll?.createdByMemberId?.let { it == viewModel.myMemberId } == true,
+                onOpenPoll = { id -> onOpenPoll?.invoke(id) },
+                onOpenItem = if (canEdit) ({ onEditActivity(it.id) }) else null,
+            )
+            if (canEdit) {
+                IconFab(
+                    Symbols.add,
+                    label = stringResource(Res.string.itinerary_add_idea),
+                    onClick = onAddActivity,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                )
+            }
+        }
+        return
+    }
     val dates = rememberDateFormatter()
     val drag = remember(state.selectedDay) { DayDragState() }
     var showUnscheduled by rememberSaveable { mutableStateOf(false) }
@@ -682,10 +715,14 @@ private fun PlaceDetailButton(item: ItineraryItemDto) {
 @Composable
 private fun UnscheduledBox(
     items: List<ItineraryItemDto>,
-    onSeeAll: () -> Unit,
+    onSeeAll: (() -> Unit)?,
     onOpen: ((ItineraryItemDto) -> Unit)?,
     onSchedule: ((ItineraryItemDto) -> Unit)?,
     onAutoSchedule: (() -> Unit)? = null,
+    /** How many rows show; the rest are behind "Lihat semua". */
+    limit: Int = 2,
+    /** Shown when [items] is empty. */
+    emptyText: String? = null,
 ) {
     Column(
         Modifier
@@ -713,14 +750,19 @@ private fun UnscheduledBox(
                 )
             }
             Box(Modifier.weight(1f))
-            Text(
-                stringResource(Res.string.itinerary_unscheduled_see_all),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.heightIn(min = 32.dp).clickable(onClick = onSeeAll).padding(vertical = 6.dp),
-            )
+            if (onSeeAll != null) {
+                Text(
+                    stringResource(Res.string.itinerary_unscheduled_see_all),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.heightIn(min = 32.dp).clickable(onClick = onSeeAll).padding(vertical = 6.dp),
+                )
+            }
         }
-        items.take(2).forEach { item ->
+        if (items.isEmpty() && emptyText != null) {
+            Text(emptyText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        items.take(limit).forEach { item ->
             UnscheduledRow(
                 item,
                 onOpen = onOpen?.let { open -> { open(item) } },
@@ -734,6 +776,75 @@ private fun UnscheduledBox(
             }
         }
     }
+}
+
+/**
+ * Itinerary of a trip without dates (design ItineraryPolling): the open DATE poll, "Hari-hari trip muncul setelah tanggal
+ * ditetapkan…", and every idea in "Belum dijadwalkan". No day chips, no scheduling.
+ */
+@Composable
+internal fun UndatedItineraryContent(
+    unscheduled: List<ItineraryItemDto>,
+    datePoll: PollDto?,
+    datePollMine: Boolean,
+    onOpenPoll: (pollId: String) -> Unit,
+    onOpenItem: ((ItineraryItemDto) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        if (datePoll != null) {
+            DatePollCard(poll = datePoll, mine = datePollMine, onOpen = { onOpenPoll(datePoll.id) })
+        }
+        Text(
+            stringResource(Res.string.itinerary_undated_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        UnscheduledBox(
+            items = unscheduled,
+            onSeeAll = null,
+            onOpen = onOpenItem,
+            onSchedule = null,
+            limit = Int.MAX_VALUE,
+            emptyText = stringResource(Res.string.itinerary_undated_empty),
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun UndatedItineraryPreview() = IrisPreview {
+    val stamp = kotlin.time.Instant.parse("2026-10-28T10:00:00Z")
+    fun idea(id: String, title: String, category: app.ransel.shared.model.Category) = ItineraryItemDto(
+        id = id, tripId = "t", title = title, category = category, sortOrder = id.toDouble(), createdAt = stamp, updatedAt = stamp,
+    )
+    UndatedItineraryContent(
+        unscheduled = listOf(
+            idea("1", "Air Terjun Tegenungan", app.ransel.shared.model.Category.ATTRACTION),
+            idea("2", "Seafood Pantai Jimbaran", app.ransel.shared.model.Category.FOOD),
+        ),
+        datePoll = PollDto(
+            id = "p", tripId = "t", kind = app.ransel.shared.model.PollKind.DATE, question = "Kapan berangkat?",
+            createdByMemberId = "m1", createdByName = "Septian", createdAt = stamp,
+            closesAt = kotlin.time.Instant.parse("2026-10-30T10:00:00Z"), status = app.ransel.shared.model.PollStatus.OPEN,
+            votedMemberIds = listOf("a", "b", "c"), memberCount = 5,
+        ),
+        datePollMine = false,
+        onOpenPoll = {},
+        onOpenItem = {},
+    )
+}
+
+@Preview
+@Composable
+private fun UndatedItineraryEmptyPreview() = IrisPreview {
+    UndatedItineraryContent(unscheduled = emptyList(), datePoll = null, datePollMine = false, onOpenPoll = {}, onOpenItem = null)
 }
 
 /** "Jadwalkan otomatis?": says where the places would go, then saves them and shows progress until done. */

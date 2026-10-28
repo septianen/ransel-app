@@ -174,6 +174,20 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     VoteOptionCard("Kereta", voteCount = 4, memberCount = 5, countLabel = "4 suara", subtitle = "Rp250.000", winner = true)
                     VoteOptionCard("Pantai Melasti", voteCount = 2, memberCount = 5, countLabel = "2 dari 5 suka", subtitle = "Wisata")
                 }
+                Section("DatePollCard") {
+                    val now = kotlin.time.Instant.parse("2026-10-28T10:00:00Z")
+                    app.ransel.ui.components.DatePollCard(
+                        poll = app.ransel.shared.dto.PollDto(
+                            id = "p", tripId = "t", kind = app.ransel.shared.model.PollKind.DATE, question = "Kapan berangkat?",
+                            createdByMemberId = "m1", createdByName = "Septian", createdAt = now,
+                            closesAt = kotlin.time.Instant.parse("2026-10-30T10:00:00Z"), status = app.ransel.shared.model.PollStatus.OPEN,
+                            votedMemberIds = listOf("a", "b", "c"), memberCount = 5,
+                        ),
+                        mine = false,
+                        onOpen = {},
+                        now = now,
+                    )
+                }
                 Section("ConfirmDialog / AdaptiveSheet / FormScaffold / AdaptiveFormScreen") {
                     Button(onClick = { showDialog = true }) { Text("ConfirmDialog") }
                     Button(onClick = { showLoadingDialog = true }) { Text("ConfirmDialog (loading)") }
