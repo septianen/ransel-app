@@ -196,9 +196,10 @@ These close the gaps found when RANSEL is used by a group where not everyone has
 
 ### P0 · Join without signing in (the guest page)
 
-- `ransel.mietek.tech/j/<code>` (invite) and `ransel.mietek.tech/p/<code>` (poll) open a web page on the phone browser that needs no account: trip name, dates, members, open polls, and "Gabung dengan akun" first for an invite. Exact amounts per person, payment info and the itinerary details stay hidden.
+- `ransel.mietek.tech/j/<code>` (invite) and `ransel.mietek.tech/p/<code>` (poll) open a web page on the phone browser that needs no account: trip name, dates, members, open polls, and "Gabung dengan akun" first for an invite. Other people's amounts, payment info and the itinerary details stay hidden.
 - The visitor picks their name from the members without an account (taken ones greyed) or writes one ("Nama saya tidak ada" adds a member without an account; "Itu kamu?" when the name exists). They can then vote and tick the packing lines they received. One browser per name; the owner can release a name ("Lepas dari browser"). Abuse protection stays simple: an IP rate limit, no OTP or captcha (owner, 26 Oct 2026).
-- Not built: a guest's own share of the expenses on the page; "Pasang aplikasi" is "Buat akun untuk ikut merencanakan" until there are store links.
+- Once a name is picked, "Bagianmu" shows the guest's own share, what they paid and their balance in the trip's base currency, plus the "Supaya lunas" transfers that involve them ("Kamu perlu bayar Rp X ke Rina" / "Rina perlu bayar Rp X ke kamu"). Read-only: a member with an account or the owner marks it paid. Hidden when the guest has no part in any expense (owner, 28 Oct 2026).
+- Not built: "Pasang aplikasi" is "Buat akun untuk ikut merencanakan" until there are store links.
 
 ### P0 · Group-first onboarding
 
