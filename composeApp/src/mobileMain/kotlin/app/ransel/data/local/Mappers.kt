@@ -30,7 +30,7 @@ private inline fun <reified E : Enum<E>> enumOr(name: String, fallback: E): E =
 
 fun TripEntity.toDto() = TripDto(
     id = id, ownerId = ownerId, title = title, destination = destination,
-    startDate = LocalDate.parse(startDate), endDate = LocalDate.parse(endDate),
+    startDate = startDate?.let(LocalDate::parse), endDate = endDate?.let(LocalDate::parse),
     baseCurrency = baseCurrency, budgetMinor = budgetMinor, coverUrl = coverUrl, myRole = enumOr(myRole, Role.OWNER),
     destinationPlace = tripPlace(),
     countryCode = countryCode, localCurrency = localCurrency, timeZone = timeZone,
@@ -97,7 +97,7 @@ fun Instant.toMillis(): Long = millis()
 // DTO -> entity, used when applying a sync pull. Rows that came from the server are SYNCED.
 fun TripDto.toEntity() = TripEntity(
     id = id, ownerId = ownerId, title = title, destination = destination,
-    startDate = startDate.toString(), endDate = endDate.toString(), baseCurrency = baseCurrency,
+    startDate = startDate?.toString(), endDate = endDate?.toString(), baseCurrency = baseCurrency,
     budgetMinor = budgetMinor, coverUrl = coverUrl,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED, myRole = myRole.name,

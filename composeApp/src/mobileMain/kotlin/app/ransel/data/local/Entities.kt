@@ -25,8 +25,9 @@ data class TripEntity(
     val ownerId: String,
     val title: String,
     val destination: String,
-    val startDate: String,
-    val endDate: String,
+    /** ISO dates; both null while the dates are not set yet ("Tanggal belum pasti", DB v11). */
+    val startDate: String?,
+    val endDate: String?,
     val baseCurrency: String,
     val budgetMinor: Long?,
     val coverUrl: String?,

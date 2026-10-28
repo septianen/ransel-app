@@ -18,7 +18,7 @@ import kotlinx.coroutines.IO // Dispatchers.IO is an extension outside the JVM
         ExpenseEntity::class,
         PreferenceEntity::class,
     ],
-    version = 10,
+    version = 11,
     autoMigrations = [
         AutoMigration(from = 1, to = 2), // expenses.splitsJson
         AutoMigration(from = 2, to = 3), // trips.myRole
@@ -29,6 +29,7 @@ import kotlinx.coroutines.IO // Dispatchers.IO is an extension outside the JVM
         AutoMigration(from = 7, to = 8), // trips.countryCode, localCurrency, timeZone; expenses.fxSource, fxDate
         AutoMigration(from = 8, to = 9), // packing_items.assigneeMemberId, personal_items
         AutoMigration(from = 9, to = 10, spec = Migration9To10::class), // drop expenses.paidFromKitty (kitty removed)
+        AutoMigration(from = 10, to = 11), // trips.startDate, endDate nullable ("Tanggal belum pasti"); Room copies the table
     ],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
