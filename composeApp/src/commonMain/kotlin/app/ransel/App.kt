@@ -2,6 +2,8 @@ package app.ransel
 
 import kotlinx.coroutines.flow.map
 import androidx.compose.animation.EnterTransition
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -241,7 +243,9 @@ fun App() {
 private fun SessionGate(openSignIn: Boolean) {
     val session: SessionManager = koinInject()
     val state by session.state.collectAsState()
-    koinInject<SyncStatus>() // creates the sync engine (mobile) so it starts with the session
+    val syncEngine = koinInject<SyncStatus>() // creates the sync engine (mobile) so it starts with the session
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { syncEngine.setInForeground(true) }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { syncEngine.setInForeground(false) }
     LaunchedEffect(session) { session.restore() }
     val inviteLinks: InviteLinks = koinInject()
     LaunchedEffect(inviteLinks) { initialInviteCode()?.let(inviteLinks::offerCode) } // web: opened /j/<code>

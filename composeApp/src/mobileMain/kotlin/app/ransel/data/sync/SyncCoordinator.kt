@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -45,7 +46,7 @@ class SyncCoordinator(
     private val db: RanselDatabase,
     private val api: RanselApi,
     private val session: SessionManager,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
 ) : SyncStatus {
     private val _pendingCount = MutableStateFlow(0)
     override val pendingCount: StateFlow<Int> = _pendingCount.asStateFlow()
@@ -68,6 +69,8 @@ class SyncCoordinator(
      * so without it a queued sync would pull the whole account back onto a device that was just cleared.
      */
     private var wiped = false
+    /** The loop only runs while the app is on screen: no pulls every minute in the background (battery, data). */
+    private val foreground = MutableStateFlow(true)
 
     init {
         scope.launch {
@@ -82,7 +85,8 @@ class SyncCoordinator(
                 ?.let(Instant::fromEpochMilliseconds)
         }
         scope.launch {
-            session.state.collectLatest { state ->
+            // Coming back to the foreground starts the loop again, which syncs at once.
+            combine(session.state, foreground) { state, onScreen -> state.takeIf { onScreen } }.collectLatest { state ->
                 if (state is SessionState.SignedIn) {
                     runLock.withLock { wiped = false }
                     loop()
@@ -97,6 +101,15 @@ class SyncCoordinator(
 
     override fun syncNow() {
         kick.trySend(Unit)
+    }
+
+    override fun setInForeground(foreground: Boolean) {
+        if (this.foreground.value == foreground) return
+        // Leaving with unsent edits: send them once on the way out instead of waiting for the next visit.
+        if (!foreground && _pendingCount.value > 0 && session.state.value is SessionState.SignedIn) {
+            scope.launch { syncOnce() }
+        }
+        this.foreground.value = foreground
     }
 
     override suspend fun refresh() {

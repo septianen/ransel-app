@@ -24,6 +24,9 @@ interface SyncStatus {
 
     /** Pull-to-refresh: mobile syncs and returns when done; web fetches everything again. */
     suspend fun refresh()
+
+    /** The app went to the background (false) or came back (true). Mobile stops the minute-by-minute sync meanwhile. */
+    fun setInForeground(foreground: Boolean) = Unit
 }
 
 /** Web / tests: nothing is ever pending. */
