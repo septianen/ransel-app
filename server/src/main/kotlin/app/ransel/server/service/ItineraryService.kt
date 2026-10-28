@@ -1,11 +1,13 @@
 package app.ransel.server.service
 
 import app.ransel.server.db.ItineraryItems
+import app.ransel.server.db.Trips
 import app.ransel.server.db.toItineraryItemDto
 import app.ransel.server.plugins.conflict
 import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
 import app.ransel.server.plugins.validationFailed
+import app.ransel.shared.domain.dayFitsTrip
 import app.ransel.shared.dto.DayOrderRequest
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
@@ -13,6 +15,7 @@ import app.ransel.shared.model.Role
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.toJavaLocalDate
 import kotlinx.datetime.toJavaLocalTime
+import kotlinx.datetime.toKotlinLocalDate
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -20,6 +23,7 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
@@ -39,7 +43,7 @@ object ItineraryService {
 
     fun create(userId: UUID, tripId: UUID, itemId: UUID, body: ItineraryItemInput): ItineraryItemDto {
         requireRole(tripId, userId, Role.EDITOR)
-        requireValid(validate(body))
+        requireValid(validate(body) + validateDay(tripId, body.dayDate))
         return transaction {
             if (ItineraryItems.selectAll().where { ItineraryItems.id eq itemId }.any()) throw conflict("Item id already exists")
             ItineraryItems.insert {
@@ -55,7 +59,7 @@ object ItineraryService {
     fun replace(userId: UUID, tripId: UUID, itemId: UUID, body: ItineraryItemInput): ItineraryItemDto {
         requireRole(tripId, userId, Role.EDITOR)
         if (body.id != itemId.toString()) throw validationFailed(mapOf("id" to "MUST_MATCH_PATH"))
-        requireValid(validate(body))
+        requireValid(validate(body) + validateDay(tripId, body.dayDate))
         return transaction {
             load(tripId, itemId)
             ItineraryItems.update({ ItineraryItems.id eq itemId }) { fill(it, body) }
@@ -76,6 +80,7 @@ object ItineraryService {
         requireRole(tripId, userId, Role.EDITOR)
         val ids = body.items.map { UUID.fromString(it.id.also { raw -> parse(raw) }) }
         if (ids.toSet().size != ids.size) throw validationFailed(mapOf("items" to "DUPLICATE_ID"))
+        requireValid(validateDay(tripId, date))
         val day = date.toJavaLocalDate()
         return transaction {
             val found = ItineraryItems.selectAll()
@@ -124,6 +129,24 @@ object ItineraryService {
         it[ItineraryItems.itemSource] = body.source
         it[ItineraryItems.sortOrder] = body.sortOrder
     }
+
+    /**
+     * An item's day must be a day of the trip ([dayFitsTrip]): a trip without dates has no days, so its items stay
+     * unscheduled. 422 `dayDate` = `OUTSIDE_TRIP`.
+     */
+    internal fun validateDay(tripId: UUID, day: LocalDate?): Map<String, String> {
+        if (day == null) return emptyMap()
+        val (start, end) = tripDates(tripId)
+        return if (dayFitsTrip(day, start, end)) emptyMap() else mapOf("dayDate" to OUTSIDE_TRIP)
+    }
+
+    /** The trip's start and end (both null without dates). */
+    internal fun tripDates(tripId: UUID): Pair<LocalDate?, LocalDate?> = transaction {
+        val row = Trips.select(Trips.startDate, Trips.endDate).where { Trips.id eq tripId }.singleOrNull()
+        (row?.get(Trips.startDate)?.toKotlinLocalDate()) to (row?.get(Trips.endDate)?.toKotlinLocalDate())
+    }
+
+    const val OUTSIDE_TRIP = "OUTSIDE_TRIP"
 
     // endTime may be earlier than startTime (ends next day), so there is deliberately no time-order rule.
     internal fun validate(body: ItineraryItemInput): Map<String, String> = buildMap {

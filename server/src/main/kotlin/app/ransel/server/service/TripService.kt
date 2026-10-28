@@ -69,8 +69,8 @@ object TripService {
             it[ownerId] = userId
             it[title] = body.title.trim()
             it[destination] = body.destination
-            it[startDate] = body.startDate.toJavaLocalDate()
-            it[endDate] = body.endDate.toJavaLocalDate()
+            it[startDate] = body.startDate?.toJavaLocalDate()
+            it[endDate] = body.endDate?.toJavaLocalDate()
             it[baseCurrency] = body.baseCurrency
             it[budgetMinor] = body.budgetMinor
             it[coverUrl] = body.coverUrl
@@ -108,8 +108,8 @@ object TripService {
                 localeUpdate(it, body.countryCode, body.localCurrency, body.timeZone, nameChanged = before != body.destination)
                 it[title] = body.title.trim()
                 it[destination] = body.destination
-                it[startDate] = body.startDate.toJavaLocalDate()
-                it[endDate] = body.endDate.toJavaLocalDate()
+                it[startDate] = body.startDate?.toJavaLocalDate()
+                it[endDate] = body.endDate?.toJavaLocalDate()
                 it[baseCurrency] = body.baseCurrency
                 it[budgetMinor] = body.budgetMinor
                 it[coverUrl] = body.coverUrl
@@ -164,8 +164,11 @@ object TripService {
         }
     }
 
-    /** Shortening a trip never deletes activities: those on removed days become unscheduled. Runs in the caller's transaction. */
-    internal fun unscheduleOutsideRange(tripId: UUID, start: kotlinx.datetime.LocalDate, end: kotlinx.datetime.LocalDate) {
+    /**
+     * Shortening a trip never deletes activities: those on removed days become unscheduled. Without dates (both null)
+     * every scheduled item becomes unscheduled. Runs in the caller's transaction.
+     */
+    internal fun unscheduleOutsideRange(tripId: UUID, start: kotlinx.datetime.LocalDate?, end: kotlinx.datetime.LocalDate?) {
         val live = ItineraryItems.selectAll()
             .where { (ItineraryItems.tripId eq tripId) and ItineraryItems.deletedAt.isNull() and ItineraryItems.dayDate.isNotNull() }
             .map { it.toItineraryItemDto() }
@@ -180,18 +183,23 @@ object TripService {
         }
     }
 
+    /** Days from [start] to [end] inclusive; 0 for a trip without dates. */
+    internal fun tripDayCount(start: kotlinx.datetime.LocalDate?, end: kotlinx.datetime.LocalDate?): Int =
+        if (start == null || end == null) 0 else start.daysUntil(end) + 1
+
     private fun load(tripId: UUID, role: Role): TripDto =
         Trips.selectAll().where { Trips.id eq tripId }.singleOrNull()?.toTripDto(role) ?: throw tripNotFound()
 
     /** Counts come from SQL; money goes through the shared [summarizeExpenses] so it equals the app's numbers. */
     private fun summary(trip: TripDto): TripSummaryDto {
         val tripId = UUID.fromString(trip.id)
-        val start = trip.startDate.toJavaLocalDate()
-        val end = trip.endDate.toJavaLocalDate()
+        val start = trip.startDate?.toJavaLocalDate()
+        val end = trip.endDate?.toJavaLocalDate()
         val liveItems = ItineraryItems.tripId eq tripId and ItineraryItems.deletedAt.isNull()
         val scheduled = ItineraryItems.selectAll().where { liveItems and ItineraryItems.dayDate.isNotNull() }.count().toInt()
         val total = ItineraryItems.selectAll().where { liveItems }.count().toInt()
-        val daysFilled = ItineraryItems.select(ItineraryItems.dayDate).withDistinct().where {
+        // A trip without dates has no days, so none is filled.
+        val daysFilled = if (start == null || end == null) 0 else ItineraryItems.select(ItineraryItems.dayDate).withDistinct().where {
             liveItems and (ItineraryItems.dayDate greaterEq start) and (ItineraryItems.dayDate lessEq end)
         }.count().toInt()
         val livePacking = PackingItems.tripId eq tripId and PackingItems.deletedAt.isNull()
@@ -202,7 +210,7 @@ object TripService {
             .map { it.toExpenseDto() }
         val money = summarizeExpenses(trip.baseCurrency, trip.budgetMinor, expenses, SERVER_TIME_ZONE)
         return TripSummaryDto(
-            daysTotal = trip.startDate.daysUntil(trip.endDate) + 1,
+            daysTotal = tripDayCount(trip.startDate, trip.endDate),
             daysFilled = daysFilled,
             activityCount = scheduled,
             unscheduledCount = total - scheduled,

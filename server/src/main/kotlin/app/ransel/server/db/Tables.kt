@@ -64,8 +64,9 @@ object Trips : Table("trips") {
     val ownerId = javaUUID("owner_id")
     val title = text("title")
     val destination = text("destination")
-    val startDate = date("start_date")
-    val endDate = date("end_date")
+    /** V26: null on a trip without dates; both or neither. */
+    val startDate = date("start_date").nullable()
+    val endDate = date("end_date").nullable()
     val baseCurrency = char("base_currency", 3)
     val budgetMinor = long("budget_minor").nullable()
     val coverUrl = text("cover_url").nullable()

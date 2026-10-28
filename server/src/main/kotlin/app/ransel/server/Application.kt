@@ -10,6 +10,7 @@ import app.ransel.server.ai.PhotoSigner
 import app.ransel.server.ai.PlaceDetailService
 import app.ransel.server.ai.PlacePhotoService
 import app.ransel.server.ai.RecommendationService
+import app.ransel.server.ai.UndatedTrip
 import app.ransel.server.ai.aiServicesFrom
 import app.ransel.server.db.DatabaseFactory
 import app.ransel.server.db.TemplateSeed
@@ -155,7 +156,9 @@ fun Application.module(
     // A new or moved trip gets its destination interests ready before the user opens Explore.
     TripEvents.onTripSaved = { destination, startDate ->
         maintenance.launch {
-            runCatching { suggestions.warm(destination, "%04d-%02d".format(startDate.year, startDate.monthNumber)) }
+            // a trip without dates warms the month Explore uses for it (UndatedTrip)
+            val month = startDate?.let { "%04d-%02d".format(it.year, it.monthNumber) } ?: UndatedTrip.month()
+            runCatching { suggestions.warm(destination, month) }
         }
     }
     maintenance.launch {

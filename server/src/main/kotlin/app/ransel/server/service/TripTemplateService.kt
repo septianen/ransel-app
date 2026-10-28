@@ -49,7 +49,8 @@ object TripTemplateService {
         return transaction {
             if (TripTemplates.selectAll().where { TripTemplates.id eq id }.any()) throw conflict("Template id already exists")
             val trip = Trips.selectAll().where { Trips.id eq tripId }.single()
-            val start = trip[Trips.startDate].toKotlinLocalDate()
+            // a trip without dates gives a template with no days (dayCount 0) and only unscheduled lines
+            val start = trip[Trips.startDate]?.toKotlinLocalDate()
             val items = ItineraryItems.selectAll().where { (ItineraryItems.tripId eq tripId) and ItineraryItems.deletedAt.isNull() }
                 .map { it.toItineraryItemDto() }
             val packing = PackingItems.selectAll().where { (PackingItems.tripId eq tripId) and PackingItems.deletedAt.isNull() }
@@ -58,7 +59,7 @@ object TripTemplateService {
                 it[TripTemplates.id] = id
                 it[ownerId] = userId
                 it[TripTemplates.name] = name
-                it[dayCount] = (java.time.temporal.ChronoUnit.DAYS.between(trip[Trips.startDate], trip[Trips.endDate]) + 1).toInt()
+                it[dayCount] = TripService.tripDayCount(start, trip[Trips.endDate]?.toKotlinLocalDate())
                 it[destination] = trip[Trips.destination]
                 it[TripTemplates.items] = templateItemsOf(start, items)
                 it[TripTemplates.packing] = templatePackingOf(packing)
