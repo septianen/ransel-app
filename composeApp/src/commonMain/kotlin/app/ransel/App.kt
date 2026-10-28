@@ -811,6 +811,8 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onBack = { navController.popBackStack() },
             // The trip is no longer ours: back to the list, skipping the trip screen.
             onLeft = { navController.popBackStack<TripRoute>(inclusive = true) },
+            // The owner has nobody to hand the trip to: the trip settings hold "Hapus trip".
+            onDeleteTrip = { navController.navigate(EditTripRoute(route.tripId)) },
         )
     }
     page<ActivityFormRoute> { entry ->

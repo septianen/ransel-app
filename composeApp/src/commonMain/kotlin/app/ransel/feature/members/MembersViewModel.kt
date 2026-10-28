@@ -11,6 +11,7 @@ import app.ransel.feature.invite.INVITE_MAX_USES
 import app.ransel.feature.invite.INVITE_VALID_DAYS
 import app.ransel.shared.domain.normalizePhone
 import app.ransel.shared.domain.validateMemberName
+import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.AddMemberRequest
 import app.ransel.shared.dto.CreateInviteRequest
 import app.ransel.shared.dto.InviteDto
@@ -32,7 +33,18 @@ sealed interface MembersDialog {
     data class Remove(val member: TripMemberDto) : MembersDialog
     data class MakeOwner(val member: TripMemberDto) : MembersDialog
     data object Leave : MembersDialog
+    /**
+     * The OWNER taps "Keluar dari trip": the trip needs a new owner first. [candidates] are the other
+     * members with an account (a person added by name cannot own a trip); [selected] is a user id.
+     */
+    data class PickNewOwner(val candidates: List<TripMemberDto>, val selected: String?) : MembersDialog
+    /** The OWNER wants to leave but nobody else has an account: no transfer possible, deleting the trip is the way out. */
+    data object NoNewOwner : MembersDialog
 }
+
+/** Who can take over the trip from [myUserId]: every other member with an account, in list order. */
+fun newOwnerCandidates(members: List<TripMemberDto>, myUserId: String?): List<TripMemberDto> =
+    members.filter { it.userId != null && it.userId != myUserId && it.claimedAt == null }
 
 /** Why the name of a new member is not accepted. */
 enum class NameProblem { REQUIRED, TOO_LONG }
@@ -69,6 +81,8 @@ data class MembersUiState(
     val inviteSheetOpen: Boolean = false,
     val addForm: AddMemberForm? = null,
     val claimBanner: ClaimBanner? = null,
+    /** The OWNER's transfer + leave is being sent: the new-owner dialog shows a spinner and cannot be closed. */
+    val leaving: Boolean = false,
 ) {
     val me: TripMemberDto? get() = members.firstOrNull { it.userId == myUserId }
     /** Unknown until the list is loaded: the safest (read-only) role. */
@@ -79,6 +93,8 @@ data class MembersUiState(
 sealed interface MembersEvent {
     /** The user left the trip: close the trip screens. */
     data object Left : MembersEvent
+    /** The OWNER cannot hand the trip over: open the trip settings, where it can be deleted. */
+    data object OpenDeleteTrip : MembersEvent
     /** A change was rejected or could not be sent; [code] is an `ErrorCode`. */
     data class Problem(val code: String) : MembersEvent
     /** A fresh invite link for [member], who was added by name: open WhatsApp (or the share sheet) with it. */
@@ -233,7 +249,30 @@ class MembersViewModel(
     }
 
     fun ask(dialog: MembersDialog) = _state.update { it.copy(dialog = dialog) }
-    fun dismissDialog() = _state.update { it.copy(dialog = null) }
+    fun dismissDialog() {
+        if (_state.value.leaving) return // transfer + leave in flight: the dialog shows the progress
+        _state.update { it.copy(dialog = null) }
+    }
+
+    /**
+     * "Keluar dari trip". The server refuses `leave` for the OWNER (OWNER_CANNOT_LEAVE), so the owner
+     * first picks a new owner among the members with an account, or learns that only deleting is left.
+     */
+    fun askLeave() = _state.update { it.copy(dialog = leaveDialog(it)) }
+
+    private fun leaveDialog(state: MembersUiState): MembersDialog {
+        if (!state.isOwner) return MembersDialog.Leave
+        val candidates = newOwnerCandidates(state.members, state.myUserId)
+        // Preselect the first one (editors before viewers, then by join time) so confirming is one tap.
+        return if (candidates.isEmpty()) MembersDialog.NoNewOwner
+        else MembersDialog.PickNewOwner(candidates, candidates.first().userId)
+    }
+
+    fun pickNewOwner(member: TripMemberDto) = _state.update { state ->
+        val dialog = state.dialog as? MembersDialog.PickNewOwner ?: return@update state
+        if (state.leaving || member.userId == null || member !in dialog.candidates) state
+        else state.copy(dialog = dialog.copy(selected = member.userId))
+    }
 
     fun confirmDialog() {
         val dialog = _state.value.dialog ?: return
@@ -245,9 +284,47 @@ class MembersViewModel(
                 _state.update { it.copy(busy = true) }
                 when (val result = api.leaveTrip(tripId)) {
                     is ApiResult.Success -> events.send(MembersEvent.Left)
-                    is ApiResult.Failure -> events.send(MembersEvent.Problem(result.error.code))
+                    is ApiResult.Failure -> if (result.error.code == ErrorCode.OWNER_CANNOT_LEAVE) {
+                        // The list was stale and we are the owner now: hand the trip over first.
+                        reloadMembers()
+                        _state.update { it.copy(dialog = leaveDialog(it)) }
+                    } else {
+                        events.send(MembersEvent.Problem(result.error.code))
+                    }
                 }
                 _state.update { it.copy(busy = false) }
+            }
+            is MembersDialog.PickNewOwner -> {
+                val newOwner = dialog.selected
+                if (newOwner == null) {
+                    _state.update { it.copy(dialog = dialog) } // nothing picked yet: keep asking
+                } else {
+                    transferAndLeave(dialog, newOwner)
+                }
+            }
+            MembersDialog.NoNewOwner -> viewModelScope.launch { events.send(MembersEvent.OpenDeleteTrip) }
+        }
+    }
+
+    /** Hands the trip to [newOwner] (the server makes us an EDITOR), then leaves. The dialog stays open with a spinner meanwhile. */
+    private fun transferAndLeave(dialog: MembersDialog.PickNewOwner, newOwner: String) {
+        _state.update { it.copy(dialog = dialog, busy = true, leaving = true) }
+        viewModelScope.launch {
+            val transfer = api.transferOwnership(tripId, newOwner)
+            val result = if (transfer is ApiResult.Failure) transfer else api.leaveTrip(tripId)
+            when (result) {
+                is ApiResult.Success -> {
+                    _state.update { it.copy(dialog = null, busy = false, leaving = false) }
+                    events.send(MembersEvent.Left)
+                }
+                is ApiResult.Failure -> {
+                    // Either step failed: roles come from the server again. If only `leave` failed we are an
+                    // editor now, and the button below leaves normally.
+                    _state.update { it.copy(dialog = null, leaving = false) }
+                    events.send(MembersEvent.Problem(result.error.code))
+                    reloadMembers()
+                    _state.update { it.copy(busy = false) }
+                }
             }
         }
     }
