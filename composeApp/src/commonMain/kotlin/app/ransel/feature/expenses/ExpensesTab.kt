@@ -65,6 +65,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.action_see_all
 import ransel.composeapp.generated.resources.expenses_estimated_line
 import ransel.composeapp.generated.resources.expense_estimate_chip
 import ransel.composeapp.generated.resources.money_event_claimed
@@ -97,6 +98,8 @@ fun ExpensesTab(
     refreshKey: Int = 0,
     /** Account → Info pembayaran, from the Saldo view. */
     onOpenPaymentMethods: () -> Unit = {},
+    /** "Lihat semua" next to Transaksi: the "Semua transaksi" screen. */
+    onSeeAllTransactions: (() -> Unit)? = null,
     viewModel: ExpensesViewModel = koinViewModel(key = "expenses-${trip.id}") { parametersOf(trip) },
 ) {
     LaunchedEffect(refreshKey) { if (refreshKey > 0) viewModel.loadMembers() }
@@ -172,7 +175,11 @@ fun ExpensesTab(
                     // no "Posisimu" card here: the Saldo tab says the same (owner, 27 Oct 2026)
                     CategoryBreakdown(summary, trip.baseCurrency)
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SectionHeader(stringResource(Res.string.expenses_transactions))
+                        SectionHeader(
+                            stringResource(Res.string.expenses_transactions),
+                            actionLabel = onSeeAllTransactions?.let { stringResource(Res.string.action_see_all) },
+                            onAction = onSeeAllTransactions,
+                        )
                         state.groups.forEach { group ->
                             Row(
                                 Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -380,7 +387,7 @@ private fun CategoryBreakdown(
 }
 
 @Composable
-private fun ExpenseRow(
+internal fun ExpenseRow(
     expense: ExpenseDto,
     tz: TimeZone,
     members: List<TripMemberDto>?,

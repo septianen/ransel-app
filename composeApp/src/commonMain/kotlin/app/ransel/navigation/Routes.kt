@@ -102,3 +102,6 @@ import kotlinx.serialization.Serializable
 
 /** "Riwayat voting": the finished polls and place-voting rounds of a trip, opened from the Group tab. */
 @Serializable data class VotingHistoryRoute(val tripId: String)
+
+/** "Semua transaksi": every expense and payment of a trip, opened from "Lihat semua" on the Biaya tab. */
+@Serializable data class AllTransactionsRoute(val tripId: String)

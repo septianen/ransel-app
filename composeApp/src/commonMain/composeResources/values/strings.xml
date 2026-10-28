@@ -1589,4 +1589,25 @@
         <item quantity="other">%1$d date options</item>
     </plurals>
     <string name="home_prep_ideas">place ideas</string>
+
+    <!-- All transactions (not designed yet) -->
+    <string name="transactions_title">All transactions</string>
+    <string name="transactions_filter_all">All</string>
+    <string name="transactions_filter_expenses">Expenses</string>
+    <string name="transactions_filter_payments">Payments</string>
+    <string name="transactions_filter_mine">Involving me</string>
+    <plurals name="transactions_count">
+        <item quantity="one">%1$d transaction</item>
+        <item quantity="other">%1$d transactions</item>
+    </plurals>
+    <string name="transactions_total_spent">Total spent %1$s</string>
+    <string name="transactions_total_paid">Total paid %1$s</string>
+    <string name="transactions_payment_title">%1$s paid %2$s</string>
+    <string name="transactions_payment_label">Payment</string>
+    <string name="transactions_you">You</string>
+    <string name="transactions_waiting">Waiting for confirmation</string>
+    <string name="transactions_payments_offline">Payments between members could not be loaded. Try again when online.</string>
+    <string name="transactions_empty_title">No transactions yet</string>
+    <string name="transactions_empty_filtered">No transactions for this filter.</string>
+    <string name="transactions_retry">Try again</string>
 </resources>
