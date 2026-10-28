@@ -65,8 +65,9 @@ data class AdminUserDetailDto(
 data class AdminTripDto(
     val id: String,
     val destination: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
+    /** Null for a trip whose dates are not set yet. */
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
     val role: Role,
     val memberCount: Int,
     /** Itinerary items + packing items, not deleted. */

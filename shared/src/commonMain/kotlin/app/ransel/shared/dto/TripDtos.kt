@@ -19,8 +19,12 @@ data class TripDto(
     val ownerId: String,
     val title: String,
     val destination: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
+    /**
+     * Both null = "Tanggal belum pasti": the group picks the dates with a DATE poll, whose result sets them. Until then
+     * the trip has no days, so every itinerary item is unscheduled. Never only one of the two (see [hasDates]).
+     */
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
     val baseCurrency: String,
     val budgetMinor: Long? = null,
     val coverUrl: String? = null,
@@ -65,14 +69,17 @@ data class TripDetailDto(
     val summary: TripSummaryDto,
 )
 
-/** POST /trips. Validation: title not blank, endDate >= startDate, budgetMinor >= 0, currency ^[A-Z]{3}$; lat -90..90, lng -180..180. */
+/**
+ * POST /trips. Validation: title not blank, both dates or neither (an undated trip), endDate >= startDate,
+ * budgetMinor >= 0, currency ^[A-Z]{3}$; lat -90..90, lng -180..180.
+ */
 @Serializable
 data class CreateTripRequest(
     val id: String,
     val title: String,
     val destination: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
     val baseCurrency: String,
     val budgetMinor: Long? = null,
     val coverUrl: String? = null,
@@ -91,8 +98,9 @@ data class CreateTripRequest(
 data class UpdateTripRequest(
     val title: String,
     val destination: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
+    /** Both null makes the trip undated again: its scheduled activities become unscheduled. */
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
     val baseCurrency: String,
     val budgetMinor: Long? = null,
     val coverUrl: String? = null,

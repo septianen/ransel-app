@@ -28,8 +28,9 @@ data class GuestPageDto(
     val tripId: String,
     val tripTitle: String,
     val destination: String,
-    val startDate: LocalDate,
-    val endDate: LocalDate,
+    /** Null while the dates are still being polled. */
+    val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
     val ownerName: String,
     /** Everyone in the trip; only members without an account can be picked. */
     val members: List<GuestMemberDto>,

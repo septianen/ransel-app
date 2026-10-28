@@ -55,5 +55,5 @@ fun tripRecap(
     )
 }
 
-/** The recap shows from the day after the last day of the trip. */
-fun recapAvailable(endDate: LocalDate, today: LocalDate): Boolean = today > endDate
+/** The recap shows from the day after the last day of the trip; never for a trip without dates. */
+fun recapAvailable(endDate: LocalDate?, today: LocalDate): Boolean = endDate != null && today > endDate

@@ -12,13 +12,16 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 
-/** A trip's itinerary as template lines: the day becomes its number from [startDate] (unscheduled stays unscheduled). */
-fun templateItemsOf(startDate: LocalDate, items: List<ItineraryItemDto>): List<TripTemplateItem> =
+/**
+ * A trip's itinerary as template lines: the day becomes its number from [startDate] (unscheduled stays unscheduled;
+ * a trip without dates has only unscheduled lines).
+ */
+fun templateItemsOf(startDate: LocalDate?, items: List<ItineraryItemDto>): List<TripTemplateItem> =
     items.filter { it.deletedAt == null }
         .sortedWith(compareBy({ it.dayDate == null }, { it.dayDate }, { it.sortOrder }))
         .map {
             TripTemplateItem(
-                dayIndex = it.dayDate?.let { day -> startDate.daysUntil(day) }?.takeIf { index -> index >= 0 },
+                dayIndex = it.dayDate?.let { day -> startDate?.daysUntil(day) }?.takeIf { index -> index >= 0 },
                 startTime = it.startTime.takeIf { _ -> it.dayDate != null },
                 endTime = it.endTime.takeIf { _ -> it.dayDate != null },
                 title = it.title, category = it.category, placeName = it.placeName, placeId = it.placeId,
@@ -35,12 +38,13 @@ data class TemplateStart(val items: List<ItineraryItemInput>, val packing: List<
 
 /**
  * A template laid on a new trip from [startDate] to [endDate]: each line goes to its day; lines past the last day go to
- * "Belum dijadwalkan" without their times (the user schedules them). [newId] makes the client-side ids.
+ * "Belum dijadwalkan" without their times (the user schedules them), and so does every line of a trip without dates.
+ * [newId] makes the client-side ids.
  */
-fun startFromTemplate(template: TripTemplateDto, startDate: LocalDate, endDate: LocalDate, newId: () -> String): TemplateStart {
-    val lastIndex = startDate.daysUntil(endDate)
+fun startFromTemplate(template: TripTemplateDto, startDate: LocalDate?, endDate: LocalDate?, newId: () -> String): TemplateStart {
+    val lastIndex = if (startDate != null && endDate != null) startDate.daysUntil(endDate) else -1
     val items = template.items.mapIndexed { order, line ->
-        val day = line.dayIndex?.takeIf { it in 0..lastIndex }?.let { startDate.plus(DatePeriod(days = it)) }
+        val day = line.dayIndex?.takeIf { it in 0..lastIndex }?.let { startDate?.plus(DatePeriod(days = it)) }
         ItineraryItemInput(
             id = newId(),
             dayDate = day,

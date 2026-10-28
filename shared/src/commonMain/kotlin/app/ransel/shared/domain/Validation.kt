@@ -22,11 +22,13 @@ fun isValidEmail(email: String) = EMAIL.matches(email.trim())
 private val CURRENCY = Regex("^[A-Z]{3}$")
 fun isValidCurrency(code: String) = CURRENCY.matches(code)
 
-/** Field name → reason code, for ApiError.details. Empty = valid. */
-fun validateTrip(title: String, startDate: LocalDate, endDate: LocalDate, baseCurrency: String, budgetMinor: Long?): Map<String, String> =
+/** Field name → reason code, for ApiError.details. Empty = valid. Both dates null is an undated trip; one alone is not. */
+fun validateTrip(title: String, startDate: LocalDate?, endDate: LocalDate?, baseCurrency: String, budgetMinor: Long?): Map<String, String> =
     buildMap {
         if (title.isBlank()) put("title", "REQUIRED")
-        if (endDate < startDate) put("endDate", "MUST_BE_AFTER_START")
+        if (startDate == null && endDate != null) put("startDate", "REQUIRED")
+        if (endDate == null && startDate != null) put("endDate", "REQUIRED")
+        if (startDate != null && endDate != null && endDate < startDate) put("endDate", "MUST_BE_AFTER_START")
         if (!isValidCurrency(baseCurrency)) put("baseCurrency", "INVALID_CURRENCY")
         if (budgetMinor != null && budgetMinor < 0) put("budgetMinor", "MUST_NOT_BE_NEGATIVE")
     }
