@@ -423,6 +423,21 @@ class RecommendationRoutesTest {
     }
 
     @Test
+    fun exploreWorksOnATripWithoutDates() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            val trip = UUID.randomUUID().toString()
+            post("/trips", """{"id":"$trip","title":"Bali bareng","destination":"Bali","baseCurrency":"IDR"}""")
+            val response = post("/recommendations", request(trip))
+            assertEquals(HttpStatusCode.OK, response.status, "no TRIP_ENDED without dates")
+            // neutral stand-in: 3 days from the first day of next month (WIB)
+            assertEquals(app.ransel.server.ai.UndatedTrip.DAYS, llm.lastQuery?.days)
+            assertEquals(app.ransel.server.ai.UndatedTrip.startDate().toString(), llm.lastQuery?.startDate)
+            assertEquals(HttpStatusCode.OK, get("/explore/suggestions?tripId=$trip").status)
+        }
+    }
+
+    @Test
     fun aDestinationInTheRequestReplacesTheTripsForThatSearch() {
         val (llm, places) = fakes()
         apiTest(ai = AiServices(llm, places)) {
