@@ -122,6 +122,8 @@ import app.ransel.feature.credits.CreditsScreen
 import app.ransel.navigation.ActivityFormRoute
 import app.ransel.navigation.ComponentGalleryRoute
 import app.ransel.navigation.CreateTripRoute
+import app.ransel.navigation.InviteFriendsRoute
+import app.ransel.feature.invite.InviteFriendsScreen
 import app.ransel.navigation.EditTripRoute
 import app.ransel.navigation.ExplorePreferencesRoute
 import app.ransel.navigation.ExploreRoute
@@ -461,7 +463,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                 RanselNavigationRail(
                     selected = railSelected,
                     onSelect = navController::openTab,
-                    onCreateTrip = { navController.navigate(CreateTripRoute()) },
+                    onCreateTrip = { navController.navigate(CreateTripRoute) },
                 )
             }
             // Each screen applies its own system-bar insets; the four tabs bring their own bottom bar (TabPage), so
@@ -549,7 +551,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
                 }
                 navController.navigate(TripRoute(id, tab.name))
             },
-            onCreateTrip = { navController.navigate(CreateTripRoute()) },
+            onCreateTrip = { navController.navigate(CreateTripRoute) },
             onOpenNotifications = { navController.navigate(NotificationsRoute) },
             onOpenRecap = { navController.navigate(RecapRoute(it)) },
             // "Coba": the preferences step on a new trip ("Trip baru"), full screen over Home.
@@ -560,7 +562,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
         TripListScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { navController.navigate(TripRoute(it)) },
-            onCreateTrip = { navController.navigate(CreateTripRoute()) },
+            onCreateTrip = { navController.navigate(CreateTripRoute) },
         )
     }
     tabPage<ExploreRoute>(MainTab.EXPLORE, navController) {
@@ -733,7 +735,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
         val route = entry.toRoute<TripRoute>()
         TripScreen(
             tripId = route.tripId,
-            initialTab = TripTab.entries.firstOrNull { it.name == route.tab } ?: TripTab.ITINERARY,
+            initialTab = TripTab.entries.firstOrNull { it.name == route.tab } ?: TripTab.OVERVIEW,
             onBack = { navController.popBackStack() },
             onEditTrip = { navController.navigate(EditTripRoute(route.tripId)) },
             onMembers = { navController.navigate(MembersRoute(route.tripId)) },
@@ -750,7 +752,6 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenDocuments = { upload -> navController.navigate(DocumentsRoute(route.tripId, upload)) },
             onOpenRecap = { navController.navigate(RecapRoute(route.tripId)) },
-            openInvite = route.invite,
         )
     }
     page<PollRoute> { entry ->
@@ -762,7 +763,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
         app.ransel.feature.recap.RecapScreen(
             tripId = route.tripId,
             onClose = { navController.popBackStack() },
-            onNewTrip = { navController.navigate(CreateTripRoute(invite = true)) },
+            onNewTrip = { navController.navigate(CreateTripRoute) },
         )
     }
     page<app.ransel.navigation.VotingHistoryRoute> { entry ->
@@ -806,6 +807,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             claimedGuestId = route.claimedGuestId,
             claimedGuestName = route.claimedGuestName,
             claimerName = route.claimerName,
+            openAdd = route.openAdd,
             onBack = { navController.popBackStack() },
             // The trip is no longer ours: back to the list, skipping the trip screen.
             onLeft = { navController.popBackStack<TripRoute>(inclusive = true) },
@@ -820,16 +822,29 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onClose = { navController.popBackStack() },
         )
     }
-    page<CreateTripRoute> { entry ->
-        val route = entry.toRoute<CreateTripRoute>()
+    page<CreateTripRoute> {
+        val session: SessionManager = koinInject()
         TripFormScreen(
             tripId = null,
             onClose = { navController.popBackStack() },
             onSaved = { id ->
-                // Replace the form with the new trip so Back returns to where the user came from.
-                navController.navigate(TripRoute(id, tab = if (route.invite) TripTab.OVERVIEW.name else TripTab.ITINERARY.name, invite = route.invite)) { popUpTo<CreateTripRoute> { inclusive = true } }
+                // Replace the form with the new trip (on Ringkasan) so Back returns to where the user came from.
+                navController.navigate(TripRoute(id)) { popUpTo<CreateTripRoute> { inclusive = true } }
+                // Inviting needs an account: a guest's trip lives on this phone only.
+                if (session.state.value is SessionState.SignedIn) navController.navigate(InviteFriendsRoute(id))
             },
             onDeleted = {},
+        )
+    }
+    page<InviteFriendsRoute> { entry ->
+        val route = entry.toRoute<InviteFriendsRoute>()
+        InviteFriendsScreen(
+            tripId = route.tripId,
+            // "Nanti saja" and close: the trip underneath, on Ringkasan.
+            onDone = { navController.popBackStack() },
+            onAddByName = {
+                navController.navigate(MembersRoute(route.tripId, openAdd = true)) { popUpTo<InviteFriendsRoute> { inclusive = true } }
+            },
         )
     }
     page<EditTripRoute> { entry ->

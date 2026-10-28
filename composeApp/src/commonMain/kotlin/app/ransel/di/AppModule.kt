@@ -103,7 +103,7 @@ val commonModule: Module = module {
     viewModel { params -> PlaceDetailViewModel(params.get(), get(), get()) }
     single { VotingStore() }
     viewModel { params -> VoteViewModel(params[0], params[1], params[2], get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { params -> InviteSheetViewModel(params.get(), get(), get()) }
+    viewModel { params -> InviteSheetViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> JoinTripViewModel(params.get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> MembersViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> GroupViewModel(params.get(), get(), get()) }

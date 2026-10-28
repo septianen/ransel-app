@@ -84,7 +84,6 @@ fun TripScreen(
     onOpenDocuments: (upload: Boolean) -> Unit = {},
     onOpenRecap: () -> Unit = {},
     /** Opened right after "Buat trip dengan grup ini": the invite sheet comes first. */
-    openInvite: Boolean = false,
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
 ) {
@@ -109,7 +108,7 @@ fun TripScreen(
     val actionRounds = tripRounds.actionRounds(isOwner)
     // The + button of the Group tab: Buat polling / Ajak anggota / Unggah dokumen.
     var actionSheetOpen by remember { mutableStateOf(false) }
-    var inviteSheetOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(openInvite) }
+    var inviteSheetOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var kindSheetOpen by remember { mutableStateOf(false) }
     // The OWNER and EDITORs ask the group; viewers vote.
     val canAsk = current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true

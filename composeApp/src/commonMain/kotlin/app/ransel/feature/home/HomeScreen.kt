@@ -230,7 +230,7 @@ private fun HomeTripContent(
         Header(title = stringResource(Res.string.home_title), bell = bell)
         recap?.invoke()
         // the nearest trip opens on the Group tab when it is shared, on the itinerary when it is solo
-        FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, if (state.isGroup) TripSection.OVERVIEW else TripSection.ITINERARY) })
+        FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, TripSection.OVERVIEW) }) // Ringkasan is the way into a trip
         val canExplore = onExplore != null && state.trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
         TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) })
         if (canExplore && onExplore != null) ExploreCallout(state.trip.destination, onTry = onExplore)

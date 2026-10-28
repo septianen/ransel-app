@@ -53,6 +53,7 @@ class InviteSheetViewModel(
     private val tripId: String,
     private val api: RanselApi,
     private val analytics: Analytics = NoAnalytics,
+    private val sync: SyncStatus = app.ransel.data.sync.NoSyncStatus,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InviteSheetState())
     val state: StateFlow<InviteSheetState> = _state.asStateFlow()
@@ -73,6 +74,7 @@ class InviteSheetViewModel(
     private fun create(role: Role) {
         _state.update { it.copy(role = role, invite = null, loading = true, failure = null) }
         viewModelScope.launch {
+            awaitTripOnServer()
             val request = CreateInviteRequest(
                 role = role,
                 maxUses = INVITE_MAX_USES,
@@ -86,6 +88,16 @@ class InviteSheetViewModel(
                 is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = result.error) }
             }
         }
+    }
+
+    /**
+     * A trip made on this phone a moment ago ("Ajak teman" right after "Buat trip") may still wait to be sent; the
+     * server only makes an invite for a trip it has. Waits a little for the push (mobile; the web has nothing pending).
+     */
+    private suspend fun awaitTripOnServer() {
+        if (tripId !in sync.pendingIds.value) return
+        sync.syncNow()
+        withTimeoutOrNull(10_000) { sync.pendingIds.first { tripId !in it } }
     }
 }
 

@@ -60,15 +60,16 @@ import ransel.composeapp.generated.resources.onboarding_title_3
 
 private data class OnboardingPage(val title: StringResource, val body: StringResource, val illustration: DrawableResource)
 
+// The group story (design OnboardingGrup1–3): plan together, split costs, who brings what.
 private val Pages = listOf(
-    OnboardingPage(Res.string.onboarding_title_1, Res.string.onboarding_body_1, Res.drawable.ic_itinerary_empty),
-    OnboardingPage(Res.string.onboarding_title_2, Res.string.onboarding_body_2, Res.drawable.ic_packing_empty),
-    OnboardingPage(Res.string.onboarding_title_3, Res.string.onboarding_body_3, Res.drawable.ic_expenses_empty),
+    OnboardingPage(Res.string.onboarding_title_1, Res.string.onboarding_body_1, Res.drawable.ic_itinerary_empty), // capybara-world-map
+    OnboardingPage(Res.string.onboarding_title_2, Res.string.onboarding_body_2, Res.drawable.ic_expenses_empty), // capybara-counting-coins
+    OnboardingPage(Res.string.onboarding_title_3, Res.string.onboarding_body_3, Res.drawable.ic_packing_empty), // capybara-opening-backpack
 )
 
 /**
- * Three introduction pages on first launch. Phase 1 has no account, so "Skip" and "Get started" both go
- * straight into the app; "Sudah punya akun? Masuk" arrives with sign-in (Phase 3).
+ * Three introduction pages on first launch (design OnboardingGrup1–3). "Skip" and "Get started" go straight into
+ * the app; the last page also offers "Sudah punya akun? Masuk".
  */
 @Composable
 fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier, onSignIn: (() -> Unit)? = null) {
@@ -104,7 +105,7 @@ fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier, onSign
                 Text(
                     stringResource(Res.string.onboarding_skip),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .heightIn(min = 48.dp)
                         .clickable(onClick = onFinish)

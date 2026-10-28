@@ -179,7 +179,7 @@ These close the gaps found when RANSEL is used by a group where not everyone has
 | --- | --- | --- | --- |
 | P0 | Members without an account | AnggotaTanpaAkun, TambahAnggotaNama, GabungPilihNama | Built |
 | P0 | Join from the invite link without signing in | WebGabungPratinjau | Built (guest page) |
-| P0 | Group-first onboarding and an invite step after creating a trip | OnboardingGrup1–3, AjakTeman | Not built yet (Ringkasan has "Ajak teman" on solo trips) |
+| P0 | Group-first onboarding and an invite step after creating a trip | OnboardingGrup1–3, AjakTeman | Built |
 | P0 | Payment info, reminders and "I've paid" | SaldoTagih, IngatkanWA, BayarKe, InfoPembayaran | Built |
 | P1 | Date poll | BuatPolling, PollingTanggal | Built; a trip without dates ("Tanggal belum pasti", BuatTripTanggalBelumPasti) is not built yet |
 | P1 | Shared packing items (who brings what) | PackingBersama, TambahBarangBersama | Built |
@@ -200,10 +200,11 @@ These close the gaps found when RANSEL is used by a group where not everyone has
 - The visitor picks their name from the members without an account (taken ones greyed) or writes one ("Nama saya tidak ada" adds a member without an account; "Itu kamu?" when the name exists). They can then vote and tick the packing lines they received. One browser per name; the owner can release a name ("Lepas dari browser"). Abuse protection stays simple: an IP rate limit, no OTP or captcha (owner, 26 Oct 2026).
 - Not built: a guest's own share of the expenses on the page; "Pasang aplikasi" is "Buat akun untuk ikut merencanakan" until there are store links.
 
-### P0 · Group-first onboarding (not built yet)
+### P0 · Group-first onboarding
 
 - Onboarding tells the group story: plan together, split costs, who brings what (OnboardingGrup1–3 replace Onboarding1–3).
-- After Buat trip, the AjakTeman screen offers Share to WhatsApp, copy link, or add friends by name. "Nanti saja" goes to the itinerary.
+- After Buat trip (signed in), the AjakTeman screen offers Share to WhatsApp, copy link, or add friends by name. "Nanti saja" and close go to the trip's Ringkasan (owner, 28 Oct 2026). A guest's trip lives on the phone only, so guests go straight to Ringkasan.
+- Ringkasan is the default tab whenever a trip opens (trip list, Home's trip card, notifications, after joining). Only an entry point about one part opens that tab: Home's Itinerary/Packing/Biaya rows, "Lihat itinerary" after Explore or a voting result (owner, 28 Oct 2026).
 
 ### P0 · Getting paid
 

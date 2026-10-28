@@ -329,12 +329,12 @@
     <string name="expense_sheet_subtitle_day">%1$s · Day %2$d</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_title_1">Plan your itinerary day by day</string>
-    <string name="onboarding_body_1">Set activities, times and places for every day. Ideas you are not sure about can wait in "Unscheduled".</string>
-    <string name="onboarding_title_2">Pack without forgetting</string>
-    <string name="onboarding_body_2">Make a packing list per category, then tick items off one by one before you leave.</string>
-    <string name="onboarding_title_3">Track your trip budget</string>
-    <string name="onboarding_body_3">Record expenses in any currency and see your remaining budget anytime.</string>
+    <string name="onboarding_title_1">Plan the trip with your friends</string>
+    <string name="onboarding_body_1">One itinerary for everyone. Friends can add places, choose by voting and see the same schedule.</string>
+    <string name="onboarding_title_2">Split costs without the hassle</string>
+    <string name="onboarding_body_2">Record who paid for what. RANSEL works out who pays whom with the fewest transfers.</string>
+    <string name="onboarding_title_3">Everyone knows who brings what</string>
+    <string name="onboarding_body_3">Share out the group's packing and keep an eye on the budget, even without signal.</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_next">Next</string>
     <string name="onboarding_start">Get started</string>
@@ -532,6 +532,13 @@
     <string name="invite_copy">Copy</string>
     <string name="invite_share">Share link</string>
     <string name="invite_share_text">Join my trip "%1$s" on Ransel: %2$s</string>
+    <string name="invite_friends_title">Trip %1$s is ready!</string>
+    <string name="invite_friends_body">Invite your friends so the itinerary, packing and shared costs are all in one place.</string>
+    <string name="invite_friends_link_label">Invite link · joins as Editor</string>
+    <string name="invite_friends_whatsapp">Share on WhatsApp</string>
+    <string name="invite_friends_add_name">Just add friends by name</string>
+    <string name="invite_friends_later">Maybe later</string>
+    <string name="invite_friends_copied">Link copied</string>
     <string name="invite_valid">Valid for %1$d days · up to %2$d people</string>
     <string name="invite_failed">Could not create an invite.</string>
     <string name="invite_button">Invite members</string>

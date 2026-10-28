@@ -37,6 +37,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -134,9 +135,18 @@ fun MembersScreen(
     claimedGuestId: String? = null,
     claimedGuestName: String? = null,
     claimerName: String? = null,
+    /** From AjakTeman's "Tambah nama teman saja": the add-by-name sheet opens once. */
+    openAdd: Boolean = false,
     viewModel: MembersViewModel = koinViewModel(key = "members-$tripId") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
+    var addOpened by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(openAdd) {
+        if (openAdd && !addOpened) {
+            addOpened = true
+            viewModel.openAddForm()
+        }
+    }
     val snackbar = remember { SnackbarHostState() }
     val generic = stringResource(Res.string.members_error_generic)
     val connection = stringResource(Res.string.members_error_connection)

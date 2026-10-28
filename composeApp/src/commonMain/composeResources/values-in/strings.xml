@@ -329,12 +329,12 @@
     <string name="expense_sheet_subtitle_day">%1$s · Hari %2$d</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_title_1">Susun itinerary per hari</string>
-    <string name="onboarding_body_1">Atur aktivitas, jam, dan tempat untuk setiap hari perjalanan. Ide yang belum pasti bisa disimpan dulu di "Belum dijadwalkan".</string>
-    <string name="onboarding_title_2">Packing tanpa ketinggalan</string>
-    <string name="onboarding_body_2">Buat daftar barang per kategori, lalu centang satu per satu sebelum berangkat.</string>
-    <string name="onboarding_title_3">Pantau budget perjalanan</string>
-    <string name="onboarding_body_3">Catat pengeluaran dalam mata uang apa pun dan lihat sisa budget kapan saja.</string>
+    <string name="onboarding_title_1">Rencanakan trip bareng teman</string>
+    <string name="onboarding_body_1">Satu itinerary untuk semua. Teman bisa menambah tempat, memilih lewat voting, dan melihat jadwal yang sama.</string>
+    <string name="onboarding_title_2">Patungan tanpa ribet</string>
+    <string name="onboarding_body_2">Catat siapa bayar apa. RANSEL menghitung siapa perlu bayar ke siapa dengan transfer paling sedikit.</string>
+    <string name="onboarding_title_3">Siapa bawa apa, semua tahu</string>
+    <string name="onboarding_body_3">Bagi barang bawaan bersama dan pantau budget, tetap bisa dipakai tanpa sinyal.</string>
     <string name="onboarding_skip">Lewati</string>
     <string name="onboarding_next">Lanjut</string>
     <string name="onboarding_start">Mulai sekarang</string>
@@ -531,6 +531,13 @@
     <string name="invite_copy">Salin</string>
     <string name="invite_share">Bagikan link</string>
     <string name="invite_share_text">Ikut trip "%1$s" di Ransel: %2$s</string>
+    <string name="invite_friends_title">Trip %1$s siap!</string>
+    <string name="invite_friends_body">Ajak teman supaya itinerary, barang bawaan, dan patungan ada di satu tempat.</string>
+    <string name="invite_friends_link_label">Link undangan · bergabung sebagai Editor</string>
+    <string name="invite_friends_whatsapp">Bagikan ke WhatsApp</string>
+    <string name="invite_friends_add_name">Tambah nama teman saja</string>
+    <string name="invite_friends_later">Nanti saja</string>
+    <string name="invite_friends_copied">Link disalin</string>
     <string name="invite_valid">Berlaku %1$d hari · maksimal %2$d orang</string>
     <string name="invite_failed">Undangan belum bisa dibuat.</string>
     <string name="invite_button">Undang anggota</string>

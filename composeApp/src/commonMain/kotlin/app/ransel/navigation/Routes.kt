@@ -13,11 +13,14 @@ import kotlinx.serialization.Serializable
 /** First-launch introduction (3 pages), shown once. */
 @Serializable data object OnboardingRoute
 
-/** Trip detail: header + Itinerary / Packing / Expenses tabs. [tab] is a `TripTab` name. */
-/** [invite] = just made with "Buat trip dengan grup ini": the invite sheet opens first. */
-@Serializable data class TripRoute(val tripId: String, val tab: String = "ITINERARY", val invite: Boolean = false)
-/** [invite] = "Buat trip dengan grup ini" from a recap: the new trip opens with the invite sheet. */
-@Serializable data class CreateTripRoute(val invite: Boolean = false)
+/**
+ * Trip detail: header + Ringkasan / Itinerary / Packing / Biaya tabs. [tab] is a `TripTab` name; Ringkasan is the
+ * default way into a trip (owner, 28 Oct 2026), other tabs only when the entry point is about them.
+ */
+@Serializable data class TripRoute(val tripId: String, val tab: String = "OVERVIEW")
+@Serializable data object CreateTripRoute
+/** Design AjakTeman: right after "Buat trip" (signed in), share the invite link or add friends by name. */
+@Serializable data class InviteFriendsRoute(val tripId: String)
 /** [share] = just created: the share sheet opens first ("Polling sudah dibuat"). */
 @Serializable data class PollRoute(val tripId: String, val pollId: String, val share: Boolean = false)
 /** [kind] is a `PollKind` name. */
@@ -64,6 +67,8 @@ import kotlinx.serialization.Serializable
     val claimedGuestId: String? = null,
     val claimedGuestName: String? = null,
     val claimerName: String? = null,
+    /** "Tambah nama teman saja" on AjakTeman: the add-by-name sheet opens at once. */
+    val openAdd: Boolean = false,
 )
 
 /** Swipe through the recommendations of the unfinished Explore session of [tripId] (a user can have one per trip). */
