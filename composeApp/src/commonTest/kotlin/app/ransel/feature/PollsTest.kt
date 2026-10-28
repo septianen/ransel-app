@@ -416,12 +416,11 @@ class CreatePollViewModelTest {
     }
 
     @Test
-    fun prefillOnlyFillsAnEmptyQuestionOnce() = runTest {
-        val vm = vm(PollKind.CUSTOM)
-        vm.prefillQuestion("Kapan berangkat?")
-        vm.onQuestion("Punyaku")
-        vm.prefillQuestion("Kapan berangkat?")
-        assertEquals("Punyaku", vm.state.value.question)
+    fun theQuestionStartsEmptyAndTheTemplateIsOnlyAHint() = runTest {
+        val vm = vm(PollKind.STAY)
+        assertEquals("", vm.state.value.question)
+        vm.create()
+        assertTrue(vm.state.value.questionWrong, "the hint is not sent as the question")
     }
 
     @Test

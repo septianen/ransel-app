@@ -206,6 +206,32 @@ fun PollOptionSheet(
                     MoneyField(stringResource(Res.string.poll_option_budget_max), draft.max, currency, error("maxMinor", true)) { draft = draft.copy(max = it); wrong = wrong - "maxMinor" }
                 }
                 else -> {
+                    if (kind == PollKind.DESTINATION) {
+                        DestinationField(
+                            label = stringResource(Res.string.poll_option_label),
+                            value = draft.label,
+                            onPicked = { draft = draft.copy(label = it.name); wrong = wrong - "label" },
+                            picked = draft.label.isNotEmpty(),
+                            error = error("label", true),
+                        )
+                    } else {
+                        IrisTextField(
+                            label = stringResource(Res.string.poll_option_label),
+                            value = draft.label,
+                            onValueChange = { draft = draft.copy(label = it); wrong = wrong - "label" },
+                            error = error("label", true),
+                        )
+                    }
+                    if (kind == PollKind.STAY || kind == PollKind.FOOD) {
+                        MoneyField(
+                            label = stringResource(if (kind == PollKind.STAY) Res.string.poll_option_price_night else Res.string.poll_option_price_person),
+                            value = draft.price,
+                            currency = currency,
+                            error = error("priceMinor"),
+                            optional = true,
+                        ) { draft = draft.copy(price = it); wrong = wrong - "priceMinor" }
+                    }
+                    // the most optional field comes last (owner, 27 Oct 2026); "Ambil info" fills the name only when it is empty
                     if (kind in LINK_KINDS) {
                         IrisTextField(
                             label = stringResource(Res.string.poll_option_link),
@@ -242,31 +268,6 @@ fun PollOptionSheet(
                         if (fetchFailed) {
                             Text(stringResource(Res.string.poll_link_error), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                         }
-                    }
-                    if (kind == PollKind.DESTINATION) {
-                        DestinationField(
-                            label = stringResource(Res.string.poll_option_label),
-                            value = draft.label,
-                            onPicked = { draft = draft.copy(label = it.name); wrong = wrong - "label" },
-                            picked = draft.label.isNotEmpty(),
-                            error = error("label", true),
-                        )
-                    } else {
-                        IrisTextField(
-                            label = stringResource(Res.string.poll_option_label),
-                            value = draft.label,
-                            onValueChange = { draft = draft.copy(label = it); wrong = wrong - "label" },
-                            error = error("label", true),
-                        )
-                    }
-                    if (kind == PollKind.STAY || kind == PollKind.FOOD) {
-                        MoneyField(
-                            label = stringResource(if (kind == PollKind.STAY) Res.string.poll_option_price_night else Res.string.poll_option_price_person),
-                            value = draft.price,
-                            currency = currency,
-                            error = error("priceMinor"),
-                            optional = true,
-                        ) { draft = draft.copy(price = it); wrong = wrong - "priceMinor" }
                     }
                 }
             }

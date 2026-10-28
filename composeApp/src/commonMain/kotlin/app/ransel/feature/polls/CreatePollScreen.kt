@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -99,8 +100,6 @@ fun CreatePollScreen(
     viewModel: CreatePollViewModel = koinViewModel(key = "create-poll-$tripId-${kind.name}") { parametersOf(tripId, kind) },
 ) {
     val state by viewModel.state.collectAsState()
-    val defaultQuestion = kind.defaultQuestion()
-    LaunchedEffect(defaultQuestion) { viewModel.prefillQuestion(defaultQuestion) }
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { if (it is CreatePollEvent.Created) onCreated(it.pollId) }
     }
@@ -173,10 +172,12 @@ fun CreatePollContent(
                 label = stringResource(Res.string.poll_question_label),
                 value = state.question,
                 onValueChange = onQuestion,
+                // the template's question is a hint, not text to delete first (owner, 27 Oct 2026)
+                placeholder = state.kind.defaultQuestion().ifEmpty { null },
                 error = if (state.questionWrong) stringResource(Res.string.poll_question_error) else null,
             )
             ClosingChoice(state.closingDays, onClosingDays)
-            if (state.kind == PollKind.FOOD) FoodWhen(state.foodDay, state.foodTime, state.tripStart, onFoodDay, onFoodTime)
+            if (state.kind == PollKind.FOOD) FoodWhen(state.foodDay, state.foodTime, state.tripStart, state.tripEnd, onFoodDay, onFoodTime)
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 SwitchRow(stringResource(Res.string.poll_multi), null, state.multiChoice, true, onMulti)
                 SwitchRow(
@@ -252,7 +253,7 @@ private fun ClosingChoice(selected: Int, onSelect: (Int) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FoodWhen(day: LocalDate?, time: LocalTime?, tripStart: LocalDate?, onDay: (LocalDate?) -> Unit, onTime: (LocalTime) -> Unit) {
+private fun FoodWhen(day: LocalDate?, time: LocalTime?, tripStart: LocalDate?, tripEnd: LocalDate?, onDay: (LocalDate?) -> Unit, onTime: (LocalTime) -> Unit) {
     var pickDay by remember { mutableStateOf(false) }
     var pickTime by remember { mutableStateOf(false) }
     val dates = rememberDateFormatter()
@@ -265,7 +266,21 @@ private fun FoodWhen(day: LocalDate?, time: LocalTime?, tripStart: LocalDate?, o
         }
     }
     if (pickDay) {
-        val state = rememberDatePickerState(initialSelectedDateMillis = (day ?: tripStart ?: today()).toPickerMillis())
+        // the winner becomes an activity of that day: only days of the trip that are not over (owner, 27 Oct 2026)
+        val earliest = maxOf(today(), tripStart ?: today())
+        val selectable = remember(earliest, tripEnd) {
+            object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    val date = utcTimeMillis.fromPickerMillis()
+                    return date >= earliest && (tripEnd == null || date <= tripEnd)
+                }
+                override fun isSelectableYear(year: Int) = year >= earliest.year && (tripEnd == null || year <= tripEnd.year)
+            }
+        }
+        val state = rememberDatePickerState(
+            initialSelectedDateMillis = (day ?: earliest.takeIf { tripEnd == null || it <= tripEnd } ?: tripStart ?: today()).toPickerMillis(),
+            selectableDates = selectable,
+        )
         DatePickerDialog(
             onDismissRequest = { pickDay = false },
             confirmButton = {
