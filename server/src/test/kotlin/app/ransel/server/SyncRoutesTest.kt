@@ -273,6 +273,35 @@ class SyncRoutesTest {
     }
 
     @Test
+    fun pullPagesByTripAndTheLastPageSaysSo() = apiTest {
+        val tripIds = List(5) { id() }
+        push(SyncChanges(trips = tripIds.map { trip(it) }, itineraryItems = tripIds.map { item(it) }))
+
+        val seen = mutableListOf<String>()
+        var after: String? = null
+        var pages = 0
+        do {
+            val response = get("/sync?tripLimit=2" + (after?.let { "&afterTripId=$it" } ?: ""))
+            assertEquals(HttpStatusCode.OK, response.status, response.bodyAsText())
+            val page = wire.decodeFromString<app.ransel.shared.api.ApiResponse<SyncPullResponse>>(response.bodyAsText()).data
+            assertTrue(page.changes.trips.size <= 2)
+            // a trip's rows travel with it
+            assertEquals(page.changes.trips.map { it.id }.toSet(), page.changes.itineraryItems.map { it.tripId }.toSet())
+            seen += page.changes.trips.map { it.id }
+            after = page.nextTripId
+            pages++
+        } while (after != null)
+
+        assertEquals(3, pages)
+        assertEquals(tripIds.sorted(), seen)
+        // without tripLimit an older app still gets everything in one response
+        val all = pull()
+        assertEquals(5, all.changes.trips.size)
+        assertNull(all.nextTripId)
+        assertEquals(HttpStatusCode.UnprocessableEntity, get("/sync?tripLimit=0").status)
+    }
+
+    @Test
     fun invalidSinceIs422() = apiTest {
         assertEquals(HttpStatusCode.UnprocessableEntity, get("/sync?since=yesterday").status)
     }

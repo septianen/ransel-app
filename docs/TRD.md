@@ -156,7 +156,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST ★ | /auth/password/forgot, /auth/password/reset | Forgot password | 3 |
 | POST ★ | /auth/email/verify (public), /auth/email/resend (bearer) | Verify the email after sign-up; send a new link | 3 |
 | GET, PATCH ★ | /me | Profile, default currency | 3 |
-| GET, POST | /sync | Pull changes since a timestamp / push a local batch | 3 |
+| GET, POST | /sync | Pull changes since a timestamp (optionally a few trips per page: `tripLimit`, `afterTripId`, `nextTripId`) / push a local batch | 3 |
 | POST | /trips/{id}/invites | Create an invite code (role, maxUses, expiresAt) | 4 |
 | GET ★ | /trips/{id}/invites | List invites with usage, for the Members screen | 4 |
 | DELETE ★ | /trips/{id}/invites/{code} | Revoke an invite | 4 |
@@ -248,7 +248,7 @@ On Android and iOS, the local database is the source of truth for the UI; the se
 1. Every local write saves the row with `updated_at = now` and marks it `pending` (used by the UI for the "waiting to sync" marker and the change count on the Session expired screen).
 2. When online, a worker sends every `pending` row in one batch with `POST /sync`.
 3. The server applies each row if its `updated_at` is newer than the stored one, checks access per trip, and returns accepted and rejected rows with reasons.
-4. The client pulls other changes with `GET /sync?since=<lastSyncAt>`, overwrites older local rows, and stores `lastSyncAt` from the server clock.
+4. The client pulls other changes with `GET /sync?since=<lastSyncAt>`, overwrites older local rows, and stores `lastSyncAt` from the server clock. Mobile pages the pull 20 trips at a time (`tripLimit`, then `afterTripId = nextTripId` until it is null) and stores the first page's `serverTime` only after the last page.
 5. The UI shows the snackbar "Back online · n changes sent".
 
 Supporting rules:

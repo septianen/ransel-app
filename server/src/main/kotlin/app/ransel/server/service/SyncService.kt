@@ -22,6 +22,7 @@ import app.ransel.shared.domain.validateTrip
 import app.ransel.shared.domain.validateTripLocale
 import app.ransel.shared.domain.validateTripPlace
 import app.ransel.shared.dto.ExpenseDto
+import app.ransel.shared.dto.SYNC_MAX_TRIPS_PER_PAGE
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
@@ -116,25 +117,37 @@ class SyncService {
         return SyncPushResponse(accepted, rejected, serverTime.toTimestamp())
     }
 
-    fun pull(userId: UUID, since: kotlin.time.Instant?): SyncPullResponse = transaction {
+    /**
+     * Changes since [since]. With [tripLimit] only that many of the user's trips (id order, after [afterTripId]) are
+     * covered and `nextTripId` names where the next page starts; without it every trip comes at once.
+     */
+    fun pull(userId: UUID, since: kotlin.time.Instant?, tripLimit: Int? = null, afterTripId: UUID? = null): SyncPullResponse = transaction {
         // Taken before reading: a concurrent transaction that started earlier but commits after our snapshot
         // would otherwise fall between two pulls. Re-delivered rows are harmless (LWW).
         val serverTime = pullCursor()
         val sinceJava = since?.toJavaInstant()
 
-        val myRoles = TripMembers.selectAll().where { (TripMembers.userId eq userId) and TripMembers.active() }
+        val allRoles = TripMembers.selectAll().where { (TripMembers.userId eq userId) and TripMembers.active() }
             .associate { it[TripMembers.tripId] to it[TripMembers.role] }
-        val allTripIds = myRoles.keys.toList()
+        // Ordered by the id's text, which the client sends back as afterTripId (UUID.compareTo is signed, so not that).
+        val ordered = allRoles.keys.sortedBy { it.toString() }
+        val remaining = if (afterTripId == null) ordered else ordered.filter { it.toString() > afterTripId.toString() }
+        val pageSize = tripLimit?.coerceAtMost(SYNC_MAX_TRIPS_PER_PAGE)
+        val page = if (pageSize == null) remaining else remaining.take(pageSize)
+        val nextTripId = if (pageSize != null && remaining.size > pageSize) page.last().toString() else null
+        val myRoles = allRoles.filterKeys { it in page }
+        val allTripIds = page
         // Trips I joined after `since` (invite accepted): their rows are older than my cursor, so a plain
         // `updated_at > since` filter would never deliver them. Send those trips whole.
         val newTripIds = if (sinceJava == null) emptyList() else TripMembers.selectAll()
             .where { (TripMembers.userId eq userId) and TripMembers.active() and (TripMembers.updatedAt greater sinceJava) }
             .map { it[TripMembers.tripId] }
+            .filter { it in myRoles }
 
-        val tripRows = TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id)
+        val tripRows = if (allTripIds.isEmpty()) emptyList() else TripMembers.join(Trips, JoinType.INNER, TripMembers.tripId, Trips.id)
             .selectAll()
             .where {
-                val mine = (TripMembers.userId eq userId) and TripMembers.active()
+                val mine = (TripMembers.userId eq userId) and TripMembers.active() and (Trips.id inList allTripIds)
                 if (sinceJava == null) mine else mine and ((Trips.updatedAt greater sinceJava) or (Trips.id inList newTripIds))
             }
             .toList()
@@ -215,6 +228,7 @@ class SyncService {
                 members = members,
             ),
             serverTime = serverTime.toTimestamp(),
+            nextTripId = nextTripId,
         )
     }
 
