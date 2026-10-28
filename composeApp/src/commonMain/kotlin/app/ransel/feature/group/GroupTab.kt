@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.trips.countdownLabel
+import app.ransel.feature.expenses.balanceColors
 import app.ransel.feature.polls.PollNeed
 import app.ransel.data.voting.actionRounds
 import app.ransel.feature.voting.VoteRoundRow
@@ -52,6 +53,7 @@ import app.ransel.ui.theme.IrisTheme
 import androidx.compose.foundation.layout.heightIn
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
+import app.ransel.shared.model.SettlementStatus
 import app.ransel.ui.components.HeroCard
 import app.ransel.ui.components.StatusTag
 import app.ransel.ui.components.MemberAvatar
@@ -212,11 +214,20 @@ fun GroupContent(
             if (hasNeeds) needs()
             pollNeeds.forEach { (poll, need) -> PollNeedCard(poll, need) { onOpenPoll(poll.id) } }
             fun nameOf(id: String) = members.firstOrNull { it.memberId == id }?.displayName ?: "?"
+            // Same colours as the Saldo card: money coming to me is green, money I owe is red.
             claimsToConfirm.forEach { claim ->
-                MoneyNeedCard(stringResource(Res.string.group_need_confirm, nameOf(claim.fromMemberId), formatMoney(claim.amountMinor, currency)), onOpenMoney)
+                MoneyNeedCard(
+                    stringResource(Res.string.group_need_confirm, nameOf(claim.fromMemberId), formatMoney(claim.amountMinor, currency)),
+                    balanceMinor = claim.amountMinor,
+                    onClick = onOpenMoney,
+                )
             }
             owes.forEach { t ->
-                MoneyNeedCard(stringResource(Res.string.group_need_pay, formatMoney(t.amountMinor, currency), nameOf(t.toMemberId)), onOpenMoney)
+                MoneyNeedCard(
+                    stringResource(Res.string.group_need_pay, formatMoney(t.amountMinor, currency), nameOf(t.toMemberId)),
+                    balanceMinor = -t.amountMinor,
+                    onClick = onOpenMoney,
+                )
             }
             if (!hasNeeds && pollNeeds.isEmpty() && owes.isEmpty() && claimsToConfirm.isEmpty()) Text(
                 stringResource(Res.string.group_needs_empty),
@@ -340,22 +351,23 @@ private fun InviteCard(onClick: () -> Unit) {
     }
 }
 
-/** A poll that asks something of the user: vote, or (creator and owner) confirm the result. */
+/** Money that asks something of the user. [balanceMinor] picks the Saldo colours: below zero (I owe) is red. */
 @Composable
-private fun MoneyNeedCard(text: String, onClick: () -> Unit) {
+private fun MoneyNeedCard(text: String, balanceMinor: Long, onClick: () -> Unit) {
+    val (container, content) = balanceColors(balanceMinor)
     Row(
         Modifier
             .fillMaxWidth()
             .clip(IrisShape.lg)
-            .background(MaterialTheme.colorScheme.primaryContainer)
+            .background(container)
             .clickable(role = SemanticsRole.Button, onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Symbol(Symbols.payments, filled = true, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-        Text(text, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
-        Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+        Symbol(Symbols.payments, filled = true, tint = content)
+        Text(text, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, color = content)
+        Symbol(Symbols.chevronRight, tint = content)
     }
 }
 
@@ -531,6 +543,25 @@ private fun GroupTabPreview() = IrisPreview {
                 id = "r", tripId = "t", createdByUserId = "u2", createdByName = "Dinda", createdAt = Instant.parse("2026-10-23T00:00:00Z"),
                 closesAt = Instant.parse("2026-10-24T00:00:00Z"), placeCount = 12, myVoteCount = 12,
                 decidedAt = Instant.parse("2026-10-24T02:00:00Z"), chosenCount = 3,
+            ),
+        ),
+        now = Instant.parse("2026-11-02T00:00:00Z"),
+    )
+}
+
+/** "Perlu tindakanmu" with money both ways: a payment to confirm (green) and a debt (red, like Saldo). */
+@Preview
+@Composable
+private fun GroupTabMoneyNeedsPreview() = IrisPreview {
+    GroupContent(
+        previewTrip, LocalDate(2026, 11, 2), previewMembers, signedIn = true, myUserId = "u1", polls = emptyList(), myMemberId = "m1", isOwner = true,
+        hasNeeds = false, needs = {}, onOpenMembers = {}, onOpenPoll = {},
+        owes = listOf(TransferDto(fromMemberId = "m1", toMemberId = "m2", amountMinor = 150_000)),
+        claimsToConfirm = listOf(
+            SettlementDto(
+                id = "s", tripId = "t", fromMemberId = "m3", toMemberId = "m1", amountMinor = 75_000,
+                settledAt = Instant.parse("2026-11-01T00:00:00Z"), status = SettlementStatus.CLAIMED_PAID,
+                createdAt = Instant.parse("2026-11-01T00:00:00Z"), updatedAt = Instant.parse("2026-11-01T00:00:00Z"),
             ),
         ),
         now = Instant.parse("2026-11-02T00:00:00Z"),
