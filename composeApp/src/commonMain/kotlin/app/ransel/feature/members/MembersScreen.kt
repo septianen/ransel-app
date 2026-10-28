@@ -20,7 +20,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -103,6 +106,12 @@ import ransel.composeapp.generated.resources.members_leave_body
 import ransel.composeapp.generated.resources.members_leave_confirm
 import ransel.composeapp.generated.resources.members_leave_title
 import ransel.composeapp.generated.resources.members_make_owner
+import ransel.composeapp.generated.resources.members_new_owner_body
+import ransel.composeapp.generated.resources.members_new_owner_confirm
+import ransel.composeapp.generated.resources.members_new_owner_title
+import ransel.composeapp.generated.resources.members_no_new_owner_body
+import ransel.composeapp.generated.resources.members_no_new_owner_delete
+import ransel.composeapp.generated.resources.members_no_new_owner_title
 import ransel.composeapp.generated.resources.members_make_owner_body
 import ransel.composeapp.generated.resources.members_make_owner_confirm
 import ransel.composeapp.generated.resources.members_make_owner_title
@@ -137,6 +146,8 @@ fun MembersScreen(
     claimerName: String? = null,
     /** From AjakTeman's "Tambah nama teman saja": the add-by-name sheet opens once. */
     openAdd: Boolean = false,
+    /** The OWNER cannot hand the trip over (nobody else has an account): open the trip settings, where it can be deleted. */
+    onDeleteTrip: () -> Unit = {},
     viewModel: MembersViewModel = koinViewModel(key = "members-$tripId") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -160,6 +171,7 @@ fun MembersScreen(
         viewModel.eventFlow.collect { event ->
             when (event) {
                 MembersEvent.Left -> onLeft()
+                MembersEvent.OpenDeleteTrip -> onDeleteTrip()
                 is MembersEvent.SendLink -> {
                     val message = getString(Res.string.member_invite_message, event.member.displayName, event.tripTitle, event.url)
                     // WhatsApp straight to the number when there is one, otherwise the system share sheet.
@@ -188,6 +200,7 @@ fun MembersScreen(
             onSendLink = viewModel::sendLink,
             onReleaseGuest = viewModel::releaseGuest,
             onUndoClaim = viewModel::undoClaim,
+            onLeave = viewModel::askLeave,
         )
         SnackbarHost(
             hostState = snackbar,
@@ -243,6 +256,23 @@ fun MembersScreen(
             destructive = true,
             symbol = Symbols.logout,
         )
+        is MembersDialog.PickNewOwner -> NewOwnerDialog(
+            dialog = dialog,
+            leaving = state.leaving,
+            onPick = viewModel::pickNewOwner,
+            onConfirm = viewModel::confirmDialog,
+            onDismiss = viewModel::dismissDialog,
+        )
+        MembersDialog.NoNewOwner -> ConfirmDialog(
+            title = stringResource(Res.string.members_no_new_owner_title),
+            body = stringResource(Res.string.members_no_new_owner_body),
+            confirmLabel = stringResource(Res.string.members_no_new_owner_delete),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = viewModel::confirmDialog,
+            onDismiss = viewModel::dismissDialog,
+            destructive = true,
+            symbol = Symbols.person,
+        )
         null -> Unit
     }
 }
@@ -262,6 +292,7 @@ fun MembersContent(
     onSendLink: (TripMemberDto) -> Unit = {},
     onUndoClaim: () -> Unit = {},
     onReleaseGuest: (TripMemberDto) -> Unit = {},
+    onLeave: () -> Unit = { onAsk(MembersDialog.Leave) },
 ) {
     Column(modifier.fillMaxSize()) {
         MembersTopBar(state, onBack)
@@ -337,8 +368,11 @@ fun MembersContent(
                 PermissionsCard()
                 if (!state.isOwner) {
                     InfoNote(Symbols.info, stringResource(Res.string.members_only_owner_note), muted = true)
+                }
+                // The owner leaves too, after handing the trip over (MembersDialog.PickNewOwner).
+                if (state.me != null) {
                     OutlinedButton(
-                        onClick = { onAsk(MembersDialog.Leave) },
+                        onClick = onLeave,
                         enabled = !state.busy && state.me != null,
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
@@ -684,6 +718,73 @@ private fun InviteRow(invite: InviteDto, onRevoke: () -> Unit) {
     }
 }
 
+/**
+ * "Pilih pemilik baru dulu" (not designed yet): the OWNER picks who takes over before leaving.
+ * Only members with an account are listed; confirming hands the trip over, then leaves.
+ */
+@Composable
+private fun NewOwnerDialog(
+    dialog: MembersDialog.PickNewOwner,
+    leaving: Boolean,
+    onPick: (TripMemberDto) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ConfirmDialog(
+        title = stringResource(Res.string.members_new_owner_title),
+        body = stringResource(Res.string.members_new_owner_body),
+        confirmLabel = stringResource(Res.string.members_new_owner_confirm),
+        dismissLabel = stringResource(Res.string.action_cancel),
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        destructive = true,
+        symbol = Symbols.logout,
+        confirmLoading = leaving,
+        extra = { NewOwnerOptions(dialog, enabled = !leaving, onPick = onPick) },
+    )
+}
+
+@Composable
+private fun NewOwnerOptions(dialog: MembersDialog.PickNewOwner, enabled: Boolean, onPick: (TripMemberDto) -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(max = 280.dp)
+            .verticalScroll(rememberScrollState())
+            .selectableGroup(),
+    ) {
+        dialog.candidates.forEach { member ->
+            val selected = member.userId == dialog.selected
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .clip(IrisShape.md)
+                    .selectable(selected = selected, enabled = enabled, role = SemanticsRole.RadioButton) { onPick(member) }
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                RadioButton(selected = selected, onClick = null, enabled = enabled)
+                MemberAvatar(member.displayName, member.memberId, isOwner = false, isGuest = false)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        member.displayName,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        roleLabel(member.role),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun PermissionsCard() {
     Column(
@@ -754,6 +855,21 @@ private fun MembersClaimPreview() = IrisPreview {
         ),
         onBack = {}, onRetry = {}, onChangeRole = { _, _ -> }, onAsk = {},
     )
+}
+
+// Dialogs open their own window, so the previews render the dialog's list directly.
+@Preview
+@Composable
+private fun NewOwnerOptionsPreview() = IrisPreview {
+    val candidates = newOwnerCandidates(previewMembers, myUserId = "u1")
+    NewOwnerOptions(MembersDialog.PickNewOwner(candidates, selected = "u2"), enabled = true, onPick = {})
+}
+
+@Preview
+@Composable
+private fun NewOwnerOptionsLongNamePreview() = IrisPreview {
+    val long = previewMembers[1].copy(displayName = "Dinda Ayu Kusumawardhani Prameswari Putri")
+    NewOwnerOptions(MembersDialog.PickNewOwner(listOf(long, previewMembers[2]), selected = null), enabled = false, onPick = {})
 }
 
 @Preview

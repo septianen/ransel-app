@@ -19,7 +19,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.input.ImeAction
+import app.ransel.ui.preview.IrisPreview
+import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.TripSummaryDto
+import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
+import org.jetbrains.compose.ui.tooling.preview.Preview
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -76,6 +91,12 @@ import ransel.composeapp.generated.resources.trips_no_upcoming_title
 import ransel.composeapp.generated.resources.trips_ongoing
 import ransel.composeapp.generated.resources.trips_packing_progress
 import ransel.composeapp.generated.resources.trips_remaining
+import ransel.composeapp.generated.resources.trips_search
+import ransel.composeapp.generated.resources.trips_search_clear
+import ransel.composeapp.generated.resources.trips_search_close
+import ransel.composeapp.generated.resources.trips_search_empty_body
+import ransel.composeapp.generated.resources.trips_search_empty_title
+import ransel.composeapp.generated.resources.trips_search_placeholder
 import ransel.composeapp.generated.resources.trips_see_all
 import ransel.composeapp.generated.resources.trips_show_less
 import ransel.composeapp.generated.resources.trips_spent
@@ -94,7 +115,15 @@ fun TripListScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val refreshing by viewModel.refreshing.collectAsState()
-    TripListContent(state, onOpenTrip, onCreateTrip, modifier, refreshing = refreshing, onRefresh = viewModel::refresh)
+    val query by viewModel.query.collectAsState()
+    TripListContent(
+        state, onOpenTrip, onCreateTrip, modifier,
+        refreshing = refreshing,
+        onRefresh = viewModel::refresh,
+        query = query,
+        onQuery = viewModel::onQuery,
+        onClearSearch = viewModel::clearSearch,
+    )
 }
 
 @Composable
@@ -105,14 +134,43 @@ fun TripListContent(
     modifier: Modifier = Modifier,
     refreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
+    /** "Cari trip" (not designed yet): the text in the search field. */
+    query: String = "",
+    onQuery: (String) -> Unit = {},
+    onClearSearch: () -> Unit = {},
+    /** Previews only: start with the search field open. */
+    initialSearchOpen: Boolean = false,
 ) {
+    var searchOpen by rememberSaveable { mutableStateOf(initialSearchOpen || query.isNotEmpty()) }
     Column(modifier.fillMaxSize()) {
-        Text(
-            stringResource(Res.string.trips_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 4.dp),
-        )
+        Row(
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                stringResource(Res.string.trips_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.weight(1f).padding(top = 8.dp, bottom = 4.dp),
+            )
+            // Nothing to search before the first trip.
+            if (state is TripListUiState.Content && !searchOpen) {
+                IconButton(onClick = { searchOpen = true }) {
+                    Symbol(Symbols.search, contentDescription = stringResource(Res.string.trips_search))
+                }
+            }
+        }
+        if (searchOpen && state is TripListUiState.Content) {
+            TripSearchField(
+                query = query,
+                onQuery = onQuery,
+                onClose = {
+                    searchOpen = false
+                    onClearSearch()
+                },
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+            )
+        }
         when (state) {
             TripListUiState.Loading -> Box(Modifier.weight(1f))
             TripListUiState.Empty -> PullToRefresh(refreshing, onRefresh, Modifier.weight(1f)) {
@@ -126,7 +184,16 @@ fun TripListContent(
             }
             is TripListUiState.Content -> Box(Modifier.weight(1f)) {
                 PullToRefresh(refreshing, onRefresh, Modifier.fillMaxSize()) {
-                    TripGroups(state, onOpenTrip, onCreateTrip)
+                    if (state.noResults) {
+                        FullScreenState(
+                            title = stringResource(Res.string.trips_search_empty_title),
+                            body = stringResource(Res.string.trips_search_empty_body, state.query),
+                            illustration = painterResource(Res.drawable.ic_data_not_found),
+                            modifier = Modifier.verticalScroll(rememberScrollState()),
+                        )
+                    } else {
+                        TripGroups(state, onOpenTrip, onCreateTrip)
+                    }
                 }
                 IconFab(
                     Symbols.add,
@@ -175,11 +242,13 @@ private fun TripGroups(state: TripListUiState.Content, onOpenTrip: (String) -> U
             Group(stringResource(Res.string.trips_upcoming)) {
                 state.upcoming.forEach { UpcomingCard(it, state, dates) { onOpenTrip(it.trip.id) } }
             }
-        } else if (state.ongoing.isEmpty() && state.finished.isNotEmpty()) {
+        } else if (!state.isSearching && state.ongoing.isEmpty() && state.finished.isNotEmpty()) {
             NoUpcomingCard(state.finished.first(), onCreateTrip)
         }
         if (state.finished.isNotEmpty()) {
-            val visible = if (showAllFinished) state.finished else state.finished.take(FINISHED_PREVIEW_COUNT)
+            // A search shows every match: hiding results behind "Lihat semua" would look like nothing was found.
+            val showAll = showAllFinished || state.isSearching
+            val visible = if (showAll) state.finished else state.finished.take(FINISHED_PREVIEW_COUNT)
             Column {
                 Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -187,7 +256,7 @@ private fun TripGroups(state: TripListUiState.Content, onOpenTrip: (String) -> U
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.weight(1f),
                     )
-                    if (state.finished.size > FINISHED_PREVIEW_COUNT) {
+                    if (!state.isSearching && state.finished.size > FINISHED_PREVIEW_COUNT) {
                         Text(
                             if (showAllFinished) {
                                 stringResource(Res.string.trips_show_less)
@@ -427,6 +496,53 @@ private fun NoUpcomingCard(last: TripCardData, onCreateTrip: () -> Unit) {
     }
 }
 
+/** Search field under the title (same look as the currency sheet's search): filters by title and destination. */
+@Composable
+private fun TripSearchField(query: String, onQuery: (String) -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    Row(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clip(IrisShape.md)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(start = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Symbol(Symbols.search, size = 20.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Box(Modifier.weight(1f)) {
+            if (query.isEmpty()) {
+                Text(
+                    stringResource(Res.string.trips_search_placeholder),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            BasicTextField(
+                value = query,
+                onValueChange = onQuery,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus),
+            )
+        }
+        if (query.isNotEmpty()) {
+            IconButton(onClick = { onQuery("") }) {
+                Symbol(Symbols.cancel, size = 20.dp, contentDescription = stringResource(Res.string.trips_search_clear))
+            }
+        }
+        IconButton(onClick = onClose) {
+            Symbol(Symbols.close, contentDescription = stringResource(Res.string.trips_search_close))
+        }
+    }
+}
+
 /** Magenta dot on the cover: a voting round waits for this user's picks (design `DaftarTripVoting`). */
 @Composable
 private fun VotingDot(modifier: Modifier = Modifier) {
@@ -463,4 +579,43 @@ private fun VotingChip(hoursLeft: Int) {
             maxLines = 1,
         )
     }
+}
+
+private fun previewCard(id: String, title: String, destination: String, start: LocalDate?, end: LocalDate?) = TripCardData(
+    trip = TripDto(
+        id = id, ownerId = "u1", title = title, destination = destination, startDate = start, endDate = end,
+        baseCurrency = "IDR", createdAt = Instant.parse("2026-10-01T00:00:00Z"), updatedAt = Instant.parse("2026-10-01T00:00:00Z"),
+    ),
+    summary = TripSummaryDto(
+        daysTotal = 4, daysFilled = 2, activityCount = 6, unscheduledCount = 0, packingTotal = 12, packingPacked = 5,
+        expenseCount = 3, spentMinor = 1_250_000, remainingMinor = null,
+    ),
+)
+
+private val previewContent = TripListUiState.Content(
+    ongoing = emptyList(),
+    upcoming = listOf(
+        previewCard("t1", "Bali 4 hari", "Bali", LocalDate(2026, 11, 20), LocalDate(2026, 11, 23)),
+        previewCard("t2", "Reuni kampus", "Yogyakarta", null, null),
+    ),
+    finished = listOf(previewCard("t3", "Liburan Bogotá", "Bogotá, Kolombia", LocalDate(2026, 6, 1), LocalDate(2026, 6, 7))),
+    today = LocalDate(2026, 10, 28),
+)
+
+@Preview
+@Composable
+private fun TripListSearchPreview() = IrisPreview {
+    TripListContent(previewContent.searched("bogota"), {}, {}, query = "bogota", initialSearchOpen = true)
+}
+
+@Preview
+@Composable
+private fun TripListSearchEmptyPreview() = IrisPreview {
+    TripListContent(previewContent.searched("Lombok"), {}, {}, query = "Lombok", initialSearchOpen = true)
+}
+
+@Preview
+@Composable
+private fun TripListSearchOpenPreview() = IrisPreview {
+    TripListContent(previewContent, {}, {}, initialSearchOpen = true)
 }

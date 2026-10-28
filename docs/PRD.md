@@ -153,6 +153,7 @@ The first tab of every trip, so new group features do not pile up in Itinerary (
 - The owner invites by code or link with the Editor or Viewer role; invites can be revoked.
 - The invitee sees a Join trip screen, or an invalid-invite screen.
 - The owner can change roles and remove members; members can leave a trip. Members open from Ringkasan → Anggota.
+- The owner leaves by handing the trip over first: "Keluar dari trip" asks "Pilih pemilik baru dulu" with the other members who have an account (a person added by name cannot own a trip); confirming makes that member the owner (the old owner becomes an editor) and then leaves. When no other member has an account, the owner is told so and pointed to deleting the trip instead.
 
 ### Common states
 
@@ -400,8 +401,8 @@ The trip owner builds a packing list once and sends it to every member. This hel
 ## Open questions
 
 - [ ] Target numbers for the success metrics.
-- [ ] Ownership transfer flow before the owner leaves a trip.
-- [ ] Screens not designed yet: enter invite code, activity detail/edit, edit profile, search trips, all transactions.
+- [x] Ownership transfer flow before the owner leaves a trip (built 28 Oct 2026 without a design, see "Members and cost splitting"; awaiting a design pass).
+- [ ] Screens not designed yet: enter invite code, activity detail/edit, edit profile, search trips (built 28 Oct 2026 from existing patterns, awaiting a design pass), all transactions.
 - [ ] Dark theme for Itinerary, Packing, Explore, sheets, and dialogs (the pattern exists, the screens do not).
 - [ ] Email provider for password reset.
 
