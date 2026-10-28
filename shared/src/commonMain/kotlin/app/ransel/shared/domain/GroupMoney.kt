@@ -47,6 +47,7 @@ fun tripBalances(
  * "Per item" split of a receipt. Each item is split equally between its members (the remainder to the payer when they
  * share it, else the first member). Items without members (tax, service) are spread over everyone in proportion to
  * their item totals; that rounding remainder goes to the payer when they have items, else to the largest share.
+ * When every item with members is free there is no proportion, so the extras are split equally between those members.
  * The shares add up to the sum of [items]. Members of no item get nothing.
  */
 fun splitByItems(items: List<ExpenseItemDto>, payerId: String): Map<String, Long> {
@@ -61,7 +62,8 @@ fun splitByItems(items: List<ExpenseItemDto>, payerId: String): Map<String, Long
     }
     val extra = items.filter { it.memberIds.isEmpty() }.sumOf { it.amountMinor }
     val itemsTotal = base.values.sum()
-    if (extra == 0L || itemsTotal == 0L) return base
+    if (extra == 0L) return base
+    if (itemsTotal == 0L) return splitEqually(extra, shared.flatMap { it.memberIds }.distinct(), payerId)
     val result = base.mapValues { (_, v) -> v + extra * v / itemsTotal }.toMutableMap()
     val remainder = extra - (result.values.sum() - itemsTotal)
     val receiver = if (payerId in result) payerId else result.maxBy { it.value }.key

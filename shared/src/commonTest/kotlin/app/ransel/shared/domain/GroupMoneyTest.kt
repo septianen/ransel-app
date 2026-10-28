@@ -91,6 +91,33 @@ class GroupMoneyTest {
     }
 
     @Test
+    fun extrasOnFreeItemsAreSplitEqually() {
+        val items = listOf(
+            ExpenseItemDto("Air putih", 0, listOf("a", "b")),
+            ExpenseItemDto("Kerupuk gratis", 0, listOf("c")),
+            ExpenseItemDto("Biaya layanan", 10),
+        )
+        val shares = splitByItems(items, payerId = "b")
+        assertEquals(mapOf("a" to 3L, "b" to 4L, "c" to 3L), shares)
+    }
+
+    @Test
+    fun itemSharesAlwaysAddUpToTheReceipt() {
+        val people = listOf("a", "b", "c", "d", "e")
+        val random = kotlin.random.Random(7)
+        repeat(500) {
+            val items = List(random.nextInt(1, 7)) { i ->
+                val members = people.shuffled(random).take(random.nextInt(0, people.size + 1))
+                ExpenseItemDto("item $i", random.nextLong(0, 500_000), members)
+            }.let { if (it.none { item -> item.memberIds.isNotEmpty() }) it + ExpenseItemDto("x", 0, listOf("a")) else it }
+            val payer = people[random.nextInt(people.size)]
+            val shares = splitByItems(items, payer)
+            assertEquals(itemsTotal(items), shares.values.sum(), "$items paid by $payer")
+            assertTrue(shares.values.all { it >= 0 }, "$items paid by $payer")
+        }
+    }
+
+    @Test
     fun stayEstimateFollowsThePriceUnit() {
         assertEquals(6_750_000L, stayEstimateMinor(2_250_000, PollPriceUnit.NIGHT, nights = 3, people = 5))
         assertEquals(2_250_000L, stayEstimateMinor(450_000, PollPriceUnit.PERSON, nights = 3, people = 5))
