@@ -1395,6 +1395,15 @@
     <string name="guest_link_off_title">This link is no longer active</string>
     <string name="guest_link_off_body">Ask whoever shared it for a new link.</string>
     <string name="guest_retry">Try again</string>
+    <string name="guest_money_title">Your share</string>
+    <string name="guest_money_share">Your share of the expenses</string>
+    <string name="guest_money_paid">You paid</string>
+    <string name="guest_money_collect">You get back %1$s</string>
+    <string name="guest_money_owe">You need to pay %1$s</string>
+    <string name="guest_money_even">You're all square</string>
+    <string name="guest_money_pay_to">You need to pay %1$s to %2$s</string>
+    <string name="guest_money_get_from">%1$s needs to pay you %2$s</string>
+    <string name="guest_money_note">Paid already? Ask %1$s to mark it as paid.</string>
     <string name="poll_share">Share</string>
     <string name="poll_share_title_new">Poll created</string>
     <string name="poll_share_title">Share the poll</string>

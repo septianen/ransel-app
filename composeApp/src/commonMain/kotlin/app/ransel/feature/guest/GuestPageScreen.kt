@@ -36,8 +36,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import app.ransel.feature.expenses.balanceColors
 import app.ransel.shared.dto.GuestMemberDto
+import app.ransel.shared.dto.GuestMoneyDto
 import app.ransel.shared.dto.GuestPageDto
+import app.ransel.shared.dto.GuestTransferDto
 import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.PollOptionDto
@@ -49,6 +52,7 @@ import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.components.UndoSnackbar
 import app.ransel.ui.format.deadlineText
+import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
@@ -178,6 +182,9 @@ fun GuestPageContent(state: GuestPageUiState, invite: Boolean, actions: GuestAct
                 polls.forEach { poll ->
                     GuestPollCard(poll, page.members, state.selections[poll.id].orEmpty(), canVote = state.me != null && !state.choosingName, busy = state.busy, actions)
                 }
+                val money = page.myMoney
+                val me = state.me
+                if (money != null && me != null && !state.choosingName) GuestMoneyCard(money, me.memberId, page.ownerName)
                 if (page.packing.isNotEmpty() && !state.choosingName) GuestPacking(page.ownerName, page.packing, actions.onTick)
                 TextButton(onClick = actions.onSignIn, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(Res.string.guest_footer))
@@ -351,6 +358,62 @@ private fun GuestOption(option: PollOptionDto, poll: PollDto, members: List<Gues
     }
 }
 
+/**
+ * "Bagianmu": the guest's own share, what they paid and their balance (coloured like the Saldo card: green when money
+ * comes back, red when they owe), plus the "Supaya lunas" transfers that involve them. Read-only: a guest has no
+ * account to record a payment with. No design yet (needs a design review).
+ */
+@Composable
+internal fun GuestMoneyCard(money: GuestMoneyDto, myMemberId: String, ownerName: String, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val currency = money.baseCurrency
+    Column(
+        modifier.fillMaxWidth().clip(IrisShape.lg).border(1.dp, scheme.outlineVariant, IrisShape.lg).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(stringResource(Res.string.guest_money_title), style = MaterialTheme.typography.titleMedium)
+        MoneyLine(stringResource(Res.string.guest_money_share), formatMoney(money.shareMinor, currency))
+        MoneyLine(stringResource(Res.string.guest_money_paid), formatMoney(money.paidMinor, currency))
+        val (container, content) = balanceColors(money.balanceMinor)
+        val amount = formatMoney(kotlin.math.abs(money.balanceMinor), currency)
+        Row(
+            Modifier.fillMaxWidth().clip(IrisShape.md).background(container).padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Symbol(Symbols.payments, filled = true, tint = content)
+            Text(
+                when {
+                    money.balanceMinor > 0 -> stringResource(Res.string.guest_money_collect, amount)
+                    money.balanceMinor < 0 -> stringResource(Res.string.guest_money_owe, amount)
+                    else -> stringResource(Res.string.guest_money_even)
+                },
+                style = MaterialTheme.typography.titleSmall,
+                color = content,
+            )
+        }
+        money.transfers.forEach { t ->
+            val value = formatMoney(t.amountMinor, currency)
+            Text(
+                if (t.fromMemberId == myMemberId) stringResource(Res.string.guest_money_pay_to, value, t.toName)
+                else stringResource(Res.string.guest_money_get_from, t.fromName, value),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+        if (money.transfers.any { it.fromMemberId == myMemberId }) {
+            Text(stringResource(Res.string.guest_money_note, ownerName), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun MoneyLine(label: String, value: String) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.titleSmall)
+    }
+}
+
 /** The guest's lines from the owner's list (they only tick them). */
 @Composable
 private fun GuestPacking(ownerName: String, items: List<PersonalItemDto>, onTick: (PersonalItemDto) -> Unit) {
@@ -427,4 +490,33 @@ private fun GuestPagePickNamePreview() = IrisPreview {
 private fun GuestPageVotingPreview() = IrisPreview {
     val me = GuestMemberDto("b", "Bima", hasAccount = false)
     GuestPageContent(GuestPageUiState(loading = false, page = previewPage(me), selections = mapOf("p" to setOf("a"))), invite = false, actions = GuestActions())
+}
+
+@Preview
+@Composable
+private fun GuestMoneyOwesPreview() = IrisPreview {
+    GuestMoneyCard(
+        GuestMoneyDto("IDR", paidMinor = 0, shareMinor = 450_000, balanceMinor = -450_000, transfers = listOf(GuestTransferDto("b", "Bima", "s", "Septian", 450_000))),
+        myMemberId = "b",
+        ownerName = "Septian",
+    )
+}
+
+@Preview
+@Composable
+private fun GuestMoneyGetsBackPreview() = IrisPreview {
+    GuestMoneyCard(
+        GuestMoneyDto(
+            "IDR", paidMinor = 900_000, shareMinor = 300_000, balanceMinor = 600_000,
+            transfers = listOf(GuestTransferDto("r", "Rina", "b", "Bima", 300_000), GuestTransferDto("d", "Dinda", "b", "Bima", 300_000)),
+        ),
+        myMemberId = "b",
+        ownerName = "Septian",
+    )
+}
+
+@Preview
+@Composable
+private fun GuestMoneySettledPreview() = IrisPreview {
+    GuestMoneyCard(GuestMoneyDto("IDR", paidMinor = 300_000, shareMinor = 300_000, balanceMinor = 0), myMemberId = "b", ownerName = "Septian")
 }
