@@ -73,7 +73,7 @@ Phase 5 design details are in the **AI recommendations** section.
 ### Phase 6 — Admin (Karung)
 
 - Features: an internal admin web app (`adminApp/`, Compose for Web) at `karung.mietek.tech`: users, credit adjustments, audit log, monitoring, settings overrides, remote content (admin side first).
-- Learning: role-based access with a token claim, audit logging, storing operational metrics, config overrides without a deploy.
+- Learning: access from an email allow-list checked on every request (no token claim), audit logging, storing operational metrics, config overrides without a deploy.
 - Done when: an admin can find a user, adjust their credits, and the change shows in the user's credit history and the audit log.
 - Spec: `docs/specs/admin-spec.md`; design: Claude Design canvas "Karung".
 

@@ -23,7 +23,7 @@ Two Claude Code agents work in this repo:
 | IRIS tokens (color, type, spacing, radius, shadow) | `docs/design/iris/tokens.md` |
 | Itinerary/packing category rules, drag-and-drop rules | `docs/specs/itinerary-spec.md`, `docs/specs/packing-spec.md` |
 | Agreed design decisions (Indonesian) | `docs/specs/design-decisions-id.md` |
-| Database schema | `server/src/main/resources/db/migration/V1..V4` |
+| Database schema | `server/src/main/resources/db/migration/` (V1–V25 on 28 Oct 2026; applied ones are never edited) |
 | API paths, DTOs, enums, error codes, domain logic | `shared/src/commonMain/kotlin/app/ransel/shared/` |
 
 The docs are exports of living documents (claude.ai Docs + Claude Design canvas, 14 Oct 2026). If a doc and the code disagree, the code in `shared/` and the migrations win for data shapes; the PRD wins for behaviour. Report the mismatch instead of silently picking one.
@@ -50,7 +50,7 @@ The docs are exports of living documents (claude.ai Docs + Claude Design canvas,
 
 ## Decisions already made (do not reopen without the product owner)
 
-Room 3 (`androidx.room3`) for local DB on Android/iOS only · web online-only · Explore requires an account and always saves into a trip · Explore costs credits (signup grant 30, free 3 per day reset 00:00 WIB, new search 3, next batch 1; top-up by voucher first, payment later; `CREDIT_*` env vars are the defaults, an admin override in the database wins, see TRD "Quota") · expense categories reuse the itinerary enum with noun labels · drag reorder keeps durations and packs the range · unscheduled places are scheduled with a button + sheet (end of day, empty day 09:00) · swipe cards have no rotation · trip members open from the Group tab's "Anggota" section (the `group_add` header button was removed by the owner, 27 Oct 2026) · invite links `https://ransel.mietek.tech/j/<code>` · deploy on the owner's VPS with Docker Compose behind the host's nginx (API at `ranselapi.mietek.tech`, web at `ransel.mietek.tech`, admin app "Karung" at `karung.mietek.tech`) · admin app: Phase 6, module `adminApp/` owned by the frontend agent, admins = `ADMIN_EMAILS` on the server, admins can add or subtract a user's credits (spec `docs/specs/admin-spec.md`) · password reset emails come from `no-reply@mietek.tech`.
+Room 3 (`androidx.room3`) for local DB on Android/iOS only · web online-only · Explore requires an account and always saves into a trip · Explore costs credits (signup grant 30, free 3 per day reset 00:00 WIB, new search 3, next batch 1; top-up by voucher first, payment later; `CREDIT_*` env vars are the defaults, an admin override in the database will win once B9.8 builds `app_settings`, see TRD "Quota") · expense categories reuse the itinerary enum with noun labels · drag reorder keeps durations and packs the range · unscheduled places are scheduled with a button + sheet (end of day, empty day 09:00) · swipe cards have no rotation · trip members open from the Group tab's "Anggota" section (the `group_add` header button was removed by the owner, 27 Oct 2026) · invite links `https://ransel.mietek.tech/j/<code>` · deploy on the owner's VPS with Docker Compose behind the host's nginx (API at `ranselapi.mietek.tech`, web at `ransel.mietek.tech`, admin app "Karung" at `karung.mietek.tech`) · admin app: Phase 6, module `adminApp/` owned by the frontend agent, admins = `ADMIN_EMAILS` on the server, admins can add or subtract a user's credits (spec `docs/specs/admin-spec.md`) · password reset emails come from `no-reply@mietek.tech`.
 
 ## Still open (ask, do not decide)
 

@@ -379,7 +379,7 @@ The trip owner builds a packing list once and sends it to every member. This hel
 | Delete the trip | yes | no | no |
 | Leave the trip | after transferring ownership | yes | yes |
 
-**Invites.** A code `NAME-XXXX` and a link `ransel.mietek.tech/j/<code>`, with a usage limit and an expiry date. An invite fails when it has expired, was revoked, or is full. Removing a member does not delete the expense records that involve them.
+**Invites.** A code `NAME-XXXXXXXX` and a link `ransel.mietek.tech/j/<code>`, with a usage limit and an expiry date. An invite fails when it has expired, was revoked, or is full. Removing a member does not delete the expense records that involve them.
 
 **Currency.** The default currency only applies to new trips; existing trips keep their own currency. An overseas trip's expenses default to its local currency.
 
