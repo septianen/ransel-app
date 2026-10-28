@@ -37,7 +37,13 @@ sealed interface TripListUiState {
         val upcoming: List<TripCardData>,
         val finished: List<TripCardData>,
         val today: LocalDate,
-    ) : TripListUiState
+        /** "Cari trip": the trimmed query the groups are filtered by; empty = no search. */
+        val query: String = "",
+    ) : TripListUiState {
+        val isSearching: Boolean get() = query.isNotEmpty()
+        /** Searching found nothing in any group. */
+        val noResults: Boolean get() = isSearching && ongoing.isEmpty() && upcoming.isEmpty() && finished.isEmpty()
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -48,6 +54,18 @@ class TripListViewModel(
     private val api: RanselApi,
     private val session: SessionManager,
 ) : ViewModel() {
+    private val _query = MutableStateFlow("")
+    /** What is typed in the search field (untrimmed). */
+    val query: StateFlow<String> = _query
+
+    fun onQuery(value: String) {
+        _query.value = value
+    }
+
+    fun clearSearch() {
+        _query.value = ""
+    }
+
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing
 
@@ -96,5 +114,6 @@ class TripListViewModel(
                 }
             }
         }
+        .combine(_query) { state, query -> if (state is TripListUiState.Content) state.searched(query) else state }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TripListUiState.Loading)
 }
