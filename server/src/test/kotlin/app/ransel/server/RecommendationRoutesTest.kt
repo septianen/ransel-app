@@ -264,8 +264,16 @@ class RecommendationRoutesTest {
             val statuses = kotlinx.coroutines.coroutineScope {
                 (1..6).map { i -> async { post("/recommendations", request(tripId, notes = "p$i")).status } }.awaitAll()
             }
-            assertEquals(2, statuses.count { it == HttpStatusCode.OK }, "6 credits pay exactly two searches")
-            assertTrue(statuses.all { it == HttpStatusCode.OK || it == HttpStatusCode.PaymentRequired })
+            // One search per user at a time: the others are turned away before the credit check and the LLM call.
+            val paid = statuses.count { it == HttpStatusCode.OK }
+            assertTrue(paid in 1..2, "$statuses")
+            assertTrue(statuses.all { it == HttpStatusCode.OK || it == HttpStatusCode.TooManyRequests || it == HttpStatusCode.PaymentRequired }, "$statuses")
+            assertEquals(paid, llm.calls.get(), "no LLM call that nobody pays for")
+
+            // What is left still buys exactly the searches it covers, one after the other.
+            var more = 0
+            while (post("/recommendations", request(tripId, notes = "s$more")).status == HttpStatusCode.OK) more++
+            assertEquals(2, paid + more, "6 credits pay exactly two searches")
             assertEquals("0", get("/credits").data().jsonObject.str("balance"))
         }
     }
