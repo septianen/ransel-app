@@ -46,6 +46,20 @@ import kotlinx.datetime.toLocalDateTime
 /** Expenses of one calendar day (device time zone), newest first; `total` is in the trip base currency. */
 data class ExpenseDayGroup(val date: LocalDate, val totalMinor: Long, val items: List<ExpenseDto>)
 
+/** How many transactions the Expenses tab shows before "Lihat semua" (owner, 28 Oct 2026). */
+const val RECENT_TRANSACTIONS = 5
+
+/** The newest [limit] expenses, still grouped by day; a day keeps its full total even when some of its items are cut. */
+fun List<ExpenseDayGroup>.latest(limit: Int): List<ExpenseDayGroup> {
+    var left = limit
+    return mapNotNull { group ->
+        if (left <= 0) return@mapNotNull null
+        val items = group.items.take(left)
+        left -= items.size
+        group.copy(items = items)
+    }
+}
+
 data class ExpensesUiState(
     val loading: Boolean = true,
     val summary: ExpenseSummaryDto? = null,

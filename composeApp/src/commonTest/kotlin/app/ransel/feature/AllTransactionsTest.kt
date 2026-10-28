@@ -10,6 +10,8 @@ import app.ransel.data.fake.InMemoryTripRepository
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.remote.createApiHttpClient
 import app.ransel.feature.expenses.AllTransactionsViewModel
+import app.ransel.feature.expenses.ExpenseDayGroup
+import app.ransel.feature.expenses.latest
 import app.ransel.feature.expenses.TransactionFilter
 import app.ransel.feature.expenses.TransactionItem
 import app.ransel.feature.expenses.transactionDays
@@ -91,6 +93,17 @@ class TransactionDaysTest {
     )
 
     private fun days(filter: TransactionFilter, me: String? = ME_MEMBER) = transactionDays(expenses, settlements, filter, me, "IDR", WITA)
+
+    @Test
+    fun theExpensesTabKeepsOnlyTheNewestTransactions() {
+        val day1 = ExpenseDayGroup(LocalDate(2026, 11, 22), 300, listOf(expense("a", "2026-11-22T03:00:00Z", 100), expense("b", "2026-11-22T02:00:00Z", 200)))
+        val day2 = ExpenseDayGroup(LocalDate(2026, 11, 21), 600, listOf(expense("c", "2026-11-21T03:00:00Z", 100), expense("d", "2026-11-21T02:00:00Z", 500)))
+        val day3 = ExpenseDayGroup(LocalDate(2026, 11, 20), 50, listOf(expense("e", "2026-11-20T03:00:00Z", 50)))
+        val shown = listOf(day1, day2, day3).latest(3)
+        assertEquals(listOf(listOf("a", "b"), listOf("c")), shown.map { g -> g.items.map { it.id } })
+        assertEquals(600, shown[1].totalMinor) // the day's total stays whole
+        assertEquals(3, listOf(day1, day2, day3).latest(10).size)
+    }
 
     @Test
     fun allIsGroupedByTripDayNewestFirst() {

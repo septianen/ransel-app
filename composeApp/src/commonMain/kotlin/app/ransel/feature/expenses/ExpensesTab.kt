@@ -180,7 +180,9 @@ fun ExpensesTab(
                             actionLabel = onSeeAllTransactions?.let { stringResource(Res.string.action_see_all) },
                             onAction = onSeeAllTransactions,
                         )
-                        state.groups.forEach { group ->
+                        // only the newest few here; "Lihat semua" opens every transaction
+                        val shown = if (onSeeAllTransactions != null) state.groups.latest(RECENT_TRANSACTIONS) else state.groups
+                        shown.forEach { group ->
                             Row(
                                 Modifier.fillMaxWidth().padding(top = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
