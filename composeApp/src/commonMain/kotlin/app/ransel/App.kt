@@ -191,6 +191,9 @@ import ransel.composeapp.generated.resources.placeholder_explore_title
 
 private const val SPLASH_MIN_MS = 1_200L
 
+/** Back-stack result from "Semua transaksi" to the trip screen. */
+private const val OPEN_BALANCES_KEY = "open_balances"
+
 /** App shell: theme and language from preferences, first-launch onboarding, then the tabs. */
 @Composable
 fun App() {
@@ -733,8 +736,12 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
 private fun NavGraphBuilder.trips(navController: NavHostController) {
     page<TripRoute>(maxContentWidth = null) { entry ->
         val route = entry.toRoute<TripRoute>()
+        // set by "Semua transaksi" when a payment is tapped: show Saldo on the Biaya tab
+        val openBalances by entry.savedStateHandle.getStateFlow(OPEN_BALANCES_KEY, false).collectAsState()
         TripScreen(
             tripId = route.tripId,
+            openBalances = openBalances,
+            onBalancesOpened = { entry.savedStateHandle[OPEN_BALANCES_KEY] = false },
             initialTab = TripTab.entries.firstOrNull { it.name == route.tab } ?: TripTab.OVERVIEW,
             onBack = { navController.popBackStack() },
             onEditTrip = { navController.navigate(EditTripRoute(route.tripId)) },
@@ -769,7 +776,14 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
     }
     page<app.ransel.navigation.AllTransactionsRoute> { entry ->
         val route = entry.toRoute<app.ransel.navigation.AllTransactionsRoute>()
-        app.ransel.feature.expenses.AllTransactionsScreen(tripId = route.tripId, onBack = { navController.popBackStack() })
+        app.ransel.feature.expenses.AllTransactionsScreen(
+            tripId = route.tripId,
+            onBack = { navController.popBackStack() },
+            onOpenBalances = {
+                navController.previousBackStackEntry?.savedStateHandle?.set(OPEN_BALANCES_KEY, true)
+                navController.popBackStack()
+            },
+        )
     }
     page<app.ransel.navigation.VotingHistoryRoute> { entry ->
         val route = entry.toRoute<app.ransel.navigation.VotingHistoryRoute>()

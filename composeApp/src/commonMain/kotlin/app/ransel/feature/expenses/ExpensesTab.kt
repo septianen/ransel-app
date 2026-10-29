@@ -100,6 +100,9 @@ fun ExpensesTab(
     onOpenPaymentMethods: () -> Unit = {},
     /** "Lihat semua" next to Transaksi: the "Semua transaksi" screen. */
     onSeeAllTransactions: (() -> Unit)? = null,
+    /** True = switch to Saldo once (a payment tapped in "Semua transaksi"); [onBalancesOpened] resets it. */
+    openBalances: Boolean = false,
+    onBalancesOpened: () -> Unit = {},
     viewModel: ExpensesViewModel = koinViewModel(key = "expenses-${trip.id}") { parametersOf(trip) },
 ) {
     LaunchedEffect(refreshKey) { if (refreshKey > 0) viewModel.loadMembers() }
@@ -112,6 +115,12 @@ fun ExpensesTab(
     val isOwner = trip.myRole == app.ransel.shared.model.Role.OWNER
     val myMemberId = viewModel.myMemberId
     var sharedTab by rememberSaveable { mutableStateOf(SharedTab.SUMMARY) }
+    LaunchedEffect(openBalances) {
+        if (openBalances) {
+            sharedTab = SharedTab.BALANCES
+            onBalancesOpened()
+        }
+    }
     var sheet by remember { mutableStateOf<ExpenseSheetTarget?>(null) }
     var remind by remember { mutableStateOf<app.ransel.shared.dto.TransferDto?>(null) }
     var chooser by remember { mutableStateOf(false) }
@@ -445,9 +454,7 @@ internal fun ExpenseRow(
         app.ransel.ui.components.PendingMarker(expense.id)
         Column(horizontalAlignment = Alignment.End) {
             Text(formatMoney(expense.amountMinor, expense.currency), style = MaterialTheme.typography.titleSmall)
-            val myShare = if (members == null) null else
-                (expense.splits.firstOrNull { it.memberId == myMemberId }?.shareMinor
-                    ?: if (expense.splits.isEmpty() && expense.paidByMemberId == myMemberId) expense.amountMinor else 0L)
+            val myShare = if (members == null) null else expense.shareOf(myMemberId)
             Text(
                 if (myShare != null) stringResource(Res.string.shared_your_share, formatMoney(myShare, expense.currency))
                 else stringResource(expense.paymentMethod.label),

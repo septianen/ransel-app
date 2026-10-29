@@ -131,13 +131,19 @@ class TransactionDaysTest {
     }
 
     @Test
-    fun mineKeepsWhatIPaidSharedOrSettled() {
-        val ids = days(TransactionFilter.MINE).flatMap { it.items }.map { it.id }
-        assertEquals(listOf("s1", "car", "lunch"), ids)
-        // one of several payers counts too
-        val joint = expense("joint", "2026-11-23T01:00:00Z", 100_000, payer = "m-dinda", payers = listOf("m-dinda", ME_MEMBER))
-        val withJoint = transactionDays(listOf(joint), emptyList(), TransactionFilter.MINE, ME_MEMBER, "IDR", WITA)
-        assertEquals(listOf("joint"), withJoint.flatMap { it.items }.map { it.id })
+    fun myShareKeepsWhatIShareOrSettledAtMyShare() {
+        val days = days(TransactionFilter.MINE)
+        assertEquals(listOf("s1", "car", "lunch"), days.flatMap { it.items }.map { it.id })
+        // "Bagian saya": half of the car and half of lunch, not their full price
+        assertEquals(225_000, days.single { it.date == LocalDate(2026, 11, 21) }.spentMinor)
+        assertEquals(42_500, days.single { it.date == LocalDate(2026, 11, 20) }.spentMinor)
+        assertEquals(182_500, days.single { it.date == LocalDate(2026, 11, 21) }.paidMinor)
+        // paid by me for the others only: not my share
+        val treat = expense("treat", "2026-11-23T01:00:00Z", 100_000, splits = listOf("m-dinda", "m-rina"))
+        val mine = expense("mine", "2026-11-23T02:00:00Z", 30_000)
+        val more = transactionDays(listOf(treat, mine), emptyList(), TransactionFilter.MINE, ME_MEMBER, "IDR", WITA)
+        assertEquals(listOf("mine"), more.flatMap { it.items }.map { it.id })
+        assertEquals(30_000, more.single().spentMinor)
     }
 
     @Test

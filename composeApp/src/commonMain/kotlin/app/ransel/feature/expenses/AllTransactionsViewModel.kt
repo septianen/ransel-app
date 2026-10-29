@@ -27,7 +27,10 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
-/** The chips of "Semua transaksi". [PAYMENTS] and [MINE] only show on a shared trip. */
+/**
+ * The chips of "Semua transaksi". [PAYMENTS] and [MINE] only show on a shared trip. [MINE] is "Bagian saya": the
+ * expenses I have a share of, counted at my share, and the payments I made or received (owner, 29 Oct 2026).
+ */
 enum class TransactionFilter { ALL, EXPENSES, PAYMENTS, MINE }
 
 /** One row of "Semua transaksi": an expense (from the device or the web repository) or a settlement (server). */
@@ -153,15 +156,17 @@ class AllTransactionsViewModel(
     }
 }
 
-/** Whether [myMemberId] paid for [this] expense or has a share of it. */
-internal fun ExpenseDto.involves(myMemberId: String): Boolean =
-    paidByMemberId == myMemberId || payers.any { it.memberId == myMemberId } || splits.any { it.memberId == myMemberId }
+/** [memberId]'s share of [this] expense in its own currency; an expense without splits is carried by its payer. */
+internal fun ExpenseDto.shareOf(memberId: String?): Long =
+    splits.firstOrNull { it.memberId == memberId }?.shareMinor
+        ?: if (splits.isEmpty() && paidByMemberId == memberId) amountMinor else 0L
 
 internal fun SettlementDto.involves(myMemberId: String): Boolean = fromMemberId == myMemberId || toMemberId == myMemberId
 
 /**
  * Filters [expenses] and [settlements] by [filter] and groups them by day in [timeZone], newest day and newest row
- * first. Deleted settlements are left out. [TransactionFilter.MINE] without a member id keeps everything.
+ * first. Deleted settlements are left out. Under [TransactionFilter.MINE] an expense counts only [myMemberId]'s share
+ * in [TransactionDay.spentMinor]; without a member id it keeps everything at full price.
  */
 internal fun transactionDays(
     expenses: List<ExpenseDto>,
@@ -174,7 +179,7 @@ internal fun transactionDays(
     val mine = filter == TransactionFilter.MINE && myMemberId != null
     val shownExpenses = when (filter) {
         TransactionFilter.PAYMENTS -> emptyList()
-        else -> expenses.filter { it.deletedAt == null && (!mine || it.involves(myMemberId!!)) }
+        else -> expenses.filter { it.deletedAt == null && (!mine || it.shareOf(myMemberId) > 0) }
     }
     val shownPayments = when (filter) {
         TransactionFilter.EXPENSES -> emptyList()
@@ -188,7 +193,8 @@ internal fun transactionDays(
             TransactionDay(
                 date = date,
                 spentMinor = dayItems.filterIsInstance<TransactionItem.Expense>().sumOf {
-                    convertMinor(it.expense.amountMinor, it.expense.currency, baseCurrency, it.expense.fxRateToBase)
+                    val amount = if (mine) it.expense.shareOf(myMemberId) else it.expense.amountMinor
+                    convertMinor(amount, it.expense.currency, baseCurrency, it.expense.fxRateToBase)
                 },
                 paidMinor = dayItems.filterIsInstance<TransactionItem.Payment>().sumOf { it.settlement.amountMinor },
                 items = dayItems.sortedByDescending { it.at },

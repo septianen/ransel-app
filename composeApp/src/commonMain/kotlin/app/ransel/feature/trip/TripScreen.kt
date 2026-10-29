@@ -85,6 +85,9 @@ fun TripScreen(
     onOpenRecap: () -> Unit = {},
     /** "Lihat semua" on the Biaya tab: "Semua transaksi". */
     onOpenAllTransactions: () -> Unit = {},
+    /** Back from a payment in "Semua transaksi": the Biaya tab shows Saldo, then [onBalancesOpened] clears it. */
+    openBalances: Boolean = false,
+    onBalancesOpened: () -> Unit = {},
     /** Opened right after "Buat trip dengan grup ini": the invite sheet comes first. */
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
@@ -199,7 +202,14 @@ fun TripScreen(
                             onOpenPoll = if (signedIn) onOpenPoll else null,
                         )
                         TripTab.PACKING -> PackingTab(current)
-                        TripTab.EXPENSES -> ExpensesTab(current, refreshKey = refreshCount, onOpenPaymentMethods = onOpenPaymentMethods, onSeeAllTransactions = onOpenAllTransactions)
+                        TripTab.EXPENSES -> ExpensesTab(
+                            current,
+                            refreshKey = refreshCount,
+                            onOpenPaymentMethods = onOpenPaymentMethods,
+                            onSeeAllTransactions = onOpenAllTransactions,
+                            openBalances = openBalances,
+                            onBalancesOpened = onBalancesOpened,
+                        )
                     }
                 }
             }

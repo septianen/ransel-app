@@ -1,6 +1,7 @@
 package app.ransel.feature.expenses
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -81,6 +82,7 @@ import ransel.composeapp.generated.resources.transactions_payment_title
 import ransel.composeapp.generated.resources.transactions_payments_offline
 import ransel.composeapp.generated.resources.transactions_retry
 import ransel.composeapp.generated.resources.transactions_title
+import ransel.composeapp.generated.resources.transactions_total_mine
 import ransel.composeapp.generated.resources.transactions_total_paid
 import ransel.composeapp.generated.resources.transactions_total_spent
 import ransel.composeapp.generated.resources.transactions_waiting
@@ -95,6 +97,8 @@ fun AllTransactionsScreen(
     tripId: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A payment row: back to the trip's Saldo view (owner, 29 Oct 2026). */
+    onOpenBalances: (() -> Unit)? = null,
     viewModel: AllTransactionsViewModel = koinViewModel(key = "all-transactions-$tripId") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -107,6 +111,7 @@ fun AllTransactionsScreen(
         onFilter = viewModel::setFilter,
         onOpenExpense = if (canEdit) ({ editing = it.id }) else null,
         onRetry = viewModel::refresh,
+        onOpenPayment = onOpenBalances,
         modifier = modifier,
     )
     val existing = editing?.let { id ->
@@ -141,6 +146,8 @@ fun AllTransactionsContent(
     onOpenExpense: ((ExpenseDto) -> Unit)?,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Null = payment rows are read-only. */
+    onOpenPayment: (() -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val trip = state.trip
@@ -179,7 +186,7 @@ fun AllTransactionsContent(
                     )
                 } else {
                     Totals(state, trip.baseCurrency)
-                    state.days.forEach { day -> DaySection(day, state, trip, tz, onOpenExpense) }
+                    state.days.forEach { day -> DaySection(day, state, trip, tz, onOpenExpense, onOpenPayment) }
                 }
             }
         }
@@ -248,10 +255,10 @@ private fun Totals(state: AllTransactionsUiState, currency: String) {
             color = scheme.onSurfaceVariant,
         )
         Text(
-            if (state.filter == TransactionFilter.PAYMENTS) {
-                stringResource(Res.string.transactions_total_paid, formatMoney(state.paidMinor, currency))
-            } else {
-                stringResource(Res.string.transactions_total_spent, formatMoney(state.spentMinor, currency))
+            when (state.filter) {
+                TransactionFilter.PAYMENTS -> stringResource(Res.string.transactions_total_paid, formatMoney(state.paidMinor, currency))
+                TransactionFilter.MINE -> stringResource(Res.string.transactions_total_mine, formatMoney(state.spentMinor, currency))
+                else -> stringResource(Res.string.transactions_total_spent, formatMoney(state.spentMinor, currency))
             },
             style = MaterialTheme.typography.titleSmall,
         )
@@ -265,6 +272,7 @@ private fun DaySection(
     trip: TripDto,
     tz: TimeZone,
     onOpenExpense: ((ExpenseDto) -> Unit)?,
+    onOpenPayment: (() -> Unit)?,
 ) {
     val dates = rememberDateFormatter()
     val scheme = MaterialTheme.colorScheme
@@ -285,12 +293,12 @@ private fun DaySection(
                 item.expense, tz, state.members.takeIf { state.shared }, state.myMemberId,
                 onClick = onOpenExpense?.let { open -> { open(item.expense) } },
             )
-            is TransactionItem.Payment -> PaymentRow(item.settlement, state.members, state.myMemberId, trip.baseCurrency, tz)
+            is TransactionItem.Payment -> PaymentRow(item.settlement, state.members, state.myMemberId, trip.baseCurrency, tz, onOpenPayment)
         }
     }
 }
 
-/** A payment between members, laid out like an expense row. Read-only. */
+/** A payment between members, laid out like an expense row. A tap opens Saldo, where claims are confirmed. */
 @Composable
 private fun PaymentRow(
     settlement: SettlementDto,
@@ -298,6 +306,7 @@ private fun PaymentRow(
     myMemberId: String?,
     currency: String,
     tz: TimeZone,
+    onClick: (() -> Unit)?,
 ) {
     val scheme = MaterialTheme.colorScheme
     val you = stringResource(Res.string.transactions_you)
@@ -306,7 +315,7 @@ private fun PaymentRow(
         if (memberId == myMemberId) (if (start) you else youLower) else members.firstOrNull { it.memberId == memberId }?.displayName ?: "?"
     val waiting = settlement.status == SettlementStatus.CLAIMED_PAID
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp),
+        Modifier.fillMaxWidth().heightIn(min = 64.dp).then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

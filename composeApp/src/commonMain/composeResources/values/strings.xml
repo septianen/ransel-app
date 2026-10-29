@@ -1595,13 +1595,14 @@
     <string name="transactions_filter_all">All</string>
     <string name="transactions_filter_expenses">Expenses</string>
     <string name="transactions_filter_payments">Payments</string>
-    <string name="transactions_filter_mine">Involving me</string>
+    <string name="transactions_filter_mine">My share</string>
     <plurals name="transactions_count">
         <item quantity="one">%1$d transaction</item>
         <item quantity="other">%1$d transactions</item>
     </plurals>
     <string name="transactions_total_spent">Total spent %1$s</string>
     <string name="transactions_total_paid">Total paid %1$s</string>
+    <string name="transactions_total_mine">Your share %1$s</string>
     <string name="transactions_payment_title">%1$s paid %2$s</string>
     <string name="transactions_payment_label">Payment</string>
     <string name="transactions_you">You</string>
