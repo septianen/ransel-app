@@ -153,7 +153,8 @@ class SyncService {
                 if (sinceJava == null) mine else mine and ((Trips.updatedAt greater sinceJava) or (Trips.id inList newTripIds))
             }
             .toList()
-        val trips = tripRows.map { it.toTripDto(it[TripMembers.role]) }
+        // same order as the pages, so a page reads in id order too
+        val trips = tripRows.map { it.toTripDto(it[TripMembers.role]) }.sortedBy { it.id }
 
         val items = if (allTripIds.isEmpty()) emptyList() else ItineraryItems.selectAll()
             .where {

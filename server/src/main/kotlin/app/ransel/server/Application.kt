@@ -147,8 +147,9 @@ fun Application.module(
     if (ecb != null) {
         maintenance.launch {
             while (isActive) {
-                ecb.refresh()
-                fxDaily.refresh()
+                // a failed day (network, or the pool already closed on shutdown) must not end the loop
+                runCatching { ecb.refresh() }
+                runCatching { fxDaily.refresh() }
                 delay(24.hours)
             }
         }
