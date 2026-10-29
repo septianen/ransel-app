@@ -6,6 +6,17 @@
     <!-- Deep links such as /j/<code> are served index.html too; without this the script and .wasm load from /j/. -->
     <base href="/">
     <title>RANSEL</title>
+    <!-- Fallback link preview for any page; nginx gives crawlers a per-link page for /j/ and /p/ instead (OgRoutes).
+         Crawlers need an absolute image URL, and staging and production share this file: the production image. -->
+    <meta name="description" content="Rencanakan trip bareng: itinerary, packing, dan patungan.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="RANSEL">
+    <meta property="og:title" content="RANSEL">
+    <meta property="og:description" content="Rencanakan trip bareng: itinerary, packing, dan patungan.">
+    <meta property="og:image" content="https://ransel.mietek.tech/og/invite.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
     <!-- Installable web app (PWA): manifest, icons and the service worker in sw.js. -->
     <link rel="manifest" href="manifest.webmanifest">
     <meta name="theme-color" content="#008808">

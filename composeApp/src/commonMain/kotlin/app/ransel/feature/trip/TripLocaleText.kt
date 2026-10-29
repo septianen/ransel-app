@@ -6,14 +6,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import app.ransel.feature.currency.currencySymbol
 import app.ransel.shared.domain.minutesFromWib
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
@@ -70,7 +68,8 @@ fun OverseasCard(baseCurrency: String, localCurrency: String?, timeZone: String?
         }
         if (localCurrency != null && !localCurrency.equals(baseCurrency, ignoreCase = true)) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(currencySymbol(localCurrency), Modifier.width(24.dp), style = MaterialTheme.typography.titleMedium, color = scheme.onTertiaryContainer)
+                // an icon, like the clock below: a code without a symbol ("LAK") would wrap in a 24 dp column
+                Symbol(Symbols.currencyExchange, size = 22.dp, tint = scheme.onTertiaryContainer)
                 Column {
                     Text(stringResource(Res.string.overseas_currency_title, localCurrency), style = MaterialTheme.typography.titleSmall, color = scheme.onTertiaryContainer)
                     Text(stringResource(Res.string.overseas_currency_body, localCurrency, baseCurrency), style = MaterialTheme.typography.bodySmall, color = scheme.onTertiaryContainer)
