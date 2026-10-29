@@ -42,4 +42,8 @@ sealed class AnalyticsEvent(val name: String, val params: Map<String, Any> = emp
     // Collaboration.
     data class InviteCreated(val role: Role) : AnalyticsEvent("invite_created", mapOf("role" to role.name))
     data object MemberJoined : AnalyticsEvent("member_joined")
+
+    // Sync health: a row the server refused (not CONFLICT); [entity] is the sync wire name, [code] an ErrorCode.
+    data class SyncRejected(val entity: String, val code: String) :
+        AnalyticsEvent("sync_rejected", mapOf("entity" to entity, "code" to code))
 }

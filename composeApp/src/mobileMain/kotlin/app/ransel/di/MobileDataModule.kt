@@ -34,7 +34,7 @@ val mobileDataModule = module {
     single<PreferencesRepository> { RoomPreferencesRepository(get<RanselDatabase>()) }
 
     // Sync lives as long as the process; created when the session gate first asks for SyncStatus.
-    single { SyncCoordinator(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default)) }
+    single { SyncCoordinator(get(), get(), get(), CoroutineScope(SupervisorJob() + Dispatchers.Default), get(), get()) }
     single<SyncStatus> { get<SyncCoordinator>() }
     single<SessionHooks> { RoomSessionHooks(get()) { get<SyncCoordinator>() } }
 }

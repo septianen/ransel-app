@@ -435,6 +435,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     val sync: SyncStatus = koinInject()
     val pendingIds by sync.pendingIds.collectAsState()
     val justSynced by sync.justSynced.collectAsState()
+    val dropped by sync.dropped.collectAsState()
 
     // The rail (wide web windows) marks the open tab; on a trip it marks "Trip".
     val railSelected: MainTab? = when {
@@ -518,6 +519,8 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
 
         ExitHintToast(exitArmed, modifier = Modifier.align(Alignment.BottomCenter))
         BackOnlineToast(justSynced, onShown = sync::acknowledgeJustSynced, modifier = Modifier.align(Alignment.BottomCenter))
+        // after "Kembali online" rather than on top of it
+        app.ransel.ui.components.DroppedChangesSnackbar(dropped.takeIf { justSynced == null }, onShown = sync::acknowledgeDropped, modifier = Modifier.align(Alignment.BottomCenter))
 
         // Web: a failed request replaces the screen with the connection / server state (design "State").
         failure?.let { error ->

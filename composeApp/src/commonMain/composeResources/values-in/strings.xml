@@ -484,6 +484,23 @@
     <string name="offline_banner_title">Kamu sedang offline</string>
     <string name="offline_banner_body">Perubahan tetap tersimpan di perangkat dan dikirim otomatis saat online.</string>
     <string name="back_online_snackbar">Kembali online · %1$d perubahan terkirim</string>
+    <string name="sync_dropped_and">dan</string>
+    <plurals name="sync_dropped_expenses">
+        <item quantity="other">%1$d pengeluaran</item>
+    </plurals>
+    <plurals name="sync_dropped_activities">
+        <item quantity="other">%1$d aktivitas</item>
+    </plurals>
+    <plurals name="sync_dropped_packing">
+        <item quantity="other">%1$d barang bawaan</item>
+    </plurals>
+    <plurals name="sync_dropped_trips">
+        <item quantity="other">%1$d trip</item>
+    </plurals>
+    <string name="sync_dropped_in_trip_no_access">%1$s di “%2$s” tidak tersimpan karena kamu tidak punya akses edit lagi.</string>
+    <string name="sync_dropped_in_trips_no_access">%1$s di %2$d trip tidak tersimpan karena kamu tidak punya akses edit lagi.</string>
+    <string name="sync_dropped_in_trip_refused">%1$s di “%2$s” tidak tersimpan karena ditolak server.</string>
+    <string name="sync_dropped_in_trips_refused">%1$s di %2$d trip tidak tersimpan karena ditolak server.</string>
     <string name="exit_hint">Tekan sekali lagi untuk keluar</string>
     <string name="sync_pending_description">Menunggu dikirim</string>
 

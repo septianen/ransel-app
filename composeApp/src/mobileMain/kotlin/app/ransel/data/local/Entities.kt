@@ -15,7 +15,10 @@ object SyncState {
     const val PENDING = "PENDING"
     const val SYNCED = "SYNCED"
 
-    /** The server refused this row (not retryable: forbidden, invalid, trip gone). Kept locally, never re-sent. */
+    /**
+     * The server refused this row (not retryable: forbidden, invalid, trip gone). Never re-sent; after the next full
+     * pull a row still REJECTED is one the server does not have, and is deleted (owner, 29 Oct 2026).
+     */
     const val REJECTED = "REJECTED"
 }
 

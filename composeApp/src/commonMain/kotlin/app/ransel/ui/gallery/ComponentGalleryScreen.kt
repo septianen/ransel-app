@@ -151,6 +151,16 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Section("UndoSnackbar") {
                     UndoSnackbar("Jadwal Hari 1 dirapatkan", actionLabel = "Urungkan", onAction = {})
                 }
+                Section("DroppedChangesSnackbar") {
+                    app.ransel.ui.components.DroppedChangesSnackbar(
+                        app.ransel.data.sync.DroppedChanges(
+                            mapOf(app.ransel.data.sync.DroppedKind.EXPENSE to 2, app.ransel.data.sync.DroppedKind.ACTIVITY to 1),
+                            setOf("t1"),
+                            tripTitle = "Bali 4 hari",
+                        ),
+                        onShown = {},
+                    )
+                }
                 Section("LoadingButton") {
                     // Tap either button: it shows the spinner for 2 s and ignores clicks meanwhile.
                     var loading by remember { mutableStateOf(false) }

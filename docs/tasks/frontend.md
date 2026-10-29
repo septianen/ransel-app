@@ -203,6 +203,11 @@ Design: Claude Design canvas "Karung" (code names in `docs/design/README.md` "Ad
 - [x] **F19.2 Search trips.** A search button next to "Trip" on the trip list (only when there are trips) opens a field under the title (same look as the currency sheet's search). It filters the loaded trips on the device, Room on mobile and the API list on the web: title and destination, case-insensitive, Latin accents ignored, every word must match (`TripSearch.kt`, `TripListUiState.Content.searched`). All groups are filtered (trips without dates sit in "Akan datang"); while searching, "Selesai" shows every match and the "Belum ada trip berikutnya" card is hidden. No match: `FullScreenState` "Trip tidak ditemukan". Closing the field clears the query. Tests: `TripSearchTest`.
   - Design review: placement of the search button and field, the empty-result copy and illustration, whether the FAB should hide while searching.
 
+## Refused sync changes (29 Oct 2026, not designed yet)
+
+- [x] **F20.1 "Tidak tersinkron": delete and tell once.** `SyncCoordinator` keeps the refusal code per row from `SyncPushResponse.rejected`; whenever REJECTED rows exist the pull is full, and once a full pull completes the rows still REJECTED (`SyncDao.rejectedRows`) are deleted and summed into a `DroppedChanges` (counts per expense / activity / packing / trip, the trip title when there is one trip, `noAccess` when every code was `FORBIDDEN` or `TRIP_NOT_FOUND`). The notice is stored in the preferences (`dropped_changes`, merged with an unseen one) and exposed as `SyncStatus.dropped` only while the app is in the foreground; `DroppedChangesSnackbar` (IRIS `UndoSnackbar`, "OK", 10 s) shows it at the app root after "Kembali online". Every refusal but CONFLICT logs `sync_rejected`; codes other than FORBIDDEN/TRIP_NOT_FOUND also go to Crashlytics as a non-fatal. Web has nothing to drop (online-only). Tests: `DroppedChangesTest` (merge); the coordinator itself has no unit test (Room only runs on the device; instrumented test still to write).
+  - Design review: the snackbar copy and the 10 s duration.
+
 ## Integration checkpoints with the backend agent
 
 | When | Check together |

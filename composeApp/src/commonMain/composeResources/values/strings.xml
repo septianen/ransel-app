@@ -484,6 +484,27 @@
     <string name="offline_banner_title">You are offline</string>
     <string name="offline_banner_body">Changes stay on this device and are sent automatically when you are online.</string>
     <string name="back_online_snackbar">Back online · %1$d changes sent</string>
+    <string name="sync_dropped_and">and</string>
+    <plurals name="sync_dropped_expenses">
+        <item quantity="one">%1$d expense</item>
+        <item quantity="other">%1$d expenses</item>
+    </plurals>
+    <plurals name="sync_dropped_activities">
+        <item quantity="one">%1$d activity</item>
+        <item quantity="other">%1$d activities</item>
+    </plurals>
+    <plurals name="sync_dropped_packing">
+        <item quantity="one">%1$d packing item</item>
+        <item quantity="other">%1$d packing items</item>
+    </plurals>
+    <plurals name="sync_dropped_trips">
+        <item quantity="one">%1$d trip</item>
+        <item quantity="other">%1$d trips</item>
+    </plurals>
+    <string name="sync_dropped_in_trip_no_access">Not saved: %1$s in “%2$s”. You can no longer edit that trip.</string>
+    <string name="sync_dropped_in_trips_no_access">Not saved: %1$s in %2$d trips. You can no longer edit them.</string>
+    <string name="sync_dropped_in_trip_refused">Not saved: %1$s in “%2$s”. The server turned the change down.</string>
+    <string name="sync_dropped_in_trips_refused">Not saved: %1$s in %2$d trips. The server turned the changes down.</string>
     <string name="exit_hint">Press back again to exit</string>
     <string name="sync_pending_description">Waiting to be sent</string>
 
