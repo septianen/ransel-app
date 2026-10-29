@@ -267,6 +267,8 @@ Built in stage 4 (a third Biaya view "Kas", deposits, "Ambil dari kas"), then re
 Rules:
 
 - One choice by default; the creator can allow several.
+- The question starts empty: the template's question ("Mau nginep di mana?") is only a hint in the field, so the creator writes their own; an empty question is refused. A Tempat makan poll's day can only be a day of the trip that is not over.
+- In the option form the link is the last field, since it is the most optional; "Ambil info" fills the name only when it is still empty.
 - Polls close after a set time: **1, 2 or 3 days** (7 days removed on 27 Oct 2026), and members are reminded a day before. A poll does not close by itself when everyone has voted; the creator or the owner can close it early with "Tutup voting sekarang", which opens the confirm dialog at once when there is one leader.
 - Only the creator or the trip owner confirms the winner, picks among tied options, closes the poll without confirming, reopens or deletes it.
 - Members without an account vote through the WhatsApp link.

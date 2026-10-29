@@ -91,9 +91,6 @@ class CreatePollViewModel(
         }
     }
 
-    /** The screen fills in the question of the template once; after that it belongs to the user. */
-    fun prefillQuestion(text: String) = _state.update { if (it.question.isEmpty() && !it.questionWrong) it.copy(question = text) else it }
-
     fun onQuestion(value: String) = _state.update { it.copy(question = value, questionWrong = false) }
     fun onClosingDays(days: Int) = _state.update { it.copy(closingDays = days) }
     fun onMulti(value: Boolean) = _state.update { it.copy(multiChoice = value) }
