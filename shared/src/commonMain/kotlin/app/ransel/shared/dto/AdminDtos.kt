@@ -239,7 +239,7 @@ data class AdminExploreDto(
     val searchesFromCache: Int,
     /** The cache searches times the average estimated cost of a NEW search this month ("hemat ± US$61"). */
     val cacheSavingsMicroUsd: Long,
-    /** Cards returned by successful searches, and how many of those places were liked in the trip. */
+    /** Cards of successful Explore searches (poll results are options, not swipes), and how many were liked in the trip. */
     val cardsShown: Int,
     val cardsSaved: Int,
     /** Waiting time of successful searches; null without any. */
