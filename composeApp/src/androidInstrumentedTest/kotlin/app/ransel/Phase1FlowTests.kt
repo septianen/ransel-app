@@ -1,5 +1,10 @@
 package app.ransel
 
+import app.ransel.data.auth.SessionManager
+import app.ransel.data.auth.StoredSession
+import app.ransel.data.auth.TokenStore
+import app.ransel.data.remote.RanselApi
+import app.ransel.data.remote.createApiHttpClient
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -84,7 +89,19 @@ class Phase1FlowTests {
                 baseCurrency = "IDR", budgetMinor = 5_000_000,
             ),
         )
+        store.trips.value.single { it.id == "trip-1" }
     }
+
+    /** Phase 1 runs signed out: no session, so the expenses tab never calls the API it is given. */
+    private fun guestSession() = SessionManager(
+        object : TokenStore {
+            override suspend fun read(): StoredSession? = null
+            override suspend fun write(session: StoredSession) = Unit
+            override suspend fun clear() = Unit
+        },
+    ) { error("not used signed out") }
+
+    private val unusedApi = RanselApi(createApiHttpClient(), origin = "http://localhost")
 
     @Test fun createTrip() {
         var savedId: String? = null
@@ -191,7 +208,7 @@ class Phase1FlowTests {
     @Test fun recordExpense() {
         val trip = seedTrip()
         rule.setContent {
-            IrisTheme { ExpensesTab(trip = trip, viewModel = ExpensesViewModel(trip, expenses)) }
+            IrisTheme { ExpensesTab(trip = trip, viewModel = ExpensesViewModel(trip, expenses, unusedApi, guestSession())) }
         }
         rule.onNodeWithContentDescription("Record expense").performClick()
         rule.waitUntil(5_000) { rule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty() }
