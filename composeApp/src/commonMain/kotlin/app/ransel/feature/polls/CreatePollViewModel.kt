@@ -10,7 +10,9 @@ import app.ransel.shared.domain.actionFor
 import app.ransel.shared.domain.defaultMultiChoice
 import app.ransel.shared.domain.effectiveAnonymous
 import app.ransel.shared.domain.isAnonymousForced
+import app.ransel.shared.domain.maxPollOptions
 import app.ransel.shared.domain.validatePollQuestion
+import app.ransel.util.today
 import app.ransel.shared.dto.CreatePollRequest
 import app.ransel.shared.dto.PollOptionInput
 import app.ransel.shared.model.PollKind
@@ -50,8 +52,11 @@ data class CreatePollUiState(
     val editingId: String? = null,
     val saving: Boolean = false,
     val failed: Boolean = false,
+    /** DATE: the options are not 2–5 ranges from today on (shown after "Buat"). */
+    val optionsWrong: Boolean = false,
 ) {
     val anonymousLocked: Boolean get() = isAnonymousForced(kind)
+    val canAddOption: Boolean get() = options.size < maxPollOptions(kind)
     val hasAction: Boolean get() = actionFor(kind) != PollAction.NONE
 }
 
@@ -105,9 +110,12 @@ class CreatePollViewModel(
 
     fun saveOption(input: PollOptionInput) = _state.update { s ->
         val exists = s.options.any { it.id == input.id }
+        if (!exists && !s.canAddOption) return@update s.copy(optionSheet = false, editingId = null)
+        val options = if (exists) s.options.map { if (it.id == input.id) input else it } else s.options + input
         s.copy(
-            options = if (exists) s.options.map { if (it.id == input.id) input else it } else s.options + input,
+            options = options,
             optionSheet = false, editingId = null,
+            optionsWrong = s.optionsWrong && !(s.kind == PollKind.DATE && datePollOptionsValid(options, today())),
         )
     }
 
@@ -118,6 +126,10 @@ class CreatePollViewModel(
         if (s.saving) return
         if (validatePollQuestion(s.question).isNotEmpty()) {
             _state.update { it.copy(questionWrong = true) }
+            return
+        }
+        if (s.kind == PollKind.DATE && !datePollOptionsValid(s.options, today())) {
+            _state.update { it.copy(optionsWrong = true) }
             return
         }
         _state.update { it.copy(saving = true, failed = false) }

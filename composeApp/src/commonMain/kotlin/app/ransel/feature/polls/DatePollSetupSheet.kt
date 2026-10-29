@@ -16,6 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.ransel.shared.domain.DATE_POLL_MAX_OPTIONS
+import app.ransel.shared.domain.validateDatePollOptions
+import app.ransel.shared.domain.validatePollOption
 import app.ransel.shared.dto.PollOptionInput
 import app.ransel.shared.model.PollKind
 import app.ransel.ui.components.AdaptiveSheet
@@ -26,17 +29,9 @@ import ransel.composeapp.generated.resources.trip_form_poll_empty
 import ransel.composeapp.generated.resources.trip_form_poll_sheet_done
 import ransel.composeapp.generated.resources.trip_form_poll_sheet_title
 
-/** PRD "Date poll": a date poll asks about 2–5 ranges, none before today. */
-const val DATE_POLL_MIN_OPTIONS = 2
-const val DATE_POLL_MAX_OPTIONS = 5
-
-/** True when [options] can start a date poll: 2–5 ranges, each complete and starting today or later. */
+/** True when [options] can start a date poll: the shared rule (2–5 ranges, none before today), each range complete. */
 fun datePollOptionsValid(options: List<PollOptionInput>, today: LocalDate): Boolean =
-    options.size in DATE_POLL_MIN_OPTIONS..DATE_POLL_MAX_OPTIONS && options.all { o ->
-        val start = o.startDate
-        val end = o.endDate
-        start != null && end != null && start >= today && end >= start
-    }
+    validateDatePollOptions(options, today).isEmpty() && options.all { validatePollOption(PollKind.DATE, it).isEmpty() }
 
 /**
  * The date poll of a trip that is still being made (Buat trip, "Tanggal belum pasti" → "Ubah"): when voting closes and

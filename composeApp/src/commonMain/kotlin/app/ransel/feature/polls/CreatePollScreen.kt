@@ -57,6 +57,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.trip_form_poll_error
 import ransel.composeapp.generated.resources.poll_apply_estimate
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_ok
@@ -190,7 +191,10 @@ fun CreatePollContent(
                     SwitchRow(stringResource(Res.string.poll_apply_winner), applyHint(state.kind), state.applyWinner, true, onApplyWinner)
                 }
             }
-            PollOptionsSection(state.kind, state.options, state.currency, onAddOption, onEditOption, onRemoveOption)
+            PollOptionsSection(state.kind, state.options, state.currency, onAddOption, onEditOption, onRemoveOption, canAdd = state.canAddOption)
+            if (state.optionsWrong) {
+                Text(stringResource(Res.string.trip_form_poll_error), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            }
             if (state.failed) {
                 Text(stringResource(Res.string.poll_create_error), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             }

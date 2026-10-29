@@ -11,7 +11,7 @@ import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.sync.NoSyncStatus
 import app.ransel.data.sync.SyncStatus
-import app.ransel.feature.polls.DATE_POLL_MAX_OPTIONS
+import app.ransel.shared.domain.DATE_POLL_MAX_OPTIONS
 import app.ransel.feature.polls.datePollOptionsValid
 import app.ransel.shared.domain.defaultMultiChoice
 import app.ransel.shared.domain.effectiveAnonymous

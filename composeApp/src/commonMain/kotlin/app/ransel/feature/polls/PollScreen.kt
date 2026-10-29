@@ -404,9 +404,12 @@ fun PollContent(
                     }
                 }
                 if (state.canEditOptions) {
-                    TextButton(onClick = onAddOption) {
-                        Symbol(Symbols.add, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
-                        Text(stringResource(Res.string.poll_add_option), Modifier.padding(start = 8.dp))
+                    // a date poll holds at most 5 ranges (shared maxPollOptions)
+                    if (poll.options.size < app.ransel.shared.domain.maxPollOptions(poll.kind)) {
+                        TextButton(onClick = onAddOption) {
+                            Symbol(Symbols.add, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
+                            Text(stringResource(Res.string.poll_add_option), Modifier.padding(start = 8.dp))
+                        }
                     }
                     if (state.canSearch) {
                         TextButton(onClick = onSearch) {

@@ -26,6 +26,7 @@ import app.ransel.shared.dto.MeDto
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.PollOptionDto
 import app.ransel.shared.dto.PollOptionInput
+import kotlinx.datetime.plus
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.model.PollKind
 import app.ransel.shared.model.PollPriceUnit
@@ -413,6 +414,25 @@ class CreatePollViewModelTest {
         assertTrue(log.value.isEmpty())
         vm.onQuestion("Naik apa?")
         assertEquals(false, vm.state.value.questionWrong)
+    }
+
+    @Test
+    fun aDatePollNeedsTwoToFiveRanges() = runTest {
+        val vm = vm(PollKind.DATE)
+        vm.onQuestion("Kapan berangkat?")
+        val start = app.ransel.util.today().plus(kotlinx.datetime.DatePeriod(days = 7))
+        fun range(i: Int) = PollOptionInput("d$i", "", startDate = start.plus(kotlinx.datetime.DatePeriod(days = i)), endDate = start.plus(kotlinx.datetime.DatePeriod(days = i)))
+        vm.saveOption(range(1))
+        vm.create()
+        assertTrue(vm.state.value.optionsWrong)
+        assertTrue(log.value.isEmpty())
+        vm.saveOption(range(2))
+        assertEquals(false, vm.state.value.optionsWrong)
+        (3..6).forEach { vm.saveOption(range(it)) }
+        assertEquals(5, vm.state.value.options.size) // the sixth is not taken
+        assertEquals(false, vm.state.value.canAddOption)
+        vm.create()
+        eventually { log.value.isNotEmpty() }
     }
 
     @Test
