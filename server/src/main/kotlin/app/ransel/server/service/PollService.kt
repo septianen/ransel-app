@@ -15,7 +15,8 @@ import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
 import app.ransel.server.plugins.validationFailed
 import app.ransel.shared.api.ErrorCode
-import app.ransel.shared.domain.MAX_POLL_OPTIONS
+import app.ransel.shared.domain.maxPollOptions
+import app.ransel.shared.domain.validateDatePollOptions
 import app.ransel.shared.domain.POLL_REMINDER_BEFORE
 import app.ransel.shared.domain.POLL_TIE_REOPEN_AFTER
 import app.ransel.shared.domain.POLL_TIE_REOPEN_FOR
@@ -118,7 +119,9 @@ object PollService {
             buildMap {
                 putAll(validatePollQuestion(body.question))
                 if (closesAt <= now) put("closesAt", "MUST_BE_IN_THE_FUTURE")
-                if (body.options.size > MAX_POLL_OPTIONS) put("options", "TOO_MANY")
+                if (body.options.size > maxPollOptions(body.kind)) put("options", "TOO_MANY")
+                // PRD "Date poll": 2–5 ranges, none before today
+                if (body.kind == PollKind.DATE) putAll(validateDatePollOptions(body.options, earliestToday()))
                 if (body.options.map { it.id }.toSet().size != body.options.size) put("options", "DUPLICATE_ID")
                 body.options.forEachIndexed { i, option ->
                     validatePollOption(body.kind, option).forEach { (field, code) -> put("options[$i].$field", code) }
@@ -196,13 +199,13 @@ object PollService {
         val tripId = row0[Polls.tripId]
         requireRole(tripId, userId, Role.EDITOR)
         val kind = row0[Polls.kind]
-        requireValid(optionProblems(kind, option))
+        requireValid(optionProblems(kind, option) + newRangeProblems(kind, option))
         return transaction {
             settleDue(pollId = pollId)
             val row = loadRow(pollId)
             if (row[Polls.status] != PollStatus.OPEN) throw closed()
             val existing = PollOptions.selectAll().where { (PollOptions.pollId eq pollId) and PollOptions.deletedAt.isNull() }.count().toInt()
-            if (existing >= MAX_POLL_OPTIONS) throw validationFailed(mapOf("options" to "TOO_MANY"))
+            if (existing >= maxPollOptions(kind)) throw validationFailed(mapOf("options" to "TOO_MANY"))
             if (PollOptions.select(PollOptions.id).where { PollOptions.id eq uuid(option.id, "id") }.any()) throw conflict("Option id already exists")
             insertOption(pollId, kind, option, existing)
             toDto(loadRow(pollId), callerMemberId(tripId, userId))
@@ -216,8 +219,8 @@ object PollService {
         requireRole(tripId, userId, Role.EDITOR)
         val kind = row0[Polls.kind]
         if (options.isEmpty()) throw validationFailed(mapOf("options" to "REQUIRED"))
-        if (options.size > MAX_POLL_OPTIONS) throw validationFailed(mapOf("options" to "TOO_MANY"))
-        requireValid(options.withIndex().flatMap { (i, o) -> optionProblems(kind, o).map { (k, v) -> "options[$i].$k" to v } }.toMap())
+        if (options.size > maxPollOptions(kind)) throw validationFailed(mapOf("options" to "TOO_MANY"))
+        requireValid(options.withIndex().flatMap { (i, o) -> (optionProblems(kind, o) + newRangeProblems(kind, o)).map { (k, v) -> "options[$i].$k" to v } }.toMap())
         val ids = options.map { uuid(it.id, "id") }
         if (ids.toSet().size != ids.size) throw validationFailed(mapOf("options" to "DUPLICATE_ID"))
         return transaction {
@@ -225,7 +228,7 @@ object PollService {
             val row = loadRow(pollId)
             if (row[Polls.status] != PollStatus.OPEN) throw closed()
             val existing = PollOptions.selectAll().where { (PollOptions.pollId eq pollId) and PollOptions.deletedAt.isNull() }.count().toInt()
-            if (existing + options.size > MAX_POLL_OPTIONS) throw validationFailed(mapOf("options" to "TOO_MANY"))
+            if (existing + options.size > maxPollOptions(kind)) throw validationFailed(mapOf("options" to "TOO_MANY"))
             if (PollOptions.select(PollOptions.id).where { PollOptions.id inList ids }.any()) throw conflict("Option id already exists")
             options.forEachIndexed { i, option -> insertOption(pollId, kind, option, existing + i) }
             toDto(loadRow(pollId), callerMemberId(tripId, userId))
@@ -521,6 +524,15 @@ object PollService {
         putAll(validatePollOption(kind, option))
         if (checkId && runCatching { UUID.fromString(option.id) }.isFailure) put("id", "INVALID_UUID")
     }
+
+    /** A range added to a DATE poll cannot start before today; an edited range is not checked (it may be today's yesterday). */
+    private fun newRangeProblems(kind: PollKind, option: PollOptionInput): Map<String, String> {
+        val start = option.startDate
+        return if (kind == PollKind.DATE && start != null && start < earliestToday()) mapOf("startDate" to "BEFORE_TODAY") else emptyMap()
+    }
+
+    /** The earliest date anywhere (UTC−12): "none before today" never refuses a user's own today, whatever their zone. */
+    private fun earliestToday(): kotlinx.datetime.LocalDate = java.time.LocalDate.now(java.time.ZoneOffset.ofHours(-12)).toKotlinLocalDate()
 
     private fun insertOption(pollId: UUID, kind: PollKind, option: PollOptionInput, order: Int) {
         PollOptions.insert {

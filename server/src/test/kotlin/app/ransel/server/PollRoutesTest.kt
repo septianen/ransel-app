@@ -129,6 +129,26 @@ class PollRoutesTest {
     }
 
     @Test
+    fun aDatePollHasTwoToFiveRangesNoneInThePast() = apiTest {
+        val t = pollTrip()
+        fun range(day: String) = option("", extra = ""","startDate":"$day","endDate":"$day"""")
+        fun date(vararg days: String) = pollJson(kind = "DATE", question = "Kapan berangkat?", options = days.map { range(it) })
+        val few = post("/trips/${t.id}/polls", date("2099-12-01"))
+        assertEquals(HttpStatusCode.UnprocessableEntity, few.status)
+        assertTrue("TOO_FEW" in few.bodyAsText(), few.bodyAsText())
+        val many = post("/trips/${t.id}/polls", date("2099-12-01", "2099-12-02", "2099-12-03", "2099-12-04", "2099-12-05", "2099-12-06"))
+        assertEquals(HttpStatusCode.UnprocessableEntity, many.status)
+        val past = post("/trips/${t.id}/polls", date("2020-01-01", "2099-12-01"))
+        assertEquals(HttpStatusCode.UnprocessableEntity, past.status)
+        assertTrue("BEFORE_TODAY" in past.bodyAsText(), past.bodyAsText())
+
+        // five is the most, also when ranges are added later
+        val poll = createPoll(t, date("2099-12-01", "2099-12-02", "2099-12-03", "2099-12-04"))
+        assertEquals(HttpStatusCode.Created, post("/polls/${poll.str("id")}/options", range("2099-12-05")).status)
+        assertEquals(HttpStatusCode.UnprocessableEntity, post("/polls/${poll.str("id")}/options", range("2099-12-06")).status)
+    }
+
+    @Test
     fun oneChoiceUnlessTheCreatorAllowsSeveral() = apiTest {
         val t = pollTrip()
         val single = createPoll(t)
@@ -322,21 +342,21 @@ class PollRoutesTest {
             pollJson(
                 kind = "DATE", question = "Kapan berangkat?", extra = ""","multiChoice":true""",
                 options = listOf(
-                    option("", extra = ""","startDate":"2026-12-01","endDate":"2026-12-04""""),
-                    option("", extra = ""","startDate":"2026-12-10","endDate":"2026-12-13""""),
+                    option("", extra = ""","startDate":"2099-12-01","endDate":"2099-12-04""""),
+                    option("", extra = ""","startDate":"2099-12-10","endDate":"2099-12-13""""),
                 ),
             ),
         )
         val pollId = poll.str("id")
-        assertEquals("2026-12-01 – 2026-12-04", poll.options()[0].str("label"))
+        assertEquals("2099-12-01 – 2099-12-04", poll.options()[0].str("label"))
         use(t.a); voteFor(pollId, poll.vote(0), poll.vote(1))
         use(t.b); voteFor(pollId, poll.vote(1))
         use(t.owner)
         post("/polls/$pollId/close")
         assertEquals("DECIDED", post("/polls/$pollId/decide", """{"optionId":"${poll.options()[1].str("id")}"}""").data().obj().str("status"))
         val trip = get("/trips/${t.id}").data().obj()
-        assertEquals("2026-12-10", trip.getValue("trip").obj().str("startDate"))
-        assertEquals("2026-12-13", trip.getValue("trip").obj().str("endDate"))
+        assertEquals("2099-12-10", trip.getValue("trip").obj().str("startDate"))
+        assertEquals("2099-12-13", trip.getValue("trip").obj().str("endDate"))
     }
 
     @Test

@@ -186,7 +186,7 @@ class UndatedTripRoutesTest {
         val created = post(
             "/trips/$trip/polls",
             """{"id":"$pollId","kind":"DATE","question":"Kapan berangkat?","closesAt":"2099-01-01T00:00:00Z","options":[""" +
-                """{"id":"$a","label":"","startDate":"2026-12-01","endDate":"2026-12-04"},{"id":"$b","label":"","startDate":"2026-12-10","endDate":"2026-12-13"}]}""",
+                """{"id":"$a","label":"","startDate":"2099-12-01","endDate":"2099-12-04"},{"id":"$b","label":"","startDate":"2099-12-10","endDate":"2099-12-13"}]}""",
         )
         assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
         val decided = post("/polls/$pollId/decide", """{"optionId":"$b"}""")
@@ -194,12 +194,12 @@ class UndatedTripRoutesTest {
 
         val detail = get("/trips/$trip").data().jsonObject
         val dto = detail.getValue("trip").jsonObject
-        assertEquals("2026-12-10", dto.str("startDate"))
-        assertEquals("2026-12-13", dto.str("endDate"))
+        assertEquals("2099-12-10", dto.str("startDate"))
+        assertEquals("2099-12-13", dto.str("endDate"))
         assertEquals("4", detail.getValue("summary").jsonObject.str("daysTotal"))
         assertEquals("Tanah Lot", items(trip).single().str("title"), "the unscheduled place stays")
         // now the trip has days
-        assertEquals(HttpStatusCode.Created, post("/trips/$trip/itinerary", itemJson(day = "2026-12-11")).status)
+        assertEquals(HttpStatusCode.Created, post("/trips/$trip/itinerary", itemJson(day = "2099-12-11")).status)
     }
 
     @Test
