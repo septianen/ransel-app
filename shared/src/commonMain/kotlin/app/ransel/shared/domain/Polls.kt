@@ -2,6 +2,7 @@ package app.ransel.shared.domain
 
 import app.ransel.shared.dto.PollOptionInput
 import app.ransel.shared.model.PollKind
+import kotlinx.datetime.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
@@ -15,6 +16,25 @@ const val MAX_POLL_QUESTION = 140
 const val MAX_POLL_OPTION_LABEL = 100
 const val MAX_POLL_OPTIONS = 20
 private const val MAX_URL = 2000
+
+/** PRD "Date poll": a date poll asks about 2–5 ranges, none before today. */
+const val DATE_POLL_MIN_OPTIONS = 2
+const val DATE_POLL_MAX_OPTIONS = 5
+
+/** The most options a poll of [kind] may hold (all of them together, also after adding later). */
+fun maxPollOptions(kind: PollKind): Int = if (kind == PollKind.DATE) DATE_POLL_MAX_OPTIONS else MAX_POLL_OPTIONS
+
+/**
+ * The options a new DATE poll starts with: [DATE_POLL_MIN_OPTIONS]..[DATE_POLL_MAX_OPTIONS] ranges, none starting
+ * before [today]. Field → code like `validatePollOption` (`options` = TOO_FEW / TOO_MANY, `options[i].startDate` =
+ * BEFORE_TODAY). Each range itself is checked by `validatePollOption`. The app passes the device's today; the server
+ * passes the earliest date anywhere on earth (UTC−12), so no user's today is refused, whatever their time zone.
+ */
+fun validateDatePollOptions(options: List<PollOptionInput>, today: LocalDate): Map<String, String> = buildMap {
+    if (options.size < DATE_POLL_MIN_OPTIONS) put("options", "TOO_FEW")
+    if (options.size > DATE_POLL_MAX_OPTIONS) put("options", "TOO_MANY")
+    options.forEachIndexed { i, o -> o.startDate?.let { if (it < today) put("options[$i].startDate", "BEFORE_TODAY") } }
+}
 
 /** A tied poll reopens by itself if the creator has not picked a winner after this long, and then stays open this long. */
 val POLL_TIE_REOPEN_AFTER: Duration = 24.hours

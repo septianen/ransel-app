@@ -14,6 +14,21 @@ import kotlin.time.Instant
 class PollsTest {
     private fun option(label: String = "x", block: PollOptionInput.() -> PollOptionInput = { this }) = PollOptionInput("o", label).block()
 
+    @Test fun aDatePollStartsWithTwoToFiveRangesNoneBeforeToday() {
+        val today = LocalDate(2026, 10, 29)
+        fun range(start: LocalDate) = PollOptionInput("o$start", "", startDate = start, endDate = start)
+        val ok = listOf(range(today), range(LocalDate(2026, 11, 5)))
+        assertEquals(emptyMap(), validateDatePollOptions(ok, today))
+        assertEquals("TOO_FEW", validateDatePollOptions(ok.take(1), today)["options"])
+        val six = (1..6).map { range(LocalDate(2026, 11, it)) }
+        assertEquals("TOO_MANY", validateDatePollOptions(six, today)["options"])
+        assertEquals(emptyMap(), validateDatePollOptions(six.take(5), today))
+        val past = listOf(range(LocalDate(2026, 10, 28)), range(today))
+        assertEquals(mapOf("options[0].startDate" to "BEFORE_TODAY"), validateDatePollOptions(past, today))
+        assertEquals(5, maxPollOptions(PollKind.DATE))
+        assertEquals(MAX_POLL_OPTIONS, maxPollOptions(PollKind.STAY))
+    }
+
     @Test fun onlyDateTakesSeveralChoicesAndOnlyBudgetIsAlwaysAnonymous() {
         assertTrue(defaultMultiChoice(PollKind.DATE))
         assertFalse(PollKind.entries.filter { it != PollKind.DATE }.any(::defaultMultiChoice))
