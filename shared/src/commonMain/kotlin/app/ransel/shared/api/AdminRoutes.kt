@@ -21,4 +21,10 @@ object AdminRoutes {
     fun userEnable(userId: String) = "/admin/users/$userId/enable"         // POST → AdminActionResult
     fun userPasswordReset(userId: String) = "/admin/users/$userId/password-reset" // POST → 204; 409 CONFLICT while email is not set up
     const val AUDIT = "/admin/audit"                               // GET ?targetId=&action=&page= → List<AdminAuditEntryDto> + meta
+
+    // Stage B ─ monitoring (read only; days are WIB days, provider money in micro-USD, never trip content)
+    const val OVERVIEW = "/admin/overview"                         // GET ?range=TODAY|LAST_7_DAYS|LAST_30_DAYS (default LAST_7_DAYS) → AdminOverviewDto
+    const val EXPLORE = "/admin/explore"                           // GET ?month=YYYY-MM (default this month) → AdminExploreDto
+    const val EXPLORE_SEARCHES = "/admin/explore/searches"         // GET ?userId=&page= → List<AdminSearchDto> + meta, newest first
+    const val SYSTEM = "/admin/system"                             // GET ?range=LAST_24_HOURS|LAST_7_DAYS (default LAST_24_HOURS) → AdminSystemDto
 }
