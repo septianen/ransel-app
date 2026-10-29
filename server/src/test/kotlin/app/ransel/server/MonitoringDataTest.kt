@@ -15,32 +15,38 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** Two Bali places, always found: enough for a search with cards. Shared with [AdminMonitoringRoutesTest]. */
+private object MonitoringLlm : LlmClient {
+    override val modelName = "fake-model"
+    override suspend fun suggest(query: LlmQuery) = listOf(
+        LlmCandidate(name = "Pantai Kuta", reason = "Pasir putih", suggestedDurationMin = 90),
+        LlmCandidate(name = "Tanah Lot", reason = "Pura di laut", suggestedDurationMin = 60),
+    )
+    override suspend fun suggestInterests(destination: String, month: String, language: String) =
+        InterestSuggestions(listOf("Diving"), lowMaxUsd = 30.0, midMaxUsd = 90.0)
+}
+
+private object MonitoringPlaces : PlacesClient {
+    private val known = mapOf("Pantai Kuta" to (-8.72 to 115.17), "Tanah Lot" to (-8.62 to 115.09))
+    override suspend fun findPlaceId(name: String, destination: String) = if (name in known) "place-$name" else null
+    override suspend fun details(placeId: String, withPhotoCredit: Boolean): PlaceDetails? {
+        val (lat, lng) = known[placeId.removePrefix("place-")] ?: return null
+        return PlaceDetails(placeId, lat, lng, null)
+    }
+    override suspend fun photo(placeId: String): PlacePhoto? = null
+}
+
+internal val MonitoringAi = AiServices(MonitoringLlm, MonitoringPlaces)
+
+/** A search request for [tripId]: FOOD plus the destination interest "Diving". */
+internal fun monitoringSearch(tripId: String) =
+    """{"tripId":"$tripId","priceLevel":"MEDIUM","interests":["FOOD"],"extraInterests":["Diving"],"style":"SANTAI","newSearch":true,"excludePlaceIds":[]}"""
+
 /** Karung stage B data (B9.6): ai_search_log, provider_usage, error_counts, users.last_seen_at. */
 class MonitoringDataTest {
-    private object Llm : LlmClient {
-        override val modelName = "fake-model"
-        override suspend fun suggest(query: LlmQuery) = listOf(
-            LlmCandidate(name = "Pantai Kuta", reason = "Pasir putih", suggestedDurationMin = 90),
-            LlmCandidate(name = "Tanah Lot", reason = "Pura di laut", suggestedDurationMin = 60),
-        )
-        override suspend fun suggestInterests(destination: String, month: String, language: String) =
-            InterestSuggestions(listOf("Diving"), lowMaxUsd = 30.0, midMaxUsd = 90.0)
-    }
+    private val ai = MonitoringAi
 
-    private object Places : PlacesClient {
-        private val known = mapOf("Pantai Kuta" to (-8.72 to 115.17), "Tanah Lot" to (-8.62 to 115.09))
-        override suspend fun findPlaceId(name: String, destination: String) = if (name in known) "place-$name" else null
-        override suspend fun details(placeId: String, withPhotoCredit: Boolean): PlaceDetails? {
-            val (lat, lng) = known[placeId.removePrefix("place-")] ?: return null
-            return PlaceDetails(placeId, lat, lng, null)
-        }
-        override suspend fun photo(placeId: String): PlacePhoto? = null
-    }
-
-    private val ai = AiServices(Llm, Places)
-
-    private fun search(tripId: String) =
-        """{"tripId":"$tripId","priceLevel":"MEDIUM","interests":["FOOD"],"extraInterests":["Diving"],"style":"SANTAI","newSearch":true,"excludePlaceIds":[]}"""
+    private fun search(tripId: String) = monitoringSearch(tripId)
 
     private suspend fun Api.trip(): String =
         UUID.randomUUID().toString().also { post("/trips", tripJson(it, start = "2099-11-20", end = "2099-11-23", destination = "Bali")) }

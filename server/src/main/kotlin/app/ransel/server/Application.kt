@@ -15,7 +15,9 @@ import app.ransel.server.ai.aiServicesFrom
 import app.ransel.server.ai.SearchLog
 import app.ransel.server.ai.UsageMeter
 import app.ransel.server.ai.metered
-import app.ransel.server.plugins.configureErrorCounting
+import app.ransel.server.plugins.configureMonitoring
+import app.ransel.server.service.AdminMonitoringService
+import app.ransel.server.service.RequestStats
 import app.ransel.server.service.ErrorCounter
 import app.ransel.server.service.LastSeen
 import app.ransel.server.service.Monitoring
@@ -239,7 +241,8 @@ fun Application.module(
     configureSerialization()
     configureStatusPages()
     configureRateLimit(config)
-    configureErrorCounting(errorCounter)
+    val requestStats = RequestStats()
+    configureMonitoring(errorCounter, requestStats)
     val lastSeen = LastSeen(maintenance)
     configureAuth(config, tokens, lastSeen::touch)
 
@@ -279,7 +282,7 @@ fun Application.module(
                 placeRoutes(PlaceSearchService(aiServices.placeSearch))
                 fxRoutes(fxDaily)
                 placeDetailRoutes(placeDetails)
-                adminRoutes(admin)
+                adminRoutes(admin, AdminMonitoringService(config, requestStats))
             }
         }
     }

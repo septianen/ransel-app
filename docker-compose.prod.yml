@@ -63,6 +63,11 @@ services:
       COST_PLACES_AUTOCOMPLETE_MICRO_USD: ${COST_PLACES_AUTOCOMPLETE_MICRO_USD:-}
       COST_PLACES_GEOCODE_MICRO_USD: ${COST_PLACES_GEOCODE_MICRO_USD:-}
       SERVER_MONTHLY_COST_USD: ${SERVER_MONTHLY_COST_USD:-}
+      # LLM + Places budget per month (USD; blank = none) and the warning threshold (80, 90 or 100)
+      AI_MONTHLY_BUDGET_USD: ${AI_MONTHLY_BUDGET_USD:-}
+      AI_BUDGET_ALERT_PERCENT: ${AI_BUDGET_ALERT_PERCENT:-80}
+      # the deployed commit, shown on Karung's system page
+      APP_VERSION: ${APP_VERSION:-}
       # Outgoing email (verification after sign-up, password reset) over any provider's SMTP relay.
       # Blank SMTP_HOST = nothing is sent (the server logs that), so new accounts cannot verify.
       SMTP_HOST: ${SMTP_HOST:-}

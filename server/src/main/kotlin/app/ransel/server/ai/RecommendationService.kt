@@ -23,6 +23,7 @@ import app.ransel.shared.dto.RecommendationGroup
 import app.ransel.shared.dto.RecommendationItem
 import app.ransel.shared.dto.RecommendationRequest
 import app.ransel.shared.dto.RecommendationResponse
+import app.ransel.shared.model.AiSearchKind
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.CreditAction
 import app.ransel.shared.model.FeedbackAction
@@ -106,7 +107,7 @@ class RecommendationService(
     }
 
     suspend fun recommend(userId: UUID, body: RecommendationRequest): RecommendationResponse =
-        oneSearchAtATime(userId) { logged(SearchTrace(SearchKind.EXPLORE, userId, body.newSearch)) { recommendNow(userId, body) } }
+        oneSearchAtATime(userId) { logged(SearchTrace(AiSearchKind.EXPLORE, userId, body.newSearch)) { recommendNow(userId, body) } }
 
     private suspend fun <T> logged(trace: SearchTrace, block: suspend () -> T): T =
         if (searchLog != null) searchLog.around(trace, block) else block()
@@ -226,7 +227,7 @@ class RecommendationService(
      * optional area, budget and wishes. Nothing is cached or put in a round; the caller picks what becomes an option.
      */
     suspend fun searchForPoll(userId: UUID, pollId: UUID, body: PollSearchRequest, polls: PollService.SearchContext = PollService.searchContext(userId, pollId)): PollSearchResponse =
-        oneSearchAtATime(userId) { logged(SearchTrace(SearchKind.POLL, userId, newSearch = true)) { searchForPollNow(userId, pollId, body, polls) } }
+        oneSearchAtATime(userId) { logged(SearchTrace(AiSearchKind.POLL, userId, newSearch = true)) { searchForPollNow(userId, pollId, body, polls) } }
 
     private suspend fun searchForPollNow(userId: UUID, pollId: UUID, body: PollSearchRequest, polls: PollService.SearchContext): PollSearchResponse {
         val area = body.area?.trim()?.takeIf { it.isNotEmpty() }

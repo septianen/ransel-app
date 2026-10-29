@@ -13,4 +13,6 @@ docker compose -f docker-compose.prod.yml exec -T server tar -czf - -C /data doc
 # keep 14 days locally
 find backups -name 'ransel-*.sql.gz' -mtime +14 -delete
 find backups -name 'ransel-documents-*.tar.gz' -mtime +14 -delete
+# Karung's "Backup terakhir": the server reads this file on its documents volume
+docker compose -f docker-compose.prod.yml exec -T server sh -c 'date -u +%Y-%m-%dT%H:%M:%SZ > /data/documents/.last-backup'
 echo "wrote $file"

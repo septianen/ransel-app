@@ -4,6 +4,8 @@ import app.ransel.server.AppConfig
 import app.ransel.server.db.AiSearchLog
 import app.ransel.server.plugins.ApiException
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.model.AiSearchKind
+import app.ransel.shared.model.AiSearchSource
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -18,13 +20,8 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.coroutineContext
 
-/** How a search ended, as Karung shows it ("Baru", "Cache", "Gagal", "Kredit kurang"). */
-enum class SearchSource { NEW, CACHE, FAILED, NO_CREDITS }
-
-enum class SearchKind { EXPLORE, POLL }
-
 /** What the search learned on the way; read by [SearchLog.around] when the search ends, however it ends. */
-class SearchTrace(val kind: SearchKind, val userId: UUID, val newSearch: Boolean) : AbstractCoroutineContextElement(Key) {
+class SearchTrace(val kind: AiSearchKind, val userId: UUID, val newSearch: Boolean) : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<SearchTrace>
 
     @Volatile var tripId: UUID? = null
@@ -60,20 +57,20 @@ class SearchLog(private val prices: AppConfig.ProviderPrices) {
             throw e
         } catch (e: ApiException) {
             when (e.code) {
-                ErrorCode.INSUFFICIENT_CREDITS -> write(trace, usage, SearchSource.NO_CREDITS, elapsed())
-                ErrorCode.AI_UNAVAILABLE -> write(trace, usage, SearchSource.FAILED, elapsed())
+                ErrorCode.INSUFFICIENT_CREDITS -> write(trace, usage, AiSearchSource.NO_CREDITS, elapsed())
+                ErrorCode.AI_UNAVAILABLE -> write(trace, usage, AiSearchSource.FAILED, elapsed())
             }
             throw e
         } catch (e: Exception) {
-            write(trace, usage, SearchSource.FAILED, elapsed())
+            write(trace, usage, AiSearchSource.FAILED, elapsed())
             throw e
         }
-        write(trace, usage, if (trace.cached) SearchSource.CACHE else SearchSource.NEW, elapsed())
+        write(trace, usage, if (trace.cached) AiSearchSource.CACHE else AiSearchSource.NEW, elapsed())
         return result
     }
 
-    private fun write(trace: SearchTrace, usage: SearchUsage, source: SearchSource, latencyMs: Int) {
-        val succeeded = source == SearchSource.NEW || source == SearchSource.CACHE
+    private fun write(trace: SearchTrace, usage: SearchUsage, source: AiSearchSource, latencyMs: Int) {
+        val succeeded = source == AiSearchSource.NEW || source == AiSearchSource.CACHE
         runCatching {
             transaction {
                 AiSearchLog.insert {

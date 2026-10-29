@@ -1,6 +1,7 @@
 package app.ransel.server.plugins
 
 import app.ransel.server.service.ErrorCounter
+import app.ransel.server.service.RequestStats
 import app.ransel.shared.api.ApiRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.application.createApplicationPlugin
@@ -8,6 +9,7 @@ import io.ktor.server.application.hooks.ResponseSent
 import io.ktor.server.application.install
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
+import io.ktor.server.plugins.calllogging.processingTimeMillis
 import io.ktor.server.request.httpMethod
 import io.ktor.server.routing.PathSegmentConstantRouteSelector
 import io.ktor.server.routing.PathSegmentOptionalParameterRouteSelector
@@ -36,14 +38,18 @@ internal fun routeTemplate(node: RoutingNode): String {
     return path.removePrefix(ApiRoutes.BASE).ifEmpty { "/" }
 }
 
-/** Every response that carries an `error.code` (StatusPages, the auth challenge) is counted for Karung. */
-fun Application.configureErrorCounting(errors: ErrorCounter) {
+/**
+ * For Karung: every response feeds [requests] (count, 5xx, latency), and every response that carries an `error.code`
+ * (StatusPages, the auth challenge) is counted in [errors]. Needs CallLogging installed first (it times the call).
+ */
+fun Application.configureMonitoring(errors: ErrorCounter, requests: RequestStats) {
     monitor.subscribe(RoutingRoot.RoutingCallStarted) { call ->
         call.attributes.put(RouteTemplateKey, routeTemplate(call.route))
     }
     install(
-        createApplicationPlugin("ErrorCounting") {
+        createApplicationPlugin("Monitoring") {
             on(ResponseSent) { call ->
+                requests.record(call.response.status()?.value ?: 0, call.processingTimeMillis())
                 val code = call.attributes.getOrNull(ErrorCodeKey) ?: return@on
                 val template = call.attributes.getOrNull(RouteTemplateKey)
                 // no route matched: never the raw path, which could be anything a client sends

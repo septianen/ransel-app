@@ -184,6 +184,8 @@ jobs:
           ADMIN_PASSWORD_RESET_ENABLED: ${{ vars.ADMIN_PASSWORD_RESET_ENABLED }}
           # Karung's "Server dan database" cost line, USD per month (repository variable).
           SERVER_MONTHLY_COST_USD: ${{ vars.SERVER_MONTHLY_COST_USD }}
+          AI_MONTHLY_BUDGET_USD: ${{ vars.AI_MONTHLY_BUDGET_USD }}
+          AI_BUDGET_ALERT_PERCENT: ${{ vars.AI_BUDGET_ALERT_PERCENT }}
         run: |
           SSH="ssh -p $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes $DEPLOY_USER@$HOST"
           SCP="scp -P $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes"
@@ -225,6 +227,9 @@ jobs:
             echo "ADMIN_APP_ORIGIN=https://karung.mietek.tech"
             echo "ADMIN_PASSWORD_RESET_ENABLED=${ADMIN_PASSWORD_RESET_ENABLED:-false}"
             echo "SERVER_MONTHLY_COST_USD=$SERVER_MONTHLY_COST_USD"
+            echo "AI_MONTHLY_BUDGET_USD=$AI_MONTHLY_BUDGET_USD"
+            echo "AI_BUDGET_ALERT_PERCENT=${AI_BUDGET_ALERT_PERCENT:-80}"
+            echo "APP_VERSION=${{ github.sha }}"
           } | $SSH "umask 077 && cat > '$DEPLOY_PATH/.env'"
 
           printf '%s' "$GHCR_TOKEN" | $SSH "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"
