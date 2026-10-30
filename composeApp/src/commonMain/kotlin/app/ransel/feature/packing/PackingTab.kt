@@ -741,6 +741,7 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
                 when {
                     bringer == null -> DropdownMenuItem(
                         text = { Text(stringResource(Res.string.packing_bring)) },
+                        leadingIcon = { Symbol(Symbols.frontHand) },
                         onClick = { close(); shared.onBring(item) },
                     )
                     mine || shared.canEdit -> DropdownMenuItem(
@@ -767,6 +768,7 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
             dismissLabel = stringResource(Res.string.action_cancel),
             onConfirm = { confirmBring = false; shared.onBring(item) },
             onDismiss = { confirmBring = false },
+            filledConfirm = true,
         )
     }
 }

@@ -1316,7 +1316,7 @@
     <string name="packing_shared_open">%1$d belum ada yang ambil</string>
     <string name="packing_bring">Saya bawa</string>
     <string name="packing_bring_confirm_title">Bawa %1$s?</string>
-    <string name="packing_bring_confirm_body">Barang ini akan tercatat atas namamu. Kalau berubah pikiran, pilih “Batal bawa” di menu ⋮.</string>
+    <string name="packing_bring_confirm_body">Barang ini akan tercatat atas namamu. Nanti kamu bisa “Batal bawa”.</string>
     <string name="packing_bringer">%1$s bawa</string>
     <string name="packing_bringer_me">Kamu bawa</string>
     <string name="packing_bringer_none">Belum ada yang bawa</string>
