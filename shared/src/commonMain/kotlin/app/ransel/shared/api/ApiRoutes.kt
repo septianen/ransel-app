@@ -160,7 +160,10 @@ object ApiRoutes {
     fun pollReopen(pollId: String) = "/polls/$pollId/reopen"       // POST ReopenPollRequest (creator or OWNER) → PollDto
 
     // Explore credits (replaces the fixed daily quota)
-    const val CREDITS = "/credits"                                 // GET → CreditsDto (creates the wallet with the signup grant on first call)
+    // Phase 6 ─ remote content for the apps (stage E reads it; public, no token)
+    const val CONTENT = "/content"                                 // GET ?version= → ContentDto; 204 when the app already has [version]
+
+        const val CREDITS = "/credits"                                 // GET → CreditsDto (creates the wallet with the signup grant on first call)
     const val CREDITS_LEDGER = "/credits/ledger"                   // GET ?limit= (default 50, max 200), newest first → List<CreditLedgerEntryDto>
     const val CREDITS_REDEEM = "/credits/redeem"                   // POST RedeemVoucherRequest → RedeemVoucherResponse
     const val CREDIT_PACKAGES = "/credits/packages"                // GET → CreditPackagesResponse

@@ -1,5 +1,8 @@
 package app.ransel.server.db
 
+import app.ransel.shared.dto.InterestChipDto
+import app.ransel.shared.model.CategoryKind
+import app.ransel.shared.model.ErrorDisplay
 import app.ransel.shared.model.SettingKey
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.CommentTarget
@@ -738,4 +741,65 @@ object ErrorCountUsers : Table("error_count_users") {
     val route = text("route")
     val userId = javaUUID("user_id")
     override val primaryKey = PrimaryKey(hour, code, route, userId)
+}
+
+// ── Karung stage D: remote content (V30) ────────────────────────────────────
+
+object ContentMeta : Table("content_meta") {
+    val id = short("id")
+    val version = integer("version")
+    val publishedAt = timestamp("published_at").nullable()
+    val publishedBy = javaUUID("published_by").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** [status] DRAFT or PUBLISHED; a null value = the app's bundled text. */
+object ContentStrings : Table("content_strings") {
+    val key = text("key")
+    val status = text("status")
+    val valueId = text("value_id").nullable()
+    val valueEn = text("value_en").nullable()
+    val updatedBy = javaUUID("updated_by").nullable()
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(key, status)
+}
+
+object ContentErrors : Table("content_errors") {
+    val code = text("code")
+    val status = text("status")
+    val titleId = text("title_id").nullable()
+    val titleEn = text("title_en").nullable()
+    val messageId = text("message_id").nullable()
+    val messageEn = text("message_en").nullable()
+    val buttonId = text("button_id").nullable()
+    val buttonEn = text("button_en").nullable()
+    val illustration = text("illustration").nullable()
+    val display = enumerationByName<ErrorDisplay>("display", 16).nullable()
+    val updatedBy = javaUUID("updated_by").nullable()
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(code, status)
+}
+
+object ContentCategories : Table("content_categories") {
+    val kind = enumerationByName<CategoryKind>("kind", 16)
+    val constant = text("constant")
+    val labelId = text("label_id").nullable()
+    val labelEn = text("label_en").nullable()
+    val icon = text("icon").nullable()
+    val color = text("color").nullable()
+    val sortOrder = integer("sort_order")
+    val hidden = bool("hidden")
+    val updatedBy = javaUUID("updated_by").nullable()
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(kind, constant)
+}
+
+object DestinationInterests : Table("destination_interests") {
+    val destination = text("destination")
+    val month = short("month")
+    val language = text("language")
+    val chips = jsonb<List<InterestChipDto>>("chips", Json)
+    val curatedBy = javaUUID("curated_by").nullable()
+    val curatedAt = timestamp("curated_at")
+    override val primaryKey = PrimaryKey(destination, month, language)
 }

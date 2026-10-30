@@ -103,6 +103,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | admin\_audit\_log; users.disabled\_at; credit\_ledger.note | append-only log of admin actions; account deactivated by an admin; the admin's reason for an ADJUSTMENT (which may now be negative) | V12 (6) |
 | email\_verification\_tokens; users.email\_verified\_at | sign-up email link (hash only, 24 h, newest link only); when the email was verified (existing accounts backfilled) | V13 (3) |
 | app\_settings | admin overrides of config values (key = a `SettingKey` name, value as text, updated\_by, updated\_at); no row = the env var | V29 (6) |
+| content\_meta, content\_strings, content\_errors, content\_categories, destination\_interests | remote content (Karung stage D): the content version; app strings and error messages as a DRAFT and a PUBLISHED row (null = the bundled text; keys from `content/catalog.json`); category looks; curated "Khas" chips per destination, month of the year and language | V30 (6) |
 | ai\_search\_log, error\_counts | one row per Explore search (parameters, source, latency, credits, estimated cost); errors per hour, code and route | planned (6) |
 
 Enums:
@@ -233,6 +234,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET | /places/photo/{placeId}?exp=&sig= | Signed place-photo proxy (no bearer; 404 if no photo) | 5 |
 | GET | /places/{placeId}/detail | Saved detail text of a place (about, tips, hours estimate) to open it again from the itinerary; rebuilt by one small LLM call when expired | 5 |
 | GET, POST ★ | /admin/... | Admin app (Karung): users (list, add with an invite email), credit adjustments, audit log, overview, Explore AI, system, settings, content. Only accounts in `ADMIN_EMAILS` with a verified email; full list in `docs/specs/admin-spec.md` "API" | 6 |
+| GET | /content?version= | Remote content for the apps (public, `Cache-Control: max-age=300`): only what differs from the bundled copy (`ContentDto`); 204 when the app already has `version`. The apps read it from stage E | 6 |
 | GET ★ | /content?version= | Published remote content for the apps (apps call it in a later step) | 6 |
 
 The exact request and response classes for every row are in the `shared` module (`api/ApiRoutes.kt`, `dto/`), which is the contract between the app and the server.

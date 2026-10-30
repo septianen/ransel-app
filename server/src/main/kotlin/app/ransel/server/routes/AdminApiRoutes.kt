@@ -5,6 +5,7 @@ import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.AdminPrincipal
 import app.ransel.server.service.AdminMonitoringService
 import app.ransel.server.service.AdminService
+import app.ransel.server.service.ContentService
 import app.ransel.server.service.SettingsService
 import app.ransel.server.service.UserFilter
 import app.ransel.server.service.userId
@@ -12,6 +13,10 @@ import app.ransel.shared.api.AdminRoutes
 import app.ransel.shared.api.PageMeta
 import app.ransel.shared.dto.AdjustCreditsRequest
 import app.ransel.shared.dto.CreateUserRequest
+import app.ransel.shared.dto.AdminInterestCurationDto
+import app.ransel.shared.dto.UpdateContentCategoriesRequest
+import app.ransel.shared.dto.UpdateContentErrorRequest
+import app.ransel.shared.dto.UpdateContentStringRequest
 import app.ransel.shared.dto.UpdateSettingsRequest
 import app.ransel.shared.model.AdminAction
 import app.ransel.shared.model.AdminRange
@@ -38,7 +43,7 @@ import java.util.UUID
  * Admin API (docs/specs/admin-spec.md). Sits inside `authenticate(JWT_AUTH)`; every handler starts with [admin], which
  * answers 403 for any account that is not in `ADMIN_EMAILS`.
  */
-fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService, settings: SettingsService) {
+fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService, settings: SettingsService, content: ContentService) {
     fun ApplicationCall.admin(): AdminPrincipal = service.requireAdmin(userId())
     fun ApplicationCall.user() = pathUuid("userId", "User")
     fun ApplicationCall.page() = request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1
@@ -140,7 +145,61 @@ fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService,
             val admin = call.admin()
             call.respondData(HttpStatusCode.OK, settings.update(admin, call.receive<UpdateSettingsRequest>()))
         }
+
+        // Stage D: remote content
+        get(AdminRoutes.CONTENT_STRINGS) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, content.strings())
+        }
+        put(AdminRoutes.CONTENT_STRINGS) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, content.saveString(admin, call.receive<UpdateContentStringRequest>()))
+        }
+        get(AdminRoutes.CONTENT_ERRORS) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, content.errors())
+        }
+        put(AdminRoutes.CONTENT_ERRORS) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, content.saveError(admin, call.receive<UpdateContentErrorRequest>()))
+        }
+        post(AdminRoutes.CONTENT_PUBLISH) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, content.publish(admin))
+        }
+        get(AdminRoutes.CONTENT_CATEGORIES) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, content.categories())
+        }
+        put(AdminRoutes.CONTENT_CATEGORIES) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, content.saveCategories(admin, call.receive<UpdateContentCategoriesRequest>()))
+        }
+        get(AdminRoutes.CONTENT_INTERESTS) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, content.interests(call.request.queryParameters["query"]))
+        }
+        get(AdminRoutes.CONTENT_INTEREST) {
+            call.admin()
+            val (destination, month, language) = call.interestKey()
+            call.respondData(HttpStatusCode.OK, content.interest(destination, month, language))
+        }
+        put(AdminRoutes.CONTENT_INTEREST) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, content.saveInterest(admin, call.receive<AdminInterestCurationDto>()))
+        }
+        post(AdminRoutes.CONTENT_INTEREST) {
+            call.admin()
+            val (destination, month, language) = call.interestKey()
+            call.respondData(HttpStatusCode.OK, content.regenerateInterest(destination, month, language))
+        }
     }
+}
+
+private fun ApplicationCall.interestKey(): Triple<String, Int, String> {
+    val q = request.queryParameters
+    val month = q["month"]?.toIntOrNull() ?: throw validationFailed(mapOf("month" to "INVALID"))
+    return Triple(q["destination"].orEmpty(), month, q["language"] ?: "id")
 }
 
 /** `?range=` as an [AdminRange] constant; each service says which ones it takes. */

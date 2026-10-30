@@ -1,5 +1,7 @@
 package app.ransel.server.ai
 
+import app.ransel.server.db.DestinationInterests
+import app.ransel.shared.domain.curatedInterests
 import app.ransel.server.db.ExploreSuggestionsCache
 import app.ransel.server.db.TripMembers
 import app.ransel.server.db.Trips
@@ -43,7 +45,7 @@ class ExploreSuggestionService(
 ) {
     private val log = LoggerFactory.getLogger(ExploreSuggestionService::class.java)
 
-    private class Guide(val interests: List<String>, val lowMaxUsd: Double, val midMaxUsd: Double)
+    private data class Guide(val interests: List<String>, val lowMaxUsd: Double, val midMaxUsd: Double)
 
     private data class TripFacts(
         val destination: String,
@@ -62,14 +64,15 @@ class ExploreSuggestionService(
             val override = destination?.trim()?.takeIf { it.isNotEmpty() }
             if (override != null && override.length > MAX_DESTINATION) throw validationFailed(mapOf("destination" to "TOO_LONG"))
             val trip = loadTrip(id).let { if (override != null) it.copy(destination = override) else it }
-            val guide = guide(trip.destination, trip.month, language) ?: return ExploreSuggestionsResponse()
-            return withBudget(trip, guide)
+            val guide = guide(trip.destination, trip.month, language)
+            val interests = curated(trip.destination, trip.month, language, guide?.interests.orEmpty())
+            return if (guide == null) ExploreSuggestionsResponse(interests = interests) else withBudget(trip, guide.copy(interests = interests))
         }
         val place = destination?.trim().orEmpty()
         if (place.isEmpty() || place.length > MAX_DESTINATION) throw validationFailed(mapOf("destination" to "REQUIRED"))
         if (month == null || !MONTH.matches(month)) throw validationFailed(mapOf("month" to "INVALID"))
-        val guide = guide(place, month, language) ?: return ExploreSuggestionsResponse()
-        return ExploreSuggestionsResponse(interests = guide.interests)
+        val guide = guide(place, month, language)
+        return ExploreSuggestionsResponse(interests = curated(place, month, language, guide?.interests.orEmpty()))
     }
 
     /** The price edges for a destination and month, from the cache or one short LLM call; null when unavailable. */
@@ -162,6 +165,34 @@ class ExploreSuggestionService(
                 it[expiresAt] = Instant.now().plus(cacheTtl.toJavaDuration())
             }
         }
+    }
+
+    /**
+     * Karung's curation of this destination and month of the year (stage D), applied to the AI chips: pinned and
+     * manual chips first, hidden ones never. Without a curation the AI chips stay as they are.
+     */
+    private fun curated(destination: String, month: String, language: String, ai: List<String>): List<String> {
+        val lang = if (language == "en") "en" else "id"
+        val monthOfYear = month.substringAfter('-').toShortOrNull() ?: return ai
+        val chips = transaction {
+            DestinationInterests.selectAll().where {
+                (DestinationInterests.destination eq normalizeDestination(destination)) and
+                    (DestinationInterests.month eq monthOfYear) and (DestinationInterests.language eq lang)
+            }.singleOrNull()?.get(DestinationInterests.chips)
+        } ?: return ai
+        return curatedInterests(ai, chips)
+    }
+
+    /** "Buat ulang dengan AI" in Karung: drops the cached answer and asks again. Null = the LLM did not answer. */
+    suspend fun regenerate(destination: String, month: String, language: String): List<String>? {
+        val lang = if (language == "en") "en" else "id"
+        transaction {
+            ExploreSuggestionsCache.deleteWhere {
+                (ExploreSuggestionsCache.destination eq normalizeDestination(destination)) and
+                    (ExploreSuggestionsCache.month eq month) and (ExploreSuggestionsCache.language eq lang)
+            }
+        }
+        return guide(destination, month, lang)?.interests
     }
 
     /** Called by the hourly job next to the recommendation cache cleanup. */

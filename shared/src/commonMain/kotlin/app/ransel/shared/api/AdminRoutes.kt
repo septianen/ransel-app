@@ -30,4 +30,14 @@ object AdminRoutes {
 
     // Stage C ─ settings without a deploy (history: AUDIT ?action=SETTINGS_UPDATE)
     const val SETTINGS = "/admin/settings"                         // GET → AdminSettingsDto; PUT UpdateSettingsRequest → AdminSettingsDto (audited)
+
+    // Stage D ─ remote content (the apps read it later, stage E; curated interests are used by the server at once)
+    const val CONTENT_STRINGS = "/admin/content/strings"           // GET → AdminContentStringsDto; PUT UpdateContentStringRequest → AdminContentStringDto (a draft)
+    const val CONTENT_ERRORS = "/admin/content/errors"             // GET → AdminContentErrorsDto; PUT UpdateContentErrorRequest → AdminContentErrorDto (a draft)
+    const val CONTENT_CATEGORIES = "/admin/content/categories"     // GET → AdminContentCategoriesDto; PUT UpdateContentCategoriesRequest → same (published at once, audited)
+    const val CONTENT_INTERESTS = "/admin/content/interests"       // GET ?query= → List<AdminInterestSummaryDto>
+    const val CONTENT_INTEREST = "/admin/content/interests/item"   // GET ?destination=&month=&language= → AdminInterestCurationDto;
+                                                                   // PUT AdminInterestCurationDto → same (live at once, audited);
+                                                                   // POST ?destination=&month=&language= → same, AI chips asked again (503 AI_UNAVAILABLE / AI_PAUSED)
+    const val CONTENT_PUBLISH = "/admin/content/publish"           // POST → ContentPublishResultDto: every string and error draft goes live, version + 1 (audited)
 }

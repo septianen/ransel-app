@@ -106,9 +106,31 @@ enum class CreditDirection { ADD, SUBTRACT }
 @Serializable
 enum class UserStatus { ACTIVE, DISABLED, DELETED }
 
-/** What an admin did; one audit row each. Stage D adds CONTENT_PUBLISH. */
+/** What an admin did; one audit row each. */
 @Serializable
-enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT, USER_CREATE, SETTINGS_UPDATE }
+enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT, USER_CREATE, SETTINGS_UPDATE, CONTENT_PUBLISH }
+
+/** Remote content (stage D): DEFAULT = the app's bundled text, DRAFT = changed but not published, PUBLISHED = live. */
+@Serializable
+enum class ContentStatus { DEFAULT, DRAFT, PUBLISHED }
+
+/** How the app shows an error message from remote content. */
+@Serializable
+enum class ErrorDisplay { FULL_SCREEN, SNACKBAR, DIALOG }
+
+/**
+ * Which list a remote category belongs to. Itinerary and expenses share [Category] with different labels;
+ * packing has [PackingCategory].
+ */
+@Serializable
+enum class CategoryKind { ITINERARY, EXPENSE, PACKING }
+
+/**
+ * A "Khas <destination>" chip in Karung's curation: AI = from the LLM, PINNED = an AI chip kept first, MANUAL = added
+ * by an admin, HIDDEN = never shown again for that destination and month.
+ */
+@Serializable
+enum class InterestChipKind { AI, PINNED, MANUAL, HIDDEN }
 
 /**
  * A setting Karung can change without a deploy (admin-spec "Credit settings", stage C). Each one has an env var as

@@ -54,6 +54,10 @@ import app.ransel.admin.feature.shell.AdminSection
 import app.ransel.admin.feature.shell.AdminSidebar
 import app.ransel.admin.feature.shell.EnvironmentMenuBadge
 import app.ransel.admin.feature.shell.EnvironmentStrip
+import app.ransel.admin.feature.content.ContentCategoriesScreen
+import app.ransel.admin.feature.content.ContentErrorsScreen
+import app.ransel.admin.feature.content.ContentInterestsScreen
+import app.ransel.admin.feature.content.ContentStringsScreen
 import app.ransel.admin.feature.monitoring.ExploreAiScreen
 import app.ransel.admin.feature.monitoring.OverviewScreen
 import app.ransel.admin.feature.monitoring.SystemScreen
@@ -105,6 +109,16 @@ sealed interface AdminRoute {
         override val hash = "#/users/$id"
     }
 
+    /** Stage D: `#/content/strings`, `errors`, `categories`, `interests`. */
+    data class Content(val section: AdminSection) : AdminRoute {
+        override val hash = "#/content/" + when (section) {
+            AdminSection.CONTENT_ERRORS -> "errors"
+            AdminSection.CONTENT_CATEGORIES -> "categories"
+            AdminSection.CONTENT_INTERESTS -> "interests"
+            else -> "strings"
+        }
+    }
+
     companion object {
         fun parse(hash: String): AdminRoute {
             val parts = hash.removePrefix("#").trim('/').split('/').filter { it.isNotEmpty() }
@@ -113,6 +127,14 @@ sealed interface AdminRoute {
                 parts.firstOrNull() == "users" -> Users
                 parts.firstOrNull() == "explore" -> ExploreAi
                 parts.firstOrNull() == "system" -> System
+                parts.firstOrNull() == "content" -> Content(
+                    when (parts.getOrNull(1)) {
+                        "errors" -> AdminSection.CONTENT_ERRORS
+                        "categories" -> AdminSection.CONTENT_CATEGORIES
+                        "interests" -> AdminSection.CONTENT_INTERESTS
+                        else -> AdminSection.CONTENT_STRINGS
+                    },
+                )
                 else -> Overview
             }
         }
@@ -187,11 +209,12 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
         val sidebar: @Composable () -> Unit = {
             AdminSidebar(
                 me = me,
-                selected = when (route) {
+                selected = when (val r = route) {
                     AdminRoute.Overview -> AdminSection.OVERVIEW
                     AdminRoute.ExploreAi -> AdminSection.EXPLORE_AI
                     AdminRoute.System -> AdminSection.SYSTEM
                     AdminRoute.Users, is AdminRoute.User -> AdminSection.USERS
+                    is AdminRoute.Content -> r.section
                 },
                 onSelect = { section ->
                     when (section) {
@@ -199,7 +222,8 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         AdminSection.USERS -> navigate(AdminRoute.Users)
                         AdminSection.EXPLORE_AI -> navigate(AdminRoute.ExploreAi)
                         AdminSection.SYSTEM -> navigate(AdminRoute.System)
-                        else -> Unit
+                        AdminSection.CONTENT_STRINGS, AdminSection.CONTENT_ERRORS,
+                        AdminSection.CONTENT_CATEGORIES, AdminSection.CONTENT_INTERESTS -> navigate(AdminRoute.Content(section))
                     }
                     scope.launch { drawer.close() }
                 },
@@ -242,6 +266,12 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         AdminRoute.System -> SystemScreen(api, onAccessLost)
                         AdminRoute.Users -> UsersScreen(api, snackbar, onAccessLost, onOpenUser = { navigate(AdminRoute.User(it)) }, canAddUsers = me.passwordResetEmailEnabled)
                         is AdminRoute.User -> UserDetailScreen(api, me, r.id, snackbar, onAccessLost, onBack = { navigate(AdminRoute.Users) })
+                        is AdminRoute.Content -> when (r.section) {
+                            AdminSection.CONTENT_ERRORS -> ContentErrorsScreen(api, onAccessLost)
+                            AdminSection.CONTENT_CATEGORIES -> ContentCategoriesScreen(api, onAccessLost)
+                            AdminSection.CONTENT_INTERESTS -> ContentInterestsScreen(api, onAccessLost)
+                            else -> ContentStringsScreen(api, onAccessLost)
+                        }
                     }
                 }
                 SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp))

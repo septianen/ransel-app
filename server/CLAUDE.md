@@ -18,7 +18,7 @@ server/src/main/kotlin/app/ransel/server/
   ai/                   LLM + Places clients, prompt, cache (Phase 5)
 server/src/main/resources/
   application.yaml
-  db/migration/V1__init.sql … (one file per change, V29 on 30 Oct 2026)
+  db/migration/V1__init.sql … (one file per change, V30 on 30 Oct 2026)
 server/src/test/kotlin/  testApplication + Postgres (Testcontainers or docker compose)
 ```
 
@@ -28,7 +28,7 @@ server/src/test/kotlin/  testApplication + Postgres (Testcontainers or docker co
 - **Responses**: success via a `call.respondData(status, data)` helper that wraps `ApiResponse`; every failure through StatusPages from typed exceptions (`ApiException(status, ErrorCode.X, message, details)`). Never leak stack traces or SQL messages. 204 has an empty body.
 - **Validation** uses `shared/src/commonMain/kotlin/app/ransel/shared/domain/Validation.kt` (same rules as the forms) → 422 `VALIDATION_FAILED` with `details` per field.
 - **Authorization**: every trip route calls one `requireRole(tripId, minRole)`; non-members get 404 `TRIP_NOT_FOUND`, members with a too-low role get 403 `FORBIDDEN`. The caller is the JWT subject (`call.userId()`). The V1 dummy user `00000000-0000-0000-0000-000000000001` only exists as the owner of guest data before the first sign-in; it has no email and cannot log in.
-- **Migrations**: run with Flyway at startup. Production has applied them, so never edit an existing migration: add the next number (V30, …) and tell the frontend agent if a column changes.
+- **Migrations**: run with Flyway at startup. Production has applied them, so never edit an existing migration: add the next number (V31, …) and tell the frontend agent if a column changes.
 - **Soft delete** everywhere (`deleted_at`); lists exclude deleted rows; `/sync` pulls include them.
 - **`updated_at`** is set by the DB trigger (server clock). Pull cursors (`GET /sync?since=`) use server time. Last-write-wins on push compares the incoming `updatedAt` with the stored one.
 - **Transactions**: day reorder (`PUT .../days/{date}/order`), sync push batches, invite accept (`trip_members` insert + `used_count + 1`), expense + splits — each in one transaction.
