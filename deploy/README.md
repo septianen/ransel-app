@@ -82,7 +82,7 @@ The *Distribute Android* workflow (`.github/workflows/distribute-android.yml`) b
 One-time setup:
 
 1. Firebase console -> the RANSEL project -> **App Distribution** -> Get started. Register both Android apps if they are not there yet (`app.ransel`, `app.ransel.debug`; see "Firebase" above). Under *Testers & Groups* create the group `testers` (or another alias, see below) and add the testers' emails.
-2. Google Cloud console (same project) -> IAM -> Service accounts -> create `app-distribution` with the role **Firebase App Distribution Admin**, add a JSON key, and store it base64 on one line (`base64 -w0 key.json`) as the secret `FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT`.
+2. Google Cloud console (same project) -> IAM -> Service accounts -> create `app-distribution` with the role **Firebase App Distribution Admin**, add a JSON key, and paste the whole file as the secret `FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT` (base64 works too).
 3. GitHub (Settings -> Secrets and variables -> Actions):
 
 | Name | Kind | What |
@@ -90,7 +90,7 @@ One-time setup:
 | `FIREBASE_APP_ID_DEBUG` | variable | App ID of `app.ransel.debug` (Firebase -> Project settings -> Your apps, `1:…:android:…`) |
 | `FIREBASE_APP_ID_RELEASE` | variable | App ID of `app.ransel` |
 | `FIREBASE_TESTER_GROUPS` | variable, optional | Group aliases, comma separated (default `testers`) |
-| `FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT` | secret | The service-account key from step 2, base64 |
+| `FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT` | secret | The service-account key file from step 2, pasted as is (or base64) |
 | `GOOGLE_SERVICES_JSON` | secret | `composeApp/google-services.json` (both packages), base64; without it the APK has no push, Analytics or Crashlytics |
 | `DEBUG_KEYSTORE_BASE64` | secret | Your `~/.android/debug.keystore`, base64, so every staging build has the same signature (testers can update, and it matches your local debug builds). Without it each build must be uninstalled first |
 | `RANSEL_KEYSTORE_BASE64` | secret | The release keystore (`keystore.properties.example`), base64; required for production |

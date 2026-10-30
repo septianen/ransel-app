@@ -115,7 +115,11 @@ jobs:
           if [ -z "$FIREBASE_APP_ID" ] || [ -z "$SERVICE_ACCOUNT" ]; then
             echo "Firebase app id or FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT missing (deploy/README.md)" >&2; exit 1
           fi
-          printf '%s' "$SERVICE_ACCOUNT" | base64 -d > "$RUNNER_TEMP/firebase-sa.json"
+          # the key file pasted as is, or base64
+          case "$SERVICE_ACCOUNT" in
+            "{"*) printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json" ;;
+            *) printf '%s' "$SERVICE_ACCOUNT" | base64 -d > "$RUNNER_TEMP/firebase-sa.json" ;;
+          esac
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
           # the commit message without its trailers (Co-Authored-By, ...)
           NOTES="${NOTES:-$(printf '%s\n' "${COMMIT_MESSAGE:-manual build}" | grep -v -E '^[A-Za-z-]+: ' )}"
