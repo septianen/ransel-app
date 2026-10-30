@@ -35,8 +35,13 @@ data class ExpenseDto(
     val splits: List<ExpenseSplitDto> = emptyList(),
     /** A planned cost, not a payment yet (e.g. the stay chosen in a poll). Left out of balances and of spentMinor. */
     val isEstimate: Boolean = false,
-    /** "Per item" split from a receipt, in list order. Empty = no items; the splits are then the whole truth. */
+    /** Receipt lines, in list order. Empty = no items; the splits are then the whole truth. */
     val items: List<ExpenseItemDto> = emptyList(),
+    /**
+     * true = [items] decide the splits ("Per item"). false = the lines are only what the receipt said, kept so the
+     * expense can show them; the splits were chosen by "Bagi rata" or "Atur nominal" and items have no members.
+     */
+    val itemsSplit: Boolean = true,
     /** Where [fxRateToBase] came from: the day's reference rate or the member's own (money changer). Null = not foreign, or older rows. */
     val fxSource: FxSource? = null,
     /** The day of the reference rate that was used (DAILY), which may be earlier than the expense when that day had none. */
@@ -76,8 +81,9 @@ data class ExpenseItemDto(
  * splits empty or sum(shareMinor) == amountMinor (else 422 SPLIT_TOTAL_MISMATCH).
  * paidByMemberId null = the caller's own member (domain.memberIdFor). payers empty = paidByMemberId paid all; otherwise at least two different
  * members with amount > 0 summing to amountMinor (else 422 PAYER_TOTAL_MISMATCH), and paidByMemberId becomes the first.
- * items: they must add up to amountMinor (else 422 SPLIT_TOTAL_MISMATCH) and the
- * server replaces the splits with domain.splitByItems. Saving an estimate with isEstimate = false turns it into the real payment.
+ * items with itemsSplit = true: they must add up to amountMinor (else 422 SPLIT_TOTAL_MISMATCH) and the
+ * server replaces the splits with domain.splitByItems. itemsSplit = false: the items are stored as they are (names
+ * and amounts checked, no members, no total check) and the splits stay as sent. Saving an estimate with isEstimate = false turns it into the real payment.
  */
 @Serializable
 data class ExpenseInput(
@@ -94,6 +100,7 @@ data class ExpenseInput(
     val splits: List<ExpenseSplitDto> = emptyList(),
     val isEstimate: Boolean = false,
     val items: List<ExpenseItemDto> = emptyList(),
+    val itemsSplit: Boolean = true,
     val fxSource: FxSource? = null,
     val fxDate: LocalDate? = null,
 )
