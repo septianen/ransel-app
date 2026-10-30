@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.currency.currencySymbol
 import app.ransel.feature.expenses.SheetHeader
@@ -45,18 +44,16 @@ import app.ransel.ui.category.expenseLabel
 import app.ransel.ui.category.expenseSymbol
 import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.components.AdaptiveSheet
+import app.ransel.feature.expenses.ItemSplitLines
+import app.ransel.feature.expenses.ItemSplitSummary
 import app.ransel.feature.expenses.SplitSection
 import app.ransel.ui.components.IrisTextField
-import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.rememberDateFormatter
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_ok
 import ransel.composeapp.generated.resources.receipt_change_date
-import ransel.composeapp.generated.resources.receipt_per_person_extras
-import ransel.composeapp.generated.resources.receipt_per_person
 import ransel.composeapp.generated.resources.receipt_extras_included
-import ransel.composeapp.generated.resources.receipt_extras_spread
 import app.ransel.util.toPickerMillis
 import app.ransel.util.fromPickerMillis
 import app.ransel.ui.symbols.Symbol
@@ -96,8 +93,6 @@ import ransel.composeapp.generated.resources.receipt_error_verify
 import ransel.composeapp.generated.resources.receipt_extras
 import ransel.composeapp.generated.resources.receipt_gallery
 import ransel.composeapp.generated.resources.receipt_manual_instead
-import ransel.composeapp.generated.resources.receipt_match
-import ransel.composeapp.generated.resources.receipt_mismatch
 import ransel.composeapp.generated.resources.receipt_per_item
 import ransel.composeapp.generated.resources.receipt_place
 import ransel.composeapp.generated.resources.receipt_reading
@@ -330,77 +325,15 @@ private fun ReceiptResult(
                 onPerItemChange = { form.perItem = it },
             )
         }
-        form.lines.forEachIndexed { index, line ->
-            Column(
-                Modifier.fillMaxWidth().clip(IrisShape.md).border(1.dp, scheme.outlineVariant, IrisShape.md).padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(line.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(formatMoney(line.amountMinor, currency), style = MaterialTheme.typography.titleSmall)
-                }
-                if (shared && form.perItem && index == form.extrasIndex) {
-                    Text(stringResource(Res.string.receipt_extras_spread), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-                }
-                if (shared && form.perItem && index != form.extrasIndex) {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        form.memberIds.forEach { id ->
-                            val on = id in form.sharersOf(index)
-                            Box(
-                                Modifier.clip(CircleShape)
-                                    .border(2.dp, if (on) scheme.primary else scheme.outlineVariant, CircleShape)
-                                    .clickable(role = Role.Checkbox) { form.toggle(index, id) }
-                                    .padding(2.dp),
-                            ) {
-                                MemberAvatar(members.firstOrNull { it.memberId == id }?.displayName ?: "?", id, size = 32.dp, isGuest = !on)
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        ItemSplitLines(form.itemSplit, currency, members, picking = shared && form.perItem)
         if (form.includedExtrasMinor > 0) {
             Text(
                 stringResource(Res.string.receipt_extras_included, formatMoney(form.includedExtrasMinor, currency)),
                 style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
             )
         }
-        val perPerson = form.perPerson()
-        if (perPerson.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(stringResource(Res.string.receipt_per_person), style = MaterialTheme.typography.labelLarge)
-                perPerson.forEach { p ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        MemberAvatar(members.firstOrNull { it.memberId == p.memberId }?.displayName ?: "?", p.memberId, size = 24.dp)
-                        Text(name(p.memberId), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(formatMoney(p.totalMinor, currency), style = MaterialTheme.typography.titleSmall)
-                            if (p.extrasMinor > 0) {
-                                Text(
-                                    stringResource(Res.string.receipt_per_person_extras, formatMoney(p.extrasMinor, currency)),
-                                    style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
         if (shared && form.perItem) {
-            val diff = form.difference
-            Row(
-                Modifier.fillMaxWidth().clip(IrisShape.md).background(if (diff == 0L) scheme.primaryContainer else scheme.errorContainer).padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Symbol(if (diff == 0L) Symbols.checkCircle else Symbols.error, size = 20.dp, filled = true, tint = if (diff == 0L) scheme.onPrimaryContainer else scheme.error)
-                Text(
-                    if (diff == 0L) stringResource(Res.string.receipt_match) else stringResource(Res.string.receipt_mismatch, formatMoney(kotlin.math.abs(diff), currency)),
-                    Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
-                    color = if (diff == 0L) scheme.onPrimaryContainer else scheme.onErrorContainer,
-                )
-                Text(formatMoney(form.total, currency), style = MaterialTheme.typography.titleSmall)
-            }
+            ItemSplitSummary(form.perPerson(), form.difference, form.total, currency, members, ::name)
         }
     }
     if (pickDate) {

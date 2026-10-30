@@ -1,6 +1,7 @@
 package app.ransel.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -32,7 +33,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * IRIS text field: label above, 48 dp box, radius 12, 1 dp `outline` border that becomes a 2 dp
  * `primary` border on focus (`error` when [error] is set). [leadingSymbol] is a `Symbols` glyph,
- * [prefix] a short text such as the currency symbol.
+ * [prefix] a short text such as the currency symbol. [readOnly] = shown on a `surface-container-highest` box,
+ * not editable (e.g. an amount that follows the receipt lines).
  */
 @Composable
 fun IrisTextField(
@@ -49,6 +51,7 @@ fun IrisTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailing: (@Composable () -> Unit)? = null,
+    readOnly: Boolean = false,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
@@ -72,6 +75,7 @@ fun IrisTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = singleLine,
+            readOnly = readOnly,
             interactionSource = interaction,
             keyboardOptions = keyboardOptions,
             visualTransformation = visualTransformation,
@@ -83,6 +87,7 @@ fun IrisTextField(
                     Modifier
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
+                        .then(if (readOnly) Modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, IrisShape.md) else Modifier)
                         .border(BorderStroke(if (focused || error != null) 2.dp else 1.dp, borderColor), IrisShape.md)
                         .padding(horizontal = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,

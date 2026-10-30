@@ -11,7 +11,9 @@ import app.ransel.data.remote.RanselApi
 import app.ransel.data.remote.createApiHttpClient
 import app.ransel.feature.expenses.ExpensesViewModel
 import app.ransel.feature.expenses.MoneyEvent
-import app.ransel.feature.expenses.receipt.PersonShare
+import app.ransel.feature.expenses.PersonShare
+import app.ransel.shared.dto.ExpenseItemDto
+import app.ransel.feature.expenses.ItemSplit
 import app.ransel.feature.expenses.receipt.ReceiptFormState
 import app.ransel.feature.expenses.receipt.ReceiptImage
 import app.ransel.feature.expenses.receipt.ReceiptStep
@@ -226,6 +228,31 @@ class ReceiptTest {
         val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
         assertEquals(mapOf("a" to 86_000L, "b" to 200_000L), input.splits.associate { it.memberId to it.shareMinor })
         assertEquals(mapOf("a" to 143_000L, "b" to 143_000L), input.payers.associate { it.memberId to it.amountMinor })
+    }
+
+    @Test
+    fun editingAPerItemExpenseKeepsWhoLeftOnTheirLines() {
+        // "c" left the trip; the tax line has no members and comes last
+        val saved = listOf(
+            ExpenseItemDto("Nasi campur", 130_000, listOf("a", "c")),
+            ExpenseItemDto("Sate lilit", 130_000, listOf("b")),
+            ExpenseItemDto("Pajak", 26_000),
+        )
+        val split = ItemSplit.of(saved, memberIds = listOf("a", "b"))
+        assertEquals(2, split.extrasIndex)
+        assertEquals(setOf("c"), split.locked)
+        assertEquals(listOf("a", "b", "c"), split.peopleOf(0))
+        assertEquals(listOf("a", "b"), split.peopleOf(1), "who left is not offered on other lines")
+        split.toggle(0, "c")
+        assertEquals(setOf("a", "c"), split.sharersOf(0), "what they had stays their debt")
+        split.toggle(1, "c")
+        assertEquals(setOf("b"), split.sharersOf(1))
+        split.toggle(1, "a")
+        assertTrue(split.isValid(286_000))
+        assertEquals(listOf(listOf("a", "c"), listOf("a", "b"), emptyList()), split.items().map { it.memberIds })
+        assertEquals(286_000L, split.shares("a").values.sum())
+        assertTrue(split.perPerson("a", 286_000, listOf("a", "b")).any { it.memberId == "c" })
+        assertFalse(split.isValid(300_000), "the lines must still make the amount")
     }
 
     @Test

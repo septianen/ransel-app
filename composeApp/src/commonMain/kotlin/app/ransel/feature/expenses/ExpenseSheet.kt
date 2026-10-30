@@ -49,6 +49,7 @@ import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
+import app.ransel.shared.domain.itemsTotal
 import app.ransel.shared.dto.ExpenseItemDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.data.remote.ApiResult
@@ -95,8 +96,10 @@ import ransel.composeapp.generated.resources.expense_rate_daily
 import ransel.composeapp.generated.resources.expense_rate_own
 import ransel.composeapp.generated.resources.expense_estimate_banner
 import ransel.composeapp.generated.resources.expense_estimate_save
+import ransel.composeapp.generated.resources.expense_amount_per_item
 import ransel.composeapp.generated.resources.expense_receipt_items
-import ransel.composeapp.generated.resources.expense_split_by_items
+import ransel.composeapp.generated.resources.shared_you
+import ransel.composeapp.generated.resources.receipt_per_item
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_ok
 import ransel.composeapp.generated.resources.action_save
@@ -166,6 +169,12 @@ fun ExpenseSheet(
 
     val shared = members.size > 1
     val split = remember(members) { if (shared) SplitState(members, myMemberId, existing, currency) else null }
+    // an expense split "Per item": who shares each line can be picked again, as after a scan (owner, 30 Oct 2026)
+    val itemSplit = remember(members) {
+        existing?.takeIf { split != null && it.itemsSplit && it.items.isNotEmpty() }?.let { e -> ItemSplit.of(e.items, members.map { it.memberId }) }
+    }
+    // while "Per item" is on the amount is the lines' sum and cannot be typed; "Bagi rata" / "Atur nominal" unlock it
+    var perItem by remember(itemSplit) { mutableStateOf(itemSplit != null) }
 
     val foreign = !currency.equals(trip.baseCurrency, ignoreCase = true)
     androidx.compose.runtime.LaunchedEffect(currency, date, foreign) {
@@ -188,14 +197,30 @@ fun ExpenseSheet(
     val amountError = showErrors && (amountMinor == null || amountMinor <= 0)
     val rateError = showErrors && foreign && rate == null
 
+    fun canSave(amountMinor: Long?): Boolean = when {
+        amountMinor == null || amountMinor <= 0 -> false
+        perItem -> split!!.payersValid(amountMinor, currency) && itemSplit!!.isValid(amountMinor)
+        else -> split == null || split.isValid(amountMinor, currency)
+    }
+
     fun save() {
         if (amountMinor == null || amountMinor <= 0 || (foreign && rate == null)) {
             showErrors = true
             return
         }
-        if (split != null && !split.isValid(amountMinor, currency)) return
-        // receipt lines stay while the amount does; with "Per item" the server derives the splits from them
-        val keptItems = existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amountMinor }.orEmpty()
+        if (!canSave(amountMinor)) return
+        // receipt lines stay while the amount does; with "Per item" the server derives the splits from them, otherwise
+        // they are only shown (no members)
+        val itemsSplit = when {
+            perItem -> true
+            itemSplit != null -> false
+            else -> existing?.itemsSplit ?: true
+        }
+        val keptItems = when {
+            perItem -> itemSplit!!.items()
+            else -> existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amountMinor }.orEmpty()
+                .map { if (itemsSplit) it else it.copy(memberIds = emptyList()) }
+        }
         // Members not loaded (offline) while editing a shared expense: keep who paid and re-split the old people.
         val keptSplits = when {
             split != null || existing == null || existing.splits.isEmpty() -> null
@@ -227,18 +252,21 @@ fun ExpenseSheet(
                 },
                 paidByMemberId = keptPayers?.firstOrNull()?.memberId ?: split?.paidBy ?: existing?.paidByMemberId,
                 payers = split?.toPayers(amountMinor, currency) ?: keptPayers.orEmpty(),
-                splits = split?.toSplits(amountMinor, currency) ?: keptSplits.orEmpty(),
+                splits = when {
+                    perItem -> itemSplit!!.shares(split!!.paidBy).filterValues { it > 0 }.map { (id, share) -> ExpenseSplitDto(id, share) }
+                    else -> split?.toSplits(amountMinor, currency) ?: keptSplits.orEmpty()
+                },
                 // saving an estimate records the real payment
                 isEstimate = false,
                 items = keptItems,
-                itemsSplit = existing?.itemsSplit ?: true,
+                itemsSplit = itemsSplit,
             ),
         )
     }
 
     // what the form started with, to ask "Buang perubahan?" only when something changed
-    val initial = remember { listOf(currency, amountText, category, note, date, method, rateText) to split?.snapshot() }
-    val dirty = initial != (listOf(currency, amountText, category, note, date, method, rateText) to split?.snapshot())
+    val initial = remember { listOf(currency, amountText, category, note, date, method, rateText, perItem, itemSplit?.snapshot()) to split?.snapshot() }
+    val dirty = initial != (listOf(currency, amountText, category, note, date, method, rateText, perItem, itemSplit?.snapshot()) to split?.snapshot())
     val dayNumber = trip.startDate?.daysUntil(date)?.plus(1) ?: 0
 
     AdaptiveFormScreen(
@@ -253,7 +281,7 @@ fun ExpenseSheet(
         footer = {
             Button(
                 onClick = ::save,
-                enabled = split == null || split.isValid(amountMinor, currency) || amountMinor == null,
+                enabled = if (perItem) canSave(amountMinor) else split == null || split.isValid(amountMinor, currency) || amountMinor == null,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
                 Text(
@@ -288,11 +316,12 @@ fun ExpenseSheet(
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (currencyDecimals(currency) == 0) KeyboardType.Number else KeyboardType.Decimal,
             ),
+            readOnly = perItem,
             trailing = {
                 Row(
                     Modifier
                         .clip(IrisShape.sm)
-                        .clickable(role = Role.Button) { pickCurrency = true }
+                        .clickable(enabled = !perItem, role = Role.Button) { pickCurrency = true }
                         .padding(start = 8.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -306,6 +335,9 @@ fun ExpenseSheet(
                 }
             },
         )
+        if (perItem) {
+            Text(stringResource(Res.string.expense_amount_per_item), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (foreign && rate != null && amountMinor != null) {
             val inBase = convertMinor(amountMinor, currency, trip.baseCurrency, storedRate)
             Text("≈ " + formatMoney(inBase, trip.baseCurrency), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
@@ -441,18 +473,35 @@ fun ExpenseSheet(
 
         // the receipt's lines, also when the split was "Bagi rata" or "Atur nominal" (owner, 30 Oct 2026)
         val receiptLines = existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amountMinor }.orEmpty()
-        if (receiptLines.isNotEmpty()) {
-            ReceiptLines(receiptLines, existing!!.currency, split?.members.orEmpty())
-        }
-        val itemized = receiptLines.isNotEmpty() && existing!!.itemsSplit
-        if (split != null && itemized) {
-            Text(
-                stringResource(Res.string.expense_split_by_items, existing!!.items.size),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        if (split != null && itemSplit != null) {
+            // as after a scan: "Bagi rata", "Atur nominal" or "Per item", then the lines
+            SplitSection(
+                split, amountMinor, currency, myMemberId,
+                perItemLabel = stringResource(Res.string.receipt_per_item),
+                perItem = perItem,
+                onPerItemChange = { on ->
+                    perItem = on
+                    // back to "Per item": the amount is the lines' sum again
+                    if (on) {
+                        currency = existing!!.currency
+                        amountText = amountToInput(itemsTotal(itemSplit.lines), existing.currency)
+                    }
+                },
             )
-        } else if (split != null) {
-            SplitSection(split, amountMinor, currency, myMemberId)
+            val total = amountMinor ?: 0L
+            if (perItem) {
+                val you = stringResource(Res.string.shared_you)
+                ItemSplitLines(itemSplit, currency, members, picking = true)
+                ItemSplitSummary(
+                    itemSplit.perPerson(split.paidBy, total, members.map { it.memberId }),
+                    itemSplit.difference(total), total, currency, members,
+                ) { id -> members.firstOrNull { it.memberId == id }?.displayName?.let { if (id == myMemberId) "$it ($you)" else it } ?: "?" }
+            } else if (receiptLines.isNotEmpty()) {
+                ReceiptLines(itemSplit.lines, existing!!.currency, members)
+            }
+        } else {
+            if (receiptLines.isNotEmpty()) ReceiptLines(receiptLines, existing!!.currency, split?.members.orEmpty())
+            if (split != null) SplitSection(split, amountMinor, currency, myMemberId)
         }
     }
 
