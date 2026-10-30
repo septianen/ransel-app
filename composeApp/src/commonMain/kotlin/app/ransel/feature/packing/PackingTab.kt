@@ -31,7 +31,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.AssistChip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -104,8 +103,11 @@ import ransel.composeapp.generated.resources.packing_shared_mine
 import ransel.composeapp.generated.resources.packing_shared_open
 import ransel.composeapp.generated.resources.packing_bringer
 import ransel.composeapp.generated.resources.packing_bringer_me
+import ransel.composeapp.generated.resources.packing_bringer_none
 import ransel.composeapp.generated.resources.packing_give_back
 import ransel.composeapp.generated.resources.packing_bring
+import ransel.composeapp.generated.resources.packing_bring_confirm_body
+import ransel.composeapp.generated.resources.packing_bring_confirm_title
 import kotlinx.coroutines.launch
 import app.ransel.ui.preview.IrisPreview
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -557,10 +559,8 @@ internal fun PackingRow(
     enabled: Boolean,
     badge: String? = null,
     menu: (@Composable () -> Unit)? = null,
-    /** Replaces the check box (Bersama: an empty dashed box while nobody brings the item). */
+    /** Replaces the check box (Bersama: a dashed box while nobody brings the item). */
     leading: (@Composable () -> Unit)? = null,
-    /** After the quantity (Bersama: the "Saya bawa" chip). */
-    action: (@Composable () -> Unit)? = null,
     /** A line under the name (Bersama: who brings it). */
     subtitle: (@Composable () -> Unit)? = null,
     /** Null for a row a tap does not tick. */
@@ -619,7 +619,6 @@ internal fun PackingRow(
             style = MaterialTheme.typography.titleSmall,
             color = if (packed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
         )
-        action?.invoke()
         menu?.invoke()
     }
 }
@@ -671,17 +670,19 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
     val mine = bringer == shared.myMemberId
     val member = bringer?.let { id -> shared.members.firstOrNull { it.memberId == id } }
     val bringerName = member?.displayName.orEmpty()
+    var confirmBring by rememberSaveable(item.id) { mutableStateOf(false) }
     PackingRow(
         item,
-        // a tap ticks (only once someone brings it); a long press edits, also before anyone brings it
-        onToggle = { if (bringer != null) onToggle() },
+        // nobody brings it: a tap offers to bring it, after a confirmation (owner, 30 Oct 2026); then a tap ticks.
+        // A long press edits, also before anyone brings it.
+        onToggle = { if (bringer != null) onToggle() else confirmBring = true },
         onLongPress = onLongPress,
-        enabled = bringer != null || shared.canEdit,
-        role = if (bringer != null) Role.Checkbox else null,
+        enabled = true,
+        role = if (bringer != null) Role.Checkbox else Role.Button,
         leading = {
             Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
                 if (bringer == null) {
-                    // nobody brings it yet: an empty slot, not a check box that cannot be ticked
+                    // nobody brings it yet: a dashed check box, free to take
                     val dash = scheme.outlineVariant
                     Box(
                         Modifier.size(22.dp).drawBehind {
@@ -709,25 +710,26 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
                 }
             }
         },
-        // a chip with words, not an icon: the hand was unclear (owner, 30 Oct 2026)
-        action = if (bringer == null) {
-            { AssistChip(onClick = { shared.onBring(item) }, label = { Text(stringResource(Res.string.packing_bring)) }) }
-        } else {
-            null
-        },
-        subtitle = if (bringer != null) {
-            {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        // who brings it; nobody yet = an empty avatar and "Belum ada yang bawa" (owner, 30 Oct 2026)
+        subtitle = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (bringer != null) {
                     app.ransel.ui.components.MemberAvatar(bringerName.ifEmpty { "?" }, bringer, size = 20.dp)
-                    Text(
-                        if (mine) stringResource(Res.string.packing_bringer_me) else stringResource(Res.string.packing_bringer, bringerName),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                    )
+                } else {
+                    Box(Modifier.size(20.dp).clip(CircleShape).background(scheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
+                        Symbol(Symbols.person, size = 14.dp, tint = scheme.onSurfaceVariant)
+                    }
                 }
+                Text(
+                    when {
+                        bringer == null -> stringResource(Res.string.packing_bringer_none)
+                        mine -> stringResource(Res.string.packing_bringer_me)
+                        else -> stringResource(Res.string.packing_bringer, bringerName)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
             }
-        } else {
-            null
         },
         menu = {
             ItemMenu(
@@ -757,6 +759,16 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
             }
         },
     )
+    if (confirmBring) {
+        app.ransel.ui.components.ConfirmDialog(
+            title = stringResource(Res.string.packing_bring_confirm_title, item.name),
+            body = stringResource(Res.string.packing_bring_confirm_body),
+            confirmLabel = stringResource(Res.string.packing_bring),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = { confirmBring = false; shared.onBring(item) },
+            onDismiss = { confirmBring = false },
+        )
+    }
 }
 
 /**
