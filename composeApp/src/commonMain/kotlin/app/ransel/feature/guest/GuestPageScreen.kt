@@ -55,6 +55,7 @@ import app.ransel.ui.format.deadlineText
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.preview.IrisPreview
+import app.ransel.ui.symbols.RanselLogoTile
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
@@ -143,9 +144,7 @@ fun GuestPageContent(state: GuestPageUiState, invite: Boolean, actions: GuestAct
     Column(modifier.fillMaxSize()) {
         // top bar: brand and "Masuk"
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(32.dp).clip(IrisShape.sm).background(scheme.primary), contentAlignment = Alignment.Center) {
-                Symbol(Symbols.luggage, size = 20.dp, tint = scheme.onPrimary)
-            }
+            RanselLogoTile(size = 32.dp)
             Text("RANSEL", style = MaterialTheme.typography.titleMedium, color = scheme.primary, modifier = Modifier.padding(start = 8.dp).weight(1f))
             TextButton(onClick = actions.onSignIn) { Text(stringResource(Res.string.guest_sign_in)) }
         }

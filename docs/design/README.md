@@ -13,6 +13,10 @@ Source of truth: the Claude Design canvas **RANSEL — IRIS** (https://claude.ai
 - Illustrations are referenced as `../illustrations/<name>.png`. The PNGs are not in this package: export them from the IRIS design system asset group **Ilustrasi** (https://claude.ai/artifact/2DRVmvBjQ7Jru4SCDbLA2m), convert to WebP at 2× display size (440 px for 220 dp, 400 px for 200 dp), and put them in `composeApp/src/commonMain/composeResources/drawable/` with the same names (underscores instead of dashes). Illustrations are decorative: `contentDescription = null`.
 - Texts on screens are the Indonesian (`values-in`) copy. English strings are written by the frontend agent; keep the same meaning and tone.
 
+## Logo
+
+Chosen by the product owner on 30 Oct 2026: a backpack whose side curve and bottom notch hint at an R. Canvas: **RANSEL — Logo** (https://claude.ai/artifact/Hm3yfcDSGfHXsTKGaRg9Y6), also on *RANSEL — IRIS* as board `Logo`. Sources: `logo/ransel-mark.svg` (108 grid, content inside the 66 safe zone) and `logo/ransel-icon-1024.png` (full-bleed, for the iOS app icon once `iosApp/` exists). White mark on `primary` `#008808`; the same green stays in dark mode so the launcher icon does not change with the theme.
+
 ## Screens
 
 **Naming.** File names and board titles are Indonesian because they come from the design canvas. They are references only. Every class, composable, route, variable, resource ID and test name in code is English: use the **Code name** column. A name followed by a note in brackets is a state of that screen, not a separate screen. Names ending in `Sheet`, `Dialog`, `Menu`, `Banner` or `Snackbar` are separate composables shown on top of the screen in the "Overlay on" column.
