@@ -121,4 +121,63 @@ object ErrorCode {
     const val VOUCHER_INVALID = "VOUCHER_INVALID"          // 404, unknown or revoked code
     const val VOUCHER_EXPIRED = "VOUCHER_EXPIRED"          // 422, past expiresAt
     const val VOUCHER_USED = "VOUCHER_USED"                // 409, redeemed by this user already, or no uses left
+
+    /**
+     * Every code above, in order, for Karung's "Pesan error" editor (stage D). A server test checks it against the
+     * constants, so a new code must be added here too.
+     */
+    val ALL: List<String> = listOf(
+        NETWORK_TIMEOUT,
+        NETWORK_UNAVAILABLE,
+        LOCATION_DENIED,
+        LOCATION_TIMEOUT,
+        INTERNAL_ERROR,
+        VALIDATION_FAILED,
+        NOT_FOUND,
+        FORBIDDEN,
+        CONFLICT,
+        RATE_LIMITED,
+        UNAUTHORIZED,
+        TOKEN_EXPIRED,
+        INVALID_CREDENTIALS,
+        EMAIL_ALREADY_REGISTERED,
+        RESET_TOKEN_INVALID,
+        ACCOUNT_DISABLED,
+        VERIFY_TOKEN_INVALID,
+        EMAIL_NOT_VERIFIED,
+        TRIP_NOT_FOUND,
+        INVITE_EXPIRED,
+        INVITE_REVOKED,
+        INVITE_FULL,
+        ALREADY_MEMBER,
+        OWNER_CANNOT_LEAVE,
+        MEMBER_ALREADY_CLAIMED,
+        MEMBER_HAS_ACCOUNT,
+        POLL_CLOSED,
+        POLL_LOCKED,
+        VOTE_STALE,
+        GUEST_NAME_TAKEN,
+        GUEST_NAME_EXISTS,
+        GUEST_NAME_REQUIRED,
+        LIST_STALE,
+        LINK_UNREADABLE,
+        SPLIT_TOTAL_MISMATCH,
+        PAYER_TOTAL_MISMATCH,
+        SETTLEMENT_NOT_CLAIMED,
+        RECEIPT_UNREADABLE,
+        FILE_TOO_LARGE,
+        STORAGE_FULL,
+        UNSUPPORTED_FILE,
+        AI_UNAVAILABLE,
+        AI_PAUSED,
+        PLACES_UNAVAILABLE,
+        ROUND_NOT_FOUND,
+        VOTING_CLOSED,
+        ROUND_ALREADY_DECIDED,
+        ROUND_LIMIT,
+        INSUFFICIENT_CREDITS,
+        VOUCHER_INVALID,
+        VOUCHER_EXPIRED,
+        VOUCHER_USED,
+    )
 }
