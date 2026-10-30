@@ -1319,6 +1319,7 @@
     <string name="packing_bring_confirm_body">Barang ini akan tercatat atas namamu. Kalau berubah pikiran, pilih “Batal bawa” di menu ⋮.</string>
     <string name="packing_bringer">%1$s bawa</string>
     <string name="packing_bringer_me">Kamu bawa</string>
+    <string name="packing_bringer_none">Belum ada yang bawa</string>
     <string name="packing_give_back">Batal bawa</string>
     <string name="packing_shared_add">Tambah barang bersama</string>
     <string name="packing_who_brings">Siapa yang bawa?</string>

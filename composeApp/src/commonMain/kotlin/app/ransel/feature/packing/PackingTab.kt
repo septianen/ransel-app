@@ -103,6 +103,7 @@ import ransel.composeapp.generated.resources.packing_shared_mine
 import ransel.composeapp.generated.resources.packing_shared_open
 import ransel.composeapp.generated.resources.packing_bringer
 import ransel.composeapp.generated.resources.packing_bringer_me
+import ransel.composeapp.generated.resources.packing_bringer_none
 import ransel.composeapp.generated.resources.packing_give_back
 import ransel.composeapp.generated.resources.packing_bring
 import ransel.composeapp.generated.resources.packing_bring_confirm_body
@@ -709,19 +710,26 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
                 }
             }
         },
-        subtitle = if (bringer != null) {
-            {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        // who brings it; nobody yet = an empty avatar and "Belum ada yang bawa" (owner, 30 Oct 2026)
+        subtitle = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (bringer != null) {
                     app.ransel.ui.components.MemberAvatar(bringerName.ifEmpty { "?" }, bringer, size = 20.dp)
-                    Text(
-                        if (mine) stringResource(Res.string.packing_bringer_me) else stringResource(Res.string.packing_bringer, bringerName),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                    )
+                } else {
+                    Box(Modifier.size(20.dp).clip(CircleShape).background(scheme.surfaceContainerHighest), contentAlignment = Alignment.Center) {
+                        Symbol(Symbols.person, size = 14.dp, tint = scheme.onSurfaceVariant)
+                    }
                 }
+                Text(
+                    when {
+                        bringer == null -> stringResource(Res.string.packing_bringer_none)
+                        mine -> stringResource(Res.string.packing_bringer_me)
+                        else -> stringResource(Res.string.packing_bringer, bringerName)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
             }
-        } else {
-            null
         },
         menu = {
             ItemMenu(
