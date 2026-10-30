@@ -5,12 +5,14 @@ import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.AdminPrincipal
 import app.ransel.server.service.AdminMonitoringService
 import app.ransel.server.service.AdminService
+import app.ransel.server.service.SettingsService
 import app.ransel.server.service.UserFilter
 import app.ransel.server.service.userId
 import app.ransel.shared.api.AdminRoutes
 import app.ransel.shared.api.PageMeta
 import app.ransel.shared.dto.AdjustCreditsRequest
 import app.ransel.shared.dto.CreateUserRequest
+import app.ransel.shared.dto.UpdateSettingsRequest
 import app.ransel.shared.model.AdminAction
 import app.ransel.shared.model.AdminRange
 import app.ransel.shared.model.UserStatus
@@ -26,6 +28,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
+import io.ktor.server.routing.put
 import kotlinx.datetime.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
@@ -35,7 +38,7 @@ import java.util.UUID
  * Admin API (docs/specs/admin-spec.md). Sits inside `authenticate(JWT_AUTH)`; every handler starts with [admin], which
  * answers 403 for any account that is not in `ADMIN_EMAILS`.
  */
-fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService) {
+fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService, settings: SettingsService) {
     fun ApplicationCall.admin(): AdminPrincipal = service.requireAdmin(userId())
     fun ApplicationCall.user() = pathUuid("userId", "User")
     fun ApplicationCall.page() = request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1
@@ -127,6 +130,15 @@ fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService)
         get(AdminRoutes.SYSTEM) {
             call.admin()
             call.respondData(HttpStatusCode.OK, monitoring.system(call.range(AdminRange.LAST_24_HOURS)))
+        }
+
+        get(AdminRoutes.SETTINGS) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, settings.settings())
+        }
+        put(AdminRoutes.SETTINGS) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, settings.update(admin, call.receive<UpdateSettingsRequest>()))
         }
     }
 }

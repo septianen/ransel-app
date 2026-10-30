@@ -27,7 +27,8 @@ private fun notConfigured() =
     ApiException(HttpStatusCode.ServiceUnavailable, ErrorCode.AI_UNAVAILABLE, "Recommendations are not configured")
 
 /** Builds the real clients from config; [http] is returned so the caller can close it on shutdown. */
-fun aiServicesFrom(config: AppConfig): Pair<AiServices, HttpClient?> {
+/** [model] = the LLM model in effect, read per call (Karung can switch it). */
+fun aiServicesFrom(config: AppConfig, model: () -> String = { config.llmModel }): Pair<AiServices, HttpClient?> {
     if (config.llmApiKey.isBlank() || config.placesApiKey.isBlank()) {
         return AiServices(NotConfiguredLlm, NotConfiguredPlaces) to null
     }
@@ -43,7 +44,7 @@ fun aiServicesFrom(config: AppConfig): Pair<AiServices, HttpClient?> {
         }
     }
     return AiServices(
-        llm = GeminiClient(http, config.llmBaseUrl, config.llmApiKey, config.llmModel, config.llmFallbackModel),
+        llm = GeminiClient(http, config.llmBaseUrl, config.llmApiKey, model, config.llmFallbackModel),
         places = GooglePlacesClient(http, config.placesApiKey),
         placeSearch = GooglePlaceSearch(http, config.placesApiKey),
     ) to http

@@ -58,7 +58,7 @@ class SearchLog(private val prices: AppConfig.ProviderPrices) {
         } catch (e: ApiException) {
             when (e.code) {
                 ErrorCode.INSUFFICIENT_CREDITS -> write(trace, usage, AiSearchSource.NO_CREDITS, elapsed())
-                ErrorCode.AI_UNAVAILABLE -> write(trace, usage, AiSearchSource.FAILED, elapsed())
+                ErrorCode.AI_UNAVAILABLE, ErrorCode.AI_PAUSED -> write(trace, usage, AiSearchSource.FAILED, elapsed())
             }
             throw e
         } catch (e: Exception) {

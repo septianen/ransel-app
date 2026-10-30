@@ -2,6 +2,8 @@ package app.ransel.server
 
 import app.ransel.server.ai.AiMetrics
 import app.ransel.server.ai.AiServices
+import app.ransel.server.service.SettingsService
+import app.ransel.server.ai.AiBudget
 import app.ransel.server.ai.EcbFxRates
 import app.ransel.server.ai.ExploreSuggestionService
 import app.ransel.server.ai.FxRates
@@ -132,10 +134,13 @@ fun Application.module(
     TemplateSeed.run()
     monitor.subscribe(ApplicationStopped) { (pool as? HikariDataSource)?.close() }
 
-    val (rawAiServices, aiHttp) = if (ai != null) ai to null else aiServicesFrom(config)
+    // Karung's settings (stage C): env defaults with the overrides from app_settings
+    val settings = SettingsService(config).also { it.load() }
+    val (rawAiServices, aiHttp) = if (ai != null) ai to null else aiServicesFrom(config) { settings.current.llmModel }
     // Karung's provider cost: every outside call is counted per day, and per search in ai_search_log.
     val usage = UsageMeter(config.providerPrices)
-    val aiServices = rawAiServices.metered(usage)
+    val aiBudget = AiBudget(settings, usage)
+    val aiServices = rawAiServices.metered(usage, aiBudget::check)
     val searchLog = SearchLog(config.providerPrices)
     val errorCounter = ErrorCounter()
     Monitoring.errors = errorCounter
@@ -164,7 +169,7 @@ fun Application.module(
     val suggestions = ExploreSuggestionService(aiServices.llm, fx ?: ecb ?: NoFxRates, aiMetrics)
     val fxRates = fx ?: ecb ?: NoFxRates
     val placeDetails = PlaceDetailService(aiServices, photoSigner, fxRates, aiMetrics)
-    val credits = CreditService(config)
+    val credits = CreditService(settings)
     val rounds = RoundService(config, photoSigner)
     val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits, rounds, searchLog)
     // Expense rates: the ECB 90-day history, once a day (tests have no network: they insert rows).
@@ -240,7 +245,7 @@ fun Application.module(
     configureCors(config.corsOrigins)
     configureSerialization()
     configureStatusPages()
-    configureRateLimit(config)
+    configureRateLimit(config) { settings.current.suggestionsRateLimitPerHour }
     val requestStats = RequestStats()
     configureMonitoring(errorCounter, requestStats)
     val lastSeen = LastSeen(maintenance)
@@ -282,7 +287,7 @@ fun Application.module(
                 placeRoutes(PlaceSearchService(aiServices.placeSearch))
                 fxRoutes(fxDaily)
                 placeDetailRoutes(placeDetails)
-                adminRoutes(admin, AdminMonitoringService(config, requestStats))
+                adminRoutes(admin, AdminMonitoringService(config, requestStats, settings), settings)
             }
         }
     }

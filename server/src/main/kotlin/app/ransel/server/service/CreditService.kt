@@ -51,7 +51,12 @@ import kotlin.time.toJavaInstant
  * Every wallet operation first locks the user's wallet row (`SELECT ... FOR UPDATE`), so two parallel searches of one user
  * run one after the other and the balance can never go below zero.
  */
-class CreditService(private val config: AppConfig) {
+class CreditService(private val settings: SettingsService) {
+    constructor(config: AppConfig) : this(SettingsService(config))
+
+    /** The effective numbers: env defaults with Karung's overrides (B9.8), read per call. */
+    val config: AppConfig get() = settings.current
+
     private val wib = TimeZone.of("Asia/Jakarta")
 
     private fun todayWib(): LocalDate = Clock.System.now().toLocalDateTime(wib).date

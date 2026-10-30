@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import app.ransel.shared.model.AiBudgetMode
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -47,6 +48,8 @@ data class AppConfig(
     val llmModel: String = "gemini-3.1-flash-lite",
     /** Used when the primary model answers 429/5xx. Blank = none. */
     val llmFallbackModel: String = "gemini-3.5-flash",
+    /** Models Karung may pick for [llmModel] (`LLM_MODELS`, comma separated); always holds [llmModel]. */
+    val llmModels: List<String> = listOf("gemini-3.1-flash-lite", "gemini-3.5-flash"),
     val placesApiKey: String = "",
     /** HMAC key for the signed place-photo links. Required in production, separate from [jwtSecret]. */
     val photoSigningSecret: String = DEV_PHOTO_SIGNING_SECRET,
@@ -95,10 +98,12 @@ data class AppConfig(
     val providerPrices: ProviderPrices = ProviderPrices(),
     /** "Server dan database" on Karung's cost card: the VPS per month, in micro-USD. */
     val serverMonthlyCostMicroUsd: Long = 0,
-    /** LLM + Places budget per month for Karung's warning, in micro-USD; 0 = none. A Karung setting from stage C. */
+    /** LLM + Places budget per month, in micro-USD; 0 = none. Karung can override it (`SettingsService`). */
     val aiMonthlyBudgetMicroUsd: Long = 0,
     /** Karung warns from this share of [aiMonthlyBudgetMicroUsd]: 80, 90 or 100. */
     val aiBudgetAlertPercent: Int = 80,
+    /** What happens once the month's spend reaches [aiMonthlyBudgetMicroUsd] (`AI_BUDGET_MODE`). */
+    val aiBudgetMode: AiBudgetMode = AiBudgetMode.KEEP_GOING,
     /** The deployed commit, shown on Karung's system page; blank = unknown. */
     val appVersion: String = "",
     /** Written by `deploy/backup-db.sh` after a good backup (an ISO instant); read for "Backup terakhir". */
@@ -223,6 +228,11 @@ data class AppConfig(
                 llmBaseUrl = (env["LLM_BASE_URL"]?.takeIf { it.isNotBlank() } ?: "https://generativelanguage.googleapis.com/v1beta").trimEnd('/'),
                 llmModel = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.1-flash-lite",
                 llmFallbackModel = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.5-flash",
+                llmModels = run {
+                    val model = env["LLM_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.1-flash-lite"
+                    val fallback = env["LLM_FALLBACK_MODEL"]?.takeIf { it.isNotBlank() } ?: "gemini-3.5-flash"
+                    (listOf(model) + env["LLM_MODELS"].csv().ifEmpty { listOf(fallback) }).distinct()
+                },
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 photoSigningSecret = photoSecret,
                 documentsDir = env["DOCUMENTS_DIR"]?.takeIf { it.isNotBlank() } ?: "./data/documents",
@@ -255,6 +265,8 @@ data class AppConfig(
                 serverMonthlyCostMicroUsd = env.usdAsMicro("SERVER_MONTHLY_COST_USD") ?: 0,
                 aiMonthlyBudgetMicroUsd = env.usdAsMicro("AI_MONTHLY_BUDGET_USD") ?: 0,
                 aiBudgetAlertPercent = env["AI_BUDGET_ALERT_PERCENT"]?.toIntOrNull()?.takeIf { it in setOf(80, 90, 100) } ?: 80,
+                aiBudgetMode = env["AI_BUDGET_MODE"]?.let { v -> AiBudgetMode.entries.firstOrNull { it.name == v.trim() } } ?: AiBudgetMode.KEEP_GOING,
+                suggestionsRateLimitPerHour = env["SUGGESTIONS_RATE_LIMIT_PER_HOUR"]?.toIntOrNull()?.coerceIn(1, 1_000) ?: 60,
                 appVersion = env["APP_VERSION"].orEmpty().trim(),
                 backupMarkerFile = env["BACKUP_MARKER_FILE"]?.takeIf { it.isNotBlank() }
                     ?: ((env["DOCUMENTS_DIR"]?.takeIf { it.isNotBlank() } ?: "./data/documents").trimEnd('/') + "/.last-backup"),

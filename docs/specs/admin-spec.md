@@ -83,6 +83,8 @@ Today `credit_ledger` has `CHECK ((kind = 'SPEND') = (delta < 0))`, which forbid
 
 The TRD "Quota" paragraph ("All numbers come from server config") must be updated to describe this override.
 
+As built (B9.8, 30 Oct 2026): keys are `SettingKey` constant names (`SIGNUP_GRANT`, `DAILY_FREE`, `COST_SEARCH`, `COST_NEXT_BATCH`, `COST_PLACE_DETAIL`, `COST_RECEIPT`, `AI_MONTHLY_BUDGET_USD`, `AI_BUDGET_ALERT_PERCENT`, `AI_BUDGET_MODE`, `SUGGESTIONS_PER_HOUR`, `LLM_MODEL`), values are text checked by `shared/domain/AdminSettings.kt`. The receipt photo cost (`COST_RECEIPT`, 0–100) was added at the owner's request (30 Oct 2026): it uses AI too. `AI_BUDGET_MODE` = `KEEP_GOING` (warning only) or `CACHE_ONLY`: once the month's estimated spend reaches the budget every LLM call answers 503 `AI_PAUSED` (cached searches still answer, new searches and receipt photos stop, no credits charged; interest suggestions and place texts fall back as when the LLM is down). The model allow-list is `LLM_MODELS` plus `LLM_MODEL`. The history is the audit log (`GET /admin/audit?action=SETTINGS_UPDATE`, before/after as text).
+
 ## Other user actions
 
 | Action | Effect | Needs |

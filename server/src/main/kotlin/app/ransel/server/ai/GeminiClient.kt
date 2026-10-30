@@ -27,10 +27,16 @@ class GeminiClient(
     private val http: HttpClient,
     private val baseUrl: String,
     private val apiKey: String,
-    override val modelName: String,
+    /** The primary model, read per call: Karung can switch it (`SettingKey.LLM_MODEL`). */
+    private val model: () -> String,
     /** Tried when [modelName] is overloaded (429/5xx), within the same call. Null = no fallback. */
     private val fallbackModel: String? = null,
 ) : LlmClient {
+    constructor(http: HttpClient, baseUrl: String, apiKey: String, modelName: String, fallbackModel: String? = null) :
+        this(http, baseUrl, apiKey, { modelName }, fallbackModel)
+
+    override val modelName: String get() = model()
+
     private val json = Json { ignoreUnknownKeys = true }
     private val log = LoggerFactory.getLogger(GeminiClient::class.java)
 
@@ -73,7 +79,8 @@ class GeminiClient(
 
     /** Tries the primary model, then the fallback when the first is overloaded (429/5xx). Returns the raw JSON text. */
     private suspend fun generate(system: String, user: kotlinx.serialization.json.JsonArray, temperature: Double, maxTokens: Int): String {
-        val models = listOfNotNull(modelName, fallbackModel?.takeIf { it.isNotBlank() && it != modelName })
+        val primary = modelName
+        val models = listOfNotNull(primary, fallbackModel?.takeIf { it.isNotBlank() && it != primary })
         var last: Overloaded? = null
         for (model in models) {
             try {
