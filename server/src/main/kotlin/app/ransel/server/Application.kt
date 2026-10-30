@@ -2,6 +2,7 @@ package app.ransel.server
 
 import app.ransel.server.ai.AiMetrics
 import app.ransel.server.ai.AiServices
+import app.ransel.server.service.ContentService
 import app.ransel.server.service.SettingsService
 import app.ransel.server.ai.AiBudget
 import app.ransel.server.ai.EcbFxRates
@@ -46,6 +47,7 @@ import app.ransel.server.routes.receiptRoutes
 import app.ransel.server.service.ReceiptService
 import app.ransel.server.routes.exploreRoutes
 import app.ransel.server.routes.expenseRoutes
+import app.ransel.server.routes.contentRoutes
 import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
 import app.ransel.server.routes.commentRoutes
@@ -167,6 +169,8 @@ fun Application.module(
     monitor.subscribe(ApplicationStopped) { fxHttp?.close() }
     val ecb = fxHttp?.let { EcbFxRates(it) }
     val suggestions = ExploreSuggestionService(aiServices.llm, fx ?: ecb ?: NoFxRates, aiMetrics)
+    // Karung stage D: remote content; curated interests change the suggestions above
+    val content = ContentService(suggestions)
     val fxRates = fx ?: ecb ?: NoFxRates
     val placeDetails = PlaceDetailService(aiServices, photoSigner, fxRates, aiMetrics)
     val credits = CreditService(settings)
@@ -255,6 +259,7 @@ fun Application.module(
         wellKnownRoutes(config)
         route(ApiRoutes.BASE) {
             healthRoutes()
+            contentRoutes(content)
             authRoutes(auth, passwordReset, verification)
             placePhotoRoutes(photoSigner, placePhotos)
             val invites = InviteService(config)
@@ -287,7 +292,7 @@ fun Application.module(
                 placeRoutes(PlaceSearchService(aiServices.placeSearch))
                 fxRoutes(fxDaily)
                 placeDetailRoutes(placeDetails)
-                adminRoutes(admin, AdminMonitoringService(config, requestStats, settings), settings)
+                adminRoutes(admin, AdminMonitoringService(config, requestStats, settings), settings, content)
             }
         }
     }
