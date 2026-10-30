@@ -113,6 +113,8 @@ Today the server keeps AI counters only in memory and logs them hourly (`AiMetri
 
 Retention: `ai_search_log` 180 days, `error_counts` 90 days, cleaned by the existing scheduler.
 
+As built (B9.6/B9.7, 29 Oct 2026): ranges are `AdminRange` constant names; `user_active_days` (one row per user per WIB day) was added because `last_seen_at` alone cannot draw active users per day; provider cost comes from `provider_usage` (every paid call per day, photos and interest suggestions included), the search rows keep their own estimate; the AI budget for the warning is `AI_MONTHLY_BUDGET_USD` until stage C; health shows requests, 5xx and p95 of the last 24 hours since the process started (no 30-day uptime: that needs an outside probe).
+
 ## Remote content (stage D: Karung and server only)
 
 - Tables: `content_strings` (key, locale `id`/`en`, value, status `DRAFT`/`PUBLISHED`, updated_by, updated_at), `content_errors` (code, locale, title, message, button, illustration, display `FULL_SCREEN`/`SNACKBAR`/`DIALOG`, status), `content_categories` (enum type + constant, locale label, icon name, color token, sort order), `destination_interests` (destination, month, chips, curated by).
@@ -138,10 +140,10 @@ All under `/admin`, bearer token with the admin claim (403 `FORBIDDEN` otherwise
 | POST | /admin/users/{id}/disable · /enable | Deactivate / reactivate | A |
 | POST | /admin/users/{id}/password-reset | Send reset email | A (hidden until provider) |
 | GET | /admin/audit?targetId=&action=&page= | Audit log | A |
-| GET | /admin/overview?range=TODAY\|7D\|30D | Overview numbers and charts | B |
-| GET | /admin/explore?month= | Explore AI page | B |
-| GET | /admin/explore/searches?page= | Recent searches | B |
-| GET | /admin/system | Health + errors per code `?range=24H\|7D` | B |
+| GET | /admin/overview?range=TODAY\|LAST\_7\_DAYS\|LAST\_30\_DAYS | Overview numbers and charts (`AdminOverviewDto`) | B (built) |
+| GET | /admin/explore?month=YYYY-MM | Explore AI page (`AdminExploreDto`) | B (built) |
+| GET | /admin/explore/searches?userId=&page= | Recent searches (`AdminSearchDto`); `userId` for the user page's recent activity | B (built) |
+| GET | /admin/system?range=LAST\_24\_HOURS\|LAST\_7\_DAYS | Health + errors per code (`AdminSystemDto`) | B (built) |
 | GET · PUT | /admin/settings | Effective settings with their source (`ENV`/`OVERRIDE`); PUT sets or clears overrides | C |
 | GET · PUT | /admin/content/strings, /errors, /categories, /interests | Read and save drafts | D |
 | POST | /admin/content/publish | Publish all drafts | D |

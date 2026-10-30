@@ -39,7 +39,7 @@ import app.ransel.shared.model.PaymentMethodKind
 import app.ransel.shared.model.SettlementStatus
 
 /*
- * Exposed mappings of the Flyway schema (V1..V21). Flyway owns the DDL; these objects only describe it.
+ * Exposed mappings of the Flyway schema (V1..V27). Flyway owns the DDL; these objects only describe it.
  * `updated_at` is set by the DB trigger, so writers never set it.
  */
 
@@ -56,6 +56,8 @@ object Users : Table("users") {
     val disabledAt = timestamp("disabled_at").nullable()
     /** Null until the sign-up email link is opened (V13); Explore and vouchers wait for it. */
     val emailVerifiedAt = timestamp("email_verified_at").nullable()
+    /** V27: the latest authenticated request, written at most once an hour (`LastSeen`). */
+    val lastSeenAt = timestamp("last_seen_at").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 
@@ -667,4 +669,61 @@ object SuggestionVotes : Table("suggestion_votes") {
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     override val primaryKey = PrimaryKey(roundId, placeId, userId)
+}
+
+/** V27: one row per Explore or poll search for Karung; parameters only, never prompt text. */
+object AiSearchLog : Table("ai_search_log") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val tripId = javaUUID("trip_id").nullable()
+    val kind = text("kind")
+    val destination = text("destination")
+    val priceLevel = text("price_level").nullable()
+    val interests = array<String>("interests")
+    val newSearch = bool("new_search")
+    val searchSource = text("source")
+    val cards = integer("cards")
+    val placeIds = array<String>("place_ids")
+    val latencyMs = integer("latency_ms")
+    val creditsCharged = integer("credits_charged")
+    val llmCostMicroUsd = long("llm_cost_micro_usd")
+    val placesCostMicroUsd = long("places_cost_micro_usd")
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** V27: the WIB days on which a user made an authenticated request (`LastSeen`). */
+object UserActiveDays : Table("user_active_days") {
+    val day = date("day")
+    val userId = javaUUID("user_id")
+    override val primaryKey = PrimaryKey(day, userId)
+}
+
+/** V27: calls to paid outside services per WIB day (`UsageMeter`). */
+object ProviderUsage : Table("provider_usage") {
+    val day = date("day")
+    val call = text("call")
+    val service = text("service")
+    val calls = long("calls")
+    val costMicroUsd = long("cost_micro_usd")
+    override val primaryKey = PrimaryKey(day, call)
+}
+
+/** V27: error responses per hour, code and route template (`ErrorCounter`). */
+object ErrorCounts : Table("error_counts") {
+    val hour = timestamp("hour")
+    val code = text("code")
+    val route = text("route")
+    val status = integer("status")
+    val count = long("count")
+    val lastAt = timestamp("last_at")
+    override val primaryKey = PrimaryKey(hour, code, route)
+}
+
+object ErrorCountUsers : Table("error_count_users") {
+    val hour = timestamp("hour")
+    val code = text("code")
+    val route = text("route")
+    val userId = javaUUID("user_id")
+    override val primaryKey = PrimaryKey(hour, code, route, userId)
 }

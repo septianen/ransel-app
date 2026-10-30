@@ -3,6 +3,7 @@ package app.ransel.server.routes
 import app.ransel.server.plugins.AdminRateLimit
 import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.AdminPrincipal
+import app.ransel.server.service.AdminMonitoringService
 import app.ransel.server.service.AdminService
 import app.ransel.server.service.UserFilter
 import app.ransel.server.service.userId
@@ -11,6 +12,7 @@ import app.ransel.shared.api.PageMeta
 import app.ransel.shared.dto.AdjustCreditsRequest
 import app.ransel.shared.dto.CreateUserRequest
 import app.ransel.shared.model.AdminAction
+import app.ransel.shared.model.AdminRange
 import app.ransel.shared.model.UserStatus
 import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
@@ -27,12 +29,13 @@ import io.ktor.server.routing.post
 import kotlinx.datetime.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.ZoneId
+import java.util.UUID
 
 /**
  * Admin API (docs/specs/admin-spec.md). Sits inside `authenticate(JWT_AUTH)`; every handler starts with [admin], which
  * answers 403 for any account that is not in `ADMIN_EMAILS`.
  */
-fun Route.adminRoutes(service: AdminService) {
+fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService) {
     fun ApplicationCall.admin(): AdminPrincipal = service.requireAdmin(userId())
     fun ApplicationCall.user() = pathUuid("userId", "User")
     fun ApplicationCall.page() = request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(1) ?: 1
@@ -102,8 +105,37 @@ fun Route.adminRoutes(service: AdminService) {
             val (rows, total) = service.auditLog(call.request.queryParameters["targetId"], action, page, AdminService.PAGE_SIZE)
             call.respondData(HttpStatusCode.OK, rows, PageMeta(page, AdminService.PAGE_SIZE, total))
         }
+
+        // Stage B: monitoring
+        get(AdminRoutes.OVERVIEW) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, monitoring.overview(call.range(AdminRange.LAST_7_DAYS)))
+        }
+        get(AdminRoutes.EXPLORE) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, monitoring.explore(call.request.queryParameters["month"]))
+        }
+        get(AdminRoutes.EXPLORE_SEARCHES) {
+            call.admin()
+            val page = call.page()
+            val user = call.request.queryParameters["userId"]?.let { raw ->
+                runCatching { UUID.fromString(raw) }.getOrNull() ?: throw validationFailed(mapOf("userId" to "INVALID_UUID"))
+            }
+            val (rows, total) = monitoring.searches(user, page, AdminService.PAGE_SIZE)
+            call.respondData(HttpStatusCode.OK, rows, PageMeta(page, AdminService.PAGE_SIZE, total))
+        }
+        get(AdminRoutes.SYSTEM) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, monitoring.system(call.range(AdminRange.LAST_24_HOURS)))
+        }
     }
 }
+
+/** `?range=` as an [AdminRange] constant; each service says which ones it takes. */
+private fun ApplicationCall.range(default: AdminRange): AdminRange =
+    request.queryParameters["range"]?.let { raw ->
+        AdminRange.entries.firstOrNull { it.name == raw } ?: throw validationFailed(mapOf("range" to "UNKNOWN"))
+    } ?: default
 
 /** Query of GET /admin/users and its export; a bad value is 422 on that parameter. */
 private fun ApplicationCall.userFilter(): UserFilter {

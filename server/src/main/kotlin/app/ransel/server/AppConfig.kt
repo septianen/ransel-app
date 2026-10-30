@@ -91,7 +91,32 @@ data class AppConfig(
     val appEnv: String = "development",
     /** Karung's "send password reset"; defaults to on exactly when [smtp] is configured. */
     val adminPasswordResetEnabled: Boolean = false,
+    /** Karung's cost estimates: list price per call to each paid service, in micro-USD. An estimate, not the invoice. */
+    val providerPrices: ProviderPrices = ProviderPrices(),
+    /** "Server dan database" on Karung's cost card: the VPS per month, in micro-USD. */
+    val serverMonthlyCostMicroUsd: Long = 0,
+    /** LLM + Places budget per month for Karung's warning, in micro-USD; 0 = none. A Karung setting from stage C. */
+    val aiMonthlyBudgetMicroUsd: Long = 0,
+    /** Karung warns from this share of [aiMonthlyBudgetMicroUsd]: 80, 90 or 100. */
+    val aiBudgetAlertPercent: Int = 80,
+    /** The deployed commit, shown on Karung's system page; blank = unknown. */
+    val appVersion: String = "",
+    /** Written by `deploy/backup-db.sh` after a good backup (an ISO instant); read for "Backup terakhir". */
+    val backupMarkerFile: String = "./data/documents/.last-backup",
 ) {
+    /**
+     * Defaults: Gemini Flash-Lite with a search-sized prompt (about 2k tokens in, 6k out), Places API (New) Essentials
+     * list prices. Text Search with an IDs-only field mask is free.
+     */
+    data class ProviderPrices(
+        val llmCall: Long = 3_000,
+        val placesFind: Long = 0,
+        val placesDetails: Long = 5_000,
+        val placesPhoto: Long = 7_000,
+        val placesAutocomplete: Long = 2_830,
+        val placesGeocode: Long = 5_000,
+    )
+
     data class CreditPack(val id: String, val credits: Int, val priceMinor: Long, val currency: String = "IDR")
 
     data class SeedUser(val email: String, val password: String, val displayName: String)
@@ -140,6 +165,12 @@ data class AppConfig(
             if (value.isEmpty() || value.startsWith("{")) return value
             return String(java.util.Base64.getMimeDecoder().decode(value)).trim()
         }
+
+        private fun Map<String, String>.microUsd(key: String): Long? = this[key]?.trim()?.toLongOrNull()?.coerceAtLeast(0)
+
+        /** "24.60" (USD) as micro-USD; blank, negative or not a number = null. */
+        private fun Map<String, String>.usdAsMicro(key: String): Long? =
+            this[key]?.trim()?.toBigDecimalOrNull()?.takeIf { it.signum() >= 0 }?.movePointRight(6)?.toLong()
 
         private fun String?.csv() = this?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
 
@@ -213,6 +244,20 @@ data class AppConfig(
                 roundExpiryDays = env["ROUND_EXPIRY_DAYS"]?.toIntOrNull()?.coerceIn(1, 60) ?: 3,
                 maxOpenRounds = env["MAX_OPEN_ROUNDS"]?.toIntOrNull()?.coerceIn(1, 20) ?: 3,
                 notifyVoteClosingHours = env["NOTIFY_VOTE_CLOSING_HOURS"]?.toIntOrNull()?.coerceIn(1, 23) ?: 3,
+                providerPrices = ProviderPrices(
+                    llmCall = env.microUsd("COST_LLM_CALL_MICRO_USD") ?: 3_000,
+                    placesFind = env.microUsd("COST_PLACES_FIND_MICRO_USD") ?: 0,
+                    placesDetails = env.microUsd("COST_PLACES_DETAILS_MICRO_USD") ?: 5_000,
+                    placesPhoto = env.microUsd("COST_PLACES_PHOTO_MICRO_USD") ?: 7_000,
+                    placesAutocomplete = env.microUsd("COST_PLACES_AUTOCOMPLETE_MICRO_USD") ?: 2_830,
+                    placesGeocode = env.microUsd("COST_PLACES_GEOCODE_MICRO_USD") ?: 5_000,
+                ),
+                serverMonthlyCostMicroUsd = env.usdAsMicro("SERVER_MONTHLY_COST_USD") ?: 0,
+                aiMonthlyBudgetMicroUsd = env.usdAsMicro("AI_MONTHLY_BUDGET_USD") ?: 0,
+                aiBudgetAlertPercent = env["AI_BUDGET_ALERT_PERCENT"]?.toIntOrNull()?.takeIf { it in setOf(80, 90, 100) } ?: 80,
+                appVersion = env["APP_VERSION"].orEmpty().trim(),
+                backupMarkerFile = env["BACKUP_MARKER_FILE"]?.takeIf { it.isNotBlank() }
+                    ?: ((env["DOCUMENTS_DIR"]?.takeIf { it.isNotBlank() } ?: "./data/documents").trimEnd('/') + "/.last-backup"),
                 adminEmails = env["ADMIN_EMAILS"].csv().map { it.lowercase() }.toSet(),
                 appEnv = env["APP_ENV"]?.takeIf { it.isNotBlank() } ?: "development",
                 smtp = smtp,

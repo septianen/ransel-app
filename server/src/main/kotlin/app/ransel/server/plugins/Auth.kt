@@ -17,6 +17,7 @@ import io.ktor.server.plugins.origin
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.response.respond
+import java.util.UUID
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
@@ -34,12 +35,18 @@ val PlaceSearchRateLimit = RateLimitName("place-search")
 val GuestRateLimit = RateLimitName("guest")
 val GuestIdentityRateLimit = RateLimitName("guest-identity")
 
-fun Application.configureAuth(config: AppConfig, tokens: TokenService) {
+/** [onAuthenticated] gets the user of every request with a valid token (`users.last_seen_at`). */
+fun Application.configureAuth(config: AppConfig, tokens: TokenService, onAuthenticated: (UUID) -> Unit = {}) {
     install(Authentication) {
         jwt(JWT_AUTH) {
             realm = "ransel"
             verifier(tokens.verifier)
-            validate { credential -> credential.payload.subject?.let { JWTPrincipal(credential.payload) } }
+            validate { credential ->
+                credential.payload.subject?.let { subject ->
+                    runCatching { UUID.fromString(subject) }.getOrNull()?.let(onAuthenticated)
+                    JWTPrincipal(credential.payload)
+                }
+            }
             challenge { _, _ ->
                 call.attributes.put(ErrorCodeKey, ErrorCode.UNAUTHORIZED)
                 call.respond(

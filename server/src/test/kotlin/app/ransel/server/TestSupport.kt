@@ -79,6 +79,7 @@ object TestDb {
                 conn.createStatement().use { it.execute("TRUNCATE recommendation_cache, explore_suggestions_cache, place_detail_cache, place_autocomplete_cache, place_details_cache") }
                 conn.createStatement().use { it.execute("TRUNCATE credit_vouchers CASCADE") }
                 conn.createStatement().use { it.execute("TRUNCATE admin_audit_log") }
+                conn.createStatement().use { it.execute("TRUNCATE ai_search_log, provider_usage, error_counts, error_count_users, user_active_days") }
                 // Real accounts go (their refresh tokens cascade); the seeded dummy user has no email and stays.
                 conn.createStatement().use { it.execute("DELETE FROM users WHERE email IS NOT NULL") }
             }

@@ -435,7 +435,8 @@ class AdminService(
                     else -> UserStatus.ACTIVE
                 },
                 joinedAt = row[Users.createdAt].toTimestamp(),
-                lastActiveAt = lastActive[id]?.toTimestamp(),
+                // last_seen_at (V27) is written at most hourly; a sign-in since then is newer
+                lastActiveAt = listOfNotNull(row[Users.lastSeenAt], lastActive[id]).maxOrNull()?.toTimestamp(),
                 platform = platforms[id],
                 tripCount = trips[id] ?: 0,
                 // No wallet yet = it is created with the signup grant on the user's first credits call.

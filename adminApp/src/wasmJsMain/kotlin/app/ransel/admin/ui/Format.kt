@@ -40,10 +40,72 @@ class AdminFormat(
     private val yesterday: String,
     private val daysAgo: String,
 ) {
-    fun number(value: Int): String {
+    fun number(value: Long): String {
         val digits = kotlin.math.abs(value).toString()
         val grouped = digits.reversed().chunked(3).joinToString(groupSeparator.ifEmpty { "." }).reversed()
         return if (value < 0) "−$grouped" else grouped
+    }
+
+    fun number(value: Int): String = number(value.toLong())
+
+    private val decimalSeparator: String get() = if (groupSeparator == ".") "," else "."
+
+    /** [value] with [decimals] digits after the separator, grouped: "1.236", "8,4". */
+    fun decimal(value: Double, decimals: Int): String {
+        var factor = 1L
+        repeat(decimals) { factor *= 10 }
+        val scaled = kotlin.math.round(kotlin.math.abs(value) * factor).toLong()
+        val whole = number((scaled / factor).toInt()).removePrefix("−")
+        val text = if (decimals == 0) whole else whole + decimalSeparator + (scaled % factor).toString().padStart(decimals, '0')
+        return if (value < 0 && scaled != 0L) "−$text" else text
+    }
+
+    /** Provider money (micro-USD) as Karung shows it: "US$139" for big amounts, "US$88,60", "US$0,04" for one search. */
+    fun usd(microUsd: Long, decimals: Int = 2): String = "US$" + decimal(microUsd / 1_000_000.0, decimals)
+
+    /** "41%", rounded; 0 when [whole] is 0. */
+    fun percent(part: Number, whole: Number): String {
+        val w = whole.toDouble()
+        return if (w <= 0.0) "0%" else "${kotlin.math.round(part.toDouble() * 100 / w).toInt()}%"
+    }
+
+    /** "+8%" / "−4%" change of [now] against [before]; null when there is nothing to compare with. */
+    fun change(now: Int, before: Int): String? {
+        if (before <= 0) return null
+        val pct = kotlin.math.round((now - before) * 100.0 / before).toInt()
+        return if (pct > 0) "+$pct%" else if (pct < 0) "−${-pct}%" else "0%"
+    }
+
+    /** "212 ms" under a second, else "8,4 dtk" with [secondsUnit]. */
+    fun duration(millis: Int, secondsUnit: String): String =
+        if (millis < 1_000) "$millis ms" else "${decimal(millis / 1_000.0, 1)} $secondsUnit"
+
+    /** "1,8 GB", "512 MB". */
+    fun bytes(value: Long): String {
+        val units = listOf("B", "KB", "MB", "GB", "TB")
+        var size = value.toDouble()
+        var unit = 0
+        while (size >= 1024 && unit < units.lastIndex) {
+            size /= 1024
+            unit++
+        }
+        return "${decimal(size, if (unit >= 3) 1 else 0)} ${units[unit]}"
+    }
+
+    /** "16 Okt" without the year (chart axes). */
+    fun dayMonth(date: LocalDate): String = "${date.day} ${month(date)}"
+
+    /** "Okt 2026" for a `YYYY-MM` month. */
+    fun monthYear(yearMonth: String): String {
+        val (year, monthNumber) = yearMonth.split('-').let { (it.getOrNull(0) ?: "") to (it.getOrNull(1)?.toIntOrNull() ?: 0) }
+        return "${months.getOrNull(monthNumber - 1) ?: monthNumber.toString().padStart(2, '0')} $year"
+    }
+
+    /** "20.25" (WIB) for the time of a row of today. */
+    fun time(instant: Instant): String {
+        val t = instant.toLocalDateTime(Wib)
+        val sep = if (groupSeparator == ".") "." else ":"
+        return "${t.hour.toString().padStart(2, '0')}$sep${t.minute.toString().padStart(2, '0')}"
     }
 
     /** +3 / −10 with a real minus sign. */

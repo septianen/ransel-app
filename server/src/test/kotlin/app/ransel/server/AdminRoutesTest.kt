@@ -46,6 +46,10 @@ class AdminRoutesTest {
             HttpMethod.Post to "/admin/users/$id/enable",
             HttpMethod.Post to "/admin/users/$id/password-reset",
             HttpMethod.Get to "/admin/audit",
+            HttpMethod.Get to "/admin/overview",
+            HttpMethod.Get to "/admin/explore",
+            HttpMethod.Get to "/admin/explore/searches",
+            HttpMethod.Get to "/admin/system",
         )
         routes.forEach { (method, path) ->
             val body = if (method == HttpMethod.Post) """{"requestId":"${UUID.randomUUID()}","direction":"ADD","amount":5,"reason":"abc"}""" else null

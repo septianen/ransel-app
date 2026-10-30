@@ -23,6 +23,7 @@ import app.ransel.shared.dto.RecommendationGroup
 import app.ransel.shared.dto.RecommendationItem
 import app.ransel.shared.dto.RecommendationRequest
 import app.ransel.shared.dto.RecommendationResponse
+import app.ransel.shared.model.AiSearchKind
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.CreditAction
 import app.ransel.shared.model.FeedbackAction
@@ -82,6 +83,8 @@ class RecommendationService(
     private val credits: CreditService,
     /** Voting rounds for trips with 2+ members; null = every trip behaves like a solo trip (tests that do not care). */
     private val rounds: RoundService? = null,
+    /** One `ai_search_log` row per search for Karung; null = not logged (tests that do not care). */
+    private val searchLog: SearchLog? = null,
 ) {
     private val log = LoggerFactory.getLogger(RecommendationService::class.java)
 
@@ -104,7 +107,10 @@ class RecommendationService(
     }
 
     suspend fun recommend(userId: UUID, body: RecommendationRequest): RecommendationResponse =
-        oneSearchAtATime(userId) { recommendNow(userId, body) }
+        oneSearchAtATime(userId) { logged(SearchTrace(AiSearchKind.EXPLORE, userId, body.newSearch)) { recommendNow(userId, body) } }
+
+    private suspend fun <T> logged(trace: SearchTrace, block: suspend () -> T): T =
+        if (searchLog != null) searchLog.around(trace, block) else block()
 
     private suspend fun recommendNow(userId: UUID, body: RecommendationRequest): RecommendationResponse {
         val tripId = runCatching { UUID.fromString(body.tripId) }.getOrNull()
@@ -120,6 +126,12 @@ class RecommendationService(
         }
         // A trip without dates has not ended; it searches with the neutral dates of UndatedTrip.
         if (trip.endDate != null && todayWib() > trip.endDate) throw validationFailed(mapOf("tripId" to "TRIP_ENDED"))
+        searchTrace()?.apply {
+            this.tripId = tripId
+            destination = trip.destination.trim()
+            priceLevel = body.priceLevel.name
+            interests = body.interests.distinct().map { it.name } + body.extraInterests.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        }
 
         // A trip with 2+ members turns the search into a voting round (docs/specs/voting-spec.md).
         val requestedRound = body.roundId?.let { runCatching { UUID.fromString(it) }.getOrNull() ?: throw validationFailed(mapOf("roundId" to "INVALID_UUID")) }
@@ -153,6 +165,7 @@ class RecommendationService(
         val cached = readCache(key)
         val candidates: List<CachedPlace> = if (cached != null) {
             metrics.cacheHits.incrementAndGet()
+            searchTrace()?.cached = true
             cached
         } else {
             val query = LlmQuery(
@@ -192,6 +205,10 @@ class RecommendationService(
             if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
             throw e
         }
+        searchTrace()?.apply {
+            placeIds = items.map { it.second.placeId }
+            creditsCharged = credits.cost(action)
+        }
         val roundId = when {
             !voting || rounds == null -> null
             body.newSearch -> if (items.isEmpty()) null else rounds.create(tripId, userId, items)
@@ -210,7 +227,7 @@ class RecommendationService(
      * optional area, budget and wishes. Nothing is cached or put in a round; the caller picks what becomes an option.
      */
     suspend fun searchForPoll(userId: UUID, pollId: UUID, body: PollSearchRequest, polls: PollService.SearchContext = PollService.searchContext(userId, pollId)): PollSearchResponse =
-        oneSearchAtATime(userId) { searchForPollNow(userId, pollId, body, polls) }
+        oneSearchAtATime(userId) { logged(SearchTrace(AiSearchKind.POLL, userId, newSearch = true)) { searchForPollNow(userId, pollId, body, polls) } }
 
     private suspend fun searchForPollNow(userId: UUID, pollId: UUID, body: PollSearchRequest, polls: PollService.SearchContext): PollSearchResponse {
         val area = body.area?.trim()?.takeIf { it.isNotEmpty() }
@@ -224,6 +241,10 @@ class RecommendationService(
             if (hi != null && hi < 0) put("maxMinor", "NEGATIVE")
             if (lo != null && hi != null && lo > hi) put("minMinor", "ABOVE_MAX")
         })
+        searchTrace()?.apply {
+            tripId = polls.tripId
+            destination = area ?: polls.destination.trim()
+        }
         try {
             credits.requireAffordable(userId, CreditAction.SEARCH)
         } catch (e: ApiException) {
@@ -266,6 +287,10 @@ class RecommendationService(
         } catch (e: ApiException) {
             if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
             throw e
+        }
+        searchTrace()?.apply {
+            placeIds = results.map { it.placeId }
+            creditsCharged = credits.cost(CreditAction.SEARCH)
         }
         log.info("ai.pollsearch kind={} found={} returned={}", polls.kind, found.size, results.size)
         return PollSearchResponse(results, state)

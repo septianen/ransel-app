@@ -54,6 +54,9 @@ import app.ransel.admin.feature.shell.AdminSection
 import app.ransel.admin.feature.shell.AdminSidebar
 import app.ransel.admin.feature.shell.EnvironmentMenuBadge
 import app.ransel.admin.feature.shell.EnvironmentStrip
+import app.ransel.admin.feature.monitoring.ExploreAiScreen
+import app.ransel.admin.feature.monitoring.OverviewScreen
+import app.ransel.admin.feature.monitoring.SystemScreen
 import app.ransel.admin.feature.users.UserDetailScreen
 import app.ransel.admin.feature.users.UsersScreen
 import app.ransel.admin.generated.resources.Res
@@ -78,9 +81,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
-/** Pages, kept in the URL hash so a reload or a shared link opens the same user: `#/users`, `#/users/<id>`. */
+/** Pages, kept in the URL hash so a reload or a shared link opens the same page: `#/overview`, `#/users/<id>`, ... */
 sealed interface AdminRoute {
     val hash: String
+
+    data object Overview : AdminRoute {
+        override val hash = "#/overview"
+    }
+
+    data object ExploreAi : AdminRoute {
+        override val hash = "#/explore"
+    }
+
+    data object System : AdminRoute {
+        override val hash = "#/system"
+    }
 
     data object Users : AdminRoute {
         override val hash = "#/users"
@@ -95,7 +110,10 @@ sealed interface AdminRoute {
             val parts = hash.removePrefix("#").trim('/').split('/').filter { it.isNotEmpty() }
             return when {
                 parts.size == 2 && parts[0] == "users" -> User(parts[1])
-                else -> Users
+                parts.firstOrNull() == "users" -> Users
+                parts.firstOrNull() == "explore" -> ExploreAi
+                parts.firstOrNull() == "system" -> System
+                else -> Overview
             }
         }
     }
@@ -169,9 +187,20 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
         val sidebar: @Composable () -> Unit = {
             AdminSidebar(
                 me = me,
-                selected = AdminSection.USERS,
+                selected = when (route) {
+                    AdminRoute.Overview -> AdminSection.OVERVIEW
+                    AdminRoute.ExploreAi -> AdminSection.EXPLORE_AI
+                    AdminRoute.System -> AdminSection.SYSTEM
+                    AdminRoute.Users, is AdminRoute.User -> AdminSection.USERS
+                },
                 onSelect = { section ->
-                    if (section == AdminSection.USERS) navigate(AdminRoute.Users)
+                    when (section) {
+                        AdminSection.OVERVIEW -> navigate(AdminRoute.Overview)
+                        AdminSection.USERS -> navigate(AdminRoute.Users)
+                        AdminSection.EXPLORE_AI -> navigate(AdminRoute.ExploreAi)
+                        AdminSection.SYSTEM -> navigate(AdminRoute.System)
+                        else -> Unit
+                    }
                     scope.launch { drawer.close() }
                 },
                 onSignOut = signOut,
@@ -200,6 +229,17 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         }
                     }
                     when (val r = route) {
+                        AdminRoute.Overview -> OverviewScreen(
+                            api, onAccessLost,
+                            onOpenSystem = { navigate(AdminRoute.System) },
+                            onOpenExplore = { navigate(AdminRoute.ExploreAi) },
+                        )
+                        AdminRoute.ExploreAi -> ExploreAiScreen(
+                            api, onAccessLost,
+                            onOpenUser = { navigate(AdminRoute.User(it)) },
+                            onOpenSettings = { navigate(AdminRoute.System) },
+                        )
+                        AdminRoute.System -> SystemScreen(api, onAccessLost)
                         AdminRoute.Users -> UsersScreen(api, snackbar, onAccessLost, onOpenUser = { navigate(AdminRoute.User(it)) }, canAddUsers = me.passwordResetEmailEnabled)
                         is AdminRoute.User -> UserDetailScreen(api, me, r.id, snackbar, onAccessLost, onBack = { navigate(AdminRoute.Users) })
                     }

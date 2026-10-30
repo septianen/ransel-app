@@ -8,7 +8,11 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.AdjustCreditsRequest
 import app.ransel.shared.dto.AdminActionResult
 import app.ransel.shared.dto.AdminAuditEntryDto
+import app.ransel.shared.dto.AdminExploreDto
 import app.ransel.shared.dto.AdminMeDto
+import app.ransel.shared.dto.AdminOverviewDto
+import app.ransel.shared.dto.AdminSearchDto
+import app.ransel.shared.dto.AdminSystemDto
 import app.ransel.shared.dto.AdminUserDetailDto
 import app.ransel.shared.dto.AdminUserDto
 import app.ransel.shared.dto.AuthSessionDto
@@ -17,6 +21,7 @@ import app.ransel.shared.dto.CreditLedgerEntryDto
 import app.ransel.shared.dto.CreditsDto
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.RefreshRequest
+import app.ransel.shared.model.AdminRange
 import app.ransel.shared.model.UserStatus
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -131,6 +136,20 @@ class AdminApi(
 
     suspend fun audit(targetId: String?, page: Int = 1): ApiResult<Page<AdminAuditEntryDto>> =
         call(HttpMethod.Get, AdminRoutes.AUDIT, { targetId?.let { parameter("targetId", it) }; parameter("page", page) }) { it.page() }
+
+    // ── monitoring (stage B) ────────────────────────────────────────────────
+    suspend fun overview(range: AdminRange): ApiResult<AdminOverviewDto> =
+        call(HttpMethod.Get, AdminRoutes.OVERVIEW, { parameter("range", range.name) }) { it.body<ApiResponse<AdminOverviewDto>>().data }
+
+    /** [month] = `YYYY-MM`; null = this month (WIB) on the server. */
+    suspend fun explore(month: String? = null): ApiResult<AdminExploreDto> =
+        call(HttpMethod.Get, AdminRoutes.EXPLORE, { month?.let { parameter("month", it) } }) { it.body<ApiResponse<AdminExploreDto>>().data }
+
+    suspend fun searches(page: Int, userId: String? = null): ApiResult<Page<AdminSearchDto>> =
+        call(HttpMethod.Get, AdminRoutes.EXPLORE_SEARCHES, { userId?.let { parameter("userId", it) }; parameter("page", page) }) { it.page() }
+
+    suspend fun system(range: AdminRange): ApiResult<AdminSystemDto> =
+        call(HttpMethod.Get, AdminRoutes.SYSTEM, { parameter("range", range.name) }) { it.body<ApiResponse<AdminSystemDto>>().data }
 
     // ── plumbing ────────────────────────────────────────────────────────────
     private fun HttpRequestBuilder.filter(filter: UserFilter) {

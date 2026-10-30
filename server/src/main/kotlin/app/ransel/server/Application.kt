@@ -12,6 +12,16 @@ import app.ransel.server.ai.PlacePhotoService
 import app.ransel.server.ai.RecommendationService
 import app.ransel.server.ai.UndatedTrip
 import app.ransel.server.ai.aiServicesFrom
+import app.ransel.server.ai.SearchLog
+import app.ransel.server.ai.UsageMeter
+import app.ransel.server.ai.metered
+import app.ransel.server.plugins.configureMonitoring
+import app.ransel.server.service.AdminMonitoringService
+import app.ransel.server.service.RequestStats
+import app.ransel.server.service.ErrorCounter
+import app.ransel.server.service.LastSeen
+import app.ransel.server.service.Monitoring
+import io.ktor.server.application.ApplicationStopPreparing
 import app.ransel.server.db.DatabaseFactory
 import app.ransel.server.db.TemplateSeed
 import app.ransel.server.plugins.JWT_AUTH
@@ -122,7 +132,22 @@ fun Application.module(
     TemplateSeed.run()
     monitor.subscribe(ApplicationStopped) { (pool as? HikariDataSource)?.close() }
 
-    val (aiServices, aiHttp) = if (ai != null) ai to null else aiServicesFrom(config)
+    val (rawAiServices, aiHttp) = if (ai != null) ai to null else aiServicesFrom(config)
+    // Karung's provider cost: every outside call is counted per day, and per search in ai_search_log.
+    val usage = UsageMeter(config.providerPrices)
+    val aiServices = rawAiServices.metered(usage)
+    val searchLog = SearchLog(config.providerPrices)
+    val errorCounter = ErrorCounter()
+    Monitoring.errors = errorCounter
+    Monitoring.usage = usage
+    Monitoring.searches = searchLog
+    // the counters still in memory reach the database before the pool closes
+    monitor.subscribe(ApplicationStopPreparing) { runCatching { Monitoring.flush() } }
+    monitor.subscribe(ApplicationStopped) {
+        Monitoring.errors = null
+        Monitoring.usage = null
+        Monitoring.searches = null
+    }
     monitor.subscribe(ApplicationStopped) { aiHttp?.close() }
     val photoSigner = PhotoSigner(config.photoSigningSecret)
     val aiMetrics = AiMetrics()
@@ -141,7 +166,7 @@ fun Application.module(
     val placeDetails = PlaceDetailService(aiServices, photoSigner, fxRates, aiMetrics)
     val credits = CreditService(config)
     val rounds = RoundService(config, photoSigner)
-    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits, rounds)
+    val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits, rounds, searchLog)
     // Expense rates: the ECB 90-day history, once a day (tests have no network: they insert rows).
     val fxDaily = FxRateService(fxHttp?.let { http -> suspend { http.get(FxRateService.HISTORY_URL).body<String>() } })
     if (ecb != null) {
@@ -171,6 +196,7 @@ fun Application.module(
             runCatching { placeDetails.purgeExpired() }
             runCatching { Notify.service?.purge() }
             runCatching { linkPreviews.purge() }
+            runCatching { Monitoring.purge() }
             recommendations.metrics.logSummary()
         }
     }
@@ -193,6 +219,7 @@ fun Application.module(
         while (isActive) {
             runCatching { reminders.tick() }.onFailure { environment.log.warn("reminder tick failed: {}", it.javaClass.simpleName) }
             runCatching { rounds.tick() }.onFailure { environment.log.warn("voting tick failed: {}", it.javaClass.simpleName) }
+            runCatching { Monitoring.flush() }.onFailure { environment.log.warn("monitoring flush failed: {}", it.javaClass.simpleName) }
             // files of deleted documents and trips leave the disk, once an hour
             if (java.time.LocalTime.now().minute == 0) {
                 runCatching { DocumentService(config).purge() }.onFailure { environment.log.warn("document purge failed: {}", it.javaClass.simpleName) }
@@ -214,7 +241,10 @@ fun Application.module(
     configureSerialization()
     configureStatusPages()
     configureRateLimit(config)
-    configureAuth(config, tokens)
+    val requestStats = RequestStats()
+    configureMonitoring(errorCounter, requestStats)
+    val lastSeen = LastSeen(maintenance)
+    configureAuth(config, tokens, lastSeen::touch)
 
     routing {
         wellKnownRoutes(config)
@@ -252,7 +282,7 @@ fun Application.module(
                 placeRoutes(PlaceSearchService(aiServices.placeSearch))
                 fxRoutes(fxDaily)
                 placeDetailRoutes(placeDetails)
-                adminRoutes(admin)
+                adminRoutes(admin, AdminMonitoringService(config, requestStats))
             }
         }
     }

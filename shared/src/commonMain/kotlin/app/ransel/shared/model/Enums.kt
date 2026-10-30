@@ -110,6 +110,18 @@ enum class UserStatus { ACTIVE, DISABLED, DELETED }
 @Serializable
 enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT, USER_CREATE }
 
+/** Time range of a Karung monitoring page; each endpoint lists the ones it takes. Days are WIB days. */
+@Serializable
+enum class AdminRange { TODAY, LAST_24_HOURS, LAST_7_DAYS, LAST_30_DAYS }
+
+/** How an Explore or poll search ended, as Karung lists it ("Baru", "Cache", "Gagal", "Kredit kurang"). */
+@Serializable
+enum class AiSearchSource { NEW, CACHE, FAILED, NO_CREDITS }
+
+/** EXPLORE = the swipe search of a trip; POLL = Jelajah from a stay or food poll. */
+@Serializable
+enum class AiSearchKind { EXPLORE, POLL }
+
 /** Where spent credits came from: the free daily allowance first, then the wallet. */
 @Serializable
 enum class CreditSource { FREE_DAILY, WALLET }
