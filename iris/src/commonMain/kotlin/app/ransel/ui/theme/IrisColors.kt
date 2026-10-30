@@ -108,6 +108,20 @@ data class IrisAccents(
     val red: Color = Color(0xFFD82D3B),
     val brown: Color = Color(0xFF844C1C),
     val onAccent: Color = Color(0xFFFFFFFF),
-)
+) {
+    /** An accent by its token name ("blue", ...), as remote content names it; null = unknown. */
+    fun byName(name: String): Color? = when (name) {
+        "green" -> green
+        "magenta" -> magenta
+        "purple" -> purple
+        "teal" -> teal
+        "blue" -> blue
+        "yellow" -> yellow
+        "orange" -> orange
+        "red" -> red
+        "brown" -> brown
+        else -> null
+    }
+}
 
 val LocalIrisAccents = staticCompositionLocalOf { IrisAccents() }
