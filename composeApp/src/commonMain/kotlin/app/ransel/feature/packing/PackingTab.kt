@@ -31,6 +31,13 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.AssistChip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -550,8 +557,10 @@ internal fun PackingRow(
     enabled: Boolean,
     badge: String? = null,
     menu: (@Composable () -> Unit)? = null,
-    /** Replaces the check box (Bersama: the hand of an item nobody brings yet). */
+    /** Replaces the check box (Bersama: an empty dashed box while nobody brings the item). */
     leading: (@Composable () -> Unit)? = null,
+    /** After the quantity (Bersama: the "Saya bawa" chip). */
+    action: (@Composable () -> Unit)? = null,
     /** A line under the name (Bersama: who brings it). */
     subtitle: (@Composable () -> Unit)? = null,
     /** Null for a row a tap does not tick. */
@@ -610,6 +619,7 @@ internal fun PackingRow(
             style = MaterialTheme.typography.titleSmall,
             color = if (packed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
         )
+        action?.invoke()
         menu?.invoke()
     }
 }
@@ -671,12 +681,20 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
         leading = {
             Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
                 if (bringer == null) {
+                    // nobody brings it yet: an empty slot, not a check box that cannot be ticked
+                    val dash = scheme.outlineVariant
                     Box(
-                        Modifier.size(40.dp).clip(CircleShape).clickable(role = Role.Button) { shared.onBring(item) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Symbol(Symbols.frontHand, contentDescription = stringResource(Res.string.packing_bring), tint = scheme.onSurfaceVariant)
-                    }
+                        Modifier.size(22.dp).drawBehind {
+                            val stroke = 2.dp.toPx()
+                            drawRoundRect(
+                                color = dash,
+                                topLeft = Offset(stroke / 2, stroke / 2),
+                                size = Size(size.width - stroke, size.height - stroke),
+                                cornerRadius = CornerRadius(4.dp.toPx()),
+                                style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
+                            )
+                        },
+                    )
                 } else {
                     val packed = item.isPacked
                     Box(
@@ -690,6 +708,12 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
                     ) { if (packed) Symbol(Symbols.check, size = 16.dp, tint = scheme.onPrimary) }
                 }
             }
+        },
+        // a chip with words, not an icon: the hand was unclear (owner, 30 Oct 2026)
+        action = if (bringer == null) {
+            { AssistChip(onClick = { shared.onBring(item) }, label = { Text(stringResource(Res.string.packing_bring)) }) }
+        } else {
+            null
         },
         subtitle = if (bringer != null) {
             {
@@ -715,7 +739,6 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
                 when {
                     bringer == null -> DropdownMenuItem(
                         text = { Text(stringResource(Res.string.packing_bring)) },
-                        leadingIcon = { Symbol(Symbols.frontHand) },
                         onClick = { close(); shared.onBring(item) },
                     )
                     mine || shared.canEdit -> DropdownMenuItem(

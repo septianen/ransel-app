@@ -77,7 +77,6 @@ import app.ransel.platform.requiresAccount
 import app.ransel.ui.components.ConfirmDialog
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import ransel.composeapp.generated.resources.account_section_account
 import ransel.composeapp.generated.resources.account_sign_out
 import ransel.composeapp.generated.resources.account_sign_out_body
 import ransel.composeapp.generated.resources.account_sign_out_pending
@@ -136,7 +135,8 @@ fun AccountScreen(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Section(stringResource(Res.string.account_section_account)) {
+            // no "Akun" header: the page title above already says it (owner, 30 Oct 2026)
+            Section(null) {
                 val user = (session as? SessionState.SignedIn)?.user
                 if (user != null) {
                     ProfileRow(user.displayName, user.email)
@@ -269,9 +269,9 @@ private val AppLanguage.label: StringResource
     }
 
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
+private fun Section(title: String?, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionHeader(title, Modifier.padding(bottom = 4.dp))
+        title?.let { SectionHeader(it, Modifier.padding(bottom = 4.dp)) }
         content()
     }
 }

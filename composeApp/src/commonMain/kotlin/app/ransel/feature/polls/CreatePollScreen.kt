@@ -339,8 +339,9 @@ internal fun PollOptionsSection(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(app.ransel.shared.domain.pollOptionLabel(kind, option), style = MaterialTheme.typography.titleSmall)
-                    pollOptionSubtitle(dto, currency)?.let {
+                    val title = pollOptionTitle(dto, currency)
+                    Text(title, style = MaterialTheme.typography.titleSmall)
+                    pollOptionSubtitle(dto, currency)?.takeIf { it != title }?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

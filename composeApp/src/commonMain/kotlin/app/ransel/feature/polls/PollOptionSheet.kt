@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.tripform.ThousandsVisualTransformation
 import app.ransel.feature.tripform.TripDateRangePicker
+import app.ransel.shared.domain.pollOptionLabel
 import app.ransel.shared.domain.validatePollOption
 import app.ransel.shared.dto.PollOptionDto
 import app.ransel.shared.dto.PollOptionInput
@@ -323,6 +324,26 @@ internal fun PickerButton(symbol: String, text: String, onClick: () -> Unit) {
         Symbol(symbol, size = 20.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f), maxLines = 1)
     }
+}
+
+/**
+ * The option's name as people read it. A date or budget option nobody named carries the label the server made
+ * from its range ("2026-11-20 – 2026-11-23"); it shows the formatted range instead ("20–23 Nov 2026"; owner,
+ * 30 Oct 2026). Show [pollOptionSubtitle] under it only when it differs from this.
+ */
+@Composable
+fun pollOptionTitle(option: PollOptionDto, currency: String): String =
+    if (option.hasGeneratedLabel()) pollOptionSubtitle(option, currency) ?: option.label else option.label
+
+/** Whether the label is empty or the one [pollOptionLabel] makes from the date or budget range. */
+fun PollOptionDto.hasGeneratedLabel(): Boolean {
+    val kind = when {
+        startDate != null && endDate != null -> PollKind.DATE
+        minMinor != null && maxMinor != null -> PollKind.BUDGET
+        else -> return false
+    }
+    val untyped = PollOptionInput(id = id, label = "", startDate = startDate, endDate = endDate, minMinor = minMinor, maxMinor = maxMinor)
+    return label.isBlank() || label == pollOptionLabel(kind, untyped)
 }
 
 /** Text under an option: dates, a price, or a budget range. Null when there is nothing to add to the name. */
