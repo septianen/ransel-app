@@ -724,7 +724,8 @@ private fun SharedPackingRow(item: PackingItemDto, shared: SharedMode, onToggle:
                     when {
                         bringer == null -> stringResource(Res.string.packing_bringer_none)
                         mine -> stringResource(Res.string.packing_bringer_me)
-                        else -> stringResource(Res.string.packing_bringer, bringerName)
+                        // just the name, "Casey Stoner" (owner, 30 Oct 2026)
+                        else -> bringerName.ifEmpty { "?" }
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
