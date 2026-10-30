@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.model.Category
@@ -54,6 +55,8 @@ import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.VoteOptionCard
 import app.ransel.ui.components.FormScaffold
 import app.ransel.ui.preview.IrisPreview
+import app.ransel.ui.symbols.RanselLogoTile
+import app.ransel.ui.symbols.RanselMark
 import app.ransel.ui.symbols.Symbols
 import androidx.compose.material3.ExperimentalMaterial3Api
 
@@ -100,6 +103,12 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         primaryLabel = "Coba lagi",
                         onPrimary = {},
                     )
+                }
+                Section("RanselLogoTile / RanselMark") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        RanselLogoTile(size = 48.dp)
+                        RanselMark(size = 32.dp, tint = MaterialTheme.colorScheme.primary)
+                    }
                 }
                 Section("TripHeader") {
                     TripHeader("Bali 4 hari", "20–23 Nov 2026", TripTab.ITINERARY, {}, {}, onEdit = {})

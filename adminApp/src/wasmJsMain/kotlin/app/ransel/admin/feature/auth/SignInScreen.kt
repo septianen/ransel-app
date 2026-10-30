@@ -61,6 +61,7 @@ import app.ransel.admin.ui.failureText
 import app.ransel.admin.ui.rememberPresenter
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.domain.isValidEmail
+import app.ransel.ui.symbols.RanselMark
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
@@ -177,13 +178,13 @@ private fun signInErrorText(error: ApiFailure): String = when (error.code) {
     else -> failureText(error) + if (error.isConnection) "" else " · " + stringResource(Res.string.error_code, error.code)
 }
 
-/** The Karung mark from the sidebar: purple tile with the app name. */
+/** The Karung mark from the sidebar: the RANSEL logo on a purple tile, with the app name. */
 @Composable
 fun BrandMark(modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(36.dp).background(scheme.tertiary, IrisShape.sm), contentAlignment = Alignment.Center) {
-            Symbol(Symbols.luggage, size = 22.dp, tint = scheme.onTertiary)
+            RanselMark(size = 26.dp, tint = scheme.onTertiary)
         }
         Column(Modifier.padding(start = 10.dp)) {
             Text(stringResource(Res.string.app_name), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
