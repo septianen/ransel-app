@@ -106,9 +106,50 @@ enum class CreditDirection { ADD, SUBTRACT }
 @Serializable
 enum class UserStatus { ACTIVE, DISABLED, DELETED }
 
-/** What an admin did; one audit row each. Later stages add SETTINGS_UPDATE and CONTENT_PUBLISH. */
+/** What an admin did; one audit row each. Stage D adds CONTENT_PUBLISH. */
 @Serializable
-enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT, USER_CREATE }
+enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT, USER_CREATE, SETTINGS_UPDATE }
+
+/**
+ * A setting Karung can change without a deploy (admin-spec "Credit settings", stage C). Each one has an env var as
+ * its default; a value set in Karung wins until it is cleared. Allowed values: `domain/AdminSettings.kt`.
+ */
+@Serializable
+enum class SettingKey {
+    /** Credits a new verified account gets (`CREDIT_SIGNUP_GRANT`). */
+    SIGNUP_GRANT,
+    /** Free credits per WIB day (`CREDIT_DAILY_FREE`). */
+    DAILY_FREE,
+    /** A new Explore or poll search (`CREDIT_COST_SEARCH`). */
+    COST_SEARCH,
+    /** The next batch of the same search (`CREDIT_COST_NEXT_BATCH`). */
+    COST_NEXT_BATCH,
+    /** Opening a place's detail (`CREDIT_COST_PLACE_DETAIL`). */
+    COST_PLACE_DETAIL,
+    /** One receipt photo read by AI (`CREDIT_COST_RECEIPT`). */
+    COST_RECEIPT,
+    /** LLM + Places budget per month in USD, "0" = none (`AI_MONTHLY_BUDGET_USD`). */
+    AI_MONTHLY_BUDGET_USD,
+    /** Karung warns from this share of the budget: 80, 90 or 100 (`AI_BUDGET_ALERT_PERCENT`). */
+    AI_BUDGET_ALERT_PERCENT,
+    /** What happens once the month's spend reaches the budget, an [AiBudgetMode] name (`AI_BUDGET_MODE`). */
+    AI_BUDGET_MODE,
+    /** Interest suggestions per user per hour (`SUGGESTIONS_RATE_LIMIT_PER_HOUR`). */
+    SUGGESTIONS_PER_HOUR,
+    /** The LLM model, one of the server's allow-list (`LLM_MODEL`, `LLM_MODELS`). */
+    LLM_MODEL,
+}
+
+/** ENV = the env var or the built-in default; OVERRIDE = set in Karung. */
+@Serializable
+enum class SettingSource { ENV, OVERRIDE }
+
+/**
+ * KEEP_GOING = the budget only warns. CACHE_ONLY = once the month's spend reaches it, nothing new asks the LLM: cached
+ * searches still answer, new searches and receipt photos get 503 AI_PAUSED (no credits are charged).
+ */
+@Serializable
+enum class AiBudgetMode { KEEP_GOING, CACHE_ONLY }
 
 /** Time range of a Karung monitoring page; each endpoint lists the ones it takes. Days are WIB days. */
 @Serializable

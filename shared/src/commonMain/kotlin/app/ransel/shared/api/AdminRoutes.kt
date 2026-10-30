@@ -27,4 +27,7 @@ object AdminRoutes {
     const val EXPLORE = "/admin/explore"                           // GET ?month=YYYY-MM (default this month) → AdminExploreDto
     const val EXPLORE_SEARCHES = "/admin/explore/searches"         // GET ?userId=&page= → List<AdminSearchDto> + meta, newest first
     const val SYSTEM = "/admin/system"                             // GET ?range=LAST_24_HOURS|LAST_7_DAYS (default LAST_24_HOURS) → AdminSystemDto
+
+    // Stage C ─ settings without a deploy (history: AUDIT ?action=SETTINGS_UPDATE)
+    const val SETTINGS = "/admin/settings"                         // GET → AdminSettingsDto; PUT UpdateSettingsRequest → AdminSettingsDto (audited)
 }
