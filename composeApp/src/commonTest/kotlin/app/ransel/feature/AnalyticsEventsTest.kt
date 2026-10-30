@@ -1,5 +1,6 @@
 package app.ransel.feature
 
+import kotlinx.datetime.LocalDate
 import app.ransel.data.analytics.Analytics
 import app.ransel.data.analytics.AnalyticsEvent
 import app.ransel.data.analytics.BreadcrumbAnalytics
@@ -73,6 +74,7 @@ class AnalyticsEventsTest {
 
         val create = TripFormViewModel(null, trips, InMemoryPreferencesRepository(), analytics)
         create.onTitleChange("Bali")
+        create.onDatesChange(LocalDate(2027, 1, 10), LocalDate(2027, 1, 13))
         val saved = backgroundScope.launch { create.eventFlow.first() }
         create.save()
         saved.join()

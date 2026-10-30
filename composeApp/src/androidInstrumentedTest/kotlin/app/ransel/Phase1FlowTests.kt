@@ -105,14 +105,17 @@ class Phase1FlowTests {
 
     @Test fun createTrip() {
         var savedId: String? = null
+        val vm = TripFormViewModel(null, trips, prefs)
         rule.setContent {
             IrisTheme {
                 TripFormScreen(
                     tripId = null, onClose = {}, onSaved = { savedId = it }, onDeleted = {},
-                    viewModel = TripFormViewModel(null, trips, prefs),
+                    viewModel = vm,
                 )
             }
         }
+        // a new trip starts without dates (F21.6); the range picker itself is M3's
+        vm.onDatesChange(kotlinx.datetime.LocalDate(2027, 1, 10), kotlinx.datetime.LocalDate(2027, 1, 13))
         rule.onAllNodes(hasSetTextAction()).onFirst().performTextInput("Bali 4 hari")
         waitUntilEnabled("Create trip")
         rule.onAllNodesWithText("Create trip").onLast().performClick()

@@ -90,6 +90,8 @@ import ransel.composeapp.generated.resources.trip_shorten_hint
 import ransel.composeapp.generated.resources.trip_start_date
 import ransel.composeapp.generated.resources.trips_create
 import ransel.composeapp.generated.resources.trip_form_create_with_poll
+import ransel.composeapp.generated.resources.trip_form_dates_required
+import ransel.composeapp.generated.resources.trip_form_dates_required_or_undated
 import ransel.composeapp.generated.resources.trip_form_pick_dates
 import ransel.composeapp.generated.resources.trip_form_poll_failed_body
 import ransel.composeapp.generated.resources.trip_form_poll_failed_ok
@@ -186,7 +188,7 @@ fun TripFormScreen(
         if (state.datesUndecided) {
             DatePollDraftCard(state.pollOptions, state.pollClosingDays, state.pollError, onEdit = viewModel::openPollSheet)
         } else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            // Dates (an undated trip being edited shows "Pilih tanggal" until a range is picked)
+            // Dates: "Pilih tanggal" until a range is picked (a new trip starts empty and needs one)
             val start = state.startDate
             val end = state.endDate
             val pick = stringResource(Res.string.trip_form_pick_dates)
@@ -197,6 +199,7 @@ fun TripFormScreen(
                     text = start?.let(dates::weekdayDayMonth) ?: pick,
                     description = stringResource(Res.string.trip_start_date),
                     modifier = Modifier.weight(1f),
+                    error = state.datesError,
                     onClick = { showDates = true },
                 )
                 DateButton(
@@ -204,8 +207,12 @@ fun TripFormScreen(
                     text = end?.let(dates::weekdayDayMonth) ?: pick,
                     description = stringResource(Res.string.trip_end_date),
                     modifier = Modifier.weight(1f),
+                    error = state.datesError,
                     onClick = { showDates = true },
                 )
+            }
+            if (state.datesError) {
+                Text(stringResource(if (state.canAskDates) Res.string.trip_form_dates_required_or_undated else Res.string.trip_form_dates_required), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
             }
             if (start != null && end != null) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 val days = start.daysUntil(end) + 1
@@ -297,8 +304,8 @@ fun TripFormScreen(
 
     if (showDates) {
         TripDateRangePicker(
-            start = state.startDate ?: app.ransel.util.today(),
-            end = state.endDate ?: state.startDate ?: app.ransel.util.today(),
+            start = state.startDate,
+            end = state.endDate ?: state.startDate,
             onConfirm = { s, e ->
                 viewModel.onDatesChange(s, e)
                 showDates = false
@@ -373,11 +380,15 @@ private fun DateButton(
     description: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    error: Boolean = false,
 ) {
     Row(
         modifier
             .heightIn(min = 48.dp)
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outline), IrisShape.md)
+            .border(
+                BorderStroke(if (error) 2.dp else 1.dp, if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline),
+                IrisShape.md,
+            )
             .clip(IrisShape.md)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 12.dp),

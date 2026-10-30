@@ -47,8 +47,9 @@ import ransel.composeapp.generated.resources.trip_close
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripDateRangePicker(
-    start: LocalDate,
-    end: LocalDate,
+    /** Null = nothing selected yet (a new trip); the calendar then opens on [earliest] or today. */
+    start: LocalDate?,
+    end: LocalDate?,
     onConfirm: (LocalDate, LocalDate) -> Unit,
     onDismiss: () -> Unit,
     earliest: LocalDate? = null,
@@ -60,9 +61,9 @@ fun TripDateRangePicker(
         }
     }
     val state = rememberDateRangePickerState(
-        initialSelectedStartDateMillis = start.toPickerMillis(),
-        initialSelectedEndDateMillis = end.toPickerMillis(),
-        initialDisplayedMonthMillis = start.toPickerMillis(),
+        initialSelectedStartDateMillis = start?.toPickerMillis(),
+        initialSelectedEndDateMillis = end?.toPickerMillis(),
+        initialDisplayedMonthMillis = (start ?: earliest ?: app.ransel.util.today()).toPickerMillis(),
         selectableDates = selectable,
     )
     Dialog(

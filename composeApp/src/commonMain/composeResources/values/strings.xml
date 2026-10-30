@@ -1596,6 +1596,8 @@
     <string name="trip_form_poll_failed_body">Your trip is saved. Start the date poll from Overview once you are online.</string>
     <string name="trip_form_poll_failed_ok">Continue</string>
     <string name="trip_form_pick_dates">Pick dates</string>
+    <string name="trip_form_dates_required">Pick the trip dates first.</string>
+    <string name="trip_form_dates_required_or_undated">Pick the trip dates, or switch on “Dates not decided yet”.</string>
     <plurals name="date_poll_options">
         <item quantity="one">%1$d option</item>
         <item quantity="other">%1$d options</item>
