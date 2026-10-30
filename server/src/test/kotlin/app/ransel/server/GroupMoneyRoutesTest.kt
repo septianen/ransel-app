@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import kotlinx.serialization.json.boolean
 import app.ransel.server.ai.AiServices
 import app.ransel.server.ai.InterestSuggestions
 import app.ransel.server.ai.LlmCandidate
@@ -191,6 +192,26 @@ class GroupMoneyRoutesTest {
 
         val wrong = post("/trips/${g.tripId}/expenses", expenseJson(300_000, extra = ""","items":$items"""))
         assertEquals("SPLIT_TOTAL_MISMATCH", wrong.errorCode())
+    }
+
+    @Test
+    fun receiptLinesWithoutAPerItemSplitAreKeptAndTheSplitsStay() = apiTest {
+        val g = group()
+        // "Bagi rata" on a scanned receipt: the lines are only shown, they need not add up and carry no members
+        val lines = """[{"name":"Nasi campur","amountMinor":130000,"memberIds":["${g.ma}"]},{"name":"Es kelapa","amountMinor":120000}]"""
+        val splits = mapOf(g.ma to 100_000L, g.mb to 100_000L, g.mc to 100_000L)
+        val created = post("/trips/${g.tripId}/expenses", expenseJson(300_000, splits, extra = ""","items":$lines,"itemsSplit":false"""))
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        val body = created.data().jsonObject
+        assertEquals(splits, body.getValue("splits").jsonArray.map { it.jsonObject }.associate { it.str("memberId") to it.long("shareMinor") })
+        assertEquals(false, body.getValue("itemsSplit").jsonPrimitive.boolean)
+        val items = body.getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("Nasi campur", "Es kelapa"), items.map { it.str("name") })
+        assertTrue(items.all { it.getValue("memberIds").jsonArray.isEmpty() })
+        // the list of the trip says the same
+        val listed = get("/trips/${g.tripId}/expenses").data().jsonArray.single().jsonObject
+        assertEquals(false, listed.getValue("itemsSplit").jsonPrimitive.boolean)
+        assertEquals(2, listed.getValue("items").jsonArray.size)
     }
 
     @Test

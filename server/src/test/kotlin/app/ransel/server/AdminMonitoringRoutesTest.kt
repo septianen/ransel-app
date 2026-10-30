@@ -132,7 +132,10 @@ class AdminMonitoringRoutesTest {
         val s = get("/admin/system").data().jsonObject
         assertEquals("LAST_24_HOURS", s.str("range"))
         assertEquals("abc123", s.str("version"))
-        assertEquals("27", s.str("flywayVersion"))
+        // the newest migration in the folder, so the next one does not break this test
+        val newest = java.io.File("src/main/resources/db/migration").list().orEmpty()
+            .mapNotNull { Regex("^V(\\d+)__").find(it)?.groupValues?.get(1)?.toInt() }.max()
+        assertEquals(newest.toString(), s.str("flywayVersion"))
         assertTrue(s.str("databaseBytes").toLong() > 0)
         assertTrue(s.str("requests24h").toLong() >= 5)
         assertNull(s["lastBackupAt"]?.takeIf { it.toString() != "null" })

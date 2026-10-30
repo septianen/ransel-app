@@ -273,7 +273,9 @@ class RoomExpenseRepository(
                 // with several payers the first one is "who paid"
                 paidByMemberId = input.payers.firstOrNull()?.memberId ?: input.paidByMemberId ?: memberIdFor(tripId, currentUserId()),
                 splitsJson = input.splits.toSplitsJson(), payersJson = input.payers.toPayersJson(),
-                isEstimate = input.isEstimate, itemsJson = input.items.toItemsJson(),
+                isEstimate = input.isEstimate,
+                // lines that are only shown carry no members, which is how they read back as itemsSplit = false
+                itemsJson = (if (input.itemsSplit) input.items else input.items.map { it.copy(memberIds = emptyList()) }).toItemsJson(),
                 fxSource = input.fxSource?.name.takeIf { input.fxRateToBase != null }, fxDate = input.fxDate?.toString().takeIf { input.fxRateToBase != null },
                 createdAt = created, updatedAt = stamp, deletedAt = null,
             ),

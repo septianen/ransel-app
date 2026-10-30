@@ -122,7 +122,9 @@ class ReceiptFormState(
             perItem -> shares().filterValues { it > 0 }.map { ExpenseSplitDto(it.key, it.value) }
             else -> split.toSplits(total, draft.currency)
         },
-        items = if (perItem && split != null) items() else emptyList(),
+        // "Per item" sends who shares each line; otherwise the lines are kept only to be shown on the expense
+        items = if (perItem && split != null) items() else lines.map { it.copy(memberIds = emptyList()) },
+        itemsSplit = perItem && split != null,
     )
 
     /**

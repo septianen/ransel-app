@@ -130,6 +130,7 @@ fun ResultRow.toExpenseDto(
     splits = splits,
     isEstimate = this[Expenses.isEstimate],
     items = items,
+    itemsSplit = this[Expenses.itemsSplit],
     fxSource = this[Expenses.fxSource],
     fxDate = this[Expenses.fxDate]?.toKotlinLocalDate(),
     createdAt = this[Expenses.createdAt].toTimestamp(),

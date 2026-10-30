@@ -234,7 +234,10 @@ class ReceiptTest {
         assertTrue(form.canSave)
         val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
         assertEquals(mapOf("a" to 143_000L, "b" to 143_000L), input.splits.associate { it.memberId to it.shareMinor })
-        assertTrue(input.items.isEmpty())
+        // the lines are kept to be shown on the expense, without members: they do not decide the split
+        assertEquals(listOf("Nasi campur", "Sate lilit", "Pajak"), input.items.map { it.name })
+        assertTrue(input.items.all { it.memberIds.isEmpty() })
+        assertFalse(input.itemsSplit)
         assertEquals("Warung Made", input.note)
     }
 
@@ -246,6 +249,7 @@ class ReceiptTest {
         val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
         assertEquals(3, input.items.size)
         assertEquals("Pajak", input.items.last().name)
+        assertTrue(input.itemsSplit)
         assertTrue(input.items.last().memberIds.isEmpty())
         // a: 65.000 + 6.500 tax, b: 65.000 + 130.000 + 19.500 tax
         assertEquals(mapOf("a" to 71_500L, "b" to 214_500L), input.splits.associate { it.memberId to it.shareMinor })

@@ -306,6 +306,8 @@ object Expenses : Table("expenses") {
     val paidByMemberId = javaUUID("paid_by_member_id")
     /** A planned cost (V18), e.g. the stay chosen in a poll; left out of balances. */
     val isEstimate = bool("is_estimate")
+    /** V28: false = the receipt items are only shown, the splits were chosen by hand. */
+    val itemsSplit = bool("items_split")
     /** V20: where fx_rate_to_base came from and the day of the reference rate. */
     val fxSource = enumerationByName<FxSource>("fx_source", 8).nullable()
     val fxDate = date("fx_date").nullable()
