@@ -17,6 +17,7 @@ import app.ransel.feature.polls.PollNotice
 import app.ransel.feature.polls.PollSearchError
 import app.ransel.feature.polls.PollViewModel
 import app.ransel.feature.polls.forDisplay
+import app.ransel.feature.polls.hasGeneratedLabel
 import app.ransel.feature.polls.leaders
 import app.ransel.feature.polls.needFor
 import app.ransel.feature.polls.toInput
@@ -55,6 +56,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -433,6 +435,16 @@ class CreatePollViewModelTest {
         assertEquals(false, vm.state.value.canAddOption)
         vm.create()
         eventually { log.value.isNotEmpty() }
+    }
+
+    @Test
+    fun aRangeNobodyNamedShowsAsDatesNotTheStoredIsoLabel() {
+        val dates = PollOptionDto(id = "d", label = "2026-11-20 – 2026-11-23", startDate = LocalDate(2026, 11, 20), endDate = LocalDate(2026, 11, 23))
+        assertTrue(dates.hasGeneratedLabel())
+        assertTrue(dates.copy(label = "").hasGeneratedLabel())
+        assertFalse(dates.copy(label = "Long weekend").hasGeneratedLabel())
+        assertTrue(PollOptionDto(id = "b", label = "1500000 – 3000000", minMinor = 1_500_000, maxMinor = 3_000_000).hasGeneratedLabel())
+        assertFalse(PollOptionDto(id = "p", label = "").hasGeneratedLabel())
     }
 
     @Test

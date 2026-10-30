@@ -467,7 +467,6 @@
     <string name="web_sign_in_required_title">Masuk untuk membuka trip-mu</string>
     <string name="web_sign_in_required_body">Versi web memakai akunmu.</string>
     <string name="check_email_open_app">Buka aplikasi email</string>
-    <string name="account_section_account">Akun</string>
     <string name="account_signed_out_title">Belum masuk</string>
     <string name="account_signed_out_body">Masuk untuk mencadangkan trip dan membukanya di perangkat lain.</string>
     <string name="account_sync_synced">Semua data tersinkron</string>

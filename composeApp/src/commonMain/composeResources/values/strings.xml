@@ -467,7 +467,6 @@
     <string name="web_sign_in_required_title">Sign in to open your trips</string>
     <string name="web_sign_in_required_body">The web app works with your account.</string>
     <string name="check_email_open_app">Open email app</string>
-    <string name="account_section_account">Account</string>
     <string name="account_signed_out_title">Not signed in</string>
     <string name="account_signed_out_body">Sign in to back up your trips and open them on other devices.</string>
     <string name="account_sync_synced">All data synced</string>

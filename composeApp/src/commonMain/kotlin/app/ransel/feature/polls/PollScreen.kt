@@ -288,7 +288,7 @@ fun PollScreen(
             symbol = Symbols.delete,
         )
         is PollDialog.DeleteOption -> ConfirmDialog(
-            title = stringResource(Res.string.poll_delete_option_title, dialog.option.label),
+            title = stringResource(Res.string.poll_delete_option_title, pollOptionTitle(dialog.option, state.currency)),
             body = stringResource(Res.string.poll_delete_option_body),
             confirmLabel = stringResource(Res.string.poll_option_delete),
             dismissLabel = stringResource(Res.string.action_cancel),
@@ -315,11 +315,12 @@ private fun DecideDialog(poll: PollDto, dialog: PollDialog.Decide, state: PollUi
         return
     }
     val subtitle = pollOptionSubtitle(option, state.currency)
+    val title = pollOptionTitle(option, state.currency)
     // What the winner will do, in words: only when "apply winner" is on and the kind has an action.
     val consequence = when {
         !poll.applyWinner -> stringResource(Res.string.poll_decide_none)
         else -> when (actionFor(poll.kind)) {
-            PollAction.SET_TRIP_DATES -> stringResource(Res.string.poll_decide_dates, subtitle ?: option.label)
+            PollAction.SET_TRIP_DATES -> stringResource(Res.string.poll_decide_dates, subtitle ?: title)
             PollAction.SET_DESTINATION -> stringResource(Res.string.poll_decide_destination, option.label)
             PollAction.ADD_UNSCHEDULED_PLACE -> stringResource(Res.string.poll_decide_place, option.label)
             PollAction.ADD_ACTIVITY -> stringResource(Res.string.poll_decide_food, option.label)
@@ -335,7 +336,7 @@ private fun DecideDialog(poll: PollDto, dialog: PollDialog.Decide, state: PollUi
         }
     }
     ConfirmDialog(
-        title = stringResource(Res.string.poll_decide_title, option.label),
+        title = stringResource(Res.string.poll_decide_title, title),
         body = consequence,
         confirmLabel = stringResource(Res.string.poll_decide_confirm),
         dismissLabel = stringResource(Res.string.action_cancel),
@@ -557,9 +558,10 @@ private fun OptionRow(
 ) {
     val scheme = MaterialTheme.colorScheme
     val canVote = poll.isOpen && enabled
+    val title = pollOptionTitle(option, currency)
     VoteOptionCard(
-        title = option.label,
-        subtitle = pollOptionSubtitle(option, currency)?.takeIf { it != option.label },
+        title = title,
+        subtitle = pollOptionSubtitle(option, currency)?.takeIf { it != title },
         voteCount = option.voteCount,
         memberCount = poll.memberCount,
         countLabel = pluralStringResource(Res.plurals.poll_votes_count, option.voteCount, option.voteCount),
@@ -575,7 +577,7 @@ private fun OptionRow(
         } else null,
         headerTrailing = {
             if (winner) Chip(stringResource(Res.string.poll_winner_badge), highlight = true)
-            CommentButton(option.id, option.label)
+            CommentButton(option.id, title)
         },
         // names only when the poll is not anonymous (the server sends no voter ids otherwise)
         avatars = {
