@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import app.ransel.content.stringResource
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.auth.SessionState
 import app.ransel.data.sync.SyncStatus
@@ -31,7 +32,6 @@ import app.ransel.ui.components.IconFab
 import app.ransel.ui.symbols.Symbols
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.Alignment
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.group_fab_description
 import app.ransel.feature.itinerary.ItineraryTab

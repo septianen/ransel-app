@@ -7,6 +7,7 @@ import app.ransel.data.repository.TripRepository
 import app.ransel.feature.packing.PackingGroup
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.model.PackingCategory
+import app.ransel.ui.category.packingCategoryOrder
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -28,7 +29,7 @@ class TripSidePanelViewModel(
     ) { summary, items ->
         TripSidePanelState(
             summary = summary,
-            packingGroups = PackingCategory.entries
+            packingGroups = packingCategoryOrder()
                 .map { category -> PackingGroup(category, items.filter { it.category == category }) }
                 .filter { it.items.isNotEmpty() },
         )

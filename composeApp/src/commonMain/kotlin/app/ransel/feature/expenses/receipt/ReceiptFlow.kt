@@ -1,5 +1,7 @@
 package app.ransel.feature.expenses.receipt
 
+import app.ransel.content.remoteErrorCopy
+import app.ransel.content.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -40,6 +42,7 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Category
+import app.ransel.ui.category.expenseCategoryChoices
 import app.ransel.ui.category.expenseLabel
 import app.ransel.ui.category.expenseSymbol
 import app.ransel.ui.components.AdaptiveFormScreen
@@ -70,7 +73,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
@@ -212,7 +214,7 @@ fun ReceiptFlow(
             is ReceiptStep.Failed -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 SheetHeader(stringResource(Res.string.receipt_title), trip.title, onDismiss)
                 Text(
-                    when (s.code) {
+                    remoteErrorCopy(s.code)?.message ?: when (s.code) {
                         ErrorCode.RECEIPT_UNREADABLE -> stringResource(Res.string.receipt_error_unreadable)
                         ErrorCode.INSUFFICIENT_CREDITS -> stringResource(Res.string.receipt_error_credits)
                         ErrorCode.FILE_TOO_LARGE -> stringResource(Res.string.receipt_error_large)
@@ -303,7 +305,7 @@ private fun ReceiptResult(
             Text(formatMoney(form.total, currency), style = MaterialTheme.typography.headlineSmall)
         }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(Category.FOOD, Category.TRANSPORT, Category.LODGING, Category.ATTRACTION, Category.SHOPPING, Category.OTHER).forEach { c ->
+            expenseCategoryChoices(form.category).forEach { c ->
                 Choice(stringResource(c.expenseLabel), selected = form.category == c, symbol = c.expenseSymbol) { form.category = c }
             }
         }

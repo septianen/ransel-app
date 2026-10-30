@@ -29,12 +29,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.ransel.content.stringResource
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.util.fromPickerMillis
 import app.ransel.util.toPickerMillis
 import kotlinx.datetime.LocalDate
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.date_range_confirm
 import ransel.composeapp.generated.resources.date_range_title

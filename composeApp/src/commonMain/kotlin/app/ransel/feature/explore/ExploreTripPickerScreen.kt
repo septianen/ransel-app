@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.LoadingButton
@@ -48,7 +49,6 @@ import app.ransel.ui.theme.IrisTheme
 import app.ransel.util.today
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.*
 

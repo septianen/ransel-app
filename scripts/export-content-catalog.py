@@ -14,6 +14,8 @@ import xml.etree.ElementTree as ET
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 RES = ROOT / "composeApp/src/commonMain/composeResources"
 OUT = ROOT / "server/src/main/resources/content/catalog.json"
+# content_locale tells the app which language it shows; changing it would break the lookup.
+NOT_EDITABLE = {"content_locale"}
 
 
 def strings(locale_dir: str) -> dict:
@@ -29,7 +31,7 @@ def strings(locale_dir: str) -> dict:
 def main() -> None:
     indonesian = strings("values-in")
     english = strings("values")
-    keys = sorted(set(indonesian) | set(english))
+    keys = sorted((set(indonesian) | set(english)) - NOT_EDITABLE)
     catalog = {
         "strings": [
             {"key": k, "area": k.split("_", 1)[0], "id": indonesian.get(k, ""), "en": english.get(k, "")}

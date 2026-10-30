@@ -42,6 +42,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.ransel.content.getString
+import app.ransel.content.stringResource
 import app.ransel.feature.destination.DestinationField
 import app.ransel.feature.tripform.TripDateRangePicker
 import app.ransel.shared.model.Interest
@@ -58,9 +60,7 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.*

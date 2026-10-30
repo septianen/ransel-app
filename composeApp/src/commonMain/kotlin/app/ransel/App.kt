@@ -1,5 +1,7 @@
 package app.ransel
 
+import app.ransel.content.RemoteContentStore
+import app.ransel.content.stringResource
 import kotlinx.coroutines.flow.map
 import androidx.compose.animation.EnterTransition
 import androidx.lifecycle.Lifecycle
@@ -171,7 +173,6 @@ import app.ransel.ui.shell.MainTab
 import app.ransel.ui.shell.PlaceholderScreen
 import app.ransel.ui.shell.RanselBottomBar
 import app.ransel.ui.theme.IrisTheme
-import org.jetbrains.compose.resources.stringResource
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.network.ktor3.KtorNetworkFetcherFactory
@@ -210,6 +211,9 @@ fun App() {
     // The splash stays at least this long on a cold start so it does not flash by while preferences load.
     var splashHeld by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) { delay(SPLASH_MIN_MS); splashHeld = false }
+    // Karung's published copy (stage E): the saved one at once, a newer one whenever the app comes to the front.
+    val remoteContent: RemoteContentStore = koinInject()
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { remoteContent.refresh() }
 
     // Apply the chosen language before any string is read; `key` rebuilds the UI when it changes.
     remember(preferences.language) { applyAppLanguage(preferences.language.tag) }

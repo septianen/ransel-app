@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.feature.packing.PackingGroup
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripSummaryDto
@@ -36,7 +37,6 @@ import app.ransel.ui.components.TripTab
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.irisCard
 import app.ransel.ui.theme.IrisShape
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res

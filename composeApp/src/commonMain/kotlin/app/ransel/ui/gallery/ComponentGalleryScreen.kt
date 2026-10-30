@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import app.ransel.content.stringResource
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +44,6 @@ import app.ransel.ui.components.TripHeader
 import app.ransel.ui.components.TripTab
 import app.ransel.ui.components.CaveCartLoading
 import app.ransel.ui.components.UndoSnackbar
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.explore_loading_1
 import ransel.composeapp.generated.resources.explore_loading_2

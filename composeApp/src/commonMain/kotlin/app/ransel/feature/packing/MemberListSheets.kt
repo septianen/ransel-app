@@ -1,5 +1,6 @@
 package app.ransel.feature.packing
 
+import app.ransel.content.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,6 +53,7 @@ import app.ransel.shared.dto.PackingTemplateDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.PackingCategory
 import app.ransel.ui.category.label
+import app.ransel.ui.category.packingCategoryChoices
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.LoadingButton
@@ -61,7 +63,6 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.util.newId
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.itinerary_close
 import ransel.composeapp.generated.resources.member_list_add_category
@@ -229,12 +230,12 @@ fun MemberListEditor(
                         )
                     }
                     Box {
-                        TextButton(onClick = { categoryMenu = true }, enabled = categories.size < PackingCategory.entries.size) {
+                        TextButton(onClick = { categoryMenu = true }, enabled = packingCategoryChoices().any { it !in categories }) {
                             Symbol(Symbols.playlistAdd)
                             Text(stringResource(Res.string.member_list_add_category), modifier = Modifier.padding(start = 8.dp))
                         }
                         DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
-                            PackingCategory.entries.filter { it !in categories }.forEach { option ->
+                            packingCategoryChoices().filter { it !in categories }.forEach { option ->
                                 DropdownMenuItem(
                                     text = { Text(stringResource(option.label)) },
                                     leadingIcon = { PackingCategoryIcon(option) },

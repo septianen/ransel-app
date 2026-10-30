@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.whatsappShareLink
 import app.ransel.shared.dto.PollDto
 import app.ransel.ui.components.AdaptiveSheet
@@ -37,7 +38,6 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import kotlinx.datetime.TimeZone
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.*
 
 /**

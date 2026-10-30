@@ -1,9 +1,9 @@
 package app.ransel.ui.format
 
 import androidx.compose.runtime.Composable
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.activityDurationMinutes
 import kotlinx.datetime.LocalTime
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.duration_approx
 import ransel.composeapp.generated.resources.duration_hours

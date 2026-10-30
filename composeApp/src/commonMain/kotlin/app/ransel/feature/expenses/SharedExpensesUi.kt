@@ -1,5 +1,6 @@
 package app.ransel.feature.expenses
 
+import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -47,7 +48,6 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.shared_balance_collect_short
 import ransel.composeapp.generated.resources.shared_balance_even_short

@@ -26,13 +26,13 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res

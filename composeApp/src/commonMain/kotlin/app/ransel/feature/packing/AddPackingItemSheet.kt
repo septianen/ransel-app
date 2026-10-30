@@ -1,5 +1,6 @@
 package app.ransel.feature.packing
 
+import app.ransel.content.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.TripMemberDto
+import app.ransel.ui.category.packingCategoryChoices
 import app.ransel.ui.components.MemberAvatar
 import app.ransel.shared.model.PackingCategory
 import app.ransel.ui.category.label
@@ -41,7 +43,6 @@ import app.ransel.ui.components.PackingCategoryIcon
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.error_required
 import ransel.composeapp.generated.resources.itinerary_close
@@ -144,7 +145,7 @@ fun AddPackingItemSheet(
             )
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(Res.string.activity_category), style = MaterialTheme.typography.labelLarge)
-                PackingCategory.entries.chunked(3).forEach { row ->
+                packingCategoryChoices(category).chunked(3).forEach { row ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { option ->
                             val selected = option == category

@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.material3.ButtonDefaults
+import app.ransel.content.stringResource
 import app.ransel.shared.dto.LinkPreviewDto
 import kotlinx.coroutines.launch
 import ransel.composeapp.generated.resources.poll_link_error
@@ -56,7 +57,6 @@ import app.ransel.ui.theme.IrisShape
 import app.ransel.util.newId
 import app.ransel.util.today
 import kotlinx.datetime.LocalDate
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.poll_budget_range

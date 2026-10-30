@@ -2,9 +2,12 @@ package app.ransel.ui.category
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import app.ransel.content.LiveContent
 import app.ransel.shared.model.Category
+import app.ransel.shared.model.CategoryKind
 import app.ransel.shared.model.PackingCategory
 import app.ransel.shared.model.PaymentMethod
+import app.ransel.ui.symbols.CategorySymbols
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisTheme
 import org.jetbrains.compose.resources.StringResource
@@ -59,8 +62,14 @@ val Category.expenseLabel: StringResource
         Category.OTHER -> Res.string.expense_category_other
     }
 
-/** Default icon. Attractions and transport may use a more specific one (spec), still on the same tile. */
+/**
+ * Default icon (Karung may change it, `LiveContent`). Attractions and transport may use a more specific one (spec),
+ * still on the same tile.
+ */
 val Category.symbol: String
+    get() = remoteSymbol(CategoryKind.ITINERARY, name) ?: defaultSymbol
+
+private val Category.defaultSymbol: String
     get() = when (this) {
         Category.ATTRACTION -> Symbols.attractions
         Category.FOOD -> Symbols.restaurant
@@ -70,9 +79,11 @@ val Category.symbol: String
         Category.OTHER -> Symbols.event
     }
 
+/** The tile color; [kind] = which list it is shown in (itinerary or expenses), since Karung styles them apart. */
 @Composable
-fun Category.tileColor(): Color {
+fun Category.tileColor(kind: CategoryKind = CategoryKind.ITINERARY): Color {
     val accents = IrisTheme.accents
+    remoteColor(kind, name)?.let { return it }
     return when (this) {
         Category.ATTRACTION -> accents.blue
         Category.FOOD -> accents.orange
@@ -94,7 +105,7 @@ val PackingCategory.label: StringResource
     }
 
 val PackingCategory.symbol: String
-    get() = when (this) {
+    get() = remoteSymbol(CategoryKind.PACKING, name) ?: when (this) {
         PackingCategory.CLOTHING -> Symbols.apparel
         PackingCategory.DOCUMENTS -> Symbols.badge
         PackingCategory.ELECTRONICS -> Symbols.power
@@ -106,6 +117,7 @@ val PackingCategory.symbol: String
 @Composable
 fun PackingCategory.tileColor(): Color {
     val accents = IrisTheme.accents
+    remoteColor(CategoryKind.PACKING, name)?.let { return it }
     return when (this) {
         PackingCategory.CLOTHING -> accents.purple
         PackingCategory.DOCUMENTS -> accents.blue
@@ -128,7 +140,35 @@ val PaymentMethod.label: StringResource
 
 /** Expenses show "Aktivitas" with a ticket icon (`local_activity`) instead of the itinerary's `attractions`. */
 val Category.expenseSymbol: String
-    get() = if (this == Category.ATTRACTION) Symbols.localActivity else symbol
+    get() = remoteSymbol(CategoryKind.EXPENSE, name) ?: if (this == Category.ATTRACTION) Symbols.localActivity else defaultSymbol
+
+// ── Remote content (Karung, admin-spec stage E) ─────────────────────────────
+
+private fun remoteSymbol(kind: CategoryKind, constant: String): String? =
+    LiveContent.current.category(kind, constant)?.icon?.let { CategorySymbols[it] }
+
+@Composable
+private fun remoteColor(kind: CategoryKind, constant: String): Color? =
+    LiveContent.current.category(kind, constant)?.color?.let { IrisTheme.accents.byName(it) }
+
+/** The expense pickers' own order: food first. */
+val ExpenseCategoryOrder = listOf(
+    Category.FOOD, Category.TRANSPORT, Category.LODGING, Category.ATTRACTION, Category.SHOPPING, Category.OTHER,
+)
+
+/** What a picker offers, in Karung's order and without hidden categories; [current] stays even when hidden. */
+fun itineraryCategoryChoices(current: Category? = null): List<Category> =
+    LiveContent.current.ordered(CategoryKind.ITINERARY, Category.entries, keep = current)
+
+fun expenseCategoryChoices(current: Category? = null): List<Category> =
+    LiveContent.current.ordered(CategoryKind.EXPENSE, ExpenseCategoryOrder, keep = current)
+
+fun packingCategoryChoices(current: PackingCategory? = null): List<PackingCategory> =
+    LiveContent.current.ordered(CategoryKind.PACKING, PackingCategory.entries, keep = current)
+
+/** Section order of a packing list; a hidden category still shows the items already in it. */
+fun packingCategoryOrder(): List<PackingCategory> =
+    LiveContent.current.ordered(CategoryKind.PACKING, PackingCategory.entries, hideHidden = false)
 
 val PaymentMethod.symbol: String
     get() = when (this) {

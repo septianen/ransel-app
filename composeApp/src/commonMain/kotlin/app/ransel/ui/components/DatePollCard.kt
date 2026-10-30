@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.pollHoursLeft
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.model.PollKind
@@ -30,7 +31,6 @@ import app.ransel.ui.theme.IrisShape
 import kotlin.time.Clock
 import kotlin.time.Instant
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.date_poll_card_open

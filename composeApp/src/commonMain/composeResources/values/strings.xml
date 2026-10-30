@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">RANSEL</string>
+    <!-- Not UI copy: the locale of this folder, to pick the remote content (GET /content) that matches. Not editable in Karung. -->
+    <string name="content_locale">en</string>
 
     <!-- Bottom navigation -->
     <string name="tab_home">Home</string>

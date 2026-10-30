@@ -1,6 +1,7 @@
 package app.ransel.feature.home
 
 import androidx.compose.foundation.background
+import app.ransel.content.stringResource
 import org.koin.compose.koinInject
 import app.ransel.data.notification.NotificationsStore
 import app.ransel.data.auth.SessionState
@@ -56,7 +57,6 @@ import app.ransel.ui.theme.IrisTheme
 import app.ransel.ui.theme.irisCard
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res

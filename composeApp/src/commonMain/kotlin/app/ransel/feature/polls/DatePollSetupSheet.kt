@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.DATE_POLL_MAX_OPTIONS
 import app.ransel.shared.domain.validateDatePollOptions
 import app.ransel.shared.domain.validatePollOption
@@ -23,7 +24,6 @@ import app.ransel.shared.dto.PollOptionInput
 import app.ransel.shared.model.PollKind
 import app.ransel.ui.components.AdaptiveSheet
 import kotlinx.datetime.LocalDate
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.trip_form_poll_empty
 import ransel.composeapp.generated.resources.trip_form_poll_sheet_done

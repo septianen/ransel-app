@@ -67,7 +67,7 @@ fun rememberDateFormatter(): DateFormatter {
     val monthsFull = stringArrayResource(Res.array.months_full)
     val weekdaysShort = stringArrayResource(Res.array.weekdays_short)
     val weekdaysFull = stringArrayResource(Res.array.weekdays_full)
-    val noDates = org.jetbrains.compose.resources.stringResource(Res.string.trip_dates_not_set)
+    val noDates = app.ransel.content.stringResource(Res.string.trip_dates_not_set)
     return remember(monthsShort, monthsFull, weekdaysShort, weekdaysFull, noDates) {
         DateFormatter(monthsShort, monthsFull, weekdaysShort, weekdaysFull, noDates)
     }
@@ -78,7 +78,7 @@ fun rememberDateFormatter(): DateFormatter {
 fun deadlineText(at: kotlin.time.Instant, zone: kotlinx.datetime.TimeZone): String {
     val dates = rememberDateFormatter()
     val local = at.toLocalDateTime(zone)
-    return org.jetbrains.compose.resources.stringResource(
+    return app.ransel.content.stringResource(
         Res.string.deadline_time,
         dates.weekdayShort(local.date), local.hour.toString().padStart(2, '0'), local.minute.toString().padStart(2, '0'),
     )

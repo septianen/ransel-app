@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.feature.currency.CurrencySheet
 import app.ransel.feature.currency.currencyOption
 import app.ransel.feature.currency.currencySymbol
@@ -46,7 +47,6 @@ import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import kotlinx.coroutines.flow.collect
 import kotlinx.datetime.daysUntil
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res

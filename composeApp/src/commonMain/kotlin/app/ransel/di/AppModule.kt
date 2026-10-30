@@ -97,6 +97,7 @@ val commonModule: Module = module {
     viewModelOf(::NotificationsViewModel)
     viewModelOf(::NotificationSettingsViewModel)
     single { ExploreSessionStore(get(), get()) }
+    single { app.ransel.content.RemoteContentStore(get(), get(), get()) }
     viewModelOf(::ExploreTripPickerViewModel)
     viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
     viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get(), get()) }

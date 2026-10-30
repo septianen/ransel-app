@@ -2,6 +2,7 @@ package app.ransel.feature.notifications
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.VoteStage
 import app.ransel.shared.domain.hoursLeft
 import app.ransel.shared.dto.NotificationDto
@@ -11,7 +12,6 @@ import app.ransel.shared.model.NotificationType
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisTheme
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.*
 
 /** What a notification row says: built from the type and params, so it follows the app language. */

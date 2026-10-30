@@ -26,11 +26,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
+import app.ransel.content.stringResource as sr
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
-import org.jetbrains.compose.resources.stringResource as sr
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import app.ransel.ui.preview.IrisPreview
 import ransel.composeapp.generated.resources.Res

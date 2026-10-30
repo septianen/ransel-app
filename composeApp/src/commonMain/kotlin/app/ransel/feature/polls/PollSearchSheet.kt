@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.dto.PollSearchResult
 import app.ransel.shared.model.PollKind
 import app.ransel.shared.model.PollPriceUnit
@@ -24,7 +25,6 @@ import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.format.formatMoney
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.ai_paused_body
 import ransel.composeapp.generated.resources.near_pick

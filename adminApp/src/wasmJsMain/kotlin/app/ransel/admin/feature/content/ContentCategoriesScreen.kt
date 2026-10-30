@@ -81,6 +81,7 @@ import app.ransel.shared.dto.AdminContentCategoryDto
 import app.ransel.shared.dto.UpdateContentCategoriesRequest
 import app.ransel.shared.model.CategoryKind
 import app.ransel.ui.symbols.Symbol
+import app.ransel.ui.symbols.CategorySymbols
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisTheme
 import kotlinx.coroutines.CoroutineScope
@@ -170,33 +171,8 @@ class ContentCategoriesPresenter(
     private fun AdminContentCategoriesDto.of(kind: CategoryKind) = categories.filter { it.category.kind == kind }
 }
 
-/** Material Symbols names the categories may use, to the glyphs of the bundled subset. */
-private val ICON_GLYPHS = mapOf(
-    "attractions" to Symbols.attractions, "local_activity" to Symbols.localActivity, "restaurant" to Symbols.restaurant,
-    "directions_car" to Symbols.directionsCar, "directions_boat" to Symbols.directionsBoat, "flight" to Symbols.flight,
-    "hotel" to Symbols.hotel, "shopping_bag" to Symbols.shoppingBag, "event" to Symbols.event, "hiking" to Symbols.hiking,
-    "beach_access" to Symbols.beachAccess, "forest" to Symbols.forest, "landscape" to Symbols.landscape,
-    "temple_hindu" to Symbols.templeHindu, "theater_comedy" to Symbols.theaterComedy, "location_city" to Symbols.locationCity,
-    "apparel" to Symbols.apparel, "badge" to Symbols.badge, "power" to Symbols.power, "soap" to Symbols.soap,
-    "medical_services" to Symbols.medicalServices, "category" to Symbols.category, "luggage" to Symbols.luggage,
-    "payments" to Symbols.payments, "more_horiz" to Symbols.moreHoriz,
-)
-
 @Composable
-private fun accent(name: String): Color {
-    val a = IrisTheme.accents
-    return when (name) {
-        "blue" -> a.blue
-        "orange" -> a.orange
-        "teal" -> a.teal
-        "purple" -> a.purple
-        "yellow" -> a.yellow
-        "brown" -> a.brown
-        "red" -> a.red
-        "green" -> a.green
-        else -> a.magenta
-    }
-}
+private fun accent(name: String): Color = IrisTheme.accents.byName(name) ?: IrisTheme.accents.magenta
 
 @Composable
 private fun colorName(name: String): String = stringResource(
@@ -296,7 +272,7 @@ private fun CategoryRow(row: AdminContentCategoryDto, first: Boolean, last: Bool
                 }
             }
             Box(Modifier.size(40.dp).background(accent(color).copy(alpha = 0.16f), RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                Symbol(ICON_GLYPHS[icon] ?: Symbols.category, size = 22.dp, tint = accent(color))
+                Symbol(CategorySymbols[icon] ?: Symbols.category, size = 22.dp, tint = accent(color))
             }
         }
         Text(c.constant, Modifier.width(120.dp), style = MaterialTheme.typography.labelMedium, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = scheme.onSurfaceVariant)
@@ -308,7 +284,7 @@ private fun CategoryRow(row: AdminContentCategoryDto, first: Boolean, last: Bool
             value = c.labelEn.orEmpty(), onValueChange = { t -> presenter.edit(c.constant) { it.copy(category = it.category.copy(labelEn = t.take(MAX_CATEGORY_LABEL).ifEmpty { null })) } },
             placeholder = { Text(row.defaultLabelEn) }, singleLine = true, modifier = Modifier.width(180.dp),
         )
-        Choice(icon, icons, Modifier.width(200.dp), shown = { it }, leading = { Symbol(ICON_GLYPHS[it] ?: Symbols.category, size = 18.dp) }) { v ->
+        Choice(icon, icons, Modifier.width(200.dp), shown = { it }, leading = { Symbol(CategorySymbols[it] ?: Symbols.category, size = 18.dp) }) { v ->
             presenter.edit(c.constant) { it.copy(category = it.category.copy(icon = v.takeIf { x -> x != row.defaultIcon })) }
         }
         Choice(color, colors, Modifier.width(170.dp), shown = { colorName(it) }, leading = { Box(Modifier.size(18.dp).background(accent(it), RoundedCornerShape(6.dp))) }) { v ->

@@ -39,12 +39,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.PasswordCheck
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.auth_error_account_disabled
