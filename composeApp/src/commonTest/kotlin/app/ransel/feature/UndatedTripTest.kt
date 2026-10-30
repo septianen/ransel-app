@@ -236,6 +236,29 @@ class UndatedTripFormTest {
     }
 
     @Test
+    fun aNewTripStartsWithoutDatesAndNeedsThemUnlessTheSwitchIsOn() = runTest {
+        val store = InMemoryStore()
+        val guest = form(store, signedIn = false)
+        assertNull(guest.state.value.startDate)
+        assertNull(guest.state.value.endDate)
+        guest.save()
+        assertTrue(guest.state.value.datesError)
+        assertTrue(store.trips.value.isEmpty(), "nothing is saved without dates")
+
+        guest.onDatesChange(LocalDate(2027, 1, 10), LocalDate(2027, 1, 12))
+        assertFalse(guest.state.value.datesError)
+        guest.save()
+        eventually { store.trips.value.isNotEmpty() }
+
+        // signed in, "Tanggal belum pasti" on: no dates needed (the poll ranges are)
+        val undecided = form(InMemoryStore())
+        undecided.onDatesUndecided(true)
+        undecided.save()
+        assertFalse(undecided.state.value.datesError)
+        assertTrue(undecided.state.value.pollError)
+    }
+
+    @Test
     fun aGuestCannotLeaveTheDatesOpen() = runTest {
         val vm = form(InMemoryStore(), signedIn = false)
         assertFalse(vm.state.value.canAskDates)

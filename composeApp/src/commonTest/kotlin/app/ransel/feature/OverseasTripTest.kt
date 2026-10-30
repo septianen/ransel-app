@@ -1,5 +1,6 @@
 package app.ransel.feature
 
+import kotlinx.datetime.LocalDate
 import app.ransel.data.fake.InMemoryPreferencesRepository
 import app.ransel.data.fake.InMemoryStore
 import app.ransel.data.fake.InMemoryTripRepository
@@ -39,6 +40,7 @@ class OverseasTripTest {
         val store = InMemoryStore()
         val vm = TripFormViewModel(null, InMemoryTripRepository(store), InMemoryPreferencesRepository())
         vm.onTitleChange("Jepang musim dingin")
+        vm.onDatesChange(LocalDate(2027, 1, 10), LocalDate(2027, 1, 16))
         vm.onDestinationPicked(DestinationChoice("Tokyo", TripPlaceDto("ChIJ-tokyo", 35.68, 139.76), "JP", "Asia/Tokyo"))
         val s = vm.state.value
         assertEquals("JPY", s.localCurrency)

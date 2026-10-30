@@ -1587,6 +1587,8 @@
     <string name="trip_form_poll_failed_body">Trip-mu sudah tersimpan. Mulai polling tanggal dari Ringkasan saat kamu online.</string>
     <string name="trip_form_poll_failed_ok">Lanjut</string>
     <string name="trip_form_pick_dates">Pilih tanggal</string>
+    <string name="trip_form_dates_required">Pilih tanggal perjalanan dulu.</string>
+    <string name="trip_form_dates_required_or_undated">Pilih tanggal perjalanan, atau nyalakan “Tanggal belum pasti”.</string>
     <plurals name="date_poll_options">
         <item quantity="other">%1$d pilihan</item>
     </plurals>

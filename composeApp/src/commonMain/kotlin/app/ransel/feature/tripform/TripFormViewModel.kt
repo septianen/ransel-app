@@ -28,7 +28,6 @@ import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.dto.UpdateTripRequest
 import app.ransel.util.newId
-import app.ransel.util.plusDays
 import app.ransel.util.today
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,7 +53,10 @@ data class TripFormState(
     val countryCode: String? = null,
     val localCurrency: String? = null,
     val timeZone: String? = null,
-    /** Null only while editing a trip that has no dates yet and none were picked. */
+    /**
+     * Null until picked: a new trip starts without dates, so nobody saves today's dates by accident (owner,
+     * 30 Oct 2026); also an edited trip that has no dates yet.
+     */
     val startDate: LocalDate?,
     val endDate: LocalDate?,
     val currency: String = "IDR",
@@ -84,6 +86,11 @@ data class TripFormState(
 ) {
     val titleError: Boolean get() = showErrors && title.isBlank()
 
+    /** A new trip needs its dates, unless "Tanggal belum pasti" is on (an edited trip without dates may stay so). */
+    val datesMissing: Boolean get() = !isEditing && !(datesUndecided && canAskDates) && (startDate == null || endDate == null)
+
+    val datesError: Boolean get() = showErrors && datesMissing
+
     /** The options are not 2–5 ranges from today on (shown after a save attempt). */
     val pollError: Boolean get() = showErrors && datesUndecided && !datePollOptionsValid(pollOptions, today())
 }
@@ -105,7 +112,7 @@ class TripFormViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         TripFormState(
-            isEditing = tripId != null, startDate = today(), endDate = today().plusDays(3),
+            isEditing = tripId != null, startDate = null, endDate = null,
             canAskDates = tripId == null && api != null && session?.user != null,
         ),
     )
@@ -201,7 +208,7 @@ class TripFormViewModel(
         val start = if (undecided) null else s.startDate
         val end = if (undecided) null else s.endDate
         val problems = validateTrip(s.title, start, end, s.currency, budgetMinor)
-        if (problems.isNotEmpty() || (undecided && !datePollOptionsValid(s.pollOptions, today()))) {
+        if (problems.isNotEmpty() || s.datesMissing || (undecided && !datePollOptionsValid(s.pollOptions, today()))) {
             _state.update { it.copy(showErrors = true) }
             return
         }
