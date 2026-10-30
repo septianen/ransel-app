@@ -1219,8 +1219,8 @@
     <string name="payto_claim">I've paid</string>
     <string name="expense_estimate_banner">This is an estimate from a poll. Save it once paid to record the real payment.</string>
     <string name="expense_estimate_save">Save as payment</string>
+    <string name="expense_amount_per_item">The amount follows the receipt items. Choose Split equally or Set amounts to change it.</string>
     <string name="expense_receipt_items">Receipt items</string>
-    <string name="expense_split_by_items">Split per item from the receipt (%1$d items). Change the amount to split it again.</string>
     <string name="expense_estimate_chip">Estimate</string>
     <string name="receipt_choose_title">Add an expense</string>
     <string name="receipt_choose_photo">Receipt photo</string>

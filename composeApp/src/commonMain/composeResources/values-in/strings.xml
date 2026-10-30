@@ -1207,8 +1207,8 @@
     <string name="payto_claim">Saya sudah bayar</string>
     <string name="expense_estimate_banner">Ini estimasi dari polling. Simpan setelah dibayar untuk mencatat pembayaran sebenarnya.</string>
     <string name="expense_estimate_save">Simpan sebagai pembayaran</string>
+    <string name="expense_amount_per_item">Nominal mengikuti item struk. Pilih Bagi rata atau Atur nominal untuk mengubahnya.</string>
     <string name="expense_receipt_items">Item dari struk</string>
-    <string name="expense_split_by_items">Dibagi per item dari struk (%1$d item). Ubah nominal untuk membagi ulang.</string>
     <string name="expense_estimate_chip">Estimasi</string>
     <string name="receipt_choose_title">Tambah pengeluaran</string>
     <string name="receipt_choose_photo">Foto struk</string>
