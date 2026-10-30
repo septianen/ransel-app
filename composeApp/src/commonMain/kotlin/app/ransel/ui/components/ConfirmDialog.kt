@@ -26,7 +26,8 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 /**
  * Confirmation dialog (delete trip, reorder, remove member, leave trip).
  * [destructive] = `error` confirm button and, when [symbol] is set, the icon sits in an
- * `error-container` circle. [extra] holds dialog-specific content under the body
+ * `error-container` circle. [filledConfirm] = a filled `primary` confirm button, so it does not look like the
+ * dismiss button. [extra] holds dialog-specific content under the body
  * (list of what is deleted, "Don't ask again" checkbox, ...).
  */
 @Composable
@@ -44,6 +45,7 @@ fun ConfirmDialog(
     confirmLoading: Boolean? = null,
     /** False = the confirm button is disabled (e.g. nothing picked yet in [extra]). */
     confirmEnabled: Boolean = true,
+    filledConfirm: Boolean = false,
     extra: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val busy = confirmLoading == true
@@ -93,6 +95,11 @@ fun ConfirmDialog(
                         ButtonDefaults.textButtonColors(
                             containerColor = MaterialTheme.colorScheme.error,
                             contentColor = MaterialTheme.colorScheme.onError,
+                        )
+                    } else if (filledConfirm) {
+                        ButtonDefaults.textButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
                         )
                     } else {
                         ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)

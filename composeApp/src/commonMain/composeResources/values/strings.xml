@@ -1328,10 +1328,10 @@
     <string name="packing_shared_open">%1$d still unclaimed</string>
     <string name="packing_bring">I'll bring it</string>
     <string name="packing_bring_confirm_title">Bring %1$s?</string>
-    <string name="packing_bring_confirm_body">It will be listed under your name. Changed your mind? Choose “Give it back” in the ⋮ menu.</string>
+    <string name="packing_bring_confirm_body">It will be listed under your name. You can “Give it back” later.</string>
     <string name="packing_bringer">%1$s brings it</string>
-    <string name="packing_bringer_me">You bring it</string>
-    <string name="packing_bringer_none">Nobody is bringing it yet</string>
+    <string name="packing_bringer_me">You</string>
+    <string name="packing_bringer_none">Nobody is bringing</string>
     <string name="packing_give_back">Give it back</string>
     <string name="packing_shared_add">Add shared item</string>
     <string name="packing_who_brings">Who brings it?</string>
