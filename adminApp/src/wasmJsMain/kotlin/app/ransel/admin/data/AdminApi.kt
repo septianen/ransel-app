@@ -1,5 +1,16 @@
 package app.ransel.admin.data
 
+import app.ransel.shared.dto.AdminInterestCurationDto
+import app.ransel.shared.dto.AdminInterestSummaryDto
+import app.ransel.shared.dto.UpdateContentCategoriesRequest
+import app.ransel.shared.dto.AdminContentCategoriesDto
+import app.ransel.shared.dto.ContentPublishResultDto
+import app.ransel.shared.dto.UpdateContentErrorRequest
+import app.ransel.shared.dto.AdminContentErrorDto
+import app.ransel.shared.dto.AdminContentErrorsDto
+import app.ransel.shared.dto.UpdateContentStringRequest
+import app.ransel.shared.dto.AdminContentStringDto
+import app.ransel.shared.dto.AdminContentStringsDto
 import app.ransel.shared.dto.UpdateSettingsRequest
 import app.ransel.shared.dto.AdminSettingsDto
 import app.ransel.shared.api.AdminRoutes
@@ -158,6 +169,48 @@ class AdminApi(
 
     suspend fun updateSettings(request: UpdateSettingsRequest): ApiResult<AdminSettingsDto> =
         send(HttpMethod.Put, AdminRoutes.SETTINGS, request)
+
+    // ── remote content (stage D) ───────────────────────────────────────────
+    suspend fun contentStrings(): ApiResult<AdminContentStringsDto> = get(AdminRoutes.CONTENT_STRINGS)
+
+    suspend fun saveContentString(request: UpdateContentStringRequest): ApiResult<AdminContentStringDto> =
+        send(HttpMethod.Put, AdminRoutes.CONTENT_STRINGS, request)
+
+    suspend fun contentErrors(): ApiResult<AdminContentErrorsDto> = get(AdminRoutes.CONTENT_ERRORS)
+
+    suspend fun saveContentError(request: UpdateContentErrorRequest): ApiResult<AdminContentErrorDto> =
+        send(HttpMethod.Put, AdminRoutes.CONTENT_ERRORS, request)
+
+    suspend fun publishContent(): ApiResult<ContentPublishResultDto> = post(AdminRoutes.CONTENT_PUBLISH)
+
+    suspend fun contentCategories(): ApiResult<AdminContentCategoriesDto> = get(AdminRoutes.CONTENT_CATEGORIES)
+
+    suspend fun saveContentCategories(request: UpdateContentCategoriesRequest): ApiResult<AdminContentCategoriesDto> =
+        send(HttpMethod.Put, AdminRoutes.CONTENT_CATEGORIES, request)
+
+    suspend fun contentInterests(query: String?): ApiResult<List<AdminInterestSummaryDto>> =
+        call(HttpMethod.Get, AdminRoutes.CONTENT_INTERESTS, { query?.trim()?.takeIf { it.isNotEmpty() }?.let { parameter("query", it) } }) {
+            it.body<ApiResponse<List<AdminInterestSummaryDto>>>().data
+        }
+
+    suspend fun contentInterest(destination: String, month: Int, language: String): ApiResult<AdminInterestCurationDto> =
+        call(HttpMethod.Get, AdminRoutes.CONTENT_INTEREST, { interestKey(destination, month, language) }) {
+            it.body<ApiResponse<AdminInterestCurationDto>>().data
+        }
+
+    suspend fun saveContentInterest(curation: AdminInterestCurationDto): ApiResult<AdminInterestCurationDto> =
+        send(HttpMethod.Put, AdminRoutes.CONTENT_INTEREST, curation)
+
+    suspend fun regenerateContentInterest(destination: String, month: Int, language: String): ApiResult<AdminInterestCurationDto> =
+        call(HttpMethod.Post, AdminRoutes.CONTENT_INTEREST, { interestKey(destination, month, language) }) {
+            it.body<ApiResponse<AdminInterestCurationDto>>().data
+        }
+
+    private fun HttpRequestBuilder.interestKey(destination: String, month: Int, language: String) {
+        parameter("destination", destination)
+        parameter("month", month)
+        parameter("language", language)
+    }
 
     // ── plumbing ────────────────────────────────────────────────────────────
     private fun HttpRequestBuilder.filter(filter: UserFilter) {

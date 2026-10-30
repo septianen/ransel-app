@@ -108,6 +108,9 @@ class AdminFormat(
         return "${t.hour.toString().padStart(2, '0')}$sep${t.minute.toString().padStart(2, '0')}"
     }
 
+    /** "Nov" for a month of the year, 1–12. */
+    fun monthName(month: Int): String = months.getOrNull(month - 1) ?: month.toString()
+
     /** +3 / −10 with a real minus sign. */
     fun signed(value: Int): String = if (value > 0) "+${number(value)}" else number(value)
 

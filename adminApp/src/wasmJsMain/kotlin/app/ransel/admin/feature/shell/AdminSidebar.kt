@@ -60,16 +60,16 @@ import app.ransel.ui.theme.IrisTheme
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** Sidebar sections; the content ones show "Segera" until stage D. */
+/** Sidebar sections; [available] = false shows "Segera". */
 enum class AdminSection(val label: StringResource, val symbol: String, val available: Boolean) {
     OVERVIEW(Res.string.nav_overview, Symbols.home, true),
     USERS(Res.string.nav_users, Symbols.person, true),
     EXPLORE_AI(Res.string.nav_explore_ai, Symbols.autoAwesome, true),
     SYSTEM(Res.string.nav_system, Symbols.warning, true),
-    CONTENT_STRINGS(Res.string.nav_content_strings, Symbols.translate, false),
-    CONTENT_ERRORS(Res.string.nav_content_errors, Symbols.error, false),
-    CONTENT_CATEGORIES(Res.string.nav_content_categories, Symbols.category, false),
-    CONTENT_INTERESTS(Res.string.nav_content_interests, Symbols.star, false),
+    CONTENT_STRINGS(Res.string.nav_content_strings, Symbols.translate, true),
+    CONTENT_ERRORS(Res.string.nav_content_errors, Symbols.error, true),
+    CONTENT_CATEGORIES(Res.string.nav_content_categories, Symbols.category, true),
+    CONTENT_INTERESTS(Res.string.nav_content_interests, Symbols.star, true),
 }
 
 private val WatchSections = listOf(AdminSection.OVERVIEW, AdminSection.USERS, AdminSection.EXPLORE_AI, AdminSection.SYSTEM)
