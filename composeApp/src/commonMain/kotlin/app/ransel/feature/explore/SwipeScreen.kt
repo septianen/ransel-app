@@ -156,6 +156,16 @@ fun SwipeScreen(
             is SwipeUiState.Error -> StateWithClose(onClose) {
                 if (s.failure.isConnection) {
                     ConnectionErrorState(onRetry = viewModel::retry, errorCode = s.failure.code, onBack = onHome)
+                } else if (s.failure.code == ErrorCode.AI_PAUSED) {
+                    // the month's AI budget is spent (Karung CACHE_ONLY): trying again now does not help
+                    FullScreenState(
+                        title = stringResource(Res.string.ai_paused_title),
+                        body = stringResource(Res.string.ai_paused_body),
+                        illustration = painterResource(Res.drawable.ic_confuse),
+                        errorCode = ErrorCode.AI_PAUSED,
+                        primaryLabel = stringResource(Res.string.swipe_back_home),
+                        onPrimary = onHome,
+                    )
                 } else {
                     FullScreenState(
                         title = stringResource(Res.string.swipe_error_title),

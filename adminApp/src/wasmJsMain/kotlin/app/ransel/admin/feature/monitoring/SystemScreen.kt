@@ -73,10 +73,11 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 
-/** Design `Sistem` ("Sistem & error"), stage B: health and errors. The settings section comes with stage C. */
+/** Design `Sistem` ("Sistem & error"): health and errors (stage B), settings (stage C). */
 @Composable
 fun SystemScreen(api: AdminApi, onAccessLost: suspend (ApiFailure) -> Unit) {
     val presenter = rememberPresenter { MonitorPresenter(it, AdminRange.LAST_24_HOURS, onAccessLost, api::system) }
+    val settings = rememberPresenter { SettingsPresenter(api, it, onAccessLost) }
     val state by presenter.state.collectAsState()
     val format = LocalAdminFormat.current
     val data = state.data
@@ -101,6 +102,7 @@ fun SystemScreen(api: AdminApi, onAccessLost: suspend (ApiFailure) -> Unit) {
                 ErrorsCard(data, presenter::select)
             }
         }
+        SettingsCard(settings)
     }
 }
 

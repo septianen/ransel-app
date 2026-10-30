@@ -207,6 +207,7 @@
     <string name="adjust_done_add">%1$s kredit ditambahkan. Saldo sekarang %2$s.</string>
     <string name="adjust_done_subtract">%1$s kredit dikurangi. Saldo sekarang %2$s.</string>
     <string name="audit_user_create">Tambah pengguna</string>
+    <string name="audit_settings_update">Ubah pengaturan</string>
     <string name="users_add">Tambah pengguna</string>
     <string name="create_user_title">Tambah pengguna</string>
     <string name="create_user_body">Kami kirim email berisi link untuk mengatur kata sandi (berlaku 7 hari). Emailnya langsung dianggap terverifikasi.</string>
@@ -347,4 +348,35 @@
     <string name="system_range_label">Rentang</string>
     <string name="system_range_24h">24 jam</string>
     <string name="system_trend_description">Error per hari, 7 hari terakhir: %1$s</string>
+    <string name="settings_title">Pengaturan</string>
+    <string name="settings_subtitle">Berlaku tanpa deploy</string>
+    <string name="settings_last_changed">Berlaku tanpa deploy · terakhir diubah %1$s oleh %2$s</string>
+    <string name="settings_suggestions">Batas saran minat per jam</string>
+    <string name="settings_llm_model">Model LLM</string>
+    <string name="settings_budget">Anggaran AI per bulan (US$)</string>
+    <string name="settings_alert">Kirim peringatan saat anggaran terpakai</string>
+    <string name="settings_mode">Saat anggaran habis</string>
+    <string name="settings_mode_cache_only">Cache saja, pencarian baru ditolak</string>
+    <string name="settings_mode_keep_going">Tetap jalan, kirim peringatan</string>
+    <string name="settings_credits_title">Kredit AI</string>
+    <string name="settings_credits_subtitle">Berlaku untuk semua pengguna; saldo yang sudah ada tidak berubah</string>
+    <string name="settings_signup_grant">Bonus saat daftar</string>
+    <string name="settings_daily_free">Gratis per hari (reset 00.00 WIB)</string>
+    <string name="settings_cost_search">Biaya pencarian baru</string>
+    <string name="settings_cost_next_batch">Biaya batch berikutnya</string>
+    <string name="settings_cost_place_detail">Biaya bangun ulang detail tempat</string>
+    <string name="settings_cost_receipt">Biaya scan struk</string>
+    <string name="settings_credits_note">0 = gratis. Saran, cache detail tempat, pencarian yang gagal dan struk yang tidak terbaca tidak memotong kredit.</string>
+    <string name="settings_source_env">Bawaan</string>
+    <string name="settings_source_override">Diubah · bawaan %1$s</string>
+    <string name="settings_reset">Kembalikan bawaan</string>
+    <string name="settings_cancel">Batal</string>
+    <string name="settings_save">Simpan</string>
+    <string name="settings_saved">Pengaturan disimpan</string>
+    <string name="settings_confirm_title">Simpan pengaturan?</string>
+    <string name="settings_confirm_body">Berlaku langsung untuk semua pengguna, tanpa deploy. Saldo yang sudah ada tidak berubah.\n\n%1$s</string>
+    <string name="settings_confirm_reset">%1$s: kembali ke bawaan (%2$s)</string>
+    <string name="settings_problem_number">Isi angka</string>
+    <string name="settings_problem_range">Harus antara %1$s dan %2$s</string>
+    <string name="settings_problem_list">Pilih dari daftar</string>
 </resources>

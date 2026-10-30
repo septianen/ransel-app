@@ -48,7 +48,7 @@ sealed interface PollDialog {
 data class OptionSheet(val option: PollOptionDto?)
 
 /** Why a Jelajah search or the adding of its results did not work. */
-enum class PollSearchError { NO_CREDITS, NOT_VERIFIED, UNAVAILABLE, CLOSED, FAILED }
+enum class PollSearchError { NO_CREDITS, NOT_VERIFIED, UNAVAILABLE, PAUSED, CLOSED, FAILED }
 
 /** The Jelajah sheet of a stay or food poll: the form, then the results to tick. */
 data class PollSearchState(
@@ -321,6 +321,7 @@ class PollViewModel(
         ErrorCode.INSUFFICIENT_CREDITS -> PollSearchError.NO_CREDITS
         ErrorCode.EMAIL_NOT_VERIFIED -> PollSearchError.NOT_VERIFIED
         ErrorCode.AI_UNAVAILABLE -> PollSearchError.UNAVAILABLE
+        ErrorCode.AI_PAUSED -> PollSearchError.PAUSED
         ErrorCode.POLL_CLOSED -> PollSearchError.CLOSED
         else -> PollSearchError.FAILED
     }

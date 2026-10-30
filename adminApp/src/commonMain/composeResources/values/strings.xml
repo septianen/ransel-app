@@ -207,6 +207,7 @@
     <string name="adjust_done_add">%1$s credits added. Balance is now %2$s.</string>
     <string name="adjust_done_subtract">%1$s credits subtracted. Balance is now %2$s.</string>
     <string name="audit_user_create">Add user</string>
+    <string name="audit_settings_update">Settings changed</string>
     <string name="users_add">Add user</string>
     <string name="create_user_title">Add user</string>
     <string name="create_user_body">We email them a link to set their password (valid 7 days). Their email counts as verified.</string>
@@ -347,4 +348,35 @@
     <string name="system_range_label">Range</string>
     <string name="system_range_24h">24 hours</string>
     <string name="system_trend_description">Errors per day, last 7 days: %1$s</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Applies without a deploy</string>
+    <string name="settings_last_changed">Applies without a deploy · last changed %1$s by %2$s</string>
+    <string name="settings_suggestions">Interest suggestions per hour</string>
+    <string name="settings_llm_model">LLM model</string>
+    <string name="settings_budget">AI budget per month (US$)</string>
+    <string name="settings_alert">Warn when this much of the budget is used</string>
+    <string name="settings_mode">When the budget is used up</string>
+    <string name="settings_mode_cache_only">Cache only, new searches refused</string>
+    <string name="settings_mode_keep_going">Keep going, warn</string>
+    <string name="settings_credits_title">AI credits</string>
+    <string name="settings_credits_subtitle">For every user; existing balances do not change</string>
+    <string name="settings_signup_grant">Sign-up bonus</string>
+    <string name="settings_daily_free">Free per day (resets 00:00 WIB)</string>
+    <string name="settings_cost_search">New search</string>
+    <string name="settings_cost_next_batch">Next batch</string>
+    <string name="settings_cost_place_detail">Rebuilding a place detail</string>
+    <string name="settings_cost_receipt">Receipt scan</string>
+    <string name="settings_credits_note">0 = free. Suggestions, cached place details, failed searches and unreadable receipts cost nothing.</string>
+    <string name="settings_source_env">Default</string>
+    <string name="settings_source_override">Changed · default %1$s</string>
+    <string name="settings_reset">Restore default</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="settings_confirm_title">Save settings?</string>
+    <string name="settings_confirm_body">Applies at once for every user, without a deploy. Existing balances do not change.\n\n%1$s</string>
+    <string name="settings_confirm_reset">%1$s: back to the default (%2$s)</string>
+    <string name="settings_problem_number">Enter a number</string>
+    <string name="settings_problem_range">Must be between %1$s and %2$s</string>
+    <string name="settings_problem_list">Pick from the list</string>
 </resources>
