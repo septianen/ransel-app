@@ -112,9 +112,8 @@ jobs:
           NOTES: ${{ inputs.release_notes }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          if [ -z "$FIREBASE_APP_ID" ] || [ -z "$SERVICE_ACCOUNT" ]; then
-            echo "Firebase app id or FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT missing (deploy/README.md)" >&2; exit 1
-          fi
+          if [ -z "$FIREBASE_APP_ID" ]; then echo "::error::The Firebase app id variable for $BUILD_TYPE is empty (deploy/README.md)"; exit 1; fi
+          if [ -z "$SERVICE_ACCOUNT" ]; then echo "::error::FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT is empty (deploy/README.md)"; exit 1; fi
           # the key file pasted as is, or base64
           case "$SERVICE_ACCOUNT" in
             "{"*) printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json" ;;
@@ -124,7 +123,14 @@ jobs:
           # the commit message without its trailers (Co-Authored-By, ...)
           NOTES="${NOTES:-$(printf '%s\n' "${COMMIT_MESSAGE:-manual build}" | grep -v -E '^[A-Za-z-]+: ' )}"
           printf '%s\n\n%s #%s, %s\n' "$NOTES" "${GITHUB_REF_NAME}" "${{ github.run_number }}" "${GITHUB_SHA::7}" > "$RUNNER_TEMP/notes.txt"
+          # Firebase's own message becomes an annotation, so the reason shows on the run page.
+          set +e
           npx --yes firebase-tools@14 appdistribution:distribute "$APK" \
             --app "$FIREBASE_APP_ID" \
             --groups "$GROUPS" \
-            --release-notes-file "$RUNNER_TEMP/notes.txt"
+            --release-notes-file "$RUNNER_TEMP/notes.txt" 2>&1 | tee "$RUNNER_TEMP/firebase.log"
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=Firebase App Distribution::$(grep -iE 'error|denied|permission|not found|invalid|disabled' "$RUNNER_TEMP/firebase.log" | tail -5 | tr '\n' ' ')"
+            exit "$status"
+          fi
