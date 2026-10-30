@@ -123,7 +123,10 @@ object ExpenseService {
         } ?: callerMemberId(tripId, callerId)
     }
 
-    /** With receipt items the splits come from domain.splitByItems; the items must add up to the amount. */
+    /**
+     * With receipt items the splits come from domain.splitByItems; the items must add up to the amount. Items that are
+     * only the receipt's lines (itemsSplit = false) are kept as they are, without members, and the splits stay.
+     */
     internal fun withItemSplits(body: ExpenseInput, payer: UUID): ExpenseInput {
         if (body.items.isEmpty()) return body
         requireValid(
@@ -132,9 +135,10 @@ object ExpenseService {
                 if (body.items.any { it.name.isBlank() || it.name.length > 120 }) put("items", "INVALID_NAME")
                 if (body.items.any { it.amountMinor < 0 }) put("items", "MUST_NOT_BE_NEGATIVE")
                 if (body.items.any { item -> item.memberIds.any { runCatching { UUID.fromString(it) }.isFailure } }) put("items", "INVALID_UUID")
-                if (body.items.all { it.memberIds.isEmpty() }) put("items", "NO_MEMBERS")
+                if (body.itemsSplit && body.items.all { it.memberIds.isEmpty() }) put("items", "NO_MEMBERS")
             },
         )
+        if (!body.itemsSplit) return body.copy(items = body.items.map { it.copy(memberIds = emptyList()) })
         val total = itemsTotal(body.items)
         if (total != body.amountMinor) {
             throw ApiException(
@@ -232,6 +236,7 @@ object ExpenseService {
         it[Expenses.spentAt] = body.spentAt.toJavaInstant()
         it[Expenses.paidByMemberId] = payer
         it[Expenses.isEstimate] = body.isEstimate
+        it[Expenses.itemsSplit] = body.itemsSplit || body.items.isEmpty()
         // a rate source only means something for a foreign amount
         it[Expenses.fxSource] = body.fxSource.takeIf { body.fxRateToBase != null }
         it[Expenses.fxDate] = body.fxDate.takeIf { body.fxRateToBase != null }?.toJavaLocalDate()

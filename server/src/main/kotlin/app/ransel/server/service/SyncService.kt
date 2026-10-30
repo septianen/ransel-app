@@ -450,7 +450,7 @@ class SyncService {
             id = dto.id, amountMinor = dto.amountMinor, currency = dto.currency, fxRateToBase = dto.fxRateToBase,
             category = dto.category, paymentMethod = dto.paymentMethod, note = dto.note, spentAt = dto.spentAt,
             paidByMemberId = dto.paidByMemberId, payers = dto.payers, splits = dto.splits,
-            isEstimate = dto.isEstimate, items = dto.items,
+            isEstimate = dto.isEstimate, items = dto.items, itemsSplit = dto.itemsSplit,
             fxSource = dto.fxSource, fxDate = dto.fxDate,
         )
         val existing = Expenses.selectAll().where { Expenses.id eq id }.singleOrNull()
