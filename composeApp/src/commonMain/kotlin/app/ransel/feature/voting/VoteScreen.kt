@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.ransel.content.getString
+import app.ransel.content.stringResource
 import app.ransel.data.explore.ExploreCard
 import app.ransel.feature.explore.IconBox
 import app.ransel.feature.explore.SwipeDeck
@@ -75,9 +77,7 @@ import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf

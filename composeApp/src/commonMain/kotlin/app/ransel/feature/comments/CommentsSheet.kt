@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
@@ -49,7 +50,6 @@ import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import kotlin.time.Instant
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel

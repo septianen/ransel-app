@@ -182,7 +182,7 @@ Admin endpoints are rate limited per admin (60 requests a minute) and never cach
 | B — Monitoring | `last_seen_at`, `ai_search_log`, `error_counts`, overview, Explore AI, system health and errors | A |
 | C — Settings | `app_settings`, credit settings override, AI budget settings | A |
 | D — Content (admin side) | Content tables, editors, publish, `GET /content`, curated interests used by suggestions | A |
-| E — Content in the apps | Apps read `GET /content` with bundled strings as fallback | D; separate frontend task |
+| E — Content in the apps | Apps read `GET /content` with bundled strings as fallback (built 30 Oct 2026, F9.8: strings, categories, error copy on full-screen errors; `display` not used yet) | D; separate frontend task |
 | — | Password reset email from Karung | Email provider |
 
 ## Docs updated with this spec

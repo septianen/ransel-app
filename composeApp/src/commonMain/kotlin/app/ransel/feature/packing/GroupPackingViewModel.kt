@@ -22,6 +22,7 @@ import app.ransel.shared.dto.SaveMemberListRequest
 import app.ransel.shared.dto.SendMemberListRequest
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.PackingCategory
+import app.ransel.ui.category.packingCategoryOrder
 import app.ransel.util.newId
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,7 +50,7 @@ data class GroupPackingUiState(
      * The Pribadi list by category, drawn like every packing list (`PackingGroupSection`). Lines from the owner's list
      * look and behave like the member's own (owner, 27 Oct 2026); only "Wajib" shows.
      */
-    val groups: List<PackingGroup> get() = PackingCategory.entries
+    val groups: List<PackingGroup> get() = packingCategoryOrder()
         .map { c -> PackingGroup(c, personal.filter { it.category == c }.sortedBy { it.sortOrder }.map { it.asPackingItem() }) }
         .filter { it.items.isNotEmpty() }
     val requiredIds: Set<String> get() = personal.filter { it.required }.map { it.id }.toSet()

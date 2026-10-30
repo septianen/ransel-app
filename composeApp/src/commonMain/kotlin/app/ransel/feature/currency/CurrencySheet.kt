@@ -33,11 +33,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.currency_search_placeholder
 

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import app.ransel.content.stringResource
 import app.ransel.shared.dto.NotificationSettingsDto
 import app.ransel.ui.components.ConnectionErrorState
 import app.ransel.ui.components.ServerErrorState
@@ -43,7 +44,6 @@ import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.*

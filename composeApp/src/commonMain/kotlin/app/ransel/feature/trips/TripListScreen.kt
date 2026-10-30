@@ -1,5 +1,6 @@
 package app.ransel.feature.trips
 
+import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -73,7 +74,6 @@ import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.irisCard
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.ic_data_not_found

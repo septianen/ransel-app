@@ -10,6 +10,7 @@ import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
 import app.ransel.shared.model.PackingCategory
+import app.ransel.ui.category.packingCategoryOrder
 import app.ransel.util.newId
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -41,7 +42,7 @@ class PackingViewModel(
         .map { items ->
             PackingUiState(
                 loading = false,
-                groups = PackingCategory.entries
+                groups = packingCategoryOrder()
                     .map { category -> PackingGroup(category, items.filter { it.category == category }) }
                     .filter { it.items.isNotEmpty() },
             )

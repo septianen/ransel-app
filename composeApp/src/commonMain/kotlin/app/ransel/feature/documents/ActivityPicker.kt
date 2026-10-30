@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.ransel.content.stringResource
 import app.ransel.navigation.SheetBackHandler
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.model.Category
@@ -47,7 +48,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.daysUntil
 import kotlin.time.Instant
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back

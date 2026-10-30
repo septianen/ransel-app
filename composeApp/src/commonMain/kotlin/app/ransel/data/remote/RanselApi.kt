@@ -70,6 +70,7 @@ import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.PaymentMethodInput
 import app.ransel.shared.dto.ReceiptDraftDto
 import app.ransel.shared.dto.InviteDto
+import app.ransel.shared.dto.ContentDto
 import app.ransel.shared.dto.InvitePreviewDto
 import app.ransel.shared.dto.TransferOwnershipRequest
 import app.ransel.shared.dto.TripMemberDto
@@ -84,6 +85,7 @@ import app.ransel.shared.dto.VoteRequest
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import kotlin.time.Instant
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.DayOrderRequest
@@ -305,6 +307,13 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.pollShare(pollId)) { it.body<ApiResponse<PollShareDto>>().data }
     suspend fun unsharePoll(pollId: String): ApiResult<Unit> = delete(ApiRoutes.pollShare(pollId))
     suspend fun releaseGuestName(tripId: String, memberId: String): ApiResult<Unit> = delete(ApiRoutes.memberGuestSession(tripId, memberId))
+
+    // ── remote content (admin-spec stage E) ─────────────────────────────────
+    /** Public. Null = the app already has [version] (204). */
+    suspend fun content(version: Int?): ApiResult<ContentDto?> =
+        call(HttpMethod.Get, ApiRoutes.CONTENT, bodyOf = { if (version != null) parameter("version", version) }) {
+            if (it.status == HttpStatusCode.NoContent) null else it.body<ApiResponse<ContentDto>>().data
+        }
 
     /** Public: no bearer; the browser's guest token for the trip, if it has one. */
     suspend fun guestPage(code: String, token: String?): ApiResult<GuestPageDto> =

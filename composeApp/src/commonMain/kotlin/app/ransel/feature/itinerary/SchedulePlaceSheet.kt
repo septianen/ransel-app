@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.ScheduledTime
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.ui.category.itineraryLabel
@@ -42,7 +43,6 @@ import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.itinerary_close
 import ransel.composeapp.generated.resources.itinerary_day_chip

@@ -1,5 +1,6 @@
 package app.ransel.feature.packing
 
+import app.ransel.content.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +38,7 @@ import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PackingTemplateDto
 import app.ransel.shared.model.PackingCategory
 import app.ransel.ui.category.label
+import app.ransel.ui.category.packingCategoryOrder
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.LoadingButton
@@ -45,7 +47,6 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_close
 import ransel.composeapp.generated.resources.state_retry
@@ -173,7 +174,7 @@ private fun SectionLabel(text: String) {
 }
 
 private fun PackingTemplateDto.categories(): List<Pair<PackingCategory, List<String>>> =
-    PackingCategory.entries.mapNotNull { c ->
+    packingCategoryOrder().mapNotNull { c ->
         items.filter { it.category == c }.map { it.name }.takeIf { it.isNotEmpty() }?.let { c to it }
     }
 
@@ -246,7 +247,7 @@ fun SaveTemplateSheet(
     var keep by remember { mutableStateOf(true) }
     var share by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
-    val counts = PackingCategory.entries.map { c -> c to items.count { it.category == c } }.filter { it.second > 0 }
+    val counts = packingCategoryOrder().map { c -> c to items.count { it.category == c } }.filter { it.second > 0 }
 
     AdaptiveSheet(onDismiss = onDismiss) {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {

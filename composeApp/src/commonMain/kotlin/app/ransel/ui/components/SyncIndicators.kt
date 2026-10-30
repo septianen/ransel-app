@@ -18,6 +18,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.data.sync.DroppedChanges
 import app.ransel.data.sync.DroppedKind
 import app.ransel.ui.preview.IrisPreview
@@ -25,7 +26,6 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_ok

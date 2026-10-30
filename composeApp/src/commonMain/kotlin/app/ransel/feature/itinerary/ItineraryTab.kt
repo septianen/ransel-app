@@ -1,5 +1,7 @@
 package app.ransel.feature.itinerary
 
+import app.ransel.content.getString
+import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
@@ -89,9 +91,7 @@ import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
-import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res

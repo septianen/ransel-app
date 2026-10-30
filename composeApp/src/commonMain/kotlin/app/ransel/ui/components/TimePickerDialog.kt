@@ -8,9 +8,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import app.ransel.content.stringResource
 import app.ransel.ui.theme.IrisShape
 import kotlinx.datetime.LocalTime
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_ok

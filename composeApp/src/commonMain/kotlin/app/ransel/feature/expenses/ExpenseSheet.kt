@@ -1,5 +1,6 @@
 package app.ransel.feature.expenses
 
+import app.ransel.content.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -59,6 +60,7 @@ import app.ransel.shared.domain.convertMinor
 import app.ransel.shared.domain.isOverseas
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.FxSource
+import app.ransel.ui.category.expenseCategoryChoices
 import app.ransel.ui.format.formatMoney
 import org.koin.compose.koinInject
 import app.ransel.shared.model.PaymentMethod
@@ -90,7 +92,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.expense_rate_daily
 import ransel.composeapp.generated.resources.expense_rate_own
@@ -120,10 +121,6 @@ import ransel.composeapp.generated.resources.activity_category
 import ransel.composeapp.generated.resources.expenses_record
 import ransel.composeapp.generated.resources.itinerary_close
 import ransel.composeapp.generated.resources.itinerary_day_chip
-
-private val CategoryOrder = listOf(
-    Category.FOOD, Category.TRANSPORT, Category.LODGING, Category.ATTRACTION, Category.SHOPPING, Category.OTHER,
-)
 
 /** Record (existing == null) or edit an expense (design "Catat pengeluaran"). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -375,7 +372,7 @@ fun ExpenseSheet(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(Res.string.activity_category), style = MaterialTheme.typography.labelLarge)
-            CategoryOrder.chunked(3).forEach { row ->
+            expenseCategoryChoices(category).chunked(3).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { option ->
                         val selected = option == category

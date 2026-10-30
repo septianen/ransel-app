@@ -1,5 +1,6 @@
 package app.ransel.feature.packing
 
+import app.ransel.content.stringResource
 import ransel.composeapp.generated.resources.member_progress_remind_one
 import ransel.composeapp.generated.resources.member_progress_all
 import ransel.composeapp.generated.resources.member_list_draft_row
@@ -77,7 +78,6 @@ import app.ransel.shared.dto.MemberListProgressDto
 import app.ransel.shared.model.PackingCategory
 import app.ransel.ui.preview.IrisPreview
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.member_list_create
 import ransel.composeapp.generated.resources.member_list_create_hint

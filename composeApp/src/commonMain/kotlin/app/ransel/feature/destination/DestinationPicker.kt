@@ -43,6 +43,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.ransel.content.stringResource
 import app.ransel.platform.rememberLocationProvider
 import app.ransel.shared.dto.MatchRange
 import app.ransel.shared.dto.NearbyAreaDto
@@ -53,7 +54,6 @@ import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.util.newId
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back

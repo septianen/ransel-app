@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.PollAction
 import app.ransel.shared.domain.actionFor
 import app.ransel.shared.dto.PollOptionInput
@@ -53,7 +54,6 @@ import app.ransel.util.toPickerMillis
 import app.ransel.util.today
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf

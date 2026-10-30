@@ -53,12 +53,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.ransel.content.getString
+import app.ransel.content.stringResource
 import app.ransel.feature.invite.InviteMembersSheet
 import app.ransel.shared.domain.whatsappLink
 import app.ransel.shared.dto.InviteDto
 import app.ransel.platform.rememberShareText
 import androidx.compose.ui.platform.LocalUriHandler
-import org.jetbrains.compose.resources.getString
 import kotlin.time.Clock
 import app.ransel.data.remote.ApiFailure
 import app.ransel.shared.dto.TripMemberDto
@@ -75,7 +76,6 @@ import app.ransel.ui.theme.IrisTheme
 import kotlin.time.Instant
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf

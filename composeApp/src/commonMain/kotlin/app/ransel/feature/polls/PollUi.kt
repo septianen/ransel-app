@@ -2,6 +2,7 @@ package app.ransel.feature.polls
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import app.ransel.content.stringResource
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.PollOptionDto
 import app.ransel.shared.model.PollKind
@@ -9,7 +10,6 @@ import app.ransel.shared.model.PollStatus
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisTheme
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.*
 
 /** Icons come from the app's icon subset, which has no `how_to_vote` or `poll`. */

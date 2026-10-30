@@ -33,6 +33,8 @@ import androidx.compose.ui.semantics.Role as SemanticsRole
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import app.ransel.content.remoteErrorCopy
+import app.ransel.content.stringResource
 import app.ransel.data.remote.ApiFailure
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.CreditCostsDto
@@ -53,7 +55,6 @@ import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.*
 
@@ -179,7 +180,7 @@ private fun VoucherSection(state: CreditsUiState, onCodeChange: (String) -> Unit
 }
 
 @Composable
-private fun voucherError(code: String): String = stringResource(
+private fun voucherError(code: String): String = remoteErrorCopy(code)?.message ?: stringResource(
     when (code) {
         ErrorCode.VOUCHER_INVALID -> Res.string.credits_voucher_invalid
         ErrorCode.VOUCHER_EXPIRED -> Res.string.credits_voucher_expired

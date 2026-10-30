@@ -2,8 +2,8 @@ package app.ransel.ui.components
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import app.ransel.content.stringResource
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.ic_data_not_found
 import ransel.composeapp.generated.resources.ic_confuse

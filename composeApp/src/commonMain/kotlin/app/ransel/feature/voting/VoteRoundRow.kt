@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.domain.RoundState
 import app.ransel.shared.domain.hoursLeft
 import app.ransel.shared.domain.roundState
@@ -36,7 +37,6 @@ import app.ransel.ui.theme.IrisTheme
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.*
 

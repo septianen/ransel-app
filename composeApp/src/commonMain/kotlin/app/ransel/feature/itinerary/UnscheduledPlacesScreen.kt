@@ -12,11 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
-import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.itinerary_auto_button
 import ransel.composeapp.generated.resources.itinerary_unscheduled

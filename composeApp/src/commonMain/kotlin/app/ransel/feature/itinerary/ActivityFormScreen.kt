@@ -1,5 +1,6 @@
 package app.ransel.feature.itinerary
 
+import app.ransel.content.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +35,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.model.Category
+import app.ransel.ui.category.itineraryCategoryChoices
 import app.ransel.ui.category.itineraryLabel
 import app.ransel.ui.category.tileColor
 import app.ransel.ui.components.CategoryIcon
@@ -48,7 +50,6 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import kotlinx.datetime.LocalTime
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
@@ -122,7 +123,7 @@ fun ActivityFormScreen(
         // Category
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(Res.string.activity_category), style = MaterialTheme.typography.labelLarge)
-            Category.entries.chunked(3).forEach { row ->
+            itineraryCategoryChoices(state.category).chunked(3).forEach { row ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { category ->
                         val selected = category == state.category

@@ -12,9 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.exit_hint
-import org.jetbrains.compose.resources.stringResource
 
 /** "Press back again to exit", shown after the first back press on the home tab. */
 @Composable

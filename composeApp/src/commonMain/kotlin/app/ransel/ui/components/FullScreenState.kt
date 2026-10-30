@@ -23,9 +23,10 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.ransel.content.remoteErrorCopy
+import app.ransel.content.stringResource
 import app.ransel.ui.preview.IrisPreview
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.ic_confuse
@@ -37,7 +38,8 @@ import ransel.composeapp.generated.resources.error_code
  *
  * [illustration] is decorative (`contentDescription = null`). Pass the capybara that the screen's
  * design uses (see `docs/design/README.md`); the default confused capybara fits generic errors.
- * `null` leaves an empty box of the same size so layouts do not shift.
+ * `null` leaves an empty box of the same size so layouts do not shift. With an [errorCode], what Karung published
+ * for that code replaces the title, body, primary button and illustration.
  */
 @Composable
 fun FullScreenState(
@@ -52,6 +54,12 @@ fun FullScreenState(
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
 ) {
+    // Karung's copy for this error code wins over the screen's own (remote content, stage E)
+    val remote = remoteErrorCopy(errorCode)
+    val title = remote?.title ?: title
+    val body = remote?.message ?: body
+    val primaryLabel = if (primaryLabel != null) remote?.button ?: primaryLabel else null
+    val illustration = remote?.illustration?.let { painterResource(it) } ?: illustration
     // Centered column, never wider than 480 dp: on a wide web window a full-width button looks wrong.
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
     Column(

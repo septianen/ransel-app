@@ -1,5 +1,6 @@
 package app.ransel.feature.group
 
+import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -66,7 +67,6 @@ import app.ransel.util.today
 import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf

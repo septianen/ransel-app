@@ -1,7 +1,7 @@
 package app.ransel.feature.trips
 
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.resources.stringResource
+import app.ransel.content.stringResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.trip_countdown_day
 import ransel.composeapp.generated.resources.trip_countdown_days

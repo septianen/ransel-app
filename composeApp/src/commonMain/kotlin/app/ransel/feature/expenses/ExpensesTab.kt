@@ -1,5 +1,7 @@
 package app.ransel.feature.expenses
 
+import app.ransel.content.stringResource
+import app.ransel.shared.model.CategoryKind
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -61,7 +63,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
-import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
@@ -351,7 +352,7 @@ private fun CategoryBreakdown(
 ) {
     val slices = summary.byCategory.filter { it.amountMinor > 0 }.sortedByDescending { it.amountMinor }
     if (slices.isEmpty()) return
-    val colors = slices.map { it.category.tileColor() }
+    val colors = slices.map { it.category.tileColor(CategoryKind.EXPENSE) }
     val total = summary.spentMinor.coerceAtLeast(1)
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionHeader(stringResource(Res.string.expenses_by_category))
@@ -412,7 +413,7 @@ internal fun ExpenseRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
-            Modifier.size(40.dp).clip(IrisShape.md).background(expense.category.tileColor()),
+            Modifier.size(40.dp).clip(IrisShape.md).background(expense.category.tileColor(CategoryKind.EXPENSE)),
             contentAlignment = Alignment.Center,
         ) { Symbol(expense.category.expenseSymbol, size = 22.dp, filled = true, tint = IrisTheme.accents.onAccent) }
         Column(Modifier.weight(1f)) {

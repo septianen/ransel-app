@@ -24,12 +24,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role as SemanticsRole
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import app.ransel.content.stringResource
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
 import app.ransel.ui.components.MemberAvatar
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.theme.IrisShape
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Instant
 import ransel.composeapp.generated.resources.Res
