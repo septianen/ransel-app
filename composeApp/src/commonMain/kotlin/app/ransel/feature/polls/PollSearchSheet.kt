@@ -26,6 +26,7 @@ import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.format.formatMoney
 import org.jetbrains.compose.resources.stringResource
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.ai_paused_body
 import ransel.composeapp.generated.resources.near_pick
 import ransel.composeapp.generated.resources.poll_closed_notice
 import ransel.composeapp.generated.resources.poll_option_error_invalid
@@ -158,6 +159,7 @@ private fun PollSearchError.message() = when (this) {
     PollSearchError.NO_CREDITS -> Res.string.poll_search_error_credits
     PollSearchError.NOT_VERIFIED -> Res.string.poll_search_error_verify
     PollSearchError.UNAVAILABLE -> Res.string.poll_search_error_unavailable
+    PollSearchError.PAUSED -> Res.string.ai_paused_body
     PollSearchError.CLOSED -> Res.string.poll_closed_notice
     PollSearchError.FAILED -> Res.string.poll_search_error_failed
 }

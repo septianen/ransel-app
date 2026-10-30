@@ -26,6 +26,9 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-gemini-3.1-flash-lite}
       LLM_FALLBACK_MODEL: ${LLM_FALLBACK_MODEL:-gemini-3.5-flash}
+      # other models Karung may switch to (comma separated)
+      LLM_MODELS: ${LLM_MODELS:-}
+      SUGGESTIONS_RATE_LIMIT_PER_HOUR: ${SUGGESTIONS_RATE_LIMIT_PER_HOUR:-60}
       PLACES_API_KEY: ${PLACES_API_KEY:-}
       # Push (FCM). Blank = pushes are only logged; the inbox works either way.
       FCM_PROJECT_ID: ${FCM_PROJECT_ID:-}
@@ -66,6 +69,8 @@ services:
       # LLM + Places budget per month (USD; blank = none) and the warning threshold (80, 90 or 100)
       AI_MONTHLY_BUDGET_USD: ${AI_MONTHLY_BUDGET_USD:-}
       AI_BUDGET_ALERT_PERCENT: ${AI_BUDGET_ALERT_PERCENT:-80}
+      # KEEP_GOING or CACHE_ONLY (new LLM calls stop once the budget is spent); Karung can override it
+      AI_BUDGET_MODE: ${AI_BUDGET_MODE:-KEEP_GOING}
       # the deployed commit, shown on Karung's system page
       APP_VERSION: ${APP_VERSION:-}
       # Outgoing email (verification after sign-up, password reset) over any provider's SMTP relay.

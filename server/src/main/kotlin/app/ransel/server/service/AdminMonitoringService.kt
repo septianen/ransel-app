@@ -38,7 +38,12 @@ import java.util.UUID
  * Karung's monitoring pages (docs/specs/admin-spec.md, stage B) from the V27 tables, `trips`, `users` and
  * `credit_ledger`. Counts, dates and destinations only, never trip content. Days are WIB days.
  */
-class AdminMonitoringService(private val config: AppConfig, private val requests: RequestStats) {
+class AdminMonitoringService(
+    private val config: AppConfig,
+    private val requests: RequestStats,
+    /** The AI budget and alert share may be overridden in Karung. */
+    private val settings: SettingsService = SettingsService(config),
+) {
     private val wib = ZoneId.of("Asia/Jakarta")
 
     // ── Ringkasan ───────────────────────────────────────────────────────────
@@ -155,8 +160,8 @@ class AdminMonitoringService(private val config: AppConfig, private val requests
             month = month.toString(),
             spentMicroUsd = spent,
             projectedMicroUsd = projected,
-            budgetMicroUsd = config.aiMonthlyBudgetMicroUsd.takeIf { it > 0 },
-            alertPercent = config.aiBudgetAlertPercent,
+            budgetMicroUsd = settings.current.aiMonthlyBudgetMicroUsd.takeIf { it > 0 },
+            alertPercent = settings.current.aiBudgetAlertPercent,
         )
     }
 

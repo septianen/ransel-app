@@ -1,5 +1,6 @@
 package app.ransel.server.db
 
+import app.ransel.shared.model.SettingKey
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.CommentTarget
 import app.ransel.shared.model.PollKind
@@ -526,6 +527,15 @@ object CreditLedger : Table("credit_ledger") {
     val note = text("note").nullable()
     val createdAt = timestamp("created_at")
     override val primaryKey = PrimaryKey(id)
+}
+
+/** Karung overrides of env settings (V29): one row per `SettingKey` that is set; no row = the env var. */
+object AppSettings : Table("app_settings") {
+    val key = enumerationByName<SettingKey>("key", 32)
+    val value = text("value")
+    val updatedBy = javaUUID("updated_by")
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(key)
 }
 
 /** Append-only; no foreign keys so it outlives the accounts it mentions (V12). */

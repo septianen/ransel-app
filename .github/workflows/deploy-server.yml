@@ -186,6 +186,9 @@ jobs:
           SERVER_MONTHLY_COST_USD: ${{ vars.SERVER_MONTHLY_COST_USD }}
           AI_MONTHLY_BUDGET_USD: ${{ vars.AI_MONTHLY_BUDGET_USD }}
           AI_BUDGET_ALERT_PERCENT: ${{ vars.AI_BUDGET_ALERT_PERCENT }}
+          AI_BUDGET_MODE: ${{ vars.AI_BUDGET_MODE }}
+          LLM_MODELS: ${{ vars.LLM_MODELS }}
+          SUGGESTIONS_RATE_LIMIT_PER_HOUR: ${{ vars.SUGGESTIONS_RATE_LIMIT_PER_HOUR }}
         run: |
           SSH="ssh -p $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes $DEPLOY_USER@$HOST"
           SCP="scp -P $PORT -i $HOME/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes"
@@ -229,6 +232,9 @@ jobs:
             echo "SERVER_MONTHLY_COST_USD=$SERVER_MONTHLY_COST_USD"
             echo "AI_MONTHLY_BUDGET_USD=$AI_MONTHLY_BUDGET_USD"
             echo "AI_BUDGET_ALERT_PERCENT=${AI_BUDGET_ALERT_PERCENT:-80}"
+            echo "AI_BUDGET_MODE=${AI_BUDGET_MODE:-KEEP_GOING}"
+            echo "LLM_MODELS=$LLM_MODELS"
+            echo "SUGGESTIONS_RATE_LIMIT_PER_HOUR=${SUGGESTIONS_RATE_LIMIT_PER_HOUR:-60}"
             echo "APP_VERSION=${{ github.sha }}"
           } | $SSH "umask 077 && cat > '$DEPLOY_PATH/.env'"
 

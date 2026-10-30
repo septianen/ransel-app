@@ -1,5 +1,7 @@
 package app.ransel.shared.dto
 
+import app.ransel.shared.model.SettingSource
+import app.ransel.shared.model.SettingKey
 import app.ransel.shared.model.AdminAction
 import app.ransel.shared.model.AdminRange
 import app.ransel.shared.model.AiSearchKind
@@ -319,4 +321,40 @@ data class AdminSystemDto(
     val pushConfigured: Boolean,
     /** Per code in [range], most first. */
     val errors: List<AdminErrorDto>,
+)
+
+// ── Stage C: settings ──────────────────────────────────────────────────────
+
+/**
+ * One setting as Karung shows it. Values are text in the shape `domain/AdminSettings.kt` checks: whole numbers for
+ * credits and limits, USD with up to 2 decimals for the budget, a constant name for [SettingKey.AI_BUDGET_MODE].
+ */
+@Serializable
+data class AdminSettingDto(
+    val key: SettingKey,
+    /** The value in effect. */
+    val value: String,
+    /** What it would be without the override: the env var, else the built-in default. */
+    val envValue: String,
+    val source: SettingSource,
+    /** Who set the override and when; null for [SettingSource.ENV]. */
+    val updatedByEmail: String? = null,
+    val updatedAt: Timestamp? = null,
+)
+
+/** GET/PUT /admin/settings. [llmModels] = the allow-list for [SettingKey.LLM_MODEL], from server config. */
+@Serializable
+data class AdminSettingsDto(
+    val settings: List<AdminSettingDto>,
+    val llmModels: List<String>,
+)
+
+/**
+ * PUT /admin/settings: the values to set; null = clear the override ("Kembalikan bawaan"). Keys left out stay as they
+ * are. All or nothing: 422 VALIDATION_FAILED with `details` per key (`domain/AdminSettings.kt` codes). One audit row
+ * per changed key. A change applies to the next charge, grant or search; balances do not change.
+ */
+@Serializable
+data class UpdateSettingsRequest(
+    val values: Map<SettingKey, String?>,
 )

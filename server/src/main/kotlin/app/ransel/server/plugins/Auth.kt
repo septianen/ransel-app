@@ -15,6 +15,7 @@ import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
 import io.ktor.server.plugins.origin
 import io.ktor.server.plugins.ratelimit.RateLimit
+import io.ktor.server.plugins.ratelimit.RateLimiter
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.response.respond
 import java.util.UUID
@@ -59,7 +60,8 @@ fun Application.configureAuth(config: AppConfig, tokens: TokenService, onAuthent
 }
 
 /** Behind Caddy the client address arrives in X-Forwarded-For (Caddy replaces untrusted values). */
-fun Application.configureRateLimit(config: AppConfig) {
+/** [suggestionsPerHour] is read per request, so a Karung change applies without a restart. */
+fun Application.configureRateLimit(config: AppConfig, suggestionsPerHour: () -> Int = { config.suggestionsRateLimitPerHour }) {
     install(XForwardedHeaders)
     install(RateLimit) {
         register(AuthRateLimit) {
@@ -67,9 +69,10 @@ fun Application.configureRateLimit(config: AppConfig) {
             requestKey { call -> call.request.origin.remoteHost }
         }
         register(SuggestionsRateLimit) {
-            rateLimiter(limit = config.suggestionsRateLimitPerHour, refillPeriod = 1.hours)
             // Per user (the JWT subject), falling back to the client address; the route sits behind authenticate.
-            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
+            // The limit is part of the key: a new limit starts a fresh bucket with that size.
+            requestKey { call -> (call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost) to suggestionsPerHour() }
+            rateLimiter { _, key -> RateLimiter.default(limit = (key as Pair<*, *>).second as Int, refillPeriod = 1.hours) }
         }
         register(RedeemRateLimit) {
             rateLimiter(limit = 10, refillPeriod = 1.minutes)

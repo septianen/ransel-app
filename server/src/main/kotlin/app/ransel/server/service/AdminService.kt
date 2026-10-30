@@ -77,6 +77,20 @@ import kotlin.time.Clock
 /** The signed-in admin, checked against `ADMIN_EMAILS` on every request. */
 data class AdminPrincipal(val id: UUID, val email: String, val displayName: String)
 
+/** One `admin_audit_log` row; call inside the transaction of the action. */
+internal fun writeAudit(admin: AdminPrincipal, action: AdminAction, targetType: String, targetId: String?, before: JsonElement?, after: JsonElement?) {
+    AdminAuditLog.insert {
+        it[id] = UUID.randomUUID()
+        it[adminId] = admin.id
+        it[adminEmail] = admin.email
+        it[AdminAuditLog.action] = action
+        it[AdminAuditLog.targetType] = targetType
+        it[AdminAuditLog.targetId] = targetId
+        it[AdminAuditLog.before] = before
+        it[AdminAuditLog.after] = after
+    }
+}
+
 /** Filters of GET /admin/users and its CSV export. [platform] WEB = no phone registered for push. */
 data class UserFilter(
     val query: String? = null,
@@ -359,18 +373,8 @@ class AdminService(
     private fun revokeSessions(id: UUID): Int =
         RefreshTokens.update({ (RefreshTokens.userId eq id) and RefreshTokens.revokedAt.isNull() }) { it[revokedAt] = Instant.now() }
 
-    private fun audit(admin: AdminPrincipal, action: AdminAction, targetType: String, targetId: String?, before: JsonElement?, after: JsonElement?) {
-        AdminAuditLog.insert {
-            it[id] = UUID.randomUUID()
-            it[adminId] = admin.id
-            it[adminEmail] = admin.email
-            it[AdminAuditLog.action] = action
-            it[AdminAuditLog.targetType] = targetType
-            it[AdminAuditLog.targetId] = targetId
-            it[AdminAuditLog.before] = before
-            it[AdminAuditLog.after] = after
-        }
-    }
+    private fun audit(admin: AdminPrincipal, action: AdminAction, targetType: String, targetId: String?, before: JsonElement?, after: JsonElement?) =
+        writeAudit(admin, action, targetType, targetId, before, after)
 
     /**
      * Status, query and join date are filtered in SQL; platform and "no credits" need the derived values, so they are
@@ -397,7 +401,7 @@ class AdminService(
             .toList()
         return toDtos(rows).filter { u ->
             (filter.platform == null || (u.platform?.name ?: "WEB") == filter.platform) &&
-                (!filter.noCredits || u.balance + u.dailyFreeLeft < config.creditCostSearch)
+                (!filter.noCredits || u.balance + u.dailyFreeLeft < credits.config.creditCostSearch)
         }
     }
 
@@ -440,8 +444,8 @@ class AdminService(
                 platform = platforms[id],
                 tripCount = trips[id] ?: 0,
                 // No wallet yet = it is created with the signup grant on the user's first credits call.
-                balance = balances[id] ?: config.creditSignupGrant,
-                dailyFreeLeft = (config.creditDailyFree - (freeUsed[id] ?: 0)).coerceAtLeast(0),
+                balance = balances[id] ?: credits.config.creditSignupGrant,
+                dailyFreeLeft = (credits.config.creditDailyFree - (freeUsed[id] ?: 0)).coerceAtLeast(0),
             )
         }
     }

@@ -774,6 +774,9 @@
     <string name="swipe_done_again">Search again with other preferences</string>
     <string name="swipe_error_title">The recommendations are out in the rain</string>
     <string name="swipe_error_body">Our AI is busy or having trouble. Your preferences are saved, so just try again.</string>
+    <string name="ai_paused_title">Explore AI is taking a break</string>
+    <string name="ai_paused_body">This month\'s AI allowance is used up. Try again later; no credits were taken.</string>
+    <string name="receipt_error_paused">Reading receipts is taking a break. Add it by hand for now; no credits were taken.</string>
     <string name="swipe_none_title">Nothing matched yet</string>
     <string name="swipe_none_body">No place in %1$s fits budget %2$s and these interests. Try adding an interest or loosening the budget.</string>
     <string name="home_explore_title">Not sure where to go in %1$s?</string>

@@ -1,5 +1,7 @@
 package app.ransel.admin.data
 
+import app.ransel.shared.dto.UpdateSettingsRequest
+import app.ransel.shared.dto.AdminSettingsDto
 import app.ransel.shared.api.AdminRoutes
 import app.ransel.shared.api.ApiErrorResponse
 import app.ransel.shared.api.ApiResponse
@@ -150,6 +152,12 @@ class AdminApi(
 
     suspend fun system(range: AdminRange): ApiResult<AdminSystemDto> =
         call(HttpMethod.Get, AdminRoutes.SYSTEM, { parameter("range", range.name) }) { it.body<ApiResponse<AdminSystemDto>>().data }
+
+    // ── settings (stage C) ─────────────────────────────────────────────────
+    suspend fun settings(): ApiResult<AdminSettingsDto> = get(AdminRoutes.SETTINGS)
+
+    suspend fun updateSettings(request: UpdateSettingsRequest): ApiResult<AdminSettingsDto> =
+        send(HttpMethod.Put, AdminRoutes.SETTINGS, request)
 
     // ── plumbing ────────────────────────────────────────────────────────────
     private fun HttpRequestBuilder.filter(filter: UserFilter) {

@@ -74,6 +74,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.receipt_error_paused
 import ransel.composeapp.generated.resources.action_save
 import ransel.composeapp.generated.resources.expense_error_rate
 import ransel.composeapp.generated.resources.expense_rate
@@ -216,6 +217,7 @@ fun ReceiptFlow(
                         ErrorCode.INSUFFICIENT_CREDITS -> stringResource(Res.string.receipt_error_credits)
                         ErrorCode.FILE_TOO_LARGE -> stringResource(Res.string.receipt_error_large)
                         ErrorCode.EMAIL_NOT_VERIFIED -> stringResource(Res.string.receipt_error_verify)
+                        ErrorCode.AI_PAUSED -> stringResource(Res.string.receipt_error_paused)
                         else -> stringResource(Res.string.receipt_error_generic, s.code)
                     },
                     style = MaterialTheme.typography.bodyLarge,

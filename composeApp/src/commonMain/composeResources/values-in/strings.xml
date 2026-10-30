@@ -764,6 +764,9 @@
     <string name="swipe_done_again">Cari lagi dengan preferensi lain</string>
     <string name="swipe_error_title">Rekomendasinya lagi kehujanan</string>
     <string name="swipe_error_body">AI kami sedang sibuk atau terganggu. Preferensimu sudah tersimpan, jadi tinggal coba lagi.</string>
+    <string name="ai_paused_title">Jelajah AI sedang istirahat</string>
+    <string name="ai_paused_body">Jatah AI bulan ini sudah habis. Coba lagi nanti; kreditmu tidak dipotong.</string>
+    <string name="receipt_error_paused">Baca struk otomatis sedang istirahat. Catat manual dulu ya; kreditmu tidak dipotong.</string>
     <string name="swipe_none_title">Belum ketemu yang cocok</string>
     <string name="swipe_none_body">Tidak ada tempat di %1$s yang pas dengan budget %2$s dan minat ini. Coba tambah minat lain atau longgarkan budget.</string>
     <string name="home_explore_title">Bingung mau ke mana di %1$s?</string>

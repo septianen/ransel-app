@@ -75,6 +75,10 @@ class UsageMeter(private val prices: AppConfig.ProviderPrices) {
         coroutineContext[SearchUsage]?.add(call)
     }
 
+    /** What [pending] holds for [month] (not in `provider_usage` yet), in micro-USD. */
+    fun pendingMicroUsd(month: kotlinx.datetime.Month, year: Int): Long =
+        pending.entries.filter { it.key.first.month == month && it.key.first.year == year }.sumOf { it.value.get() * it.key.second.price(prices) }
+
     fun flush() {
         val batch = pending.keys.toList().mapNotNull { key -> pending.remove(key)?.get()?.takeIf { it > 0 }?.let { key to it } }
         if (batch.isEmpty()) return
@@ -114,29 +118,36 @@ class UsageMeter(private val prices: AppConfig.ProviderPrices) {
     }
 }
 
-/** The same services, with every outside call counted by [meter]. */
-fun AiServices.metered(meter: UsageMeter): AiServices =
-    AiServices(MeteredLlm(llm, meter), MeteredPlaces(places, meter), placeSearch?.let { MeteredPlaceSearch(it, meter) })
+/**
+ * The same services, with every outside call counted by [meter]. [budget] runs before each LLM call: with Karung's
+ * CACHE_ONLY it stops new LLM calls once the month's budget is spent (503 AI_PAUSED, nothing charged).
+ */
+fun AiServices.metered(meter: UsageMeter, budget: () -> Unit = {}): AiServices =
+    AiServices(MeteredLlm(llm, meter, budget), MeteredPlaces(places, meter), placeSearch?.let { MeteredPlaceSearch(it, meter) })
 
-private class MeteredLlm(private val inner: LlmClient, private val meter: UsageMeter) : LlmClient {
+private class MeteredLlm(private val inner: LlmClient, private val meter: UsageMeter, private val budget: () -> Unit) : LlmClient {
     override val modelName: String get() = inner.modelName
 
     override suspend fun suggest(query: LlmQuery): List<LlmCandidate> {
+        budget()
         meter.record(ProviderCall.LLM)
         return inner.suggest(query)
     }
 
     override suspend fun suggestInterests(destination: String, month: String, language: String): InterestSuggestions {
+        budget()
         meter.record(ProviderCall.LLM)
         return inner.suggestInterests(destination, month, language)
     }
 
     override suspend fun describe(name: String, address: String?): LlmPlaceText {
+        budget()
         meter.record(ProviderCall.LLM)
         return inner.describe(name, address)
     }
 
     override suspend fun readReceipt(image: ByteArray, mimeType: String): LlmReceipt {
+        budget()
         meter.record(ProviderCall.LLM)
         return inner.readReceipt(image, mimeType)
     }
