@@ -49,6 +49,7 @@ import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
+import app.ransel.shared.dto.ExpenseItemDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
@@ -94,6 +95,7 @@ import ransel.composeapp.generated.resources.expense_rate_daily
 import ransel.composeapp.generated.resources.expense_rate_own
 import ransel.composeapp.generated.resources.expense_estimate_banner
 import ransel.composeapp.generated.resources.expense_estimate_save
+import ransel.composeapp.generated.resources.expense_receipt_items
 import ransel.composeapp.generated.resources.expense_split_by_items
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_ok
@@ -192,7 +194,7 @@ fun ExpenseSheet(
             return
         }
         if (split != null && !split.isValid(amountMinor, currency)) return
-        // receipt lines stay while the amount does; the server derives the splits from them
+        // receipt lines stay while the amount does; with "Per item" the server derives the splits from them
         val keptItems = existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amountMinor }.orEmpty()
         // Members not loaded (offline) while editing a shared expense: keep who paid and re-split the old people.
         val keptSplits = when {
@@ -229,6 +231,7 @@ fun ExpenseSheet(
                 // saving an estimate records the real payment
                 isEstimate = false,
                 items = keptItems,
+                itemsSplit = existing?.itemsSplit ?: true,
             ),
         )
     }
@@ -436,7 +439,12 @@ fun ExpenseSheet(
             }
         }
 
-        val itemized = existing?.items?.isNotEmpty() == true && existing.amountMinor == amountMinor
+        // the receipt's lines, also when the split was "Bagi rata" or "Atur nominal" (owner, 30 Oct 2026)
+        val receiptLines = existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amountMinor }.orEmpty()
+        if (receiptLines.isNotEmpty()) {
+            ReceiptLines(receiptLines, existing!!.currency, split?.members.orEmpty())
+        }
+        val itemized = receiptLines.isNotEmpty() && existing!!.itemsSplit
         if (split != null && itemized) {
             Text(
                 stringResource(Res.string.expense_split_by_items, existing!!.items.size),
@@ -477,6 +485,34 @@ fun ExpenseSheet(
                 TextButton(onClick = { pickDate = false }) { Text(stringResource(Res.string.action_cancel)) }
             },
         ) { DatePicker(state = state) }
+    }
+}
+
+/** "Item dari struk": each line and its amount; with a "Per item" split, who shares it. */
+@Composable
+private fun ReceiptLines(items: List<ExpenseItemDto>, currency: String, members: List<TripMemberDto>) {
+    val scheme = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(Res.string.expense_receipt_items), style = MaterialTheme.typography.labelLarge)
+        Column(
+            Modifier.fillMaxWidth().clip(IrisShape.md).border(1.dp, scheme.outlineVariant, IrisShape.md).padding(horizontal = 12.dp, vertical = 4.dp),
+        ) {
+            items.forEach { item ->
+                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(item.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(formatMoney(item.amountMinor, currency), style = MaterialTheme.typography.titleSmall)
+                    }
+                    if (item.memberIds.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            item.memberIds.forEach { id ->
+                                app.ransel.ui.components.MemberAvatar(members.firstOrNull { it.memberId == id }?.displayName ?: "?", id, size = 20.dp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

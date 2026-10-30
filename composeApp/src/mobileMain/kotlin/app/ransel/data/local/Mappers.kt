@@ -87,7 +87,7 @@ fun ExpenseEntity.toDto() = ExpenseDto(
     note = note, spentAt = spentAt.toInstant(), paidByMemberId = paidByMemberId,
     payers = payersJson.toPayers(),
     splits = splitsJson.toSplits(),
-    isEstimate = isEstimate, items = itemsJson.toItems(),
+    isEstimate = isEstimate, items = itemsJson.toItems(), itemsSplit = itemsJson.toItems().itemsDecideSplits(),
     fxSource = fxSource?.let { s -> FxSource.entries.firstOrNull { it.name == s } }, fxDate = fxDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
@@ -133,6 +133,12 @@ fun ExpenseDto.toEntity() = ExpenseEntity(
 private val splitsSerializer = ListSerializer(ExpenseSplitDto.serializer())
 private val payersSerializer = ListSerializer(ExpensePayerDto.serializer())
 private val itemsSerializer = ListSerializer(ExpenseItemDto.serializer())
+
+/**
+ * `ExpenseDto.itemsSplit` without a column of its own: a "Per item" split always has a line with members, while
+ * lines kept only to be shown never have any (the server drops them), so the stored items tell which it is.
+ */
+private fun List<ExpenseItemDto>.itemsDecideSplits(): Boolean = isEmpty() || any { it.memberIds.isNotEmpty() }
 
 /** Receipt lines, one JSON column like the splits; null = no items. */
 fun List<ExpenseItemDto>.toItemsJson(): String? =

@@ -136,7 +136,7 @@ data class ExpenseEntity(
     /** "Ambil dari kas" (DB v6): `paidByMemberId` is then the treasurer. */
     /** A planned cost (DB v6), e.g. the stay chosen in a poll: not in balances, not in "spent". */
     @ColumnInfo(defaultValue = "0") val isEstimate: Boolean = false,
-    /** JSON list of `ExpenseItemDto` (DB v6): the receipt lines of a "per item" split; null = none. */
+    /** JSON list of `ExpenseItemDto` (DB v6): the receipt lines; with members a "per item" split, without only shown. null = none. */
     val itemsJson: String? = null,
     /** Where the rate came from, `FxSource` name (DB v8), and the day of the reference rate as ISO text. */
     val fxSource: String? = null,
