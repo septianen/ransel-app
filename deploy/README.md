@@ -68,6 +68,36 @@ The server and the apps are ready and stay quiet until these steps are done.
 
 Reminders run on the server every minute and use WIB for every trip: the packing reminder at 18:00 the day before departure (`NOTIFY_PACKING_HOUR`), the activity reminder 30 minutes before it starts (`NOTIFY_ACTIVITY_LEAD_MINUTES`). A trip in WITA/WIT gets them 1-2 hours off until trips have a timezone.
 
+## Android builds (Firebase App Distribution)
+
+The *Distribute Android* workflow (`.github/workflows/distribute-android.yml`) builds an APK and sends it to testers through Firebase App Distribution (they install it from the email link or the *App Tester* app):
+
+| Trigger | Build | App | API |
+| --- | --- | --- | --- |
+| push to `develop` (app, `iris`, `shared` or Gradle changes), or *Run workflow* with target `staging` | debug | "RANSEL Dev" `app.ransel.debug` | `ranselapi-dev.mietek.tech` |
+| push to `main`, or *Run workflow* on `main` with target `production` | release (R8, signed) | "RANSEL" `app.ransel` | `ranselapi.mietek.tech` |
+
+`versionCode` is the workflow's run number, so every build installs over the previous one; the release notes are the commit message (or the text given to *Run workflow*). Each run also keeps the APK as a workflow artifact for 14 days.
+
+One-time setup:
+
+1. Firebase console -> the RANSEL project -> **App Distribution** -> Get started. Register both Android apps if they are not there yet (`app.ransel`, `app.ransel.debug`; see "Firebase" above). Under *Testers & Groups* create the group `testers` (or another alias, see below) and add the testers' emails.
+2. Google Cloud console (same project) -> IAM -> Service accounts -> create `app-distribution` with the role **Firebase App Distribution Admin**, add a JSON key, and paste the whole file as the secret `FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT` (base64 works too).
+3. GitHub (Settings -> Secrets and variables -> Actions):
+
+| Name | Kind | What |
+| --- | --- | --- |
+| `FIREBASE_APP_ID_DEBUG` | variable | App ID of `app.ransel.debug` (Firebase -> Project settings -> Your apps, `1:…:android:…`) |
+| `FIREBASE_APP_ID_RELEASE` | variable | App ID of `app.ransel` |
+| `FIREBASE_TESTER_GROUPS` | variable, optional | Group aliases, comma separated (default `testers`) |
+| `FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT` | secret | The service-account key file from step 2, pasted as is (or base64) |
+| `GOOGLE_SERVICES_JSON` | secret | `composeApp/google-services.json` (both packages), base64; without it the APK has no push, Analytics or Crashlytics |
+| `DEBUG_KEYSTORE_BASE64` | secret | Your `~/.android/debug.keystore`, base64, so every staging build has the same signature (testers can update, and it matches your local debug builds). Without it each build must be uninstalled first |
+| `RANSEL_KEYSTORE_BASE64` | secret | The release keystore (`keystore.properties.example`), base64; required for production |
+| `RANSEL_KEYSTORE_PASSWORD`, `RANSEL_KEY_ALIAS`, `RANSEL_KEY_PASSWORD` | secrets | Its passwords and alias |
+
+Keep the release keystore and its passwords safe outside git: the Play Store later needs the same key (or Play App Signing's upload key), and an app signed with another key cannot update the installed one. For push in the debug app, add its SHA fingerprints in Firebase only if a feature needs them (FCM does not).
+
 ## Explore credits and vouchers
 
 Every user has a wallet (30 credits on first use) plus 3 free credits a day (resets 00:00 WIB). A new search costs 3, the next batch 1. All numbers and the pack list can be changed in the VPS `.env` (`CREDIT_SIGNUP_GRANT`, `CREDIT_DAILY_FREE`, `CREDIT_COST_SEARCH`, `CREDIT_COST_NEXT_BATCH`, `CREDIT_COST_PLACE_DETAIL`, `CREDIT_COST_RECEIPT` (one receipt photo, default 1), `CREDIT_PACKAGES=id:credits:priceMinor;...`); restart the server container after changing them. These env values are the defaults: an admin can override each credit number (receipt photo included) in Karung, Sistem > Pengaturan, without a restart; "Kembalikan bawaan" goes back to the env value. Nothing can be bought yet: until a payment provider exists, top up users with a voucher. On the VPS:

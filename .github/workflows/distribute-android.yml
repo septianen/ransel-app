@@ -1,0 +1,130 @@
+name: Distribute Android
+
+# Builds the Android APK and uploads it to Firebase App Distribution, so testers get it in the App Tester app.
+# Needs the secrets and variables in deploy/README.md "Android builds (Firebase App Distribution)".
+#
+#   staging     push to develop, or     -> debug build "RANSEL Dev" (app.ransel.debug) against ranselapi-dev.mietek.tech
+#               Run workflow with target "staging" on any branch
+#   production  push to main            -> release build (app.ransel, R8, signed) against ranselapi.mietek.tech
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "composeApp/**"
+      - "iris/**"
+      - "shared/**"
+      - "gradle/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - ".github/workflows/distribute-android.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Which build (production only from main)"
+        type: choice
+        options: [staging, production]
+        default: staging
+      release_notes:
+        description: "Release notes for testers (default: the commit message)"
+        type: string
+        required: false
+
+concurrency:
+  group: distribute-android-${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  distribute:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Target settings
+        env:
+          TARGET: ${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+          APP_ID_RELEASE: ${{ vars.FIREBASE_APP_ID_RELEASE }}
+          APP_ID_DEBUG: ${{ vars.FIREBASE_APP_ID_DEBUG }}
+        run: |
+          if [ "$TARGET" = production ]; then
+            if [ "$GITHUB_REF" != refs/heads/main ]; then echo "production builds only from main" >&2; exit 1; fi
+            echo "BUILD_TYPE=release" >> "$GITHUB_ENV"
+            echo "APK=composeApp/build/outputs/apk/release/composeApp-release.apk" >> "$GITHUB_ENV"
+            echo "FIREBASE_APP_ID=$APP_ID_RELEASE" >> "$GITHUB_ENV"
+          else
+            echo "BUILD_TYPE=debug" >> "$GITHUB_ENV"
+            echo "APK=composeApp/build/outputs/apk/debug/composeApp-debug.apk" >> "$GITHUB_ENV"
+            echo "FIREBASE_APP_ID=$APP_ID_DEBUG" >> "$GITHUB_ENV"
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Accept Android licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Firebase config and signing keys
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          RELEASE_KEYSTORE: ${{ secrets.RANSEL_KEYSTORE_BASE64 }}
+          DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          # google-services.json (base64) turns on push, Analytics and Crashlytics; without it they are off in the build.
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" | base64 -d > composeApp/google-services.json
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON is not set: the APK has no push, Analytics or Crashlytics"
+          fi
+          if [ "$BUILD_TYPE" = release ]; then
+            if [ -z "$RELEASE_KEYSTORE" ]; then echo "RANSEL_KEYSTORE_BASE64 is not set: a release build must be signed" >&2; exit 1; fi
+            printf '%s' "$RELEASE_KEYSTORE" | base64 -d > "$RUNNER_TEMP/ransel-release.jks"
+            echo "RANSEL_KEYSTORE_FILE=$RUNNER_TEMP/ransel-release.jks" >> "$GITHUB_ENV"
+          elif [ -n "$DEBUG_KEYSTORE" ]; then
+            # The same debug key every run, or testers could not update over the previous build.
+            mkdir -p ~/.android
+            printf '%s' "$DEBUG_KEYSTORE" | base64 -d > ~/.android/debug.keystore
+          else
+            echo "::warning::DEBUG_KEYSTORE_BASE64 is not set: each build has a new debug key and must be reinstalled"
+          fi
+
+      - name: Build APK
+        env:
+          RANSEL_KEYSTORE_PASSWORD: ${{ secrets.RANSEL_KEYSTORE_PASSWORD }}
+          RANSEL_KEY_ALIAS: ${{ secrets.RANSEL_KEY_ALIAS }}
+          RANSEL_KEY_PASSWORD: ${{ secrets.RANSEL_KEY_PASSWORD }}
+        run: |
+          TASK=":composeApp:assemble$(echo "${BUILD_TYPE:0:1}" | tr a-z A-Z)${BUILD_TYPE:1}"
+          ./gradlew "$TASK" -Pransel.versionCode=${{ github.run_number }} --no-daemon
+          test -f "$APK" || { echo "no APK at $APK" >&2; ls -R composeApp/build/outputs/apk >&2; exit 1; }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ransel-${{ env.BUILD_TYPE }}-${{ github.run_number }}
+          path: ${{ env.APK }}
+          retention-days: 14
+
+      - name: Upload to Firebase App Distribution
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT }}
+          GROUPS: ${{ vars.FIREBASE_TESTER_GROUPS || 'testers' }}
+          NOTES: ${{ inputs.release_notes }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [ -z "$FIREBASE_APP_ID" ] || [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "Firebase app id or FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT missing (deploy/README.md)" >&2; exit 1
+          fi
+          # the key file pasted as is, or base64
+          case "$SERVICE_ACCOUNT" in
+            "{"*) printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-sa.json" ;;
+            *) printf '%s' "$SERVICE_ACCOUNT" | base64 -d > "$RUNNER_TEMP/firebase-sa.json" ;;
+          esac
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+          # the commit message without its trailers (Co-Authored-By, ...)
+          NOTES="${NOTES:-$(printf '%s\n' "${COMMIT_MESSAGE:-manual build}" | grep -v -E '^[A-Za-z-]+: ' )}"
+          printf '%s\n\n%s #%s, %s\n' "$NOTES" "${GITHUB_REF_NAME}" "${{ github.run_number }}" "${GITHUB_SHA::7}" > "$RUNNER_TEMP/notes.txt"
+          npx --yes firebase-tools@14 appdistribution:distribute "$APK" \
+            --app "$FIREBASE_APP_ID" \
+            --groups "$GROUPS" \
+            --release-notes-file "$RUNNER_TEMP/notes.txt"
