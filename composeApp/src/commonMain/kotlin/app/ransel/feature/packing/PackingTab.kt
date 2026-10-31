@@ -60,6 +60,7 @@ import app.ransel.feature.trips.daysUntilStart
 import app.ransel.feature.trips.phase
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.category.label
 import app.ransel.ui.clickableSemantics
 import app.ransel.ui.components.FullScreenState
@@ -133,6 +134,7 @@ fun PackingTab(
         return
     }
     val group: GroupPackingViewModel = koinViewModel(key = "group-packing-${trip.id}") { parametersOf(trip.id) }
+    RefreshOnReturn(group::refresh)
     val groupState by group.state.collectAsState()
     // a group trip as far as this device knows: someone else is in it, or the user was invited, or has own lines
     val isGroup = groupState.members.size > 1 || groupState.personal.isNotEmpty() || trip.myRole != app.ransel.shared.model.Role.OWNER

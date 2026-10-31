@@ -64,11 +64,15 @@ class RecapViewModel(
                 trip to if (trip != null && start != null && end != null) tripRecap(start, end, trip.baseCurrency, items, costs, trip.zone()) else null
             }.collect { (trip, recap) -> _state.update { it.copy(trip = trip, recap = recap) } }
         }
-        if (session.user != null) {
-            viewModelScope.launch {
-                (api.members(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(members = r.value) } }
-                (api.balances(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(openTransfers = r.value.transfers.size) } }
-            }
+        refresh()
+    }
+
+    /** Members and open transfers (server data; the recap itself comes from the device). */
+    fun refresh() {
+        if (session.user == null) return
+        viewModelScope.launch {
+            (api.members(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(members = r.value) } }
+            (api.balances(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(openTransfers = r.value.transfers.size) } }
         }
     }
 

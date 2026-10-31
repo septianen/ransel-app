@@ -53,6 +53,7 @@ import app.ransel.shared.dto.TripDocumentDto
 import app.ransel.shared.model.DocumentCategory
 import app.ransel.shared.model.DocumentKind
 import app.ransel.shared.model.Role as TripRole
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.IconFab
@@ -90,6 +91,7 @@ fun DocumentsScreen(
     viewModel: DocumentsViewModel = koinViewModel(key = "documents-$tripId") { parametersOf(tripId) },
     trips: TripRepository = koinInject(),
 ) {
+    RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
     val trip by trips.observeTrip(tripId).collectAsState(initial = null)
     var adding by remember { mutableStateOf(startUpload) }

@@ -1,5 +1,6 @@
 package app.ransel.feature.notifications
 
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.TripTab
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -74,6 +75,7 @@ fun NotificationsScreen(
     onOpenRecap: (tripId: String) -> Unit = onOpenTrip,
     viewModel: NotificationsViewModel = koinViewModel(),
 ) {
+    RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
     NotificationsContent(
         state = state,

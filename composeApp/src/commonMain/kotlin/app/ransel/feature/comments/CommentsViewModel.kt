@@ -55,7 +55,7 @@ class CommentsViewModel(
     }
 
     fun load() {
-        _state.update { it.copy(loading = true, failed = false) }
+        _state.update { it.copy(loading = it.comments.isEmpty(), failed = false) }
         viewModelScope.launch {
             val list = api.comments(target.tripId, target.kind, target.targetId)
             val members = api.members(target.tripId)
@@ -64,7 +64,7 @@ class CommentsViewModel(
                     loading = false,
                     comments = (list as? ApiResult.Success)?.value ?: it.comments,
                     members = (members as? ApiResult.Success)?.value ?: it.members,
-                    failed = list is ApiResult.Failure,
+                    failed = list is ApiResult.Failure && it.comments.isEmpty(),
                 )
             }
         }

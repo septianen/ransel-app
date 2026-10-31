@@ -45,6 +45,7 @@ import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.Role
 import app.ransel.shared.model.SettlementStatus
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.MoneyText
 import app.ransel.ui.format.formatMoney
@@ -101,6 +102,7 @@ fun AllTransactionsScreen(
     onOpenBalances: (() -> Unit)? = null,
     viewModel: AllTransactionsViewModel = koinViewModel(key = "all-transactions-$tripId") { parametersOf(tripId) },
 ) {
+    RefreshOnReturn(viewModel::refresh)
     val state by viewModel.state.collectAsState()
     var editing by remember { mutableStateOf<String?>(null) }
     val trip = state.trip
