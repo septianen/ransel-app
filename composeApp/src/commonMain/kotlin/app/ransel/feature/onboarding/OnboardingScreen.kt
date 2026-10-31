@@ -25,7 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -162,12 +164,18 @@ fun OnboardingScreen(onFinish: () -> Unit, modifier: Modifier = Modifier, onSign
                 style = MaterialTheme.typography.titleMedium,
             )
         }
-        if (last && onSignIn != null) {
-            Box(Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = Alignment.Center) {
+        if (onSignIn != null) {
+            // Every page keeps the footer's room, so the button sits where it does on the last page (owner, 31 Oct
+            // 2026); before that it is invisible and can be neither tapped nor read out.
+            Box(
+                Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    .then(if (last) Modifier else Modifier.alpha(0f).clearAndSetSemantics { }),
+                contentAlignment = Alignment.Center,
+            ) {
                 app.ransel.feature.auth.AuthFooter(
                     prefix = stringResource(Res.string.have_account),
                     action = stringResource(Res.string.sign_in_action),
-                    onClick = onSignIn,
+                    onClick = { if (last) onSignIn() },
                 )
             }
         }
