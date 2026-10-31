@@ -59,3 +59,5 @@ compose.resources {
     packageOfResClass = "app.ransel.admin.generated.resources"
     publicResClass = false
 }
+
+tasks.matching { it.name.startsWith("convertXmlValueResources") }.configureEach { dependsOn(":checkStringEscapes") }

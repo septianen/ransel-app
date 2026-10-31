@@ -201,7 +201,7 @@
     <string name="adjust_reason_hint">For example: compensation for the failed search on 15 Oct</string>
     <string name="adjust_reason_length">Reason of 3 to 200 characters.</string>
     <string name="adjust_after">Balance after</string>
-    <string name="adjust_note">Changes only the balance, not the free daily allowance. Shown as "Admin adjustment" in the user\'s credit history and in the admin log.</string>
+    <string name="adjust_note">Changes only the balance, not the free daily allowance. Shown as "Admin adjustment" in the user's credit history and in the admin log.</string>
     <string name="adjust_save_add">Add %1$s credits</string>
     <string name="adjust_save_subtract">Subtract %1$s credits</string>
     <string name="adjust_done_add">%1$s credits added. Balance is now %2$s.</string>
@@ -229,7 +229,7 @@
     <string name="overview_range_7">7 days</string>
     <string name="overview_range_30">30 days</string>
     <string name="overview_refresh">Reload</string>
-    <string name="overview_budget_used">AI cost is at %1$s of this month\'s budget.</string>
+    <string name="overview_budget_used">AI cost is at %1$s of this month's budget.</string>
     <string name="overview_budget_runs_out">At this pace the budget runs out around %1$s.</string>
     <string name="overview_budget_link">Set limits</string>
     <string name="overview_active_today">Daily active users</string>
@@ -433,9 +433,9 @@
     <string name="errors_display_full">Full screen</string>
     <string name="errors_display_snackbar">Snackbar</string>
     <string name="errors_display_dialog">Dialog</string>
-    <string name="errors_hint">You may use {cost}, {available}, {resetsAt}, {maxBytes}, {usedBytes} and {limitBytes} (from the error details). Empty fields use the app\'s own text.</string>
+    <string name="errors_hint">You may use {cost}, {available}, {resetsAt}, {maxBytes}, {usedBytes} and {limitBytes} (from the error details). Empty fields use the app's own text.</string>
     <string name="errors_preview_note">Phone preview · the real illustration is in the app</string>
-    <string name="errors_preview_app">(the app\'s text)</string>
+    <string name="errors_preview_app">(the app's text)</string>
     <string name="categories_title">Categories</string>
     <string name="categories_subtitle">Labels, icons, colors and order of the categories in the apps.</string>
     <string name="categories_note">Category values (codes) live in the apps, so a new category needs an app release. Here you can change labels, icons, colors and order, and hide a category.</string>
@@ -464,7 +464,7 @@
     <string name="color_green">Green</string>
     <string name="color_magenta">Magenta</string>
     <string name="interests_title">Destination interests</string>
-    <string name="interests_subtitle">The AI\'s “Khas &lt;destination&gt;” chips, kept per destination and month. A curation here wins over the AI.</string>
+    <string name="interests_subtitle">The AI's “Khas &lt;destination&gt;” chips, kept per destination and month. A curation here wins over the AI.</string>
     <string name="interests_search">Search destinations</string>
     <string name="interests_col_destination">Destination</string>
     <string name="interests_col_month">Month</string>
