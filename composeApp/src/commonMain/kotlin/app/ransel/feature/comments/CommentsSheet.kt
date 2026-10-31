@@ -40,6 +40,7 @@ import app.ransel.data.remote.RanselApi
 import app.ransel.shared.dto.CommentDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.CommentTarget
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.LoadingButton
@@ -142,6 +143,7 @@ fun CommentsSheet(
     onDismiss: () -> Unit,
     viewModel: CommentsViewModel = koinViewModel(key = "comments-${target.targetId}") { parametersOf(target) },
 ) {
+    RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
     AdaptiveSheet(onDismiss = onDismiss) {
         CommentsContent(

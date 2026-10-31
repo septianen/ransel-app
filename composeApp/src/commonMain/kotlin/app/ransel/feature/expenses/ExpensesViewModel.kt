@@ -246,7 +246,7 @@ class ExpensesViewModel(
         viewModelScope.launch {
             when (val result = api.balances(trip.id)) {
                 is ApiResult.Success -> _balances.update { it.copy(loading = false, balances = result.value) }
-                is ApiResult.Failure -> _balances.update { it.copy(loading = false, failure = result.error) }
+                is ApiResult.Failure -> _balances.update { it.copy(loading = false, failure = if (it.balances == null) result.error else null) }
             }
         }
     }

@@ -96,7 +96,8 @@ class GroupViewModel(
         viewModelScope.launch {
             when (val result = api.members(tripId)) {
                 is ApiResult.Success -> _state.update { it.copy(loading = false, members = result.value, failure = null) }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = result.error) }
+                // a refresh that fails keeps what is shown
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = if (it.members.isEmpty()) result.error else null) }
             }
             // polls are a convenience on this tab: if they fail to load the rest still shows
             (api.polls(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(polls = r.value) } }

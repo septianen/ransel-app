@@ -2,6 +2,7 @@ package app.ransel.feature.recap
 
 import app.ransel.content.getString
 import app.ransel.content.stringResource
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -74,6 +75,7 @@ fun RecapScreen(
     viewModel: RecapViewModel = koinViewModel(key = "recap-$tripId") { parametersOf(tripId) },
     files: DeviceFiles = koinInject(),
 ) {
+    RefreshOnReturn(viewModel::refresh)
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()

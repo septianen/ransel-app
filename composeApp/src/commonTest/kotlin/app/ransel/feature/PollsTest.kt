@@ -34,6 +34,7 @@ import app.ransel.shared.model.PollPriceUnit
 import app.ransel.shared.model.PollStatus
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.engine.mock.respondError
 import io.ktor.client.engine.mock.toByteArray
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -56,6 +57,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -189,6 +191,7 @@ class PollViewModelTest {
     private var current = poll()
     private var voteStatus = HttpStatusCode.OK
     private var searchError: String? = null
+    private var offline = false
 
     private fun api() = RanselApi(
         createApiHttpClient(
@@ -197,6 +200,7 @@ class PollViewModelTest {
                 val body = request.body.toByteArray().decodeToString()
                 log.update { it + (request.method.value + " " + path to body) }
                 when {
+                    offline -> respondError(HttpStatusCode.ServiceUnavailable)
                     path.endsWith("/members") -> respond(
                         """{"data":[{"tripId":"$TRIP","memberId":"$ME_MEMBER","userId":"$ME","displayName":"Ayu","role":"OWNER","joinedAt":"$stamp"}]}""",
                         HttpStatusCode.OK, json,
@@ -244,6 +248,22 @@ class PollViewModelTest {
         assertTrue(vm.state.value.isOwner)
         assertTrue(vm.state.value.isManager)
         assertEquals("IDR", vm.state.value.currency)
+    }
+
+    @Test
+    fun aRefreshShowsTheNewVotesAndAFailedOneKeepsThePoll() = runTest {
+        val vm = vm()
+        eventually { vm.state.value.poll != null }
+        current = current.copy(myVotes = listOf("b"))
+        vm.load()
+        eventually { vm.state.value.poll!!.myVotes == listOf("b") }
+
+        offline = true
+        vm.load()
+        // the voters' names are asked after the poll's answer is applied
+        eventually { requests.count { it.first.endsWith("/members") } == 3 }
+        assertEquals(listOf("b"), vm.state.value.poll!!.myVotes, "what was shown stays")
+        assertNull(vm.state.value.failure, "no error screen over it")
     }
 
     @Test

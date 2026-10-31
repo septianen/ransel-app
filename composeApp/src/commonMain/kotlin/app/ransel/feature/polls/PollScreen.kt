@@ -52,6 +52,7 @@ import app.ransel.shared.domain.PollAction
 import app.ransel.shared.domain.actionFor
 import app.ransel.shared.domain.stayEstimateMinor
 import app.ransel.shared.model.PollPriceUnit
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.format.formatMoney
 import app.ransel.shared.domain.pollHoursLeft
 import app.ransel.shared.dto.PollDto
@@ -141,6 +142,7 @@ fun PollScreen(
     viewModel: PollViewModel = koinViewModel(key = "poll-$pollId") { parametersOf(tripId, pollId) },
     itinerary: app.ransel.data.repository.ItineraryRepository = org.koin.compose.koinInject(),
 ) {
+    RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     // right after creating: "Polling sudah dibuat" with the share buttons, once

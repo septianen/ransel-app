@@ -2,6 +2,7 @@ package app.ransel.feature.expenses
 
 import app.ransel.content.stringResource
 import app.ransel.shared.model.CategoryKind
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -106,6 +107,7 @@ fun ExpensesTab(
     onBalancesOpened: () -> Unit = {},
     viewModel: ExpensesViewModel = koinViewModel(key = "expenses-${trip.id}") { parametersOf(trip) },
 ) {
+    RefreshOnReturn(viewModel::loadMembers)
     LaunchedEffect(refreshKey) { if (refreshKey > 0) viewModel.loadMembers() }
     val state by viewModel.state.collectAsState()
     val members by viewModel.members.collectAsState()

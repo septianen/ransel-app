@@ -62,6 +62,7 @@ import app.ransel.shared.dto.TallyDto
 import app.ransel.shared.dto.VoterDto
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.Vote
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.category.itineraryLabel
 import app.ransel.ui.category.symbol
 import app.ransel.ui.category.tileColor
@@ -99,6 +100,7 @@ fun VoteScreen(
     modifier: Modifier = Modifier,
     viewModel: VoteViewModel = koinViewModel(key = voteViewModelKey(roundId)) { parametersOf(tripId, roundId, showResult) },
 ) {
+    RefreshOnReturn(viewModel::refresh)
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) {

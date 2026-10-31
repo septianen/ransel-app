@@ -35,6 +35,7 @@ import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.RoundSummaryDto
 import app.ransel.shared.model.PollKind
 import app.ransel.shared.model.PollStatus
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbols
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,9 +78,13 @@ class VotingHistoryViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), VotingHistoryUiState())
 
     init {
+        refresh()
+    }
+
+    fun refresh() {
         viewModelScope.launch {
             launch { voting.refresh(api, tripId) }
-            polls.value = (api.polls(tripId) as? ApiResult.Success)?.value.orEmpty()
+            (api.polls(tripId) as? ApiResult.Success)?.let { polls.value = it.value } ?: run { if (polls.value == null) polls.value = emptyList() }
         }
     }
 }
@@ -101,6 +106,7 @@ fun VotingHistoryScreen(
     modifier: Modifier = Modifier,
     viewModel: VotingHistoryViewModel = koinViewModel(key = "voting-history-$tripId") { parametersOf(tripId) },
 ) {
+    RefreshOnReturn(viewModel::refresh)
     val state by viewModel.state.collectAsState()
     VotingHistoryContent(state, onBack, onOpenPoll, onOpenRound, modifier)
 }

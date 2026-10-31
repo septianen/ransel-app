@@ -1,6 +1,7 @@
 package app.ransel.feature.group
 
 import app.ransel.content.stringResource
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -148,6 +149,7 @@ fun GroupTab(
     onStartDatePoll: (() -> Unit)? = null,
     viewModel: GroupViewModel = koinViewModel(key = "group-${trip.id}") { parametersOf(trip.id) },
 ) {
+    RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
     LaunchedEffect(refreshKey) { if (refreshKey > 0) viewModel.load() }
     GroupContent(

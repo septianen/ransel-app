@@ -44,6 +44,7 @@ import app.ransel.shared.dto.CreditsDto
 import app.ransel.shared.model.CreditAction
 import app.ransel.shared.model.CreditLedgerKind
 import app.ransel.shared.model.CreditSource
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.ConnectionErrorState
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.LoadingButton
@@ -68,6 +69,7 @@ fun CreditsScreen(
     modifier: Modifier = Modifier,
     viewModel: CreditsViewModel = koinViewModel(),
 ) {
+    RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
     CreditsContent(
         state = state,

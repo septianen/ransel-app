@@ -97,6 +97,7 @@ MVVM with unidirectional data flow: one `UiState` data class per screen exposed 
 
 ## Rules
 
+- A screen that shows server data (no Room flow behind it) calls `RefreshOnReturn(viewModel::load)` (`ui/RefreshOnReturn.kt`), so it is fresh again after the user comes back from a screen that changed it or brings the app to the front. That load keeps what is shown: no spinner once there is data, and a failed refresh leaves the data instead of an error screen.
 - ViewModels get `ApiResult<T>` / domain models, never HTTP status codes. Map `ApiError.code` (`ErrorCode`) to the state screens; show the code small where the design does.
 - Business rules come from `shared/domain` (reorder, scheduling, split, balances, password check). Do not copy them into the app.
 - Guests (no account) use `LOCAL_USER_ID` as owner/payer; once signed in, new rows use the user id. Hide UI that needs later phases (Explore AI entry points, members button, sync rows in Account) until that phase, or show them disabled with the "Segera hadir" state if the design shows them.

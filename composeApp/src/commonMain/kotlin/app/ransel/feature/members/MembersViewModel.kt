@@ -123,14 +123,14 @@ class MembersViewModel(
     }
 
     fun load() {
-        _state.update { it.copy(loading = true, failure = null, myUserId = session.user?.id) }
+        _state.update { it.copy(loading = it.members.isEmpty(), failure = null, myUserId = session.user?.id) }
         viewModelScope.launch {
             when (val result = api.members(tripId)) {
                 is ApiResult.Success -> {
                     _state.update { it.copy(loading = false, members = result.value.sortedWith(memberOrder)) }
                     loadInvites()
                 }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = result.error) }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = if (it.members.isEmpty()) result.error else null) }
             }
         }
     }

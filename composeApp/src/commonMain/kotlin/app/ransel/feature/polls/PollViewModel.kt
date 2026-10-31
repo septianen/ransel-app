@@ -147,7 +147,7 @@ class PollViewModel(
         viewModelScope.launch {
             when (val result = api.poll(pollId)) {
                 is ApiResult.Success -> _state.update { it.copy(loading = false, poll = result.value) }
-                is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = result.error) }
+                is ApiResult.Failure -> _state.update { it.copy(loading = false, failure = if (it.poll == null) result.error else null) }
             }
             // names for the voters; the poll is usable without them
             (api.members(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(members = r.value) } }

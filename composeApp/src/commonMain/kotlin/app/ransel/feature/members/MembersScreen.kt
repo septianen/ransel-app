@@ -64,6 +64,7 @@ import kotlin.time.Clock
 import app.ransel.data.remote.ApiFailure
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.ConnectionErrorState
 import app.ransel.ui.components.MemberAvatar
@@ -150,6 +151,7 @@ fun MembersScreen(
     onDeleteTrip: () -> Unit = {},
     viewModel: MembersViewModel = koinViewModel(key = "members-$tripId") { parametersOf(tripId) },
 ) {
+    RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
     var addOpened by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(openAdd) {

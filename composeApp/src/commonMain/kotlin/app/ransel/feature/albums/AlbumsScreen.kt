@@ -54,6 +54,7 @@ import app.ransel.shared.dto.AlbumItemDto
 import app.ransel.shared.dto.TripAlbumDto
 import app.ransel.shared.model.AlbumProvider
 import app.ransel.shared.model.Role as TripRole
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.AdaptiveSheet
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.IconFab
@@ -87,6 +88,7 @@ fun AlbumsScreen(
     viewModel: AlbumsViewModel = koinViewModel(key = "albums-$tripId") { parametersOf(tripId) },
     trips: TripRepository = koinInject(),
 ) {
+    RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
     val trip by trips.observeTrip(tripId).collectAsState(initial = null)
     var adding by remember { mutableStateOf(startAdd) }

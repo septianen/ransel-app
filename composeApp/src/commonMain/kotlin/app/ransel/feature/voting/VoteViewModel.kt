@@ -152,6 +152,9 @@ class VoteViewModel(
 
     fun retry() = load(first = true)
 
+    /** Back on the screen: the latest votes, keeping the card the user is on. */
+    fun refresh() = load()
+
     private fun load(first: Boolean = false) {
         if (first) _state.update { it.copy(loading = true, failure = null) }
         viewModelScope.launch {
@@ -159,6 +162,7 @@ class VoteViewModel(
                 is ApiResult.Success -> apply(result.value, first)
                 is ApiResult.Failure -> _state.update {
                     if (result.error.code == ErrorCode.ROUND_NOT_FOUND) it.copy(loading = false, gone = true)
+                    else if (!first && it.round != null) it // a refresh that fails keeps what is shown
                     else it.copy(loading = false, failure = result.error)
                 }
             }
