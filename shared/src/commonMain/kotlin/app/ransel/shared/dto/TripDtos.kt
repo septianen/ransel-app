@@ -27,6 +27,10 @@ data class TripDto(
     val endDate: LocalDate? = null,
     val baseCurrency: String,
     val budgetMinor: Long? = null,
+    /**
+     * The cover photo, `ApiRoutes.imageFile(id)` relative to `ApiRoutes.BASE`; null = the generated cover. Set only
+     * through `PUT/DELETE ApiRoutes.tripCover`: the value a client sends back in sync is ignored.
+     */
     val coverUrl: String? = null,
     /** Role of the calling user. Always OWNER before Phase 4. */
     val myRole: Role = Role.OWNER,
@@ -82,6 +86,7 @@ data class CreateTripRequest(
     val endDate: LocalDate? = null,
     val baseCurrency: String,
     val budgetMinor: Long? = null,
+    /** Ignored by the server since B19.1 (31 Oct 2026): the cover is set with `ApiRoutes.tripCover`. */
     val coverUrl: String? = null,
     val destinationPlace: TripPlaceDto? = null,
     val countryCode: String? = null,
@@ -103,6 +108,7 @@ data class UpdateTripRequest(
     val endDate: LocalDate? = null,
     val baseCurrency: String,
     val budgetMinor: Long? = null,
+    /** Ignored by the server since B19.1 (31 Oct 2026): the cover is set with `ApiRoutes.tripCover`. */
     val coverUrl: String? = null,
     val destinationPlace: TripPlaceDto? = null,
     val countryCode: String? = null,

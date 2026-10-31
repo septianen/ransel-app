@@ -57,6 +57,7 @@ object ApiRoutes {
     const val AUTH_EMAIL_VERIFY = "/auth/email/verify"             // POST VerifyEmailRequest → VerifyEmailResponse (no token needed; the link is the proof)
     const val AUTH_EMAIL_RESEND = "/auth/email/resend"             // POST (bearer) → 204, sends a new link and voids older ones; 204 too when already verified
     const val ME = "/me"                                           // GET MeDto, PATCH UpdateMeRequest
+    const val ME_AVATAR = "/me/avatar"                             // PUT image/jpeg body (≤ PHOTO_MAX_BYTES) → MeDto, DELETE → MeDto; 413 FILE_TOO_LARGE, 415 UNSUPPORTED_FILE
     const val SYNC = "/sync"                                       // GET ?since=<ISO instant>&tripLimit=&afterTripId= → SyncPullResponse (paging in its KDoc), POST SyncPushRequest → SyncPushResponse
 
     // Phase 4 ─ members, invites, balances, templates
@@ -77,6 +78,10 @@ object ApiRoutes {
     fun document(tripId: String, docId: String) = "/trips/$tripId/documents/$docId" // PATCH PatchDocumentRequest → TripDocumentDto, DELETE → 204 (uploader or OWNER)
     fun documentDownload(tripId: String, docId: String) = "/trips/$tripId/documents/$docId/download" // GET → DocumentDownloadDto (any member)
     fun documentFile(docId: String) = "/files/documents/$docId"  // GET ?exp=&sig= (public, signed for 15 minutes) → the bytes
+    // Trip covers and profile photos (B19.1). Online only; signed-in users.
+    fun tripCover(tripId: String) = "/trips/$tripId/cover"        // PUT image/jpeg body (≤ PHOTO_MAX_BYTES) → TripDto (EDITOR+), DELETE → TripDto; 413 FILE_TOO_LARGE, 415 UNSUPPORTED_FILE
+    /** Public, no bearer: `TripDto.coverUrl` and every `avatarUrl` are this path, relative to [BASE]. A new photo gets a new id. */
+    fun imageFile(imageId: String) = "/files/images/$imageId"     // GET → image/jpeg, cached for a year
     const val TRIP_TEMPLATES = "/trip-templates"                   // GET → List<TripTemplateDto> (mine); POST CreateTripTemplateRequest → 201
     fun tripTemplate(id: String) = "/trip-templates/$id"           // DELETE → 204
 
