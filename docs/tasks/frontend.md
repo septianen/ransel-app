@@ -240,6 +240,11 @@ Design: Claude Design canvas "Karung" (code names in `docs/design/README.md` "Ad
   - **Avatars everywhere:** `MemberPhotos` (`data/remote/MemberPhotos.kt`) keeps member id / user id → photo from every `GET /trips/{id}/members`, the guest page and the signed-in user; `MemberAvatar(avatarUrl = MemberPhotos.urlFor(key))` shows it over the initials, so none of the ~30 call sites changed. In memory only: before a trip's members load (or offline), avatars show initials.
   - Tests: `PhotosTest.kt` (`MemberPhotosTest`, `TripCoverFormTest`). **Not run here:** the web tests need a browser, Android and iOS do not build on this machine; compiled for wasm only.
 
+## Owner feedback (31 Oct 2026)
+
+- [x] **F23.1 Onboarding: the button never moves.** The last page has "Sudah punya akun? Masuk" under the button, which pushed it up only there; the earlier pages keep that row's room (invisible, not tappable, not read out), so the button sits where it does on the last page (owner, 31 Oct 2026).
+- [x] **F23.2 Notifications open the tab they are about.** Owner (31 Oct 2026): a coming-up activity opens Itinerary, packing opens Packing, like money already opened Pengeluaran. One rule for the inbox and a tapped push, `notificationTab(type)` (`NotificationsScreen.kt`): ACTIVITY_REMINDER → Itinerary, PACKING_REMINDER and PACKING_LIST → Packing, EXPENSE_ADDED and SETTLEMENT_MARKED → Pengeluaran, the rest Ringkasan (polls, voting, members, documents and the recap keep their own screens). A tapped push used to open every trip on Ringkasan: Android now hands the push `type` to `NotificationTarget`. iOS push is not built yet (F7.3). Tests: `NotificationRoutingTest`.
+
 ## Integration checkpoints with the backend agent
 
 | When | Check together |

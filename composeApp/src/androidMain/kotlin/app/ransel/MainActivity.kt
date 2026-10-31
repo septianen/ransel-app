@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
     private fun offerNotification(intent: Intent?) {
         if (intent?.getStringExtra("type") == null) return
         val tripId = intent.getStringExtra("tripId") ?: return
-        notificationTarget.offer(tripId, intent.getStringExtra("roundId"), intent.getStringExtra("stage"))
+        notificationTarget.offer(tripId, intent.getStringExtra("roundId"), intent.getStringExtra("stage"), intent.getStringExtra("type"))
     }
 
     /** An App Link: an invite or an email verification link (each ignores the other's URLs). */
