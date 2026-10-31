@@ -1,5 +1,6 @@
 package app.ransel.feature.notifications
 
+import app.ransel.ui.components.TripTab
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,8 +68,8 @@ fun NotificationsScreen(
     /** A poll notification opens that poll. */
     onOpenPoll: (tripId: String, pollId: String) -> Unit,
     modifier: Modifier = Modifier,
-    /** Money notifications (an expense, a payment claimed or confirmed) open the trip on Pengeluaran. */
-    onOpenExpenses: (tripId: String) -> Unit = onOpenTrip,
+    /** Notifications about one part of the trip open it on that tab ([notificationTab]). */
+    onOpenTripTab: (tripId: String, tab: TripTab) -> Unit = { tripId, _ -> onOpenTrip(tripId) },
     onOpenDocuments: (tripId: String) -> Unit = onOpenTrip,
     onOpenRecap: (tripId: String) -> Unit = onOpenTrip,
     viewModel: NotificationsViewModel = koinViewModel(),
@@ -92,7 +93,7 @@ fun NotificationsScreen(
                     onOpenMembers(tripId, n.params["guestMemberId"], n.params["guestName"], n.params["actorName"])
                 // The vote screen sorts out where the round stands (open, closed, decided, expired).
                 tripId != null && roundId != null -> onOpenRound(tripId, roundId, n.params["stage"] == VoteStage.READY)
-                tripId != null && (n.type == NotificationType.SETTLEMENT_MARKED || n.type == NotificationType.EXPENSE_ADDED) -> onOpenExpenses(tripId)
+                tripId != null && notificationTab(n.type) != null -> onOpenTripTab(tripId, notificationTab(n.type)!!)
                 tripId != null && n.type == NotificationType.DOCUMENT_ADDED -> onOpenDocuments(tripId)
                 tripId != null && n.type == NotificationType.RECAP_READY -> onOpenRecap(tripId)
                 tripId != null -> onOpenTrip(tripId)
@@ -257,4 +258,15 @@ private fun NotificationsEmptyPreview() = IrisPreview {
             onBack = {}, onRetry = {}, onMarkAllRead = {}, onSettings = {}, onOpen = {},
         )
     }
+}
+
+/**
+ * The trip tab a notification is about, or null for the trip's Ringkasan: a coming-up activity opens Itinerary, packing
+ * reminders and the members' list open Packing, money opens Pengeluaran. Used by the inbox and by a tapped push.
+ */
+fun notificationTab(type: NotificationType): TripTab? = when (type) {
+    NotificationType.ACTIVITY_REMINDER -> TripTab.ITINERARY
+    NotificationType.PACKING_REMINDER, NotificationType.PACKING_LIST -> TripTab.PACKING
+    NotificationType.EXPENSE_ADDED, NotificationType.SETTLEMENT_MARKED -> TripTab.EXPENSES
+    else -> null
 }

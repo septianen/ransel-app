@@ -406,9 +406,10 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
         if (sessionState is SessionState.SignedIn) {
             val round = notificationTarget.roundId.value
             val showResult = notificationTarget.showResult.value
+            val tab = notificationTarget.tab.value
             notificationTarget.clear()
             // A voting notification opens its round on top of the trip, so back goes to the trip.
-            navController.navigate(TripRoute(tripId)) { launchSingleTop = true }
+            navController.navigate(if (tab != null) TripRoute(tripId, tab.name) else TripRoute(tripId)) { launchSingleTop = true }
             if (round != null) navController.navigate(VoteRoute(tripId, round, showResult)) { launchSingleTop = true }
         }
     }
@@ -698,7 +699,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             onOpenMembers = { tripId, guestId, guestName, claimer -> navController.navigate(MembersRoute(tripId, guestId, guestName, claimer)) },
             onOpenPoll = { tripId, pollId -> navController.navigate(PollRoute(tripId, pollId)) },
             onOpenSettings = { navController.navigate(NotificationSettingsRoute) },
-            onOpenExpenses = { navController.navigate(TripRoute(it, TripTab.EXPENSES.name)) },
+            onOpenTripTab = { tripId, tab -> navController.navigate(TripRoute(tripId, tab.name)) },
             onOpenDocuments = { navController.navigate(DocumentsRoute(it)) },
             onOpenRecap = { navController.navigate(RecapRoute(it)) },
         )
