@@ -23,7 +23,7 @@ Two Claude Code agents work in this repo:
 | IRIS tokens (color, type, spacing, radius, shadow) | `docs/design/iris/tokens.md` |
 | Itinerary/packing category rules, drag-and-drop rules | `docs/specs/itinerary-spec.md`, `docs/specs/packing-spec.md` |
 | Agreed design decisions (Indonesian) | `docs/specs/design-decisions-id.md` |
-| Database schema | `server/src/main/resources/db/migration/` (V1–V25 on 28 Oct 2026; applied ones are never edited) |
+| Database schema | `server/src/main/resources/db/migration/` (V1–V31 on 31 Oct 2026; applied ones are never edited) |
 | API paths, DTOs, enums, error codes, domain logic | `shared/src/commonMain/kotlin/app/ransel/shared/` |
 
 The docs are exports of living documents (claude.ai Docs + Claude Design canvas, 14 Oct 2026). If a doc and the code disagree, the code in `shared/` and the migrations win for data shapes; the PRD wins for behaviour. Report the mismatch instead of silently picking one.

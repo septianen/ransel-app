@@ -28,6 +28,8 @@ data class TripMemberDto(
     val claimedAt: Timestamp? = null,
     /** A member without an account whose name a browser uses on the guest page (OWNER only; the OWNER can release it). */
     val guestBrowser: Boolean = false,
+    /** The account's profile photo (like `MeDto.avatarUrl`); always null for a member without an account. */
+    val avatarUrl: String? = null,
 ) {
     val isGuest: Boolean get() = userId == null
 }

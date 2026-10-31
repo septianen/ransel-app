@@ -60,6 +60,8 @@ object Users : Table("users") {
     val disabledAt = timestamp("disabled_at").nullable()
     /** Null until the sign-up email link is opened (V13); Explore and vouchers wait for it. */
     val emailVerifiedAt = timestamp("email_verified_at").nullable()
+    /** `ApiRoutes.imageFile` path of the profile photo (V31); null = initials. */
+    val avatarUrl = text("avatar_url").nullable()
     /** V27: the latest authenticated request, written at most once an hour (`LastSeen`). */
     val lastSeenAt = timestamp("last_seen_at").nullable()
     override val primaryKey = PrimaryKey(id)

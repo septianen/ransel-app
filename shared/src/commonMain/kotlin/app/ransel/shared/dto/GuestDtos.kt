@@ -18,6 +18,8 @@ data class GuestMemberDto(
     val hasAccount: Boolean,
     /** A member without an account that another browser already uses ("sudah dipakai"). */
     val taken: Boolean = false,
+    /** Profile photo of a member with an account (like `TripMemberDto.avatarUrl`). */
+    val avatarUrl: String? = null,
 )
 
 /** GET /guest/{code}: what a guest sees. [code] is a poll share code or a live invite code. */
@@ -32,6 +34,8 @@ data class GuestPageDto(
     val startDate: LocalDate? = null,
     val endDate: LocalDate? = null,
     val ownerName: String,
+    /** The trip's cover photo (like `TripDto.coverUrl`); null = the generated cover. */
+    val coverUrl: String? = null,
     /** Everyone in the trip; only members without an account can be picked. */
     val members: List<GuestMemberDto>,
     /** The member this browser is (null = pick a name first). */

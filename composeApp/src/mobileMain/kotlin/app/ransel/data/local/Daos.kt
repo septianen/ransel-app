@@ -21,6 +21,10 @@ interface TripDao {
 
     @Query("UPDATE trips SET deletedAt = :now, updatedAt = :now, syncState = 'PENDING' WHERE id = :id")
     suspend fun softDelete(id: String, now: Long)
+
+    /** Server-owned (B19.1): neither `updatedAt` nor `syncState` moves, so nothing is pushed back. */
+    @Query("UPDATE trips SET coverUrl = :coverUrl WHERE id = :id")
+    suspend fun setCover(id: String, coverUrl: String?)
 }
 
 @Dao

@@ -78,6 +78,8 @@ data class MeDto(
      * verification existed count as verified (hence the default).
      */
     val emailVerified: Boolean = true,
+    /** Profile photo, `ApiRoutes.imageFile(id)` relative to `ApiRoutes.BASE`; null = initials. Set with `ApiRoutes.ME_AVATAR`. */
+    val avatarUrl: String? = null,
 )
 
 /** PATCH /me. null = unchanged. */

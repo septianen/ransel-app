@@ -92,6 +92,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | personal\_items | id, trip\_id, owner\_member\_id, category, name, quantity, is\_packed, sort\_order, source\_item\_id (the members' list line it came from), required; **V25:** customized | V21, V25 |
 | member\_lists, member\_list\_items, member\_list\_recipients; packing\_items.assignee\_member\_id | the owner's members' packing list (one per trip, `version`), its lines, its chosen recipients; who brings a Bersama item | V21 |
 | guest\_sessions; polls.share\_code | guest page: token hash per browser and member; a poll's guest link | V22 |
+| users.avatar\_url, image files | profile photos (V31) and trip covers (`trips.cover_url`, set by the server only) as JPEG files on the VPS disk (`IMAGES_DIR`) | V31 |
 | trip\_documents, trip\_templates | documents (FILE on the VPS disk or LINK) and trip templates (itinerary by day number + packing) | V23 |
 | recommendation\_cache | query\_hash, destination, response JSONB, model, hit\_count, expires\_at | V4 (5) |
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
@@ -173,6 +174,9 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | PATCH, DELETE | /trips/{id}/documents/{docId} | Rename, regroup, link to an activity; delete (uploader or OWNER) | 4 |
 | GET | /trips/{id}/documents/{docId}/download | A signed download link valid 15 minutes | 4 |
 | GET ★ | /files/documents/{docId}?exp=&sig= | The file bytes (signed link, no bearer) | 4 |
+| PUT, DELETE | /trips/{id}/cover | Trip cover photo (B19.1): JPEG body up to 1 MB, the server rewrites it (no EXIF) at most 1280 px; EDITOR+ → TripDto | 4 |
+| PUT, DELETE | /me/avatar | Profile photo (B19.1): JPEG body up to 1 MB, at most 320 px → MeDto | 4 |
+| GET ★ | /files/images/{imageId} | A cover or profile photo (no bearer; a random id per upload, cached for a year) | 4 |
 | GET, POST, DELETE | /trip-templates, /trip-templates/{id} | My trip templates; POST copies a trip's itinerary (by day number) and shared packing list | 4 |
 | POST, DELETE | /polls/{id}/share | The poll's guest link (`https://ransel.mietek.tech/p/<code>`); DELETE (creator or OWNER) turns it off | 4 |
 | DELETE | /trips/{id}/members/{memberId}/guest-session | OWNER: release a guest name so another browser can use it | 4 |

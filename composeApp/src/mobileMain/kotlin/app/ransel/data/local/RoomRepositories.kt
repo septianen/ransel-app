@@ -74,7 +74,7 @@ class RoomTripRepository(
             id = request.id, ownerId = currentUserId(), title = request.title.trim(),
             destination = request.destination.trim(), startDate = request.startDate?.toString(),
             endDate = request.endDate?.toString(), baseCurrency = request.baseCurrency,
-            budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
+            budgetMinor = request.budgetMinor, coverUrl = null,
             createdAt = stamp, updatedAt = stamp, deletedAt = null,
             countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone,
         ).withPlace(request.destinationPlace)
@@ -89,7 +89,8 @@ class RoomTripRepository(
                 current.copy(
                     title = request.title.trim(), destination = request.destination.trim(),
                     startDate = request.startDate?.toString(), endDate = request.endDate?.toString(),
-                    baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor, coverUrl = request.coverUrl,
+                    // the cover is the server's (B19.1): an edit keeps the stored one
+                    baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor,
                     updatedAt = stamp, syncState = SyncState.PENDING,
                 ).let {
                     // same rule as the server: no place keeps the stored one while the name stays
@@ -127,6 +128,8 @@ class RoomTripRepository(
             db.tripDao().softDelete(tripId, stamp)
         }
     }
+
+    override suspend fun applyCover(tripId: String, coverUrl: String?) = db.tripDao().setCover(tripId, coverUrl)
 }
 
 class RoomItineraryRepository(private val db: RanselDatabase) : ItineraryRepository {

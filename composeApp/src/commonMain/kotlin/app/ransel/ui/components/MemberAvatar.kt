@@ -11,15 +11,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.ransel.data.remote.MemberPhotos
+import app.ransel.data.remote.apiImageUrl
 import app.ransel.ui.theme.IrisTheme
+import coil3.compose.AsyncImage
 
 /**
  * Initial on a colored circle. The color is stable per person (hash of [key], e.g. the member id); the owner is always
  * the brand green like in the design. A member without an account ([isGuest]) is grey and white. Decorative: the name
- * is always next to it.
+ * is always next to it. With a profile photo ([avatarUrl], by default the one [MemberPhotos] knows for [key]) the photo
+ * covers the circle, cropped from the centre; the initial stays underneath while it loads or when it cannot.
  */
 @Composable
 fun MemberAvatar(
@@ -29,6 +34,7 @@ fun MemberAvatar(
     isOwner: Boolean = false,
     isGuest: Boolean = false,
     size: Dp = 40.dp,
+    avatarUrl: String? = MemberPhotos.urlFor(key),
 ) {
     val accents = IrisTheme.accents
     val palette = listOf(accents.purple, accents.brown, accents.magenta, accents.teal, accents.blue, accents.orange)
@@ -45,5 +51,8 @@ fun MemberAvatar(
                 .copy(fontWeight = FontWeight.ExtraBold),
             color = if (isGuest) MaterialTheme.colorScheme.onSurfaceVariant else accents.onAccent,
         )
+        apiImageUrl(avatarUrl)?.let { url ->
+            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
+        }
     }
 }

@@ -250,7 +250,7 @@ private fun FeaturedTripCard(state: HomeUiState.Content, dates: DateFormatter, o
             .clickable(onClick = onClick),
     ) {
         Box(Modifier.fillMaxWidth().height(150.dp)) {
-            TripCover(seed = trip.id, modifier = Modifier.fillMaxSize(), radius = 0.dp)
+            TripCover(seed = trip.id, modifier = Modifier.fillMaxSize(), radius = 0.dp, coverUrl = trip.coverUrl)
             val badge = when (phase) {
                 TripPhase.UPCOMING -> countdownLabel(trip.daysUntilStart(state.today))
                 TripPhase.ONGOING -> stringResource(Res.string.trip_day_of, trip.dayNumber(state.today), trip.totalDays())

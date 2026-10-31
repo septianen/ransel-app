@@ -1642,4 +1642,17 @@
     <string name="transactions_empty_title">No transactions yet</string>
     <string name="transactions_empty_filtered">No transactions for this filter.</string>
     <string name="transactions_retry">Try again</string>
+    <!-- Trip covers and profile photos (F22.1) -->
+    <string name="photo_camera">Take a photo</string>
+    <string name="photo_gallery">Choose from gallery</string>
+    <string name="photo_remove">Remove photo</string>
+    <string name="photo_error_offline">You need an internet connection to change the photo.</string>
+    <string name="photo_error_too_large">That photo is too large. Try another one.</string>
+    <string name="photo_error_unreadable">This file is not a photo we can read.</string>
+    <string name="photo_error_failed">The photo could not be saved. Try again.</string>
+    <string name="trip_cover_add">Add a photo</string>
+    <string name="trip_cover_change">Change photo</string>
+    <string name="trip_cover_sheet_title">Trip photo</string>
+    <string name="account_photo_sheet_title">Profile photo</string>
+    <string name="account_photo_change">Change profile photo</string>
 </resources>

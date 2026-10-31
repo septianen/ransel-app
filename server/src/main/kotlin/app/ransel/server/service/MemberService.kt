@@ -197,6 +197,7 @@ object MemberService {
         joinedAt = this[TripMembers.joinedAt].toTimestamp(),
         phone = if (isOwner) this[TripMembers.phone] else null,
         claimedAt = this[TripMembers.claimedAt]?.toTimestamp(),
+        avatarUrl = if (this[TripMembers.userId] != null) this[Users.avatarUrl] else null,
     )
 
     private fun activeMember(tripId: UUID, memberId: UUID): ResultRow? =

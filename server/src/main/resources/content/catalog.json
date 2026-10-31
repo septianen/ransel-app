@@ -49,6 +49,18 @@
    "en": "Trip activity, expenses, reminders"
   },
   {
+   "key": "account_photo_change",
+   "area": "account",
+   "id": "Ganti foto profil",
+   "en": "Change profile photo"
+  },
+  {
+   "key": "account_photo_sheet_title",
+   "area": "account",
+   "id": "Foto profil",
+   "en": "Profile photo"
+  },
+  {
    "key": "account_section_other",
    "area": "account",
    "id": "Lainnya",
@@ -5455,6 +5467,48 @@
    "en": "Pay %1$s"
   },
   {
+   "key": "photo_camera",
+   "area": "photo",
+   "id": "Ambil foto",
+   "en": "Take a photo"
+  },
+  {
+   "key": "photo_error_failed",
+   "area": "photo",
+   "id": "Foto belum bisa disimpan. Coba lagi.",
+   "en": "The photo could not be saved. Try again."
+  },
+  {
+   "key": "photo_error_offline",
+   "area": "photo",
+   "id": "Butuh koneksi internet untuk mengganti foto.",
+   "en": "You need an internet connection to change the photo."
+  },
+  {
+   "key": "photo_error_too_large",
+   "area": "photo",
+   "id": "Fotonya terlalu besar. Coba foto lain.",
+   "en": "That photo is too large. Try another one."
+  },
+  {
+   "key": "photo_error_unreadable",
+   "area": "photo",
+   "id": "File ini bukan foto yang bisa dibaca.",
+   "en": "This file is not a photo we can read."
+  },
+  {
+   "key": "photo_gallery",
+   "area": "photo",
+   "id": "Pilih dari galeri",
+   "en": "Choose from gallery"
+  },
+  {
+   "key": "photo_remove",
+   "area": "photo",
+   "id": "Hapus foto",
+   "en": "Remove photo"
+  },
+  {
    "key": "place_detail_about",
    "area": "place",
    "id": "Tentang tempat ini",
@@ -7765,10 +7819,28 @@
    "en": "Dates to be decided"
   },
   {
+   "key": "trip_cover_add",
+   "area": "trip",
+   "id": "Pasang foto",
+   "en": "Add a photo"
+  },
+  {
+   "key": "trip_cover_change",
+   "area": "trip",
+   "id": "Ganti foto",
+   "en": "Change photo"
+  },
+  {
    "key": "trip_cover_description",
    "area": "trip",
    "id": "Foto sampul trip",
    "en": "Trip cover"
+  },
+  {
+   "key": "trip_cover_sheet_title",
+   "area": "trip",
+   "id": "Foto trip",
+   "en": "Trip photo"
   },
   {
    "key": "trip_currency",

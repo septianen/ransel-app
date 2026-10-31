@@ -108,7 +108,7 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
         val trip = TripDto(
             id = request.id, ownerId = LOCAL_USER_ID, title = request.title, destination = request.destination,
             startDate = request.startDate, endDate = request.endDate, baseCurrency = request.baseCurrency,
-            budgetMinor = request.budgetMinor, coverUrl = request.coverUrl, createdAt = stamp, updatedAt = stamp,
+            budgetMinor = request.budgetMinor, createdAt = stamp, updatedAt = stamp,
             destinationPlace = request.destinationPlace,
             countryCode = request.countryCode, localCurrency = request.localCurrency, timeZone = request.timeZone,
         )
@@ -137,7 +137,7 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
                 if (it.id != tripId) it else it.copy(
                     title = request.title, destination = request.destination, startDate = request.startDate,
                     endDate = request.endDate, baseCurrency = request.baseCurrency, budgetMinor = request.budgetMinor,
-                    coverUrl = request.coverUrl, updatedAt = now(),
+                    updatedAt = now(),
                     destinationPlace = if (request.destinationPlace != null || it.destination != request.destination) request.destinationPlace else it.destinationPlace,
                 ).let { t ->
                     val sent = request.countryCode != null || request.localCurrency != null || request.timeZone != null
@@ -155,6 +155,10 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
         store.items.update { l -> l.map { if (it.tripId == tripId) it.copy(deletedAt = stamp, updatedAt = stamp) else it } }
         store.packing.update { l -> l.map { if (it.tripId == tripId) it.copy(deletedAt = stamp, updatedAt = stamp) else it } }
         store.expenses.update { l -> l.map { if (it.tripId == tripId) it.copy(deletedAt = stamp, updatedAt = stamp) else it } }
+    }
+
+    override suspend fun applyCover(tripId: String, coverUrl: String?) {
+        store.trips.update { l -> l.map { if (it.id == tripId) it.copy(coverUrl = coverUrl) else it } }
     }
 }
 

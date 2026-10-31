@@ -1625,4 +1625,17 @@
     <string name="transactions_empty_title">Belum ada transaksi</string>
     <string name="transactions_empty_filtered">Tidak ada transaksi untuk filter ini.</string>
     <string name="transactions_retry">Coba lagi</string>
+    <!-- Trip covers and profile photos (F22.1) -->
+    <string name="photo_camera">Ambil foto</string>
+    <string name="photo_gallery">Pilih dari galeri</string>
+    <string name="photo_remove">Hapus foto</string>
+    <string name="photo_error_offline">Butuh koneksi internet untuk mengganti foto.</string>
+    <string name="photo_error_too_large">Fotonya terlalu besar. Coba foto lain.</string>
+    <string name="photo_error_unreadable">File ini bukan foto yang bisa dibaca.</string>
+    <string name="photo_error_failed">Foto belum bisa disimpan. Coba lagi.</string>
+    <string name="trip_cover_add">Pasang foto</string>
+    <string name="trip_cover_change">Ganti foto</string>
+    <string name="trip_cover_sheet_title">Foto trip</string>
+    <string name="account_photo_sheet_title">Foto profil</string>
+    <string name="account_photo_change">Ganti foto profil</string>
 </resources>

@@ -184,7 +184,10 @@ object GuestService {
         val held = browserMembers(target.tripId)
         val dtos = members.map { row ->
             val id = row[TripMembers.id]
-            GuestMemberDto(id.toString(), nameOf(row), hasAccount = row[TripMembers.userId] != null, taken = id in held && id != me)
+            GuestMemberDto(
+                id.toString(), nameOf(row), hasAccount = row[TripMembers.userId] != null, taken = id in held && id != me,
+                avatarUrl = if (row[TripMembers.userId] != null) row.getOrNull(Users.avatarUrl) else null,
+            )
         }
         return GuestPageDto(
             code = target.code,
@@ -193,6 +196,7 @@ object GuestService {
             destination = trip[Trips.destination],
             startDate = trip[Trips.startDate]?.toKotlinLocalDate(),
             endDate = trip[Trips.endDate]?.toKotlinLocalDate(),
+            coverUrl = trip[Trips.coverUrl],
             ownerName = members.firstOrNull { it[TripMembers.role] == Role.OWNER }?.let(::nameOf).orEmpty(),
             members = dtos,
             me = dtos.firstOrNull { it.memberId == me?.toString() },

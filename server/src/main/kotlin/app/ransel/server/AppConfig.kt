@@ -55,6 +55,8 @@ data class AppConfig(
     val photoSigningSecret: String = DEV_PHOTO_SIGNING_SECRET,
     /** Where trip document files live (a Docker volume in production). */
     val documentsDir: String = "./data/documents",
+    /** Trip covers and profile photos (B19.1); by default inside [documentsDir], so the same volume and backup hold them. */
+    val imagesDir: String = "./data/documents/images",
     /** Photo proxy requests per client address per minute (a card stack loads several at once). */
     val photoRateLimitPerMinute: Int = 120,
     /** `GET /explore/suggestions` per user per hour (soft limit; it never uses the daily search quota). */
@@ -236,6 +238,8 @@ data class AppConfig(
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 photoSigningSecret = photoSecret,
                 documentsDir = env["DOCUMENTS_DIR"]?.takeIf { it.isNotBlank() } ?: "./data/documents",
+                imagesDir = env["IMAGES_DIR"]?.takeIf { it.isNotBlank() }
+                    ?: ((env["DOCUMENTS_DIR"]?.takeIf { it.isNotBlank() } ?: "./data/documents").trimEnd('/') + "/images"),
                 androidPackage = env["ANDROID_PACKAGE"]?.takeIf { it.isNotBlank() } ?: "app.ransel",
                 androidCertSha256 = env["ANDROID_CERT_SHA256"].csv().map(::normalizeSha256),
                 iosAppIds = env["IOS_APP_IDS"].csv(),

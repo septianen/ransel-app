@@ -149,7 +149,7 @@ private fun TripPicker(state: ExploreTripPickerState, onPickTrip: (String) -> Un
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        TripCover(trip.id, Modifier.size(56.dp))
+                        TripCover(trip.id, Modifier.size(56.dp), coverUrl = trip.coverUrl)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(trip.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(dates.tripRange(trip.startDate, trip.endDate), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)

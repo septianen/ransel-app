@@ -2,18 +2,13 @@ package app.ransel.feature.explore
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import app.ransel.data.remote.apiOrigin
-import app.ransel.shared.api.ApiRoutes
+import app.ransel.data.remote.apiImageUrl
 import coil3.PlatformContext
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 
 /** Absolute URL of a place photo (the API gives a signed path relative to `ApiRoutes.BASE`); null without a photo. */
-internal fun placePhotoUrl(photoUrl: String?): String? {
-    val path = photoUrl?.takeIf { it.isNotBlank() } ?: return null
-    if (path.startsWith("http")) return path
-    return apiOrigin().trimEnd('/') + ApiRoutes.BASE + "/" + path.trimStart('/')
-}
+internal fun placePhotoUrl(photoUrl: String?): String? = apiImageUrl(photoUrl)
 
 /**
  * The signed URL changes with every server response (its expiry moves), so Coil's default cache key, the URL, would

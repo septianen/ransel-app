@@ -222,6 +222,7 @@ class SyncService {
                     role = it[TripMembers.role],
                     joinedAt = it[TripMembers.joinedAt].toTimestamp(),
                     phone = if (iAmOwner) it[TripMembers.phone] else null,
+                    avatarUrl = if (it[TripMembers.userId] != null) it[Users.avatarUrl] else null,
                 )
             }
 
@@ -254,7 +255,6 @@ class SyncService {
                 it[endDate] = dto.endDate?.toJavaLocalDate()
                 it[baseCurrency] = dto.baseCurrency
                 it[budgetMinor] = dto.budgetMinor
-                it[coverUrl] = dto.coverUrl
                 TripService.fillPlace(it, dto.destinationPlace)
                 TripService.fillLocale(it, dto.countryCode, dto.localCurrency, dto.timeZone)
                 it[createdAt] = dto.createdAt.toJavaInstant()
@@ -285,7 +285,6 @@ class SyncService {
             it[endDate] = dto.endDate?.toJavaLocalDate()
             it[baseCurrency] = dto.baseCurrency
             it[budgetMinor] = dto.budgetMinor
-            it[coverUrl] = dto.coverUrl
             it[deletedAt] = dto.deletedAt?.toJavaInstant()
         }
         if (dto.deletedAt == null) TripEvents.onTripSaved(dto.destination, dto.startDate)

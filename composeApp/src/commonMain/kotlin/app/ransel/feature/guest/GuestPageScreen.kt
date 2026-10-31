@@ -1,5 +1,6 @@
 package app.ransel.feature.guest
 
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -210,6 +211,13 @@ private fun TripHeader(page: GuestPageDto, invite: Boolean) {
     val dates = rememberDateFormatter()
     val scheme = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // only a real photo: the generated cover was never part of the guest page design
+        if (page.coverUrl != null) {
+            app.ransel.ui.components.TripCover(
+                seed = page.tripId, coverUrl = page.coverUrl, radius = 16.dp,
+                modifier = Modifier.fillMaxWidth().height(120.dp).padding(bottom = 8.dp),
+            )
+        }
         Text(
             if (invite) stringResource(Res.string.guest_invite_title, page.ownerName)
             else stringResource(Res.string.guest_poll_asks, page.ownerName, page.tripTitle),
