@@ -175,4 +175,5 @@ fun org.jetbrains.exposed.v1.core.ResultRow.toMeDto() = MeDto(
     displayName = this[Users.displayName],
     defaultCurrency = this[Users.defaultCurrency],
     emailVerified = this[Users.emailVerifiedAt] != null,
+    avatarUrl = this[Users.avatarUrl],
 )

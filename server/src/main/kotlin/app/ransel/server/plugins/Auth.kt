@@ -25,6 +25,7 @@ import kotlin.time.Duration.Companion.minutes
 const val JWT_AUTH = "jwt"
 val AuthRateLimit = RateLimitName("auth")
 val PhotoRateLimit = RateLimitName("photo")
+val PhotoUploadRateLimit = RateLimitName("photo-upload")
 val InvitePreviewRateLimit = RateLimitName("invite-preview")
 val InviteAcceptRateLimit = RateLimitName("invite-accept")
 val LinkPreviewRateLimit = RateLimitName("link-preview")
@@ -116,6 +117,11 @@ fun Application.configureRateLimit(config: AppConfig, suggestionsPerHour: () -> 
         register(GuestIdentityRateLimit) {
             rateLimiter(limit = 10, refillPeriod = 10.minutes)
             requestKey { call -> call.request.origin.remoteHost }
+        }
+        // Per user: changing a cover or a profile photo now and then; this stops a loop from filling the disk.
+        register(PhotoUploadRateLimit) {
+            rateLimiter(limit = 20, refillPeriod = 1.hours)
+            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
         }
         register(PhotoRateLimit) {
             rateLimiter(limit = config.photoRateLimitPerMinute, refillPeriod = 1.minutes)

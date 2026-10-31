@@ -73,7 +73,6 @@ object TripService {
             it[endDate] = body.endDate?.toJavaLocalDate()
             it[baseCurrency] = body.baseCurrency
             it[budgetMinor] = body.budgetMinor
-            it[coverUrl] = body.coverUrl
             fillPlace(it, body.destinationPlace)
             fillLocale(it, body.countryCode, body.localCurrency, body.timeZone)
         }
@@ -112,7 +111,6 @@ object TripService {
                 it[endDate] = body.endDate?.toJavaLocalDate()
                 it[baseCurrency] = body.baseCurrency
                 it[budgetMinor] = body.budgetMinor
-                it[coverUrl] = body.coverUrl
             }
             unscheduleOutsideRange(tripId, body.startDate, body.endDate)
             TripEvents.onTripSaved(body.destination, body.startDate)
@@ -187,7 +185,7 @@ object TripService {
     internal fun tripDayCount(start: kotlinx.datetime.LocalDate?, end: kotlinx.datetime.LocalDate?): Int =
         if (start == null || end == null) 0 else start.daysUntil(end) + 1
 
-    private fun load(tripId: UUID, role: Role): TripDto =
+    internal fun load(tripId: UUID, role: Role): TripDto =
         Trips.selectAll().where { Trips.id eq tripId }.singleOrNull()?.toTripDto(role) ?: throw tripNotFound()
 
     /** Counts come from SQL; money goes through the shared [summarizeExpenses] so it equals the app's numbers. */

@@ -40,6 +40,7 @@ object TestDb {
         bcryptCost = 4,
         authRateLimitPerMinute = 1000,
         documentsDir = documentsDir,
+        imagesDir = "$documentsDir/images",
     )
 
     /** Trip document files of the tests: a fresh temporary folder per run. */

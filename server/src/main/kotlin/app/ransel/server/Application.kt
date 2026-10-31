@@ -35,6 +35,8 @@ import app.ransel.server.plugins.configureRateLimit
 import app.ransel.server.plugins.configureSerialization
 import app.ransel.server.plugins.configureStatusPages
 import app.ransel.server.routes.adminRoutes
+import app.ransel.server.routes.imageFileRoutes
+import app.ransel.server.routes.photoRoutes
 import app.ransel.server.routes.authRoutes
 import app.ransel.server.routes.creditRoutes
 import app.ransel.server.routes.balanceRoutes
@@ -69,6 +71,7 @@ import app.ransel.server.routes.guestRoutes
 import app.ransel.server.routes.documentRoutes
 import app.ransel.server.routes.documentFileRoutes
 import app.ransel.server.service.DocumentService
+import app.ransel.server.service.PhotoService
 import app.ransel.server.routes.ogRoutes
 import app.ransel.server.security.EmailSender
 import app.ransel.server.security.LoggingEmailSender
@@ -232,6 +235,7 @@ fun Application.module(
             // files of deleted documents and trips leave the disk, once an hour
             if (java.time.LocalTime.now().minute == 0) {
                 runCatching { DocumentService(config).purge() }.onFailure { environment.log.warn("document purge failed: {}", it.javaClass.simpleName) }
+                runCatching { PhotoService(config).purge() }.onFailure { environment.log.warn("photo purge failed: {}", it.javaClass.simpleName) }
             }
             delay(60_000)
         }
@@ -267,6 +271,8 @@ fun Application.module(
             guestRoutes()
             val documents = DocumentService(config)
             documentFileRoutes(documents)
+            val photos = PhotoService(config)
+            imageFileRoutes(photos)
             ogRoutes(invites, config.appBaseUrl)
             authenticate(JWT_AUTH) {
                 meRoutes(verification)
@@ -284,6 +290,7 @@ fun Application.module(
                 receiptRoutes(ReceiptService(aiServices, credits))
                 packingTemplateRoutes()
                 documentRoutes(documents)
+                photoRoutes(photos)
                 recommendationRoutes(recommendations)
                 votingRoutes(rounds)
                 creditRoutes(credits)
