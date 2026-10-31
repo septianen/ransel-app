@@ -123,6 +123,7 @@ import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.timeout
+import io.ktor.client.plugins.onUpload
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.request
@@ -255,8 +256,18 @@ class RanselApi(
     suspend fun addDocumentLink(tripId: String, request: CreateDocumentRequest): ApiResult<TripDocumentDto> =
         send(HttpMethod.Post, ApiRoutes.documents(tripId), request)
 
-    /** multipart `meta` + `file`; uploads can take a while on a slow line. */
-    suspend fun uploadDocument(tripId: String, meta: CreateDocumentRequest, fileName: String, mime: String, bytes: ByteArray): ApiResult<TripDocumentDto> =
+    /**
+     * multipart `meta` + `file`; uploads can take a while on a slow line. [onProgress] gets the share sent so far
+     * (0..1). On the web the browser takes the whole body at once, so it jumps to 1 and then waits for the reply.
+     */
+    suspend fun uploadDocument(
+        tripId: String,
+        meta: CreateDocumentRequest,
+        fileName: String,
+        mime: String,
+        bytes: ByteArray,
+        onProgress: (Float) -> Unit = {},
+    ): ApiResult<TripDocumentDto> =
         call(HttpMethod.Post, ApiRoutes.documents(tripId), bodyOf = {
             setBody(
                 io.ktor.client.request.forms.MultiPartFormDataContent(
@@ -272,6 +283,9 @@ class RanselApi(
                 ),
             )
             timeout { requestTimeoutMillis = UPLOAD_TIMEOUT_MILLIS }
+            onUpload { sent, length ->
+                if (length != null && length > 0) onProgress((sent.toFloat() / length).coerceIn(0f, 1f))
+            }
         }) { it.body<ApiResponse<TripDocumentDto>>().data }
 
     suspend fun patchDocument(tripId: String, docId: String, patch: PatchDocumentRequest): ApiResult<TripDocumentDto> =

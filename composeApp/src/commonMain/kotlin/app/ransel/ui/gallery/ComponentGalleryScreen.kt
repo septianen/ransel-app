@@ -46,6 +46,13 @@ import app.ransel.ui.components.CaveCartLoading
 import app.ransel.ui.components.UndoSnackbar
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.explore_loading_1
+import ransel.composeapp.generated.resources.receipt_reading
+import ransel.composeapp.generated.resources.receipt_reading_2
+import ransel.composeapp.generated.resources.receipt_reading_3
+import ransel.composeapp.generated.resources.receipt_reading_4
+import ransel.composeapp.generated.resources.receipt_reading_description
+import ransel.composeapp.generated.resources.document_uploading
+import ransel.composeapp.generated.resources.document_uploading_description
 import ransel.composeapp.generated.resources.explore_loading_2
 import ransel.composeapp.generated.resources.explore_loading_3
 import ransel.composeapp.generated.resources.explore_loading_4
@@ -187,6 +194,25 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                             stringResource(Res.string.explore_loading_4),
                         ),
                         hint = stringResource(Res.string.explore_loading_hint),
+                    )
+                }
+                Section("ReceiptLoading") {
+                    app.ransel.ui.components.ReceiptLoading(
+                        messages = listOf(
+                            stringResource(Res.string.receipt_reading),
+                            stringResource(Res.string.receipt_reading_2),
+                            stringResource(Res.string.receipt_reading_3),
+                            stringResource(Res.string.receipt_reading_4),
+                        ),
+                        description = stringResource(Res.string.receipt_reading_description),
+                    )
+                }
+                Section("SurfUploadProgress") {
+                    // without a known progress the bar loops on its own
+                    app.ransel.ui.components.SurfUploadProgress(
+                        progress = null,
+                        label = stringResource(Res.string.document_uploading),
+                        description = stringResource(Res.string.document_uploading_description),
                     )
                 }
                 Section("VoteOptionCard") {

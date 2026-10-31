@@ -1226,6 +1226,10 @@
     <string name="receipt_camera">Ambil foto</string>
     <string name="receipt_gallery">Pilih dari galeri</string>
     <string name="receipt_reading">Membaca struk…</string>
+    <string name="receipt_reading_2">Mencari daftar harga…</string>
+    <string name="receipt_reading_3">Menjumlahkan totalnya…</string>
+    <string name="receipt_reading_4">Hampir beres…</string>
+    <string name="receipt_reading_description">Membaca struk dengan AI</string>
     <string name="receipt_error_unreadable">Struknya belum terbaca. Coba foto lagi dengan cahaya cukup, atau catat manual. Kredit tidak dipotong.</string>
     <string name="receipt_error_credits">Kredit habis. Isi ulang kredit dulu, atau catat manual.</string>
     <string name="receipt_error_large">Fotonya terlalu besar (maksimal 5 MB).</string>
@@ -1485,6 +1489,8 @@
     <string name="document_activity_label">Untuk aktivitas (opsional)</string>
     <string name="document_no_activity">Tanpa aktivitas</string>
     <string name="document_save">Simpan</string>
+    <string name="document_uploading">Mengunggah…</string>
+    <string name="document_uploading_description">Mengunggah dokumen</string>
     <string name="document_added">Dokumen ditambahkan</string>
     <string name="document_error_FILE_TOO_LARGE">File lebih dari 20 MB.</string>
     <string name="document_error_STORAGE_FULL">Ruang dokumen trip ini (200 MB) sudah penuh. Hapus dokumen lama dulu.</string>

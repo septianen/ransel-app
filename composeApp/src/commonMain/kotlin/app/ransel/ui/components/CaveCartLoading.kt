@@ -1,38 +1,16 @@
 package app.ransel.ui.components
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -51,20 +29,15 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
 import app.ransel.ui.motion.rememberReduceMotion
 import app.ransel.ui.preview.IrisPreview
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.imageResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
@@ -80,13 +53,9 @@ import kotlin.math.sin
  * the rails (wheels removed too). Ground, ties, rails, pebbles and wheels are drawn here so the track can scroll.
  * One factor scales the space to the canvas. Prototype: the "Animasi Kereta Tambang" artifact.
  */
-private const val UNITS = 1024f
-private const val MESSAGE_EVERY_MS = 2_500L
 private val Lamp = Offset(665f, 118f)
 private val LampLight = Color(0xFFFFE08A)
 private val Dust = Color(0xFFC9A77C)
-private val Ink = Color(0xFF3A2418)
-private val PlateOnDark = Color(0xFFE9EFE5)
 
 /**
  * Capybara riding a mine cart through a cave while Explore AI loads: ties and pebbles scroll under it while the
@@ -133,88 +102,14 @@ internal fun CaveCartLoadingContent(
     }
 }
 
-// ── status line and dots ────────────────────────────────────────────────────
-
-@Composable
-private fun RotatingMessage(messages: List<String>, reduceMotion: Boolean) {
-    var index by remember { mutableIntStateOf(0) }
-    LaunchedEffect(messages.size, reduceMotion) {
-        if (reduceMotion || messages.size < 2) return@LaunchedEffect
-        while (true) {
-            delay(MESSAGE_EVERY_MS)
-            index = (index + 1) % messages.size
-        }
-    }
-    AnimatedContent(
-        targetState = index,
-        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        transitionSpec = { fadeIn(tween(350)) togetherWith fadeOut(tween(350)) },
-        contentAlignment = Alignment.Center,
-        label = "cart-message",
-    ) { shown ->
-        Text(
-            messages.getOrElse(shown) { "" },
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
-@Composable
-private fun PulsingDots(reduceMotion: Boolean) {
-    val clock = if (reduceMotion) null else rememberInfiniteTransition(label = "cart-dots").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1_200, easing = LinearEasing), RepeatMode.Restart),
-        label = "dots",
-    )
-    val color = MaterialTheme.colorScheme.onSurface
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        repeat(3) { index ->
-            Box(
-                Modifier
-                    .size(6.dp)
-                    .graphicsLayer {
-                        // Keyframes 0 / 30 / 60 / 100 %: faint, bright and 3 dp up, faint, faint. Dots start 0.2 s apart.
-                        val phase = clock?.let { (it.value - index * 0.2f / 1.2f + 1f) % 1f } ?: 0f
-                        val lift = when {
-                            clock == null -> 0f
-                            phase < 0.3f -> phase / 0.3f
-                            phase < 0.6f -> 1f - (phase - 0.3f) / 0.3f
-                            else -> 0f
-                        }
-                        alpha = 0.25f + 0.75f * lift
-                        translationY = -3.dp.toPx() * lift
-                    }
-                    .background(color, CircleShape),
-            )
-        }
-    }
-}
-
 // ── the scene ───────────────────────────────────────────────────────────────
-
-/** Seconds since the scene started, updated every frame. Read only inside the draw lambda: a frame redraws, never recomposes. */
-@Composable
-private fun rememberSceneTime(running: Boolean): State<Float> {
-    val time = remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(running) {
-        if (!running) return@LaunchedEffect
-        val start = withFrameNanos { it }
-        while (true) withFrameNanos { time.floatValue = ((it - start) / 1_000_000_000.0 % 3_600.0).toFloat() }
-    }
-    return time
-}
 
 @Composable
 private fun CartScene(reduceMotion: Boolean, modifier: Modifier) {
     val body = imageResource(Res.drawable.ic_exploring_cave_cart)
     val time = rememberSceneTime(running = !reduceMotion)
-    // Dark outlines vanish on a dark surface, so the scene sits on a light plate there.
-    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
-    val plate = if (dark) PlateOnDark else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-    val speck = if (dark) Ink else MaterialTheme.colorScheme.onSurface
+    val plate = scenePlate()
+    val speck = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) Ink else MaterialTheme.colorScheme.onSurface
 
     Canvas(modifier) {
         val s = size.width / UNITS

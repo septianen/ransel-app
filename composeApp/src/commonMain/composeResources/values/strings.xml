@@ -1238,6 +1238,10 @@
     <string name="receipt_camera">Take a photo</string>
     <string name="receipt_gallery">Choose a photo</string>
     <string name="receipt_reading">Reading the receipt…</string>
+    <string name="receipt_reading_2">Finding the prices…</string>
+    <string name="receipt_reading_3">Adding up the total…</string>
+    <string name="receipt_reading_4">Almost done…</string>
+    <string name="receipt_reading_description">Reading the receipt with AI</string>
     <string name="receipt_error_unreadable">The receipt could not be read. Try again in good light, or type it in. No credit was used.</string>
     <string name="receipt_error_credits">You are out of credits. Top up first, or type it in.</string>
     <string name="receipt_error_large">The photo is too large (5 MB at most).</string>
@@ -1497,6 +1501,8 @@
     <string name="document_activity_label">For an activity (optional)</string>
     <string name="document_no_activity">No activity</string>
     <string name="document_save">Save</string>
+    <string name="document_uploading">Uploading…</string>
+    <string name="document_uploading_description">Uploading the document</string>
     <string name="document_added">Document added</string>
     <string name="document_error_FILE_TOO_LARGE">The file is over 20 MB.</string>
     <string name="document_error_STORAGE_FULL">This trip's document space (200 MB) is full. Delete old documents first.</string>

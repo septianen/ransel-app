@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -51,6 +50,7 @@ import app.ransel.feature.expenses.ItemSplitLines
 import app.ransel.feature.expenses.ItemSplitSummary
 import app.ransel.feature.expenses.SplitSection
 import app.ransel.ui.components.IrisTextField
+import app.ransel.ui.components.ReceiptLoading
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.rememberDateFormatter
 import ransel.composeapp.generated.resources.action_cancel
@@ -99,6 +99,10 @@ import ransel.composeapp.generated.resources.receipt_manual_instead
 import ransel.composeapp.generated.resources.receipt_per_item
 import ransel.composeapp.generated.resources.receipt_place
 import ransel.composeapp.generated.resources.receipt_reading
+import ransel.composeapp.generated.resources.receipt_reading_2
+import ransel.composeapp.generated.resources.receipt_reading_3
+import ransel.composeapp.generated.resources.receipt_reading_4
+import ransel.composeapp.generated.resources.receipt_reading_description
 import ransel.composeapp.generated.resources.receipt_result_hint
 import ransel.composeapp.generated.resources.receipt_result_title
 import ransel.composeapp.generated.resources.receipt_retry
@@ -187,10 +191,17 @@ fun ReceiptFlow(
             ReceiptStep.Pick, ReceiptStep.Reading -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 SheetHeader(stringResource(Res.string.receipt_title), trip.title, onDismiss)
                 if (s == ReceiptStep.Reading) {
-                    Column(Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        CircularProgressIndicator()
-                        Text(stringResource(Res.string.receipt_reading), style = MaterialTheme.typography.bodyMedium)
-                    }
+                    // the capybara counts money while the AI reads (design "Hitung struk", owner 31 Oct 2026)
+                    ReceiptLoading(
+                        messages = listOf(
+                            stringResource(Res.string.receipt_reading),
+                            stringResource(Res.string.receipt_reading_2),
+                            stringResource(Res.string.receipt_reading_3),
+                            stringResource(Res.string.receipt_reading_4),
+                        ),
+                        description = stringResource(Res.string.receipt_reading_description),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    )
                 } else {
                     Text(stringResource(Res.string.receipt_tip), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     wallet?.let { w ->
