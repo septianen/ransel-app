@@ -1333,6 +1333,18 @@
    "en": "Add a document"
   },
   {
+   "key": "document_uploading",
+   "area": "document",
+   "id": "Mengunggah…",
+   "en": "Uploading…"
+  },
+  {
+   "key": "document_uploading_description",
+   "area": "document",
+   "id": "Mengunggah dokumen",
+   "en": "Uploading the document"
+  },
+  {
    "key": "documents_add",
    "area": "documents",
    "id": "Tambah",
@@ -6817,6 +6829,30 @@
    "en": "Reading the receipt…"
   },
   {
+   "key": "receipt_reading_2",
+   "area": "receipt",
+   "id": "Mencari daftar harga…",
+   "en": "Finding the prices…"
+  },
+  {
+   "key": "receipt_reading_3",
+   "area": "receipt",
+   "id": "Menjumlahkan totalnya…",
+   "en": "Adding up the total…"
+  },
+  {
+   "key": "receipt_reading_4",
+   "area": "receipt",
+   "id": "Hampir beres…",
+   "en": "Almost done…"
+  },
+  {
+   "key": "receipt_reading_description",
+   "area": "receipt",
+   "id": "Membaca struk dengan AI",
+   "en": "Reading the receipt with AI"
+  },
+  {
    "key": "receipt_result_hint",
    "area": "receipt",
    "id": "Diisi otomatis dari struk. Cek lagi sebelum menyimpan.",
@@ -8765,6 +8801,7 @@
   "ic_packing_empty",
   "ic_send_invitation",
   "ic_sun_bathing",
-  "ic_sun_bathing_water"
+  "ic_sun_bathing_water",
+  "ic_surfing"
  ]
 }

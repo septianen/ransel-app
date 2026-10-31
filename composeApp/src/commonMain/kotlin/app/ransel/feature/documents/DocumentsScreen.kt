@@ -59,6 +59,7 @@ import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.MemberAvatar
+import app.ransel.ui.components.SurfUploadProgress
 import app.ransel.ui.components.UndoSnackbar
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
@@ -132,6 +133,7 @@ fun DocumentsScreen(
             activities = state.activities,
             tripStart = current?.startDate,
             saving = state.saving,
+            uploadProgress = state.uploadProgress,
             problem = sheetProblem,
             onSave = { title, category, item, file, link -> sheetProblem = null; viewModel.add(title, category, item, file, link) },
             onDismiss = { adding = false },
@@ -336,6 +338,8 @@ fun AddDocumentSheet(
     activities: List<ItineraryItemDto>,
     tripStart: LocalDate?,
     saving: Boolean,
+    /** Non-null while the picked file uploads: the form makes way for the surfing capybara. */
+    uploadProgress: Float?,
     problem: String?,
     onSave: (title: String, category: DocumentCategory, itineraryItemId: String?, file: PickedFile?, link: String) -> Unit,
     onDismiss: () -> Unit,
@@ -361,6 +365,27 @@ fun AddDocumentSheet(
             Box(Modifier.size(48.dp).clickable(role = Role.Button, onClick = onDismiss), contentAlignment = Alignment.Center) {
                 Symbol(Symbols.close, contentDescription = stringResource(Res.string.itinerary_close))
             }
+        }
+        if (uploadProgress != null) {
+            // the capybara surfs the progress bar while the file goes up (design "Selancar", owner 31 Oct 2026)
+            Column(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SurfUploadProgress(
+                    progress = uploadProgress,
+                    label = stringResource(Res.string.document_uploading),
+                    description = stringResource(Res.string.document_uploading_description),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                file?.let {
+                    Text(
+                        "${it.name} · ${sizeText(it.bytes.size.toLong())}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            return@AdaptiveSheet
         }
         Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             OutlinedButton(onClick = { picker.launch() }, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {

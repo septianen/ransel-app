@@ -153,6 +153,7 @@ class DocumentsAndRecapTest {
         vm.add("Tiket pulang", DocumentCategory.TRAVEL, null, PickedFile("pulang.pdf", byteArrayOf(1, 2, 3)), "")
         assertEquals(DocumentsEvent.Added, vm.eventFlow.first())
         assertTrue("d2.pdf" in files.saved, "the uploader has it offline at once")
+        assertEquals(null, vm.state.value.uploadProgress, "the surfing progress closes once the upload is done")
         vm.viewModelScope.cancel()
     }
 

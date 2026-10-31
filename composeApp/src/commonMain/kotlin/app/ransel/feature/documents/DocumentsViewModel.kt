@@ -38,6 +38,8 @@ data class DocumentsUiState(
     val opening: String? = null,
     /** The add sheet is saving. */
     val saving: Boolean = false,
+    /** Share of the picked file sent so far (0..1) while it uploads; null when no file is being sent. */
+    val uploadProgress: Float? = null,
     /** Activities a document can belong to. */
     val activities: List<ItineraryItemDto> = emptyList(),
 ) {
@@ -145,22 +147,24 @@ class DocumentsViewModel(
         if (file == null && !link.trim().matches(Regex("^https?://\\S+$"))) return problem(LINK)
         if (file != null && file.bytes.size > MAX_DOCUMENT_BYTES) return problem(app.ransel.shared.api.ErrorCode.FILE_TOO_LARGE)
         val meta = CreateDocumentRequest(newId(), title.trim(), category, url = if (file == null) link.trim() else null, itineraryItemId = itineraryItemId)
-        _state.update { it.copy(saving = true) }
+        _state.update { it.copy(saving = true, uploadProgress = if (file == null) null else 0f) }
         viewModelScope.launch {
             val result = if (file == null) api.addDocumentLink(tripId, meta)
-            else api.uploadDocument(tripId, meta, file.name, mimeOf(file.name), file.bytes)
+            else api.uploadDocument(tripId, meta, file.name, mimeOf(file.name), file.bytes) { sent ->
+                _state.update { if (it.saving) it.copy(uploadProgress = sent) else it }
+            }
             when (result) {
                 is ApiResult.Success -> {
                     // the uploader has the file already: keep it for use without signal
                     if (file != null && files.keepsFiles) {
                         files.save(fileName(result.value), file.bytes)
                     }
-                    _state.update { it.copy(saving = false) }
+                    _state.update { it.copy(saving = false, uploadProgress = null) }
                     events.send(DocumentsEvent.Added)
                     load()
                 }
                 is ApiResult.Failure -> {
-                    _state.update { it.copy(saving = false) }
+                    _state.update { it.copy(saving = false, uploadProgress = null) }
                     events.send(DocumentsEvent.Problem(result.error.code))
                 }
             }
