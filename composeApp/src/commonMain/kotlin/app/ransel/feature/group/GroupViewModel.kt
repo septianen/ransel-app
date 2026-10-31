@@ -48,6 +48,11 @@ data class GroupUiState(
     val polls: List<PollDto> = emptyList(),
     /** Documents of the trip, for "Dokumen trip 3 ›"; null until known (offline, not loaded). */
     val documentCount: Int? = null,
+    /** The trip's albums; the section only shows when there is one (owner, 31 Oct 2026). */
+    val albums: List<app.ransel.shared.dto.TripAlbumDto> = emptyList(),
+    /** The first photos of the newest Drive album, for the card; [albumPreviewMore] = it has more than those. */
+    val albumPreview: List<app.ransel.shared.dto.AlbumItemDto> = emptyList(),
+    val albumPreviewMore: Boolean = false,
     val failure: ApiFailure? = null,
     /** "Perlu tindakanmu" money: my open transfers and claims that wait for me (shared trips only). */
     val owes: List<TransferDto> = emptyList(),
@@ -96,6 +101,16 @@ class GroupViewModel(
             // polls are a convenience on this tab: if they fail to load the rest still shows
             (api.polls(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(polls = r.value) } }
             (api.documents(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(documentCount = r.value.items.size) } }
+            (api.albums(tripId) as? ApiResult.Success)?.let { r ->
+                val albums = r.value.items
+                _state.update { it.copy(albums = albums) }
+                // the card shows a few photos of one Drive album; the server keeps the folder listing for a while
+                albums.firstOrNull { it.provider == app.ransel.shared.model.AlbumProvider.DRIVE_FOLDER }?.let { drive ->
+                    (api.albumItems(tripId, drive.id, null) as? ApiResult.Success)?.let { page ->
+                        _state.update { it.copy(albumPreview = page.value.items, albumPreviewMore = page.value.nextPageToken != null) }
+                    }
+                }
+            }
             // so is money: what I owe and what waits for my confirmation
             if (_state.value.members.size > 1) {
                 val me = myMemberId

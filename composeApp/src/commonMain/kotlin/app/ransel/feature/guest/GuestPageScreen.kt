@@ -118,6 +118,7 @@ fun GuestPageScreen(
                 onSend = viewModel::send,
                 onTick = viewModel::tick,
             ),
+            albums = { app.ransel.feature.albums.GuestAlbumsSection(code, it) },
         )
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp)) { UndoSnackbar(message = it.visuals.message) }
     }
@@ -140,7 +141,14 @@ class GuestActions(
 )
 
 @Composable
-fun GuestPageContent(state: GuestPageUiState, invite: Boolean, actions: GuestActions, modifier: Modifier = Modifier) {
+fun GuestPageContent(
+    state: GuestPageUiState,
+    invite: Boolean,
+    actions: GuestActions,
+    modifier: Modifier = Modifier,
+    /** The trip's albums (design "WebTamuAlbum"); they load their own photos, so the screen draws them. */
+    albums: @Composable (List<app.ransel.shared.dto.TripAlbumDto>) -> Unit = {},
+) {
     val scheme = MaterialTheme.colorScheme
     Column(modifier.fillMaxSize()) {
         // top bar: brand and "Masuk"
@@ -186,6 +194,8 @@ fun GuestPageContent(state: GuestPageUiState, invite: Boolean, actions: GuestAct
                 val me = state.me
                 if (money != null && me != null && !state.choosingName) GuestMoneyCard(money, me.memberId, page.ownerName)
                 if (page.packing.isNotEmpty() && !state.choosingName) GuestPacking(page.ownerName, page.packing, actions.onTick)
+                // no name is needed to look at the photos
+                albums(page.albums)
                 TextButton(onClick = actions.onSignIn, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(Res.string.guest_footer))
                 }

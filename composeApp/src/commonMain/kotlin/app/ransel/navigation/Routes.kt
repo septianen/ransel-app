@@ -28,6 +28,10 @@ import kotlinx.serialization.Serializable
 
 /** "Dokumen trip"; [upload] = opened from "Unggah dokumen": the add sheet comes first. */
 @Serializable data class DocumentsRoute(val tripId: String, val upload: Boolean = false)
+/** "Album trip"; [add] = opened from "Tambah album" in the Ringkasan + sheet: the add sheet comes first. */
+@Serializable data class AlbumsRoute(val tripId: String, val add: Boolean = false)
+/** One public Drive folder as a gallery. */
+@Serializable data class AlbumGalleryRoute(val tripId: String, val albumId: String, val title: String, val addedByName: String, val url: String)
 
 /** "Rekap trip". */
 @Serializable data class RecapRoute(val tripId: String)

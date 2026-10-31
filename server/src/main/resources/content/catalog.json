@@ -349,6 +349,372 @@
    "en": "Explore AI is taking a break"
   },
   {
+   "key": "album_add",
+   "area": "album",
+   "id": "Tambah album",
+   "en": "Add album"
+  },
+  {
+   "key": "album_add_hint",
+   "area": "album",
+   "id": "Link folder Google Drive, Google Photos, dll.",
+   "en": "A Google Drive folder, Google Photos, and more"
+  },
+  {
+   "key": "album_added",
+   "area": "album",
+   "id": "Album ditambahkan",
+   "en": "Album added"
+  },
+  {
+   "key": "album_by_drive",
+   "area": "album",
+   "id": "Google Drive · %1$s",
+   "en": "Google Drive · %1$s"
+  },
+  {
+   "key": "album_by_other",
+   "area": "album",
+   "id": "%1$s · %2$s",
+   "en": "%1$s · %2$s"
+  },
+  {
+   "key": "album_by_photos",
+   "area": "album",
+   "id": "Dibuka di Google Photos · %1$s",
+   "en": "Opens in Google Photos · %1$s"
+  },
+  {
+   "key": "album_default_drive",
+   "area": "album",
+   "id": "Album Google Drive",
+   "en": "Google Drive album"
+  },
+  {
+   "key": "album_default_other",
+   "area": "album",
+   "id": "Album foto",
+   "en": "Photo album"
+  },
+  {
+   "key": "album_default_photos",
+   "area": "album",
+   "id": "Album Google Photos",
+   "en": "Google Photos album"
+  },
+  {
+   "key": "album_delete",
+   "area": "album",
+   "id": "Hapus album",
+   "en": "Remove album"
+  },
+  {
+   "key": "album_delete_confirm",
+   "area": "album",
+   "id": "Hapus \"%1$s\" dari trip? Fotonya tetap ada di tempat asalnya.",
+   "en": "Remove \"%1$s\" from the trip? The photos stay where they are."
+  },
+  {
+   "key": "album_deleted",
+   "area": "album",
+   "id": "Album dihapus",
+   "en": "Album removed"
+  },
+  {
+   "key": "album_error_forbidden",
+   "area": "album",
+   "id": "Hanya yang menambahkan album atau pemilik trip yang bisa menghapusnya.",
+   "en": "Only the member who added the album or the trip owner can remove it."
+  },
+  {
+   "key": "album_error_generic",
+   "area": "album",
+   "id": "Album belum tersimpan. Periksa koneksimu, lalu coba lagi.",
+   "en": "The album was not saved. Check your connection and try again."
+  },
+  {
+   "key": "album_error_not_found",
+   "area": "album",
+   "id": "Link ini bukan folder Google Drive. Tempel link folder-nya, bukan link satu foto.",
+   "en": "This link is not a Google Drive folder. Paste the folder link, not a link to one photo."
+  },
+  {
+   "key": "album_error_title",
+   "area": "album",
+   "id": "Nama album paling banyak 80 huruf",
+   "en": "An album name has at most 80 characters"
+  },
+  {
+   "key": "album_error_unavailable",
+   "area": "album",
+   "id": "Google Drive sedang tidak bisa dihubungi. Coba lagi sebentar lagi.",
+   "en": "Google Drive cannot be reached right now. Try again in a moment."
+  },
+  {
+   "key": "album_error_url",
+   "area": "album",
+   "id": "Link-nya belum benar. Tempel link yang diawali https://",
+   "en": "That link does not look right. Paste a link that starts with https://"
+  },
+  {
+   "key": "album_gallery_empty",
+   "area": "album",
+   "id": "Belum ada foto di folder ini. Foto yang ditambahkan di Drive muncul di sini dalam beberapa menit.",
+   "en": "No photos in this folder yet. Photos added in Drive show up here within a few minutes."
+  },
+  {
+   "key": "album_gallery_private_body",
+   "area": "album",
+   "id": "Mungkin %1$s mengubah aksesnya atau menghapus foldernya. Minta dia mengaturnya lagi ke \"Siapa saja yang memiliki link\".",
+   "en": "%1$s may have changed its access or deleted the folder. Ask them to set it to \"Anyone with the link\" again."
+  },
+  {
+   "key": "album_gallery_private_title",
+   "area": "album",
+   "id": "Folder ini tidak bisa dibuka lagi",
+   "en": "This folder cannot be opened any more"
+  },
+  {
+   "key": "album_gallery_unavailable_body",
+   "area": "album",
+   "id": "Coba lagi sebentar lagi, atau buka langsung di Google Drive.",
+   "en": "Try again in a moment, or open it in Google Drive."
+  },
+  {
+   "key": "album_gallery_unavailable_title",
+   "area": "album",
+   "id": "Galeri sedang tidak bisa dimuat",
+   "en": "The gallery cannot load right now"
+  },
+  {
+   "key": "album_kind_drive",
+   "area": "album",
+   "id": "Folder Google Drive",
+   "en": "Google Drive folder"
+  },
+  {
+   "key": "album_kind_drive_hint",
+   "area": "album",
+   "id": "Fotonya tampil sebagai galeri di RANSEL",
+   "en": "Its photos show as a gallery in RANSEL"
+  },
+  {
+   "key": "album_kind_other",
+   "area": "album",
+   "id": "Link album",
+   "en": "Album link"
+  },
+  {
+   "key": "album_kind_other_hint",
+   "area": "album",
+   "id": "Dibuka di browser",
+   "en": "Opens in the browser"
+  },
+  {
+   "key": "album_kind_photos",
+   "area": "album",
+   "id": "Album Google Photos",
+   "en": "Google Photos album"
+  },
+  {
+   "key": "album_kind_photos_hint",
+   "area": "album",
+   "id": "Dibuka di Google Photos",
+   "en": "Opens in Google Photos"
+  },
+  {
+   "key": "album_link_label",
+   "area": "album",
+   "id": "Link album",
+   "en": "Album link"
+  },
+  {
+   "key": "album_loading_more",
+   "area": "album",
+   "id": "Memuat foto berikutnya…",
+   "en": "Loading more photos…"
+  },
+  {
+   "key": "album_more",
+   "area": "album",
+   "id": "Pilihan album %1$s",
+   "en": "Options for album %1$s"
+  },
+  {
+   "key": "album_more_photos",
+   "area": "album",
+   "id": "+%1$d",
+   "en": "+%1$d"
+  },
+  {
+   "key": "album_more_photos_plus",
+   "area": "album",
+   "id": "+%1$d lagi",
+   "en": "+%1$d more"
+  },
+  {
+   "key": "album_not_public_body",
+   "area": "album",
+   "id": "RANSEL hanya bisa menampilkan folder yang bisa dibuka siapa saja yang punya link. Di Google Drive:",
+   "en": "RANSEL can only show folders anyone with the link can open. In Google Drive:"
+  },
+  {
+   "key": "album_not_public_note",
+   "area": "album",
+   "id": "Link Drive yang terhapus juga tampil seperti ini, karena Google tidak membedakannya.",
+   "en": "A deleted Drive link looks the same, because Google does not tell them apart."
+  },
+  {
+   "key": "album_not_public_step1",
+   "area": "album",
+   "id": "Buka folder, ketuk Bagikan",
+   "en": "Open the folder, tap Share"
+  },
+  {
+   "key": "album_not_public_step2",
+   "area": "album",
+   "id": "Di \"Akses umum\", pilih Siapa saja yang memiliki link",
+   "en": "Under \"General access\", choose Anyone with the link"
+  },
+  {
+   "key": "album_not_public_step3",
+   "area": "album",
+   "id": "Kembali ke sini dan ketuk Coba lagi",
+   "en": "Come back here and tap Try again"
+  },
+  {
+   "key": "album_not_public_title",
+   "area": "album",
+   "id": "Folder ini belum dibagikan",
+   "en": "This folder is not shared yet"
+  },
+  {
+   "key": "album_open_drive",
+   "area": "album",
+   "id": "Buka di Drive",
+   "en": "Open in Drive"
+  },
+  {
+   "key": "album_open_drive_folder",
+   "area": "album",
+   "id": "Buka folder di Drive",
+   "en": "Open the folder in Drive"
+  },
+  {
+   "key": "album_photo",
+   "area": "album",
+   "id": "Foto %1$d",
+   "en": "Photo %1$d"
+  },
+  {
+   "key": "album_privacy",
+   "area": "album",
+   "id": "Siapa pun yang punya link ini bisa melihat fotonya, termasuk tamu dari halaman trip yang dibagikan. Pastikan folder di-set ke \"Siapa saja yang memiliki link\" dan hanya berisi foto yang boleh dilihat.",
+   "en": "Anyone with this link can see the photos, including guests on the shared trip page. Make sure the folder is set to \"Anyone with the link\" and only holds photos others may see."
+  },
+  {
+   "key": "album_retry",
+   "area": "album",
+   "id": "Coba lagi",
+   "en": "Try again"
+  },
+  {
+   "key": "album_save",
+   "area": "album",
+   "id": "Simpan album",
+   "en": "Save album"
+  },
+  {
+   "key": "album_title_label",
+   "area": "album",
+   "id": "Nama album",
+   "en": "Album name"
+  },
+  {
+   "key": "album_title_optional",
+   "area": "album",
+   "id": "(opsional)",
+   "en": "(optional)"
+  },
+  {
+   "key": "album_viewer_close",
+   "area": "album",
+   "id": "Tutup",
+   "en": "Close"
+  },
+  {
+   "key": "album_viewer_next",
+   "area": "album",
+   "id": "Foto berikutnya",
+   "en": "Next photo"
+  },
+  {
+   "key": "album_viewer_position",
+   "area": "album",
+   "id": "%1$d dari %2$d",
+   "en": "%1$d of %2$d"
+  },
+  {
+   "key": "album_viewer_position_more",
+   "area": "album",
+   "id": "%1$d dari %2$d+",
+   "en": "%1$d of %2$d+"
+  },
+  {
+   "key": "album_viewer_previous",
+   "area": "album",
+   "id": "Foto sebelumnya",
+   "en": "Previous photo"
+  },
+  {
+   "key": "albums_count",
+   "area": "albums",
+   "id": "%1$s · %2$d album",
+   "en": "%1$s · %2$d albums"
+  },
+  {
+   "key": "albums_empty_body",
+   "area": "albums",
+   "id": "Tempel link folder Google Drive, Google Photos, atau album lain dengan tombol +. Fotonya tetap di akun kamu, RANSEL hanya menyimpan link-nya.",
+   "en": "Paste a link to a Google Drive folder, Google Photos or another album with the + button. The photos stay in your account; RANSEL only keeps the link."
+  },
+  {
+   "key": "albums_empty_body_viewer",
+   "area": "albums",
+   "id": "Editor atau pemilik trip bisa menambahkan album.",
+   "en": "An editor or the trip owner can add albums."
+  },
+  {
+   "key": "albums_empty_title",
+   "area": "albums",
+   "id": "Belum ada album",
+   "en": "No albums yet"
+  },
+  {
+   "key": "albums_note",
+   "area": "albums",
+   "id": "Folder Google Drive yang dibagikan ke \"Siapa saja yang memiliki link\" tampil sebagai galeri di sini. Link lain dibuka di aplikasinya. Perlu internet.",
+   "en": "Google Drive folders shared with \"Anyone with the link\" show as a gallery here. Other links open in their own app. Needs an internet connection."
+  },
+  {
+   "key": "albums_offline_list",
+   "area": "albums",
+   "id": "Tidak ada sinyal: ini daftar album terakhir di HP. Fotonya perlu internet.",
+   "en": "No signal: this is the last album list on this phone. The photos need a connection."
+  },
+  {
+   "key": "albums_summary",
+   "area": "albums",
+   "id": "%1$d album",
+   "en": "%1$d albums"
+  },
+  {
+   "key": "albums_title",
+   "area": "albums",
+   "id": "Album trip",
+   "en": "Trip albums"
+  },
+  {
    "key": "app_name",
    "area": "app",
    "id": "RANSEL",

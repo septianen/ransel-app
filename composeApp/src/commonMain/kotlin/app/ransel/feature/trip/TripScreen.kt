@@ -82,6 +82,8 @@ fun TripScreen(
     onOpenPaymentMethods: () -> Unit = {},
     /** "Dokumen trip"; upload = opened from "Unggah dokumen". */
     onOpenDocuments: (upload: Boolean) -> Unit = {},
+    /** "Album trip"; add = opened from "Tambah album". */
+    onOpenAlbums: (add: Boolean) -> Unit = {},
     onOpenRecap: () -> Unit = {},
     /** "Lihat semua" on the Biaya tab: "Semua transaksi". */
     onOpenAllTransactions: () -> Unit = {},
@@ -111,7 +113,7 @@ fun TripScreen(
     val tripRounds = if (signedIn) rounds[tripId].orEmpty() else emptyList()
     val isOwner = current?.myRole == app.ransel.shared.model.Role.OWNER
     val actionRounds = tripRounds.actionRounds(isOwner)
-    // The + button of the Group tab: Buat polling / Ajak anggota / Unggah dokumen.
+    // The + button of the Group tab: Buat polling / Ajak anggota / Unggah dokumen / Tambah album.
     var actionSheetOpen by remember { mutableStateOf(false) }
     var inviteSheetOpen by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var kindSheetOpen by remember { mutableStateOf(false) }
@@ -190,6 +192,7 @@ fun TripScreen(
                             onOpenRound = onOpenRound,
                             onOpenVotingHistory = onOpenVotingHistory,
                             onOpenDocuments = { onOpenDocuments(false) },
+                            onOpenAlbums = { onOpenAlbums(false) },
                             onInvite = if (isOwner) ({ inviteSheetOpen = true }) else null,
                             onStartDatePoll = if (canAsk) ({ onCreatePoll(PollKind.DATE) }) else null,
                             refreshKey = refreshCount,
@@ -235,6 +238,7 @@ fun TripScreen(
             onInvite = { actionSheetOpen = false; inviteSheetOpen = true },
             onDismiss = { actionSheetOpen = false },
             onDocument = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenDocuments(true) }) else null,
+            onAlbum = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenAlbums(true) }) else null,
         )
     }
     if (kindSheetOpen) {

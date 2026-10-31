@@ -88,6 +88,8 @@ val commonModule: Module = module {
     viewModel { app.ransel.feature.tripform.TripTemplatesViewModel(get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.recap.RecapViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.documents.DocumentsViewModel(params.get(), get(), get(), get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.albums.AlbumsViewModel(params.get(), get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.albums.AlbumGalleryViewModel(params.get(), get()) }
     viewModel { params -> app.ransel.feature.guest.GuestPageViewModel(params.get(), get(), get(), get()) }
     single { CreditsStore() }
     single { PushRegistration(get(), get(), get()) }
