@@ -15,20 +15,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
+import app.ransel.data.remote.apiImageUrl
 import app.ransel.ui.preview.IrisPreview
+import coil3.compose.AsyncImage
 import app.ransel.ui.theme.IrisTheme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
- * Generated trip cover (design: background + two circles + a rounded "hill"), used until the owner
- * adds a photo. The palette is picked from [seed] (the trip id) so a trip always looks the same.
- * Decorative: the title next to it already names the trip.
+ * Generated trip cover (design: background + two circles + a rounded "hill"), used until someone adds a photo. The
+ * palette is picked from [seed] (the trip id) so a trip always looks the same. With [coverUrl] the photo fills the
+ * frame, cropped from the centre, over the generated cover (which stays while it loads, offline without a cached copy,
+ * or when it fails). Decorative: the title next to it already names the trip.
  */
 @Composable
 fun TripCover(
     seed: String,
     modifier: Modifier = Modifier,
     radius: androidx.compose.ui.unit.Dp = 12.dp,
+    coverUrl: String? = null,
 ) {
     val a = IrisTheme.accents
     val palettes = listOf(
@@ -56,6 +61,9 @@ fun TripCover(
                 .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                 .background(p[3]),
         )
+        apiImageUrl(coverUrl)?.let { url ->
+            AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        }
     }
 }
 

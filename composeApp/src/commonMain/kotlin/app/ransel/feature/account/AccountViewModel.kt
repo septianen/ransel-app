@@ -15,7 +15,15 @@ import app.ransel.data.repository.AppLanguage
 import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.sync.SyncStatus
+import app.ransel.data.remote.ApiResult
+import app.ransel.data.remote.RanselApi
+import app.ransel.shared.dto.MeDto
+import app.ransel.ui.components.PhotoProblem
+import app.ransel.ui.components.photoProblem
 import app.ransel.ui.theme.ThemeMode
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -30,12 +38,35 @@ class AccountViewModel(
     private val push: PushRegistration,
     private val notifications: NotificationsStore,
     private val voting: VotingStore,
+    private val api: RanselApi,
     private val crashes: CrashReporter = NoCrashReporter,
 ) : ViewModel() {
     val state: StateFlow<AppPreferences> = preferences.observe()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppPreferences(loaded = false))
 
     val sessionState: StateFlow<SessionState> = session.state
+
+    /** Profile photo (B19.1): an upload or removal under way, and why the last one failed. */
+    private val _photo = MutableStateFlow(PhotoState())
+    val photo: StateFlow<PhotoState> = _photo.asStateFlow()
+
+    fun changePhoto(jpeg: ByteArray) = photoCall { api.setAvatar(jpeg) }
+    fun removePhoto() = photoCall { api.clearAvatar() }
+    fun photoUnreadable() = _photo.update { PhotoState(problem = PhotoProblem.UNREADABLE) }
+
+    private fun photoCall(block: suspend () -> ApiResult<MeDto>) {
+        if (_photo.value.busy) return
+        _photo.value = PhotoState(busy = true)
+        viewModelScope.launch {
+            when (val result = block()) {
+                is ApiResult.Success -> {
+                    session.updateUser(result.value)
+                    _photo.value = PhotoState()
+                }
+                is ApiResult.Failure -> _photo.value = PhotoState(problem = result.error.photoProblem())
+            }
+        }
+    }
 
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { preferences.setThemeMode(mode) }
     fun setCurrency(code: String) = viewModelScope.launch { preferences.setDefaultCurrency(code) }
@@ -50,3 +81,5 @@ class AccountViewModel(
         auth.signOut()
     }
 }
+
+data class PhotoState(val busy: Boolean = false, val problem: PhotoProblem? = null)

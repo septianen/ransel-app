@@ -4,6 +4,7 @@ import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.AuthSessionDto
+import app.ransel.data.remote.MemberPhotos
 import app.ransel.shared.dto.MeDto
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,6 +38,7 @@ class SessionManager(
         val stored = runCatching { store.read() }.getOrNull()
         current = stored
         _state.value = if (stored == null) SessionState.SignedOut else SessionState.SignedIn(stored.user)
+        stored?.user?.let { MemberPhotos.recordUser(it.id, it.avatarUrl) }
     }
 
     override fun accessToken(): String? = current?.accessToken?.takeIf { it.isNotEmpty() }
@@ -47,6 +49,7 @@ class SessionManager(
         current = stored
         store.write(stored)
         _state.value = SessionState.SignedIn(session.user)
+        MemberPhotos.recordUser(session.user.id, session.user.avatarUrl)
     }
 
     suspend fun updateUser(user: MeDto) {
@@ -54,6 +57,7 @@ class SessionManager(
         current = stored
         store.write(stored)
         _state.value = SessionState.SignedIn(user)
+        MemberPhotos.recordUser(user.id, user.avatarUrl)
     }
 
     override suspend fun refreshAccessToken(): Boolean = refreshLock.withLock {

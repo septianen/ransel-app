@@ -305,7 +305,7 @@ private fun OngoingCard(card: TripCardData, state: TripListUiState.Content, date
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box {
-                TripCover(trip.id, Modifier.size(48.dp))
+                TripCover(trip.id, Modifier.size(48.dp), coverUrl = trip.coverUrl)
                 if (card.votingHoursLeft != null) VotingDot(Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp))
             }
             Column(Modifier.weight(1f)) {
@@ -364,7 +364,7 @@ private fun UpcomingCard(card: TripCardData, state: TripListUiState.Content, dat
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box {
-            TripCover(trip.id, Modifier.size(64.dp))
+            TripCover(trip.id, Modifier.size(64.dp), coverUrl = trip.coverUrl)
             if (card.votingHoursLeft != null) VotingDot(Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -431,7 +431,7 @@ private fun FinishedRow(card: TripCardData, dates: DateFormatter, onClick: () ->
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        TripCover(trip.id, Modifier.size(44.dp), radius = 10.dp)
+        TripCover(trip.id, Modifier.size(44.dp), radius = 10.dp, coverUrl = trip.coverUrl)
         Column(Modifier.weight(1f)) {
             Text(
                 trip.title,

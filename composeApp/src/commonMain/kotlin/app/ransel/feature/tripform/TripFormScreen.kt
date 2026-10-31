@@ -2,6 +2,16 @@ package app.ransel.feature.tripform
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import ransel.composeapp.generated.resources.trip_cover_sheet_title
+import ransel.composeapp.generated.resources.trip_cover_change
+import ransel.composeapp.generated.resources.trip_cover_add
+import app.ransel.ui.components.text
+import app.ransel.ui.components.PhotoSourceSheet
+import app.ransel.shared.domain.PhotoKind
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -157,11 +167,51 @@ fun TripFormScreen(
         saving = state.saving,
     ) {
         if (state.isEditing) {
-            TripCover(
-                seed = tripId.orEmpty(),
-                modifier = Modifier.fillMaxWidth().height(132.dp),
-                radius = 16.dp,
-            )
+            var coverSheet by rememberSaveable { mutableStateOf(false) }
+            Box(Modifier.fillMaxWidth().height(132.dp)) {
+                TripCover(
+                    seed = tripId.orEmpty(),
+                    modifier = Modifier.fillMaxSize(),
+                    radius = 16.dp,
+                    coverUrl = state.coverUrl,
+                )
+                if (state.coverBusy) {
+                    Box(
+                        Modifier.matchParentSize().clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center,
+                    ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary) }
+                } else if (state.canChangeCover) {
+                    // a filled chip on the photo, so it reads on any picture
+                    Button(
+                        onClick = { coverSheet = true },
+                        modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp).heightIn(min = 40.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
+                    ) {
+                        Symbol(Symbols.photoCamera, size = 18.dp)
+                        Text(
+                            stringResource(if (state.coverUrl == null) Res.string.trip_cover_add else Res.string.trip_cover_change),
+                            Modifier.padding(start = 6.dp),
+                        )
+                    }
+                }
+            }
+            state.coverProblem?.let { problem ->
+                Text(problem.text(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            if (coverSheet) {
+                PhotoSourceSheet(
+                    title = stringResource(Res.string.trip_cover_sheet_title),
+                    kind = PhotoKind.COVER,
+                    onPicked = viewModel::changeCover,
+                    onUnreadable = viewModel::coverUnreadable,
+                    onRemove = if (state.coverUrl != null) viewModel::removeCover else null,
+                    onDismiss = { coverSheet = false },
+                )
+            }
         }
         IrisTextField(
             label = stringResource(Res.string.trip_name),

@@ -8,6 +8,10 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
+import app.ransel.shared.dto.TripDto
+import app.ransel.shared.model.Role
+import app.ransel.ui.components.PhotoProblem
+import app.ransel.ui.components.photoProblem
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.sync.NoSyncStatus
 import app.ransel.data.sync.SyncStatus
@@ -83,6 +87,13 @@ data class TripFormState(
     val pollSheet: Boolean = false,
     /** The trip was saved but its DATE poll could not be made (offline): the dialog that says so. */
     val pollFailedTripId: String? = null,
+    /** The cover photo as the server has it (B19.1). */
+    val coverUrl: String? = null,
+    /** Editing, signed in, EDITOR or above: "Ganti foto" shows (the upload needs the account and a connection). */
+    val canChangeCover: Boolean = false,
+    /** An upload or removal is under way. */
+    val coverBusy: Boolean = false,
+    val coverProblem: PhotoProblem? = null,
 ) {
     val titleError: Boolean get() = showErrors && title.isBlank()
 
@@ -149,9 +160,34 @@ class TripFormViewModel(
                             currency = trip.baseCurrency,
                             budgetDigits = trip.budgetMinor?.let { b -> (b / divisor).toString() }.orEmpty(),
                             currencyLocked = summary.expenseCount > 0,
+                            coverUrl = trip.coverUrl,
+                            canChangeCover = api != null && session?.user != null && trip.myRole != Role.VIEWER,
                         )
                     }
                 }
+            }
+        }
+    }
+
+    /** A photo picked and shrunk on the device (`PhotoSourceSheet`) becomes the cover; online only. */
+    fun changeCover(jpeg: ByteArray) = coverCall { api, id -> api.setTripCover(id, jpeg) }
+
+    fun removeCover() = coverCall { api, id -> api.clearTripCover(id) }
+
+    fun coverUnreadable() = _state.update { it.copy(coverProblem = PhotoProblem.UNREADABLE) }
+
+    private fun coverCall(block: suspend (RanselApi, String) -> ApiResult<TripDto>) {
+        val api = api ?: return
+        val id = tripId ?: return
+        if (_state.value.coverBusy) return
+        _state.update { it.copy(coverBusy = true, coverProblem = null) }
+        viewModelScope.launch {
+            when (val result = block(api, id)) {
+                is ApiResult.Success -> {
+                    trips.applyCover(id, result.value.coverUrl)
+                    _state.update { it.copy(coverBusy = false, coverUrl = result.value.coverUrl) }
+                }
+                is ApiResult.Failure -> _state.update { it.copy(coverBusy = false, coverProblem = result.error.photoProblem()) }
             }
         }
     }

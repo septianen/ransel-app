@@ -317,7 +317,9 @@ class RanselApi(
 
     /** Public: no bearer; the browser's guest token for the trip, if it has one. */
     suspend fun guestPage(code: String, token: String?): ApiResult<GuestPageDto> =
-        call(HttpMethod.Get, ApiRoutes.guestPage(code), bodyOf = { guestToken(token) }) { it.body<ApiResponse<GuestPageDto>>().data }
+        call(HttpMethod.Get, ApiRoutes.guestPage(code), bodyOf = { guestToken(token) }) {
+            it.body<ApiResponse<GuestPageDto>>().data.also { page -> MemberPhotos.recordGuestPage(page.members) }
+        }
     suspend fun guestIdentity(code: String, token: String?, request: GuestIdentityRequest): ApiResult<GuestIdentityDto> =
         call(HttpMethod.Post, ApiRoutes.guestIdentity(code), bodyOf = { guestToken(token); contentType(ContentType.Application.Json); setBody(request) }) {
             it.body<ApiResponse<GuestIdentityDto>>().data
@@ -361,7 +363,8 @@ class RanselApi(
         delete(ApiRoutes.expense(tripId, expenseId))
 
     // ── members (Phase 4) ───────────────────────────────────────────────────
-    suspend fun members(tripId: String): ApiResult<List<TripMemberDto>> = get(ApiRoutes.members(tripId))
+    suspend fun members(tripId: String): ApiResult<List<TripMemberDto>> =
+        get<List<TripMemberDto>>(ApiRoutes.members(tripId)).also { (it as? ApiResult.Success)?.value?.let(MemberPhotos::record) }
     suspend fun updateMemberRole(tripId: String, memberId: String, role: Role): ApiResult<Unit> =
         call(HttpMethod.Patch, ApiRoutes.member(tripId, memberId), bodyOf = { contentType(ContentType.Application.Json); setBody(UpdateMemberRoleRequest(role)) }) { }
     suspend fun removeMember(tripId: String, memberId: String): ApiResult<Unit> = delete(ApiRoutes.member(tripId, memberId))
@@ -481,6 +484,20 @@ class RanselApi(
             setBody(image)
             timeout { requestTimeoutMillis = RECOMMENDATION_TIMEOUT_MILLIS }
         }) { it.body<ApiResponse<ReceiptDraftDto>>().data }
+
+    // ── trip covers and profile photos (B19.1) ──────────────────────────────
+    /** [jpeg] already shrunk on the device (`platform/Photos.kt`). */
+    suspend fun setTripCover(tripId: String, jpeg: ByteArray): ApiResult<TripDto> = putPhoto(ApiRoutes.tripCover(tripId), jpeg)
+    suspend fun clearTripCover(tripId: String): ApiResult<TripDto> =
+        call(HttpMethod.Delete, ApiRoutes.tripCover(tripId)) { it.body<ApiResponse<TripDto>>().data }
+    suspend fun setAvatar(jpeg: ByteArray): ApiResult<MeDto> = putPhoto(ApiRoutes.ME_AVATAR, jpeg)
+    suspend fun clearAvatar(): ApiResult<MeDto> = call(HttpMethod.Delete, ApiRoutes.ME_AVATAR) { it.body<ApiResponse<MeDto>>().data }
+
+    private suspend inline fun <reified T> putPhoto(path: String, jpeg: ByteArray): ApiResult<T> =
+        call(HttpMethod.Put, path, bodyOf = {
+            contentType(ContentType.Image.JPEG)
+            setBody(jpeg)
+        }) { it.body<ApiResponse<T>>().data }
 
     // ── packing templates (Phase 4) ─────────────────────────────────────────
     suspend fun packingTemplates(): ApiResult<List<PackingTemplateDto>> = get(ApiRoutes.PACKING_TEMPLATES)

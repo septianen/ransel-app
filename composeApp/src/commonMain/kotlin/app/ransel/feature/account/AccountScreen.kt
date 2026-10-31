@@ -1,5 +1,16 @@
 package app.ransel.feature.account
 
+import ransel.composeapp.generated.resources.account_photo_sheet_title
+import ransel.composeapp.generated.resources.account_photo_change
+import coil3.compose.AsyncImage
+import app.ransel.ui.components.text
+import app.ransel.ui.components.PhotoSourceSheet
+import app.ransel.shared.domain.PhotoKind
+import app.ransel.data.remote.apiImageUrl
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material3.CircularProgressIndicator
 import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
@@ -123,6 +134,8 @@ fun AccountScreen(
     val offline by viewModel.sync.offline.collectAsState()
     val syncing by viewModel.sync.syncing.collectAsState()
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
+    val photo by viewModel.photo.collectAsState()
+    var photoSheet by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier.fillMaxSize()) {
         Text(
@@ -139,7 +152,20 @@ fun AccountScreen(
             Section(null) {
                 val user = (session as? SessionState.SignedIn)?.user
                 if (user != null) {
-                    ProfileRow(user.displayName, user.email)
+                    ProfileRow(user.displayName, user.email, user.avatarUrl, photo.busy, onChangePhoto = { photoSheet = true })
+                    photo.problem?.let { problem ->
+                        Text(problem.text(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                    if (photoSheet) {
+                        PhotoSourceSheet(
+                            title = stringResource(Res.string.account_photo_sheet_title),
+                            kind = PhotoKind.AVATAR,
+                            onPicked = viewModel::changePhoto,
+                            onUnreadable = viewModel::photoUnreadable,
+                            onRemove = if (user.avatarUrl != null) viewModel::removePhoto else null,
+                            onDismiss = { photoSheet = false },
+                        )
+                    }
                     if (!requiresAccount) {
                         val lastTime = lastSyncAt?.let { formatClock(it) }
                         val subtitle = when {
@@ -322,21 +348,45 @@ private fun SwitchRow(symbol: String, title: String, hint: String, checked: Bool
 }
 
 @Composable
-private fun ProfileRow(name: String, email: String) {
+private fun ProfileRow(name: String, email: String, avatarUrl: String?, busy: Boolean, onChangePhoto: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 64.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // the photo is the button (edit profile is not designed yet); a small camera badge says it can change
+        val changeLabel = stringResource(Res.string.account_photo_change)
         Box(
-            Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
+            Modifier.size(56.dp)
+                .clip(CircleShape)
+                .clickable(enabled = !busy, role = androidx.compose.ui.semantics.Role.Button, onClickLabel = changeLabel, onClick = onChangePhoto)
+                .semantics { contentDescription = changeLabel },
         ) {
-            Text(
-                name.trim().take(1).uppercase().ifEmpty { "?" },
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+            Box(
+                Modifier.size(48.dp).align(Alignment.Center).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    name.trim().take(1).uppercase().ifEmpty { "?" },
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                apiImageUrl(avatarUrl)?.let { url ->
+                    AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
+                }
+                if (busy) {
+                    Box(
+                        Modifier.matchParentSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center,
+                    ) { CircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp) }
+                }
+            }
+            Box(
+                Modifier.align(Alignment.BottomEnd).size(22.dp).clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) { Symbol(Symbols.photoCamera, size = 14.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         Column(Modifier.weight(1f)) {
             Text(name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)

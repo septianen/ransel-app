@@ -47,6 +47,9 @@ internal class RemoteTripRepository(private val gateway: RemoteGateway) : TripRe
         gateway.mutate { api.updateTrip(tripId, request) }
 
     override suspend fun delete(tripId: String) = gateway.mutate { api.deleteTrip(tripId) }
+
+    /** The upload already went to the server; every trip on screen just loads again. */
+    override suspend fun applyCover(tripId: String, coverUrl: String?) = gateway.mutate { ApiResult.Success(Unit) }
 }
 
 internal class RemoteItineraryRepository(private val gateway: RemoteGateway) : ItineraryRepository {

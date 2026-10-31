@@ -34,6 +34,8 @@ interface TripRepository {
     suspend fun update(tripId: String, request: UpdateTripRequest)
     /** Soft delete; takes the trip's itinerary, packing and expenses with it. */
     suspend fun delete(tripId: String)
+    /** The cover the server stored (`PUT/DELETE /trips/{id}/cover`, online only); not a change to sync. */
+    suspend fun applyCover(tripId: String, coverUrl: String?)
 }
 
 interface ItineraryRepository {
