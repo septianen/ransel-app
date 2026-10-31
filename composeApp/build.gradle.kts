@@ -148,9 +148,19 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
 
+// Compose Resources compares language codes as plain text, and the Indonesian copy lives in values-in (the old ISO code,
+// which older Android still reports). Browsers, iOS and newer Android (Android 15 on the owner's S24 Ultra) say "id" and
+// got English, so the build serves the same folder as values-id too. Edit values-in only.
+val composeResourcesWithId by tasks.registering(Sync::class) {
+    from("src/commonMain/composeResources")
+    from("src/commonMain/composeResources/values-in") { into("values-id") }
+    into(layout.buildDirectory.dir("composeResourcesWithId"))
+}
+
 compose.resources {
     packageOfResClass = "ransel.composeapp.generated.resources"
     publicResClass = false
+    customDirectory("commonMain", layout.dir(composeResourcesWithId.map { it.destinationDir }))
 }
 
 android {
