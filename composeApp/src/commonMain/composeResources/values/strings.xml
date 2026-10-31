@@ -777,7 +777,7 @@
     <string name="swipe_error_title">The recommendations are out in the rain</string>
     <string name="swipe_error_body">Our AI is busy or having trouble. Your preferences are saved, so just try again.</string>
     <string name="ai_paused_title">Explore AI is taking a break</string>
-    <string name="ai_paused_body">This month\'s AI allowance is used up. Try again later; no credits were taken.</string>
+    <string name="ai_paused_body">This month's AI allowance is used up. Try again later; no credits were taken.</string>
     <string name="receipt_error_paused">Reading receipts is taking a break. Add it by hand for now; no credits were taken.</string>
     <string name="swipe_none_title">Nothing matched yet</string>
     <string name="swipe_none_body">No place in %1$s fits budget %2$s and these interests. Try adding an interest or loosening the budget.</string>
@@ -1582,10 +1582,10 @@
     <string name="date_poll_card_title_mine">Your date poll is open</string>
     <string name="date_poll_card_pick">Pick dates</string>
     <string name="date_poll_card_open">See poll</string>
-    <string name="itinerary_undated_hint">The trip\'s days appear once the dates are set. Until then, keep your place ideas below.</string>
+    <string name="itinerary_undated_hint">The trip's days appear once the dates are set. Until then, keep your place ideas below.</string>
     <string name="itinerary_undated_empty">No place ideas yet. Tap + to add one.</string>
     <string name="itinerary_add_idea">Add a place idea</string>
-    <string name="group_date_poll_body">Let the group pick the dates in a poll. The trip\'s days appear once the dates are set.</string>
+    <string name="group_date_poll_body">Let the group pick the dates in a poll. The trip's days appear once the dates are set.</string>
     <string name="group_date_poll_start">Start a date poll</string>
     <string name="trip_form_undated">Dates not decided yet</string>
     <string name="trip_form_undated_hint">Ask your friends with a date poll</string>

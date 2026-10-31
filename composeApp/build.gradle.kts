@@ -235,3 +235,5 @@ tasks.named("wasmJsBrowserDistribution") {
         sw.writeText(sw.readText().replace("__BUILD_ID__", buildId.get()))
     }
 }
+
+tasks.matching { it.name.startsWith("convertXmlValueResources") }.configureEach { dependsOn(":checkStringEscapes") }
