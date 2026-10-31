@@ -214,6 +214,10 @@ enum class DocumentCategory { TRAVEL, STAY, ACTIVITY, OTHER }
 @Serializable
 enum class DocumentKind { FILE, LINK }
 
+/** trip_albums.provider: a public Google Drive folder is shown as a gallery; the rest open outside the app. */
+@Serializable
+enum class AlbumProvider { DRIVE_FOLDER, GOOGLE_PHOTOS, OTHER }
+
 @Serializable
 enum class DevicePlatform { ANDROID, IOS }
 

@@ -105,6 +105,11 @@ object ErrorCode {
     const val STORAGE_FULL = "STORAGE_FULL"                // 413 on a document upload: the trip's 200 MB are used; details: usedBytes, limitBytes
     const val UNSUPPORTED_FILE = "UNSUPPORTED_FILE"        // 415 on a document upload: not PDF or an image
 
+    // trip albums (Google Drive)
+    const val ALBUM_NOT_PUBLIC = "ALBUM_NOT_PUBLIC"        // 422, the Drive folder is not shared as "Anyone with the link"
+    const val ALBUM_NOT_FOUND = "ALBUM_NOT_FOUND"          // 404 on items (422 when adding), the Drive folder is gone or the link is wrong
+    const val ALBUM_UNAVAILABLE = "ALBUM_UNAVAILABLE"      // 503, Drive cannot be asked now (no key on the server, quota, Google down)
+
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down
     const val AI_PAUSED = "AI_PAUSED"                      // 503, the month's AI budget is used up and Karung set CACHE_ONLY; no credits charged
@@ -168,6 +173,9 @@ object ErrorCode {
         FILE_TOO_LARGE,
         STORAGE_FULL,
         UNSUPPORTED_FILE,
+        ALBUM_NOT_PUBLIC,
+        ALBUM_NOT_FOUND,
+        ALBUM_UNAVAILABLE,
         AI_UNAVAILABLE,
         AI_PAUSED,
         PLACES_UNAVAILABLE,

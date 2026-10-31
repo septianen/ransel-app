@@ -174,6 +174,10 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | PATCH, DELETE | /trips/{id}/documents/{docId} | Rename, regroup, link to an activity; delete (uploader or OWNER) | 4 |
 | GET | /trips/{id}/documents/{docId}/download | A signed download link valid 15 minutes | 4 |
 | GET ★ | /files/documents/{docId}?exp=&sig= | The file bytes (signed link, no bearer) | 4 |
+| GET, POST | /trips/{id}/albums | Trip albums: links to photos kept in the members' Google Drive (or Google Photos, iCloud, ...); POST checks a Drive folder is public (EDITOR+) | 4 |
+| DELETE | /trips/{id}/albums/{albumId} | Remove an album link (the member who added it, or OWNER) | 4 |
+| GET | /trips/{id}/albums/{albumId}/items?pageToken= | The photos of a public Drive folder, listed with the server's Drive API key and cached a few minutes; the app loads the images from Google | 4 |
+| GET ★ | /guest/{code}/albums/{albumId}/items?pageToken= | The same for the guest page | 4 |
 | PUT, DELETE | /trips/{id}/cover | Trip cover photo (B19.1): JPEG body up to 1 MB, the server rewrites it (no EXIF) at most 1280 px; EDITOR+ → TripDto | 4 |
 | PUT, DELETE | /me/avatar | Profile photo (B19.1): JPEG body up to 1 MB, at most 320 px → MeDto | 4 |
 | GET ★ | /files/images/{imageId} | A cover or profile photo (no bearer; a random id per upload, cached for a year) | 4 |
