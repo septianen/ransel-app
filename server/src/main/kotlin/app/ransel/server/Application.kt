@@ -69,6 +69,12 @@ import app.ransel.server.routes.tripRoutes
 import app.ransel.server.routes.wellKnownRoutes
 import app.ransel.server.routes.guestRoutes
 import app.ransel.server.routes.documentRoutes
+import app.ransel.server.routes.albumRoutes
+import app.ransel.server.routes.guestAlbumRoutes
+import app.ransel.server.service.AlbumService
+import app.ransel.server.drive.DriveFolders
+import app.ransel.server.drive.GoogleDriveFolders
+import app.ransel.server.drive.NotConfiguredDrive
 import app.ransel.server.routes.documentFileRoutes
 import app.ransel.server.service.DocumentService
 import app.ransel.server.service.PhotoService
@@ -134,6 +140,8 @@ fun Application.module(
     push: PushSender? = null,
     /** Null = the SSRF-safe fetcher; tests pass a fake so they need no network. */
     linkFetcher: LinkFetcher? = null,
+    /** Null = Drive API v3 with `GOOGLE_DRIVE_API_KEY` (none without a key); tests pass a fake. */
+    drive: DriveFolders? = null,
 ) {
     val pool = DatabaseFactory.connect(config)
     TemplateSeed.run()
@@ -241,6 +249,11 @@ fun Application.module(
         }
     }
 
+    // Trip albums: public Drive folders are listed with the server's key; the photos load from Google.
+    val driveHttp = if (drive == null && config.googleDriveApiKey.isNotBlank()) HttpClient(OkHttp) else null
+    monitor.subscribe(ApplicationStopped) { driveHttp?.close() }
+    val albums = AlbumService(drive ?: driveHttp?.let { GoogleDriveFolders(it, config.googleDriveApiKey) } ?: NotConfiguredDrive)
+
     val tokens = TokenService(config)
     val hasher = PasswordHasher(config.bcryptCost)
     val verification = EmailVerificationService(config, tokens, emailSender, credits, this)
@@ -269,6 +282,7 @@ fun Application.module(
             val invites = InviteService(config)
             invitePreviewRoutes(invites)
             guestRoutes()
+            guestAlbumRoutes(albums)
             val documents = DocumentService(config)
             documentFileRoutes(documents)
             val photos = PhotoService(config)
@@ -290,6 +304,7 @@ fun Application.module(
                 receiptRoutes(ReceiptService(aiServices, credits))
                 packingTemplateRoutes()
                 documentRoutes(documents)
+                albumRoutes(albums)
                 photoRoutes(photos)
                 recommendationRoutes(recommendations)
                 votingRoutes(rounds)

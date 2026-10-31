@@ -146,6 +146,9 @@ object GuestService {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
+    /** The trip a link code leads to (404 NOT_FOUND "Link" otherwise), for routes outside this service. */
+    fun tripOf(code: String): UUID = transaction { resolve(code).tripId }
+
     /** A poll share code, else a live invite code (revoked or expired ones lead nowhere). */
     private fun resolve(raw: String): Target {
         val code = raw.trim().uppercase()
@@ -207,6 +210,7 @@ object GuestService {
                 .orderBy(PersonalItems.category to SortOrder.ASC, PersonalItems.sortOrder to SortOrder.ASC)
                 .map { it.toPersonalItemDto() },
             myMoney = me?.let { myMoney(target.tripId, it, trip[Trips.baseCurrency]) },
+            albums = AlbumService.forTrip(target.tripId),
         )
     }
 

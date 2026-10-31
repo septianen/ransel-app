@@ -26,6 +26,7 @@ const val JWT_AUTH = "jwt"
 val AuthRateLimit = RateLimitName("auth")
 val PhotoRateLimit = RateLimitName("photo")
 val PhotoUploadRateLimit = RateLimitName("photo-upload")
+val AlbumItemsRateLimit = RateLimitName("album-items")
 val InvitePreviewRateLimit = RateLimitName("invite-preview")
 val InviteAcceptRateLimit = RateLimitName("invite-accept")
 val LinkPreviewRateLimit = RateLimitName("link-preview")
@@ -119,6 +120,11 @@ fun Application.configureRateLimit(config: AppConfig, suggestionsPerHour: () -> 
             requestKey { call -> call.request.origin.remoteHost }
         }
         // Per user: changing a cover or a profile photo now and then; this stops a loop from filling the disk.
+        register(AlbumItemsRateLimit) {
+            // a gallery asks a page per scroll; the listings are cached, so this only stops a runaway client
+            rateLimiter(limit = 120, refillPeriod = 1.minutes)
+            requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
+        }
         register(PhotoUploadRateLimit) {
             rateLimiter(limit = 20, refillPeriod = 1.hours)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
