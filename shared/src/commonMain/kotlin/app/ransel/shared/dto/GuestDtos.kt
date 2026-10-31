@@ -52,6 +52,8 @@ data class GuestPageDto(
      * expenses. Only [me]'s numbers: other members' balances, phones and payment info never reach the guest page.
      */
     val myMoney: GuestMoneyDto? = null,
+    /** The trip's albums, newest first; a DRIVE_FOLDER one opens as a gallery through `guestAlbumItems`. */
+    val albums: List<TripAlbumDto> = emptyList(),
 )
 
 /**

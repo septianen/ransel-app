@@ -549,6 +549,22 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/WebBuatPollingAnonim.html` |  | Web: buat polling anonim | 1280 |
 | `screens/WebPollingAnonim.html` |  | Web: polling anonim, anggota memilih | 1280 |
 
+### Album trip · folder Google Drive dan link album (usulan)
+
+Approved by the owner on 31 Oct 2026. The album section on Ringkasan only shows when the trip has albums; adding goes through the existing + FAB sheets (no new buttons).
+
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/RingkasanAlbum.html` | `TripAlbumsCard` on the Ringkasan tab | Ringkasan: kartu Album trip | 390 |
+| `screens/TambahDiRingkasanAlbum.html` | the Ringkasan + sheet, "Tambah album" row (EDITOR+) | Ringkasan: tombol + dibuka, tambah album | 390 |
+| `screens/AlbumTrip.html` | `AlbumsScreen` | Album trip: folder Drive dan link luar | 390 |
+| `screens/AlbumGaleri.html` | `AlbumGalleryScreen` | Galeri folder Drive | 390 |
+| `screens/AlbumViewer.html` | `AlbumViewer` | Foto layar penuh | 390 |
+| `screens/TambahAlbum.html` | `AddAlbumSheet` | Tambah album: tempel link + peringatan privasi | 390 |
+| `screens/TambahAlbumPrivat.html` | `AddAlbumSheet` (`ALBUM_NOT_PUBLIC`) | Tambah album: folder belum publik | 390 |
+| `screens/AlbumGaleriError.html` | `AlbumGalleryScreen` (not public, unavailable, empty) | Galeri: folder tidak bisa dibuka | 390 |
+| `screens/WebTamuAlbum.html` | guest page album section | Web untuk tamu: album trip | 390 |
+
 ## Not designed yet
 
 Build these from existing patterns; ask the product owner before inventing new layouts: enter invite code, activity detail/edit (reuse *Tambah aktivitas* form), notifications, edit profile (the profile photo was added on 31 Oct 2026 as a button on the Account avatar, F22.1: needs review; trip cover buttons on Edit trip, same date), language sheet (reuse *Sheet tema* pattern), search trips (built 28 Oct 2026 from the currency sheet's search field, F19.2), the owner's "Pilih pemilik baru dulu" dialog before leaving (built 28 Oct 2026, F19.1), all transactions list (built 28 Oct 2026 without a design, F18.2: needs review), Explore credits (Credits screen with balance, voucher field, packs and history; the out-of-credits state of `SwipeScreen`), dark theme for Itinerary/Packing/Explore/sheets/dialogs (apply the IRIS dark tokens; see *GelapBeranda*, *GelapPengeluaran*, *GelapSwipe* for the pattern).

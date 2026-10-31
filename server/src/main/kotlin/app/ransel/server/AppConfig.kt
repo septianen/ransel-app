@@ -51,6 +51,8 @@ data class AppConfig(
     /** Models Karung may pick for [llmModel] (`LLM_MODELS`, comma separated); always holds [llmModel]. */
     val llmModels: List<String> = listOf("gemini-3.1-flash-lite", "gemini-3.5-flash"),
     val placesApiKey: String = "",
+    /** Trip albums: Drive API v3 key that lists public folders. Blank = albums still save, the gallery answers 503 ALBUM_UNAVAILABLE. */
+    val googleDriveApiKey: String = "",
     /** HMAC key for the signed place-photo links. Required in production, separate from [jwtSecret]. */
     val photoSigningSecret: String = DEV_PHOTO_SIGNING_SECRET,
     /** Where trip document files live (a Docker volume in production). */
@@ -236,6 +238,7 @@ data class AppConfig(
                     (listOf(model) + env["LLM_MODELS"].csv().ifEmpty { listOf(fallback) }).distinct()
                 },
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
+                googleDriveApiKey = env["GOOGLE_DRIVE_API_KEY"].orEmpty().trim(),
                 photoSigningSecret = photoSecret,
                 documentsDir = env["DOCUMENTS_DIR"]?.takeIf { it.isNotBlank() } ?: "./data/documents",
                 imagesDir = env["IMAGES_DIR"]?.takeIf { it.isNotBlank() }

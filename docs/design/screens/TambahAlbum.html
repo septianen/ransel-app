@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Tambah album: tempel link + peringatan privasi</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400..600,0..1,0&amp;display=block">
+<style>
+body{margin:0}
+.ic{font-family:"Material Symbols Rounded";font-weight:normal;font-style:normal;line-height:1;display:inline-block;font-variation-settings:"FILL" 0,"wght" 500,"GRAD" 0,"opsz" 24;font-feature-settings:"liga";-webkit-font-smoothing:antialiased}
+.fill{font-variation-settings:"FILL" 1,"wght" 500,"GRAD" 0,"opsz" 24}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+a{color:#008808}a:hover{color:#016100}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; box-sizing: border-box; background: #7A7A7A; color: #1B1B1B; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;">
+<section role="dialog" aria-labelledby="add-album-title" style="display: flex; flex-direction: column; gap: 16px; padding: 12px 16px 24px; border-radius: 28px 28px 0 0; background: #FFFFFF;">
+<span aria-hidden="true" style="align-self: center; width: 32px; height: 4px; border-radius: 9999px; background: #C1C1C1;"></span>
+<h2 id="add-album-title" style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 700;">Tambah album</h2>
+<label style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 14px; line-height: 20px; font-weight: 700;">Link album</span><input type="url" value="https://drive.google.com/drive/folders/1AbCd…" style="height: 52px; box-sizing: border-box; padding: 0 14px; border-radius: 12px; border: 2px solid #008808; font-size: 16px; color: #1B1B1B; background: #FFFFFF;"></label>
+<div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #D2F9C4; color: #013A00;"><span class="ic fill" style="font-size: 22px;" aria-hidden="true">folder_shared</span><span style="display: flex; flex-direction: column;"><span style="font-size: 14px; line-height: 20px; font-weight: 700;">Folder Google Drive</span><span style="font-size: 12px; line-height: 16px;">Fotonya tampil sebagai galeri di RANSEL</span></span></div>
+<label style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 14px; line-height: 20px; font-weight: 700;">Nama album <span style="font-weight: 400; color: #525252;">(opsional)</span></span><input type="text" value="Foto Bali" style="height: 52px; box-sizing: border-box; padding: 0 14px; border-radius: 12px; border: 1px solid #A8A8A8; font-size: 16px; color: #1B1B1B; background: #FFFFFF;"></label>
+<p style="margin: 0; display: flex; gap: 10px; padding: 12px; border-radius: 12px; background: #FFF1D6; color: #4A2F00; font-size: 14px; line-height: 20px;"><span class="ic fill" style="font-size: 20px;" aria-hidden="true">visibility</span><span><strong>Siapa pun yang punya link ini bisa melihat fotonya</strong>, termasuk tamu dari halaman trip yang dibagikan. Pastikan folder di-set ke "Siapa saja yang memiliki link" dan hanya berisi foto yang boleh dilihat.</span></p>
+<div style="display: flex; flex-direction: column; gap: 4px;"><button style="height: 48px; border: 0; border-radius: 9999px; background: #008808; color: #FFFFFF; font-size: 16px; line-height: 24px; font-weight: 700;">Simpan album</button><a href="AlbumTrip.dc.html" style="height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 16px; line-height: 24px; font-weight: 700; text-decoration: none;">Batal</a></div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

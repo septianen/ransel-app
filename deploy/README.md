@@ -31,6 +31,7 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 | `SMTP_USERNAME`, `SMTP_PASSWORD` (secrets) and `SMTP_HOST`, `SMTP_PORT` (default 587), `EMAIL_FROM` (default `RANSEL <no-reply@mietek.tech>`) (variables) | outgoing email over the provider's SMTP relay: the verification link after sign-up and password reset. Without `SMTP_HOST` nothing is sent, so new accounts cannot verify and never reach Explore. See "Email" below |
 | `REGISTRATION_ENABLED` (variable, optional) | `false` closes sign-up again (only seeded accounts); unset = open |
 | `LLM_API_KEY`, `PLACES_API_KEY` (optional until Explore goes live) | Gemini API key (Google AI Studio) and Google Places (New) key. Set the repository *variable* `LLM_MODEL` to a model id your key can call (`curl -H "x-goog-api-key: $KEY" https://generativelanguage.googleapis.com/v1beta/models`). Without them Explore answers 503 `AI_UNAVAILABLE`. Restrict the Places key to the Places API and set a **budget alert** in Google Cloud |
+| `GOOGLE_DRIVE_API_KEY` (optional) | Trip albums: a Google Cloud API key with the **Google Drive API** enabled, restricted to that API. It only lists folders shared as "Anyone with the link" (no OAuth, no user data); the photos load from Google, not through the server. Without it albums still save but the gallery answers 503 `ALBUM_UNAVAILABLE` |
 | `SEED_USERS` (optional) | more accounts: `email\|password\|name;email\|password\|name`. Use letters and digits in passwords (no `\|`, `;` or `$`) |
 
 | `FCM_SERVICE_ACCOUNT_JSON` (secret), `FCM_PROJECT_ID` (variable), optional until push goes live | Firebase service-account key and project id for push notifications. Store the key as **base64 on one line** (`base64 -i key.json \| tr -d '\n'`) so `.env` and the secret survive the quotes in JSON. Without them pushes are only logged; the in-app inbox works either way. See "Push notifications" below |
@@ -155,7 +156,7 @@ One-time setup:
    `PHOTO_SIGNING_SECRET` and `DATABASE_PASSWORD` (new random values, never the production ones), then the
    environment **variable** `STAGING_SECRETS_SET=true`. The deploy refuses to run without that variable, because a
    secret missing in the Environment silently falls back to the production repository secret.
-4. Optional in the same Environment: `LLM_API_KEY`, `PLACES_API_KEY`, `SMTP_*`, `SEED_USER_*`, `ADMIN_EMAILS`, FCM.
+4. Optional in the same Environment: `LLM_API_KEY`, `PLACES_API_KEY`, `GOOGLE_DRIVE_API_KEY`, `SMTP_*`, `SEED_USER_*`, `ADMIN_EMAILS`, FCM.
    Anything not set there is taken from the repository, i.e. staging then shares the production key and its quota and
    bill (Gemini, Places) or sends real email through the same SMTP account. Without SMTP, staging sign-ups cannot
    verify their email: use `SEED_USER_*` / `SEED_USERS` accounts (already verified) instead. `APP_BASE_URL` and

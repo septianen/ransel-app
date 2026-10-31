@@ -477,6 +477,22 @@ object TripDocuments : Table("trip_documents") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** Trip albums (V32): links to photos kept in the members' Google Drive or elsewhere. */
+object TripAlbums : Table("trip_albums") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val url = text("url")
+    val provider = enumerationByName<app.ransel.shared.model.AlbumProvider>("provider", 16)
+    val driveFolderId = text("drive_folder_id").nullable()
+    val resourceKey = text("resource_key").nullable()
+    val title = text("title").nullable()
+    val addedByMemberId = javaUUID("added_by_member_id")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
 /** A user's trip templates (V23). */
 object TripTemplates : Table("trip_templates") {
     val id = javaUUID("id")

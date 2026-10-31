@@ -162,6 +162,7 @@ jobs:
           SEED_USERS: ${{ secrets.SEED_USERS }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           PLACES_API_KEY: ${{ secrets.PLACES_API_KEY }}
+          GOOGLE_DRIVE_API_KEY: ${{ secrets.GOOGLE_DRIVE_API_KEY }}
           FCM_PROJECT_ID: ${{ vars.FCM_PROJECT_ID }}
           FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.FCM_SERVICE_ACCOUNT_JSON }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
@@ -222,6 +223,7 @@ jobs:
             echo "SEED_USERS=$SEED_USERS"
             echo "LLM_API_KEY=$LLM_API_KEY"
             echo "PLACES_API_KEY=$PLACES_API_KEY"
+            echo "GOOGLE_DRIVE_API_KEY=$GOOGLE_DRIVE_API_KEY"
             echo "FCM_PROJECT_ID=$FCM_PROJECT_ID"
             echo "FCM_SERVICE_ACCOUNT_JSON=$FCM_SERVICE_ACCOUNT_JSON"
             echo "LLM_MODEL=${LLM_MODEL:-gemini-3.1-flash-lite}"

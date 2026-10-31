@@ -181,13 +181,14 @@ fun apiTest(
     fx: app.ransel.server.ai.FxRates? = null,
     push: app.ransel.server.push.PushSender? = null,
     linkFetcher: app.ransel.server.net.LinkFetcher? = null,
+    drive: app.ransel.server.drive.DriveFolders? = null,
     block: suspend Api.() -> Unit,
 ) {
     TestDb.reset()
     TestEmails.sent.clear()
     testApplication {
         // no ECB download in tests: it would write rates while the next test resets the database
-        application { module(config, TestEmails, ai, fx ?: app.ransel.server.ai.NoFxRates, push, linkFetcher) }
+        application { module(config, TestEmails, ai, fx ?: app.ransel.server.ai.NoFxRates, push, linkFetcher, drive) }
         val client = createClient { install(ContentNegotiation) { json(TestJson) } }
         runBlocking {
             val api = Api(client)

@@ -293,6 +293,22 @@ class RanselApi(
     suspend fun deleteDocument(tripId: String, docId: String): ApiResult<Unit> = delete(ApiRoutes.document(tripId, docId))
     suspend fun documentDownload(tripId: String, docId: String): ApiResult<DocumentDownloadDto> = get(ApiRoutes.documentDownload(tripId, docId))
 
+    // ── trip albums (Google Drive folders and outside links) ────────────────
+    suspend fun albums(tripId: String): ApiResult<app.ransel.shared.dto.TripAlbumsDto> = get(ApiRoutes.albums(tripId))
+    suspend fun addAlbum(tripId: String, request: app.ransel.shared.dto.CreateAlbumRequest): ApiResult<app.ransel.shared.dto.TripAlbumDto> =
+        send(HttpMethod.Post, ApiRoutes.albums(tripId), request)
+    suspend fun deleteAlbum(tripId: String, albumId: String): ApiResult<Unit> = delete(ApiRoutes.album(tripId, albumId))
+    suspend fun albumItems(tripId: String, albumId: String, pageToken: String?): ApiResult<app.ransel.shared.dto.AlbumItemsDto> =
+        call(HttpMethod.Get, ApiRoutes.albumItems(tripId, albumId), bodyOf = { if (pageToken != null) parameter("pageToken", pageToken) }) {
+            it.body<ApiResponse<app.ransel.shared.dto.AlbumItemsDto>>().data
+        }
+
+    /** Public, like the guest page: no name needs to be picked to see the photos. */
+    suspend fun guestAlbumItems(code: String, albumId: String, pageToken: String?): ApiResult<app.ransel.shared.dto.AlbumItemsDto> =
+        call(HttpMethod.Get, ApiRoutes.guestAlbumItems(code, albumId), bodyOf = { if (pageToken != null) parameter("pageToken", pageToken) }) {
+            it.body<ApiResponse<app.ransel.shared.dto.AlbumItemsDto>>().data
+        }
+
     /** The bytes behind a signed download path (no bearer needed, none sent). */
     suspend fun downloadBytes(path: String): ApiResult<ByteArray> =
         try {

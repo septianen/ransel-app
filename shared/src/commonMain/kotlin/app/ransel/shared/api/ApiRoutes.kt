@@ -73,11 +73,17 @@ object ApiRoutes {
     fun guestIdentity(code: String) = "/guest/$code/identity"      // POST GuestIdentityRequest → GuestIdentityDto; 409 GUEST_NAME_TAKEN, GUEST_NAME_EXISTS
     fun guestVotes(code: String, pollId: String) = "/guest/$code/polls/$pollId/votes" // POST VotePollRequest → PollDto; 401 GUEST_NAME_REQUIRED
     fun guestPersonalItem(code: String, itemId: String) = "/guest/$code/personal-items/$itemId" // PATCH GuestTickRequest → PersonalItemDto
+    fun guestAlbumItems(code: String, albumId: String) = "/guest/$code/albums/$albumId/items" // GET ?pageToken= → AlbumItemsDto (no name needed, like the page)
     // Trip documents (stage 9). Online only.
     fun documents(tripId: String) = "/trips/$tripId/documents"    // GET → TripDocumentsDto; POST CreateDocumentRequest (link, JSON) or multipart meta+file → 201 TripDocumentDto (EDITOR+); 413 FILE_TOO_LARGE / STORAGE_FULL, 415 UNSUPPORTED_FILE
     fun document(tripId: String, docId: String) = "/trips/$tripId/documents/$docId" // PATCH PatchDocumentRequest → TripDocumentDto, DELETE → 204 (uploader or OWNER)
     fun documentDownload(tripId: String, docId: String) = "/trips/$tripId/documents/$docId/download" // GET → DocumentDownloadDto (any member)
     fun documentFile(docId: String) = "/files/documents/$docId"  // GET ?exp=&sig= (public, signed for 15 minutes) → the bytes
+
+    // Trip albums (Google Drive). Online only; photos stay in the member's Drive and load straight from Google.
+    fun albums(tripId: String) = "/trips/$tripId/albums"          // GET → TripAlbumsDto; POST CreateAlbumRequest → 201 TripAlbumDto (EDITOR+); 422 ALBUM_NOT_PUBLIC / ALBUM_NOT_FOUND for a Drive folder
+    fun album(tripId: String, albumId: String) = "/trips/$tripId/albums/$albumId" // DELETE → 204 (the member who added it, or OWNER)
+    fun albumItems(tripId: String, albumId: String) = "/trips/$tripId/albums/$albumId/items" // GET ?pageToken= → AlbumItemsDto (any member, DRIVE_FOLDER only); 422 ALBUM_NOT_PUBLIC, 404 ALBUM_NOT_FOUND, 503 ALBUM_UNAVAILABLE
     // Trip covers and profile photos (B19.1). Online only; signed-in users.
     fun tripCover(tripId: String) = "/trips/$tripId/cover"        // PUT image/jpeg body (≤ PHOTO_MAX_BYTES) → TripDto (EDITOR+), DELETE → TripDto; 413 FILE_TOO_LARGE, 415 UNSUPPORTED_FILE
     /** Public, no bearer: `TripDto.coverUrl` and every `avatarUrl` are this path, relative to [BASE]. A new photo gets a new id. */

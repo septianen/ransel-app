@@ -3,6 +3,9 @@ package app.ransel.feature.group
 import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -71,6 +74,14 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
+import app.ransel.feature.albums.AlbumPhoto
+import app.ransel.feature.albums.displayTitle
+import app.ransel.shared.dto.AlbumItemDto
+import app.ransel.shared.dto.TripAlbumDto
+import ransel.composeapp.generated.resources.album_more_photos
+import ransel.composeapp.generated.resources.album_more_photos_plus
+import ransel.composeapp.generated.resources.albums_summary
+import ransel.composeapp.generated.resources.albums_title
 import ransel.composeapp.generated.resources.group_documents
 import ransel.composeapp.generated.resources.overview_invite_body
 import ransel.composeapp.generated.resources.overview_invite_title
@@ -129,6 +140,8 @@ fun GroupTab(
     /** A money item in "Perlu tindakanmu" opens the Pengeluaran tab. */
     onOpenMoney: () -> Unit = {},
     onOpenDocuments: () -> Unit = {},
+    /** The "Album trip" card. */
+    onOpenAlbums: () -> Unit = {},
     /** "Ajak teman" on a solo trip (the OWNER); null = not offered. */
     onInvite: (() -> Unit)? = null,
     /** "Mulai polling tanggal" on a trip without dates and no open DATE poll (OWNER, EDITOR); null = not offered. */
@@ -160,6 +173,10 @@ fun GroupTab(
         onOpenMoney = onOpenMoney,
         onOpenDocuments = onOpenDocuments,
         documentCount = state.documentCount,
+        albums = state.albums,
+        albumPreview = state.albumPreview,
+        albumPreviewMore = state.albumPreviewMore,
+        onOpenAlbums = onOpenAlbums,
         solo = state.solo && trip.myRole == Role.OWNER,
         onInvite = onInvite,
         onStartDatePoll = onStartDatePoll,
@@ -191,6 +208,10 @@ fun GroupContent(
     onOpenMoney: () -> Unit = {},
     onOpenDocuments: () -> Unit = {},
     documentCount: Int? = null,
+    albums: List<TripAlbumDto> = emptyList(),
+    albumPreview: List<AlbumItemDto> = emptyList(),
+    albumPreviewMore: Boolean = false,
+    onOpenAlbums: () -> Unit = {},
     solo: Boolean = false,
     onInvite: (() -> Unit)? = null,
     onStartDatePoll: (() -> Unit)? = null,
@@ -218,7 +239,8 @@ fun GroupContent(
         }
 
         if (solo) {
-            // no voting, money or members on a trip of one; documents stay, and friends can be invited
+            // no voting, money or members on a trip of one; albums and documents stay, and friends can be invited
+            if (albums.isNotEmpty()) Section(stringResource(Res.string.albums_title)) { TripAlbumsCard(albums, albumPreview, albumPreviewMore, onOpenAlbums) }
             Section(stringResource(Res.string.group_documents)) {
                 LinkRow(Symbols.receiptLong, stringResource(Res.string.documents_title), documentCount?.toString(), onOpenDocuments)
             }
@@ -275,6 +297,9 @@ fun GroupContent(
                 rounds.count { roundState(now, it.closesAt, it.decidedAt) == RoundState.DECIDED }
             LinkRow(Symbols.doneAll, stringResource(Res.string.vote_banner_history), finished.toString(), onOpenVotingHistory)
         }
+
+        // an empty album section is left out: albums are added from the + button (owner, 31 Oct 2026)
+        if (albums.isNotEmpty()) Section(stringResource(Res.string.albums_title)) { TripAlbumsCard(albums, albumPreview, albumPreviewMore, onOpenAlbums) }
 
         Section(stringResource(Res.string.group_documents)) {
             LinkRow(Symbols.receiptLong, stringResource(Res.string.documents_title), documentCount?.toString(), onOpenDocuments)
@@ -343,6 +368,67 @@ private fun LinkRow(symbol: String, title: String, count: String?, onClick: () -
         Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
         if (count != null) Text(count, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
+ * Design "RingkasanAlbum": a few photos of the newest Drive album (one large, three small, the last "+N"), the number of
+ * albums and their names; it opens "Album trip".
+ */
+@Composable
+internal fun TripAlbumsCard(albums: List<TripAlbumDto>, preview: List<AlbumItemDto>, more: Boolean, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Column(
+        Modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.surfaceContainerLowest)
+            .border(1.dp, scheme.outlineVariant, IrisShape.lg)
+            .clickable(role = SemanticsRole.Button, onClick = onClick).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        if (preview.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().height(148.dp).clip(IrisShape.md), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                PreviewTile(preview.getOrNull(0), Modifier.weight(2f).fillMaxHeight())
+                Column(Modifier.weight(2f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        PreviewTile(preview.getOrNull(1), Modifier.weight(1f).fillMaxHeight())
+                        PreviewTile(preview.getOrNull(2), Modifier.weight(1f).fillMaxHeight())
+                    }
+                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        PreviewTile(preview.getOrNull(3), Modifier.weight(1f).fillMaxHeight())
+                        val rest = preview.size - 5
+                        Box(Modifier.weight(1f).fillMaxHeight()) {
+                            PreviewTile(preview.getOrNull(4), Modifier.fillMaxSize())
+                            if (rest > 0 || (more && preview.size >= 5)) {
+                                Box(Modifier.fillMaxSize().background(scheme.scrim.copy(alpha = 0.55f)), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        stringResource(if (more) Res.string.album_more_photos_plus else Res.string.album_more_photos, rest.coerceAtLeast(0)),
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                        color = IrisTheme.accents.onAccent,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(Res.string.albums_summary, albums.size), style = MaterialTheme.typography.titleSmall)
+                val names = albums.take(2).map { it.displayTitle() }
+                Text(
+                    (names + listOfNotNull((albums.size - 2).takeIf { it > 0 }?.let { stringResource(Res.string.album_more_photos_plus, it) })).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Symbol(Symbols.chevronRight, tint = scheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun PreviewTile(item: AlbumItemDto?, modifier: Modifier) {
+    Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant)) {
+        if (item != null) AlbumPhoto(item, thumbnail = true, modifier = Modifier.fillMaxSize())
     }
 }
 

@@ -183,6 +183,7 @@ import app.ransel.feature.explore.PlaceDetailScreen
 import app.ransel.feature.explore.SwipeViewModel
 import app.ransel.navigation.PlaceDetailRoute
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.album_default_drive
 import ransel.composeapp.generated.resources.debug_component_gallery
 import ransel.composeapp.generated.resources.debug_seed_sample
 import ransel.composeapp.generated.resources.debug_show_onboarding
@@ -766,6 +767,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onOpenPoll = { pollId -> navController.navigate(PollRoute(route.tripId, pollId)) },
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenDocuments = { upload -> navController.navigate(DocumentsRoute(route.tripId, upload)) },
+            onOpenAlbums = { add -> navController.navigate(app.ransel.navigation.AlbumsRoute(route.tripId, add)) },
             onOpenRecap = { navController.navigate(RecapRoute(route.tripId)) },
             onOpenAllTransactions = { navController.navigate(app.ransel.navigation.AllTransactionsRoute(route.tripId)) },
         )
@@ -805,6 +807,29 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
     page<DocumentsRoute> { entry ->
         val route = entry.toRoute<DocumentsRoute>()
         app.ransel.feature.documents.DocumentsScreen(tripId = route.tripId, startUpload = route.upload, onBack = { navController.popBackStack() })
+    }
+    page<app.ransel.navigation.AlbumsRoute> { entry ->
+        val route = entry.toRoute<app.ransel.navigation.AlbumsRoute>()
+        app.ransel.feature.albums.AlbumsScreen(
+            tripId = route.tripId,
+            startAdd = route.add,
+            onBack = { navController.popBackStack() },
+            onOpenGallery = { album ->
+                navController.navigate(
+                    app.ransel.navigation.AlbumGalleryRoute(route.tripId, album.id, album.title.orEmpty(), album.addedByName, album.url),
+                )
+            },
+        )
+    }
+    page<app.ransel.navigation.AlbumGalleryRoute> { entry ->
+        val route = entry.toRoute<app.ransel.navigation.AlbumGalleryRoute>()
+        app.ransel.feature.albums.AlbumGalleryScreen(
+            source = app.ransel.feature.albums.AlbumSource(route.albumId, tripId = route.tripId),
+            title = route.title.ifEmpty { stringResource(Res.string.album_default_drive) },
+            addedByName = route.addedByName,
+            url = route.url,
+            onBack = { navController.popBackStack() },
+        )
     }
     page<CreatePollRoute> { entry ->
         val route = entry.toRoute<CreatePollRoute>()

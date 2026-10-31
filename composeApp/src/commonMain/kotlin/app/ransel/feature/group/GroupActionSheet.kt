@@ -29,6 +29,8 @@ import app.ransel.ui.theme.IrisTheme
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.album_add
+import ransel.composeapp.generated.resources.album_add_hint
 import ransel.composeapp.generated.resources.group_action_document
 import ransel.composeapp.generated.resources.group_action_document_hint
 import ransel.composeapp.generated.resources.group_action_invite
@@ -39,16 +41,29 @@ import ransel.composeapp.generated.resources.group_action_soon
 import ransel.composeapp.generated.resources.group_sheet_title
 
 /**
- * What the + button on the Group tab offers (design: Buat polling, Ajak anggota, Unggah dokumen). Documents arrive in a
+ * What the + button on the Group tab offers (design: Buat polling, Ajak anggota, Unggah dokumen, Tambah album). Documents arrive in a
  * later step: that row shows "Segera hadir" and does nothing. Only the owner can invite.
  */
 @Composable
-fun GroupActionSheet(canInvite: Boolean, onPoll: (() -> Unit)?, onInvite: () -> Unit, onDismiss: () -> Unit, onDocument: (() -> Unit)? = null) {
-    AdaptiveSheet(onDismiss = onDismiss) { GroupActionContent(canInvite, onPoll, onInvite, onDocument) }
+fun GroupActionSheet(
+    canInvite: Boolean,
+    onPoll: (() -> Unit)?,
+    onInvite: () -> Unit,
+    onDismiss: () -> Unit,
+    onDocument: (() -> Unit)? = null,
+    onAlbum: (() -> Unit)? = null,
+) {
+    AdaptiveSheet(onDismiss = onDismiss) { GroupActionContent(canInvite, onPoll, onInvite, onDocument, onAlbum) }
 }
 
 @Composable
-private fun GroupActionContent(canInvite: Boolean, onPoll: (() -> Unit)?, onInvite: () -> Unit, onDocument: (() -> Unit)? = null) {
+private fun GroupActionContent(
+    canInvite: Boolean,
+    onPoll: (() -> Unit)?,
+    onInvite: () -> Unit,
+    onDocument: (() -> Unit)? = null,
+    onAlbum: (() -> Unit)? = null,
+) {
     val accents = IrisTheme.accents
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
@@ -63,6 +78,10 @@ private fun GroupActionContent(canInvite: Boolean, onPoll: (() -> Unit)?, onInvi
         // editors add documents; everyone else sees them on the Group tab
         if (onDocument != null) {
             ActionRow(Symbols.cloudUpload, accents.blue, Res.string.group_action_document, Res.string.group_action_document_hint, soon = false, onClick = onDocument)
+        }
+        // and albums (design "TambahDiRingkasanAlbum": the + sheet, no button of its own)
+        if (onAlbum != null) {
+            ActionRow(Symbols.addPhotoAlternate, accents.purple, Res.string.album_add, Res.string.album_add_hint, soon = false, onClick = onAlbum)
         }
     }
 }
@@ -115,5 +134,5 @@ private fun ActionRow(
 @Preview
 @Composable
 private fun GroupActionSheetPreview() = IrisPreview {
-    Box(Modifier.padding(20.dp)) { GroupActionContent(canInvite = true, onPoll = {}, onInvite = {}) }
+    Box(Modifier.padding(20.dp)) { GroupActionContent(canInvite = true, onPoll = {}, onInvite = {}, onDocument = {}, onAlbum = {}) }
 }
