@@ -118,7 +118,8 @@ fun SwipeScreen(
     }
     LaunchedEffect(state) { if (state is SwipeUiState.Empty) onClose() }
 
-    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainer).statusBarsPadding()) {
+    // The status bar takes the header's colour; surfaceContainer starts below it, behind the deck.
+    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).statusBarsPadding().background(MaterialTheme.colorScheme.surfaceContainer)) {
         when (val s = state) {
             SwipeUiState.Empty -> Unit
             SwipeUiState.Loading -> LoadingContent(onClose, onChangePreferences)
