@@ -86,7 +86,6 @@
     <string name="home_prep_spent_of">spent of %1$s</string>
     <string name="home_prep_unscheduled">unscheduled</string>
     <string name="home_prep_arrange">Arrange</string>
-    <string name="home_trip_meta_day1">%1$s · %2$d activities on day 1</string>
     <string name="trip_cover_description">Trip cover</string>
 
     <!-- Trip timing -->

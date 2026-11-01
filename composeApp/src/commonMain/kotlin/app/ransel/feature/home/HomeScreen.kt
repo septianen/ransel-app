@@ -86,7 +86,6 @@ import ransel.composeapp.generated.resources.home_title
 import ransel.composeapp.generated.resources.notification_bell
 import ransel.composeapp.generated.resources.notifications_unread_badge
 import ransel.composeapp.generated.resources.home_title_empty
-import ransel.composeapp.generated.resources.home_trip_meta_day1
 import ransel.composeapp.generated.resources.trip_cover_description
 import ransel.composeapp.generated.resources.trip_day_of
 import kotlin.time.Clock
@@ -285,12 +284,9 @@ private fun FeaturedTripCard(state: HomeUiState.Content, dates: DateFormatter, o
                     overflow = TextOverflow.Ellipsis,
                 )
                 val range = dates.tripRange(trip.startDate, trip.endDate)
+                // title and dates only: the first day's activity count was dropped (owner, 1 Nov 2026)
                 Text(
-                    if (state.firstDayCount > 0) {
-                        stringResource(Res.string.home_trip_meta_day1, range, state.firstDayCount)
-                    } else {
-                        range
-                    },
+                    range,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -473,7 +469,6 @@ private fun HomeContentPreview() = IrisPreview {
                 daysTotal = 4, daysFilled = 3, activityCount = 8, unscheduledCount = 0, packingTotal = 9,
                 packingPacked = 5, expenseCount = 0, spentMinor = 0,
             ),
-            firstDayCount = 4,
             today = today,
         ),
         onOpenTrip = { _, _ -> },
