@@ -250,7 +250,8 @@ fun GroupContent(
         if (solo) {
             // no voting, money or members on a trip of one; albums and documents stay, and friends can be invited
             if (albums.isNotEmpty()) Section(stringResource(Res.string.albums_title)) { TripAlbumsCard(albums, albumPreview, albumPreviewMore, onOpenAlbums) }
-            Section(stringResource(Res.string.group_documents)) {
+            // no documents: no section; "Unggah dokumen" is in the + sheet (owner, 1 Nov 2026)
+            if ((documentCount ?: 0) > 0) Section(stringResource(Res.string.group_documents)) {
                 LinkRow(Symbols.receiptLong, stringResource(Res.string.documents_title), documentCount?.toString(), onOpenDocuments)
             }
             if (onInvite != null) InviteCard(onInvite)
@@ -306,7 +307,7 @@ fun GroupContent(
         // an empty album section is left out: albums are added from the + button (owner, 31 Oct 2026)
         if (albums.isNotEmpty()) Section(stringResource(Res.string.albums_title)) { TripAlbumsCard(albums, albumPreview, albumPreviewMore, onOpenAlbums) }
 
-        Section(stringResource(Res.string.group_documents)) {
+        if ((documentCount ?: 0) > 0) Section(stringResource(Res.string.group_documents)) {
             LinkRow(Symbols.receiptLong, stringResource(Res.string.documents_title), documentCount?.toString(), onOpenDocuments)
         }
 
