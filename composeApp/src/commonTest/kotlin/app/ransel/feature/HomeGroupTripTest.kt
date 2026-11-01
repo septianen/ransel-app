@@ -4,7 +4,6 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.auth.StoredSession
 import app.ransel.data.auth.TokenStore
-import app.ransel.data.fake.InMemoryItineraryRepository
 import app.ransel.data.fake.InMemoryStore
 import app.ransel.data.fake.InMemoryTripRepository
 import app.ransel.data.remote.RanselApi
@@ -74,7 +73,7 @@ class HomeGroupTripTest {
         val trips = InMemoryTripRepository(store)
         val start = today().plus(DatePeriod(days = 10))
         trips.create(CreateTripRequest("t1", "Bali", "Bali", start, start.plus(DatePeriod(days = 3)), "IDR"))
-        return HomeViewModel(trips, InMemoryItineraryRepository(store), api(members), signedIn())
+        return HomeViewModel(trips, api(members), signedIn())
     }
 
     private suspend fun HomeViewModel.content(check: (HomeUiState.Content) -> Boolean): HomeUiState.Content {

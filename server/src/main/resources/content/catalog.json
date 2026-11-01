@@ -3283,12 +3283,6 @@
    "en": "Hello, ready to travel?"
   },
   {
-   "key": "home_trip_meta_day1",
-   "area": "home",
-   "id": "%1$s · %2$d aktivitas di hari 1",
-   "en": "%1$s · %2$d activities on day 1"
-  },
-  {
    "key": "invalid_invite_expired_body",
    "area": "invalid",
    "id": "Link %1$s sudah tidak berlaku. Minta link baru ke pemilik trip.",

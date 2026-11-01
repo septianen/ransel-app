@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
-import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.feature.trips.pickFeaturedTrip
 import app.ransel.shared.dto.TripDto
@@ -33,8 +32,6 @@ sealed interface HomeUiState {
     data class Content(
         val trip: TripDto,
         val summary: TripSummaryDto,
-        /** Scheduled activities on the first day of the trip ("4 aktivitas di hari 1"). */
-        val firstDayCount: Int,
         val today: LocalDate,
         /** More than one member: the card opens the Group tab instead of the itinerary. */
         val isGroup: Boolean = false,
@@ -44,7 +41,6 @@ sealed interface HomeUiState {
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     trips: TripRepository,
-    itinerary: ItineraryRepository,
     private val api: RanselApi,
     private val session: SessionManager,
 ) : ViewModel() {
@@ -58,11 +54,10 @@ class HomeViewModel(
             if (featured == null) {
                 flowOf<HomeUiState>(HomeUiState.Empty)
             } else {
-                combine(trips.observeSummary(featured.id), itinerary.observe(featured.id), memberCounts) { summary, items, counts ->
+                combine(trips.observeSummary(featured.id), memberCounts) { summary, counts ->
                     HomeUiState.Content(
                         trip = featured,
                         summary = summary,
-                        firstDayCount = featured.startDate?.let { first -> items.count { it.dayDate == first } } ?: 0,
                         today = today,
                         // a trip someone else owns is shared by definition; otherwise the summary (web) or the server count
                         isGroup = featured.myRole != Role.OWNER || maxOf(summary.memberCount, counts[featured.id] ?: 0) > 1,
