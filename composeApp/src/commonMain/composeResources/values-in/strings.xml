@@ -378,6 +378,7 @@
     <string name="state_server_body">Ada gangguan di server kami, bukan di perangkatmu. Datamu aman. Coba lagi beberapa saat lagi.</string>
     <string name="state_retry">Coba lagi</string>
     <string name="state_loading">Memuat…</string>
+    <string name="splash_tagline">Rencana Bareng, Berangkat Bareng</string>
     <string name="state_back_home">Kembali ke Beranda</string>
     <string name="state_coming_soon_title">Segera hadir</string>
 

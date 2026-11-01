@@ -378,6 +378,7 @@
     <string name="state_server_body">Something is wrong on our server, not on your device. Your data is safe. Try again in a moment.</string>
     <string name="state_retry">Try again</string>
     <string name="state_loading">Loading…</string>
+    <string name="splash_tagline">Plan Together, Go Together</string>
     <string name="state_back_home">Back to Home</string>
     <string name="state_coming_soon_title">Coming soon</string>
 
