@@ -96,6 +96,9 @@ import ransel.composeapp.generated.resources.member_list_title
 import ransel.composeapp.generated.resources.packing_add
 import ransel.composeapp.generated.resources.packing_personal_count
 import ransel.composeapp.generated.resources.packing_personal_empty_body
+import app.ransel.ui.components.FullScreenState
+import org.jetbrains.compose.resources.painterResource
+import ransel.composeapp.generated.resources.ic_packing_empty
 import ransel.composeapp.generated.resources.packing_personal_empty_title
 import ransel.composeapp.generated.resources.packing_personal_ready
 import ransel.composeapp.generated.resources.packing_required
@@ -189,15 +192,15 @@ fun PersonalPackingTab(trip: TripDto, viewModel: GroupPackingViewModel, modifier
                     onUncheckAll = viewModel::uncheckAll,
                 )
             } else if (!state.loading) {
-                Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(Res.string.packing_personal_empty_title), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        stringResource(Res.string.packing_personal_empty_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TextButton(onClick = useTemplate) { Text(stringResource(Res.string.template_apply_title)) }
-                }
+                // the same full-screen state as the Shared tab (owner, 1 Nov 2026)
+                FullScreenState(
+                    title = stringResource(Res.string.packing_personal_empty_title),
+                    body = stringResource(Res.string.packing_personal_empty_body),
+                    illustration = painterResource(Res.drawable.ic_packing_empty),
+                    secondaryLabel = stringResource(Res.string.template_apply_title),
+                    onSecondary = useTemplate,
+                    inScrollingParent = true,
+                )
             }
             val required = state.requiredIds
             state.groups.forEach { group ->
