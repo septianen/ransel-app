@@ -42,6 +42,7 @@ services:
       CREDIT_COST_PLACE_DETAIL: ${CREDIT_COST_PLACE_DETAIL:-0}
       CREDIT_COST_RECEIPT: ${CREDIT_COST_RECEIPT:-1}
       CREDIT_PACKAGES: ${CREDIT_PACKAGES:-small:15:10000;medium:40:25000;large:100:55000}
+      CREDIT_PURCHASE_ENABLED: ${CREDIT_PURCHASE_ENABLED:-false}
       # App/Universal Links verification files (served at /.well-known/); empty = 404
       ANDROID_PACKAGE: ${ANDROID_PACKAGE:-app.ransel}
       ANDROID_CERT_SHA256: ${ANDROID_CERT_SHA256:-}
