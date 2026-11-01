@@ -32,6 +32,10 @@ import app.ransel.ui.components.BudgetProgress
 import app.ransel.ui.components.CategoryIcon
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.SkeletonGrid
+import app.ransel.ui.components.SkeletonCards
+import app.ransel.ui.components.SkeletonList
+import app.ransel.ui.components.GoneState
 import app.ransel.ui.components.IconFab
 import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.LoadingOutlinedButton
@@ -110,6 +114,22 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         primaryLabel = "Coba lagi",
                         onPrimary = {},
                     )
+                }
+                Section("GoneState") {
+                    GoneState(
+                        modifier = Modifier.height(560.dp),
+                        title = "Polling ini sudah dihapus",
+                        body = "Pembuat polling atau pemilik trip sudah menghapusnya.",
+                        onBack = {},
+                        errorCode = "NOT_FOUND",
+                    )
+                }
+                Section("SkeletonList / SkeletonCards / SkeletonGrid") {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        SkeletonList(rows = 3)
+                        SkeletonCards(cards = 2)
+                        SkeletonGrid(rows = 2)
+                    }
                 }
                 Section("RanselLogoTile / RanselMark") {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {

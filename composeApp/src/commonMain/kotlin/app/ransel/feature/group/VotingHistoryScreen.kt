@@ -1,5 +1,6 @@
 package app.ransel.feature.group
 
+import app.ransel.ui.components.SkeletonCards
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -126,7 +126,7 @@ fun VotingHistoryContent(
             Text(stringResource(Res.string.vote_banner_history), Modifier.padding(start = 4.dp), style = MaterialTheme.typography.titleLarge)
         }
         when {
-            state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            state.loading -> SkeletonCards()
             state.entries.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                 Text(stringResource(Res.string.voting_history_empty), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
             }

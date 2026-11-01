@@ -37,6 +37,42 @@
    "en": "Language"
   },
   {
+   "key": "account_name",
+   "area": "account",
+   "id": "Nama",
+   "en": "Name"
+  },
+  {
+   "key": "account_name_failed",
+   "area": "account",
+   "id": "Nama belum bisa disimpan. Cek koneksimu, lalu coba lagi.",
+   "en": "Your name couldn't be saved. Check your connection and try again."
+  },
+  {
+   "key": "account_name_field",
+   "area": "account",
+   "id": "Nama",
+   "en": "Name"
+  },
+  {
+   "key": "account_name_required",
+   "area": "account",
+   "id": "Nama tidak boleh kosong.",
+   "en": "Name can't be empty."
+  },
+  {
+   "key": "account_name_sheet_hint",
+   "area": "account",
+   "id": "Nama ini yang dilihat teman di setiap trip.",
+   "en": "Friends see this name in every trip."
+  },
+  {
+   "key": "account_name_sheet_title",
+   "area": "account",
+   "id": "Ubah nama",
+   "en": "Change name"
+  },
+  {
    "key": "account_notifications",
    "area": "account",
    "id": "Notifikasi dan pengingat",
@@ -2809,12 +2845,6 @@
    "en": "You need to pay %1$s to %2$s"
   },
   {
-   "key": "group_needs_empty",
-   "area": "group",
-   "id": "Semua beres untuk saat ini.",
-   "en": "All clear for now."
-  },
-  {
    "key": "group_needs_title",
    "area": "group",
    "id": "Perlu tindakanmu",
@@ -4463,6 +4493,18 @@
    "area": "money",
    "id": "Tandai lunas",
    "en": "Mark as settled"
+  },
+  {
+   "key": "money_nothing_body",
+   "area": "money",
+   "id": "Catat pengeluaran bareng, nanti RANSEL hitung siapa bayar ke siapa.",
+   "en": "Add shared expenses and RANSEL works out who pays whom."
+  },
+  {
+   "key": "money_nothing_title",
+   "area": "money",
+   "id": "Belum ada utang-piutang",
+   "en": "No one owes anyone yet"
   },
   {
    "key": "money_owe",
@@ -6271,12 +6313,6 @@
    "en": "Close without choosing?"
   },
   {
-   "key": "poll_error",
-   "area": "poll",
-   "id": "Polling belum bisa dimuat.",
-   "en": "The poll could not be loaded."
-  },
-  {
    "key": "poll_food_day",
    "area": "poll",
    "id": "Hari",
@@ -6299,6 +6335,18 @@
    "area": "poll",
    "id": "Kapan makannya?",
    "en": "When do you eat?"
+  },
+  {
+   "key": "poll_gone_body",
+   "area": "poll",
+   "id": "Pembuat polling atau pemilik trip sudah menghapusnya, jadi tidak ada lagi yang bisa dipilih di sini.",
+   "en": "Its creator or the trip owner deleted it, so there is nothing left to vote on here."
+  },
+  {
+   "key": "poll_gone_title",
+   "area": "poll",
+   "id": "Polling ini sudah dihapus",
+   "en": "This poll was deleted"
   },
   {
    "key": "poll_kind_budget",
@@ -6623,12 +6671,6 @@
    "area": "poll",
    "id": "Berangkat naik apa?",
    "en": "How do we get there?"
-  },
-  {
-   "key": "poll_retry",
-   "area": "poll",
-   "id": "Coba lagi",
-   "en": "Try again"
   },
   {
    "key": "poll_search_action",
@@ -7675,6 +7717,12 @@
    "en": "Oops, the signal is asleep"
   },
   {
+   "key": "state_loading",
+   "area": "state",
+   "id": "Memuat…",
+   "en": "Loading…"
+  },
+  {
    "key": "state_retry",
    "area": "state",
    "id": "Coba lagi",
@@ -8411,6 +8459,18 @@
    "area": "trip",
    "id": "Trip dibuat sekarang. Itinerary dan packing bisa diisi per hari setelah tanggal ditetapkan; sebelum itu semua ide masuk ke “Belum dijadwalkan”.",
    "en": "The trip is created now. The itinerary and packing can be filled in day by day once the dates are set; until then every idea goes to “Unscheduled”."
+  },
+  {
+   "key": "trip_gone_body",
+   "area": "trip",
+   "id": "Trip-nya sudah dihapus pemiliknya, atau kamu sudah tidak jadi anggota.",
+   "en": "Its owner deleted it, or you are no longer a member."
+  },
+  {
+   "key": "trip_gone_title",
+   "area": "trip",
+   "id": "Trip ini sudah tidak ada",
+   "en": "This trip is no longer here"
   },
   {
    "key": "trip_list_voting_chip",

@@ -1,6 +1,20 @@
 package app.ransel.feature.account
 
 import ransel.composeapp.generated.resources.account_photo_sheet_title
+import ransel.composeapp.generated.resources.action_save
+import ransel.composeapp.generated.resources.account_name_failed
+import ransel.composeapp.generated.resources.account_name_required
+import ransel.composeapp.generated.resources.account_name_field
+import ransel.composeapp.generated.resources.account_name_sheet_hint
+import ransel.composeapp.generated.resources.account_name_sheet_title
+import ransel.composeapp.generated.resources.account_name
+import app.ransel.ui.components.LoadingButton
+import app.ransel.ui.components.IrisTextField
+import app.ransel.shared.api.ErrorCode
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
 import ransel.composeapp.generated.resources.account_photo_change
 import coil3.compose.AsyncImage
 import app.ransel.ui.components.text
@@ -136,6 +150,8 @@ fun AccountScreen(
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
     val photo by viewModel.photo.collectAsState()
     var photoSheet by rememberSaveable { mutableStateOf(false) }
+    var nameSheet by rememberSaveable { mutableStateOf(false) }
+    val nameState by viewModel.name.collectAsState()
 
     Column(modifier.fillMaxSize()) {
         Text(
@@ -155,6 +171,17 @@ fun AccountScreen(
                     ProfileRow(user.displayName, user.email, user.avatarUrl, photo.busy, onChangePhoto = { photoSheet = true })
                     photo.problem?.let { problem ->
                         Text(problem.text(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                    SettingRow(Symbols.badge, stringResource(Res.string.account_name), user.displayName, onClick = {
+                        viewModel.resetName()
+                        nameSheet = true
+                    })
+                    if (nameSheet) {
+                        if (nameState.saved) LaunchedEffect(Unit) {
+                            nameSheet = false
+                            viewModel.resetName()
+                        }
+                        NameSheet(user.displayName, nameState, onSave = viewModel::saveName, onDismiss = { nameSheet = false })
                     }
                     if (photoSheet) {
                         PhotoSourceSheet(
@@ -498,6 +525,38 @@ private fun PreviewHalf(light: Boolean, modifier: Modifier) {
         Box(Modifier.size(width = 28.dp, height = 6.dp).clip(IrisShape.xs).background(colors.outlineVariant))
     }
 }
+
+@Composable
+private fun NameSheet(current: String, state: NameState, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+    var value by rememberSaveable { mutableStateOf(current) }
+    AdaptiveSheet(onDismiss = onDismiss) {
+        Text(stringResource(Res.string.account_name_sheet_title), style = MaterialTheme.typography.headlineSmall)
+        Text(
+            stringResource(Res.string.account_name_sheet_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        IrisTextField(
+            label = stringResource(Res.string.account_name_field),
+            value = value,
+            onValueChange = { value = it.take(NAME_MAX) },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            error = when (state.problem) {
+                null -> null
+                ErrorCode.VALIDATION_FAILED -> stringResource(Res.string.account_name_required)
+                else -> stringResource(Res.string.account_name_failed)
+            },
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+        )
+        LoadingButton(
+            onClick = { onSave(value) },
+            loading = state.busy,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 8.dp),
+        ) { Text(stringResource(Res.string.action_save), style = MaterialTheme.typography.titleMedium) }
+    }
+}
+
+private const val NAME_MAX = 60
 
 @Composable
 private fun LanguageSheet(selected: AppLanguage, onSelect: (AppLanguage) -> Unit, onDismiss: () -> Unit) {

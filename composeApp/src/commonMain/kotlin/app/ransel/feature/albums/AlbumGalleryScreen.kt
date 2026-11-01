@@ -1,5 +1,6 @@
 package app.ransel.feature.albums
 
+import app.ransel.ui.components.SkeletonGrid
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.rememberTransformableState
@@ -30,7 +31,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -132,7 +132,7 @@ fun AlbumGalleryContent(
             }
         }
         when {
-            state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            state.loading -> SkeletonGrid()
             state.failure != null -> GalleryProblem(state.failure, addedByName, onRetry, onOpenDrive)
             state.items.isEmpty() -> GalleryNote(Symbols.landscape, stringResource(Res.string.album_gallery_empty))
             else -> Box(Modifier.fillMaxSize()) {

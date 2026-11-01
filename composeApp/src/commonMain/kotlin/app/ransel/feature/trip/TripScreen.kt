@@ -1,5 +1,10 @@
 package app.ransel.feature.trip
 
+import app.ransel.shared.dto.TripDto
+import ransel.composeapp.generated.resources.trip_gone_body
+import ransel.composeapp.generated.resources.trip_gone_title
+import app.ransel.ui.components.GoneState
+import kotlinx.coroutines.flow.map
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -94,7 +99,9 @@ fun TripScreen(
     modifier: Modifier = Modifier,
     trips: TripRepository = koinInject(),
 ) {
-    val trip by trips.observeTrip(tripId).collectAsState(initial = null)
+    // null until the repository answers; its trip is null when the trip is gone (deleted, or the user left it)
+    val answer by remember(tripId) { trips.observeTrip(tripId).map { TripAnswer(it) } }.collectAsState(initial = null)
+    val trip = answer?.trip
     var tab by rememberSaveable { mutableStateOf(initialTab) }
     val dates = rememberDateFormatter()
     val current = trip
@@ -214,6 +221,12 @@ fun TripScreen(
                             onBalancesOpened = onBalancesOpened,
                         )
                     }
+                } else if (answer != null) {
+                    GoneState(
+                        title = stringResource(Res.string.trip_gone_title),
+                        body = stringResource(Res.string.trip_gone_body),
+                        onBack = onBack,
+                    )
                 }
             }
             if (tab == TripTab.OVERVIEW && signedIn && canAsk) {
@@ -279,3 +292,5 @@ private fun PullToRefresh(
         Box(modifier) { content() }
     }
 }
+
+private class TripAnswer(val trip: TripDto?)

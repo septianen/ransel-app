@@ -1,5 +1,6 @@
 package app.ransel.feature.notifications
 
+import app.ransel.ui.components.SkeletonList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -88,7 +88,7 @@ fun NotificationSettingsContent(
         }
         val settings = state.settings
         when {
-            state.loading && settings == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            state.loading && settings == null -> SkeletonList()
             state.failure != null && settings == null ->
                 if (state.failure.isConnection) ConnectionErrorState(onRetry = onRetry, errorCode = state.failure.code, onBack = onBack)
                 else ServerErrorState(onRetry = onRetry, errorCode = state.failure.code, onBack = onBack)

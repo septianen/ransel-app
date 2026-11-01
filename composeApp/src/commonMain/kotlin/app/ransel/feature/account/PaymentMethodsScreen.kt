@@ -1,5 +1,6 @@
 package app.ransel.feature.account
 
+import app.ransel.ui.components.SkeletonList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -206,7 +206,7 @@ fun PaymentMethodsContent(
         }
         val failure = state.failure
         when {
-            state.loading && state.methods.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            state.loading && state.methods.isEmpty() -> SkeletonList(rows = 3)
             failure != null && state.methods.isEmpty() ->
                 if (failure.isConnection) ConnectionErrorState(onRetry = onRetry, errorCode = failure.code, onBack = onBack)
                 else ServerErrorState(onRetry = onRetry, errorCode = failure.code, onBack = onBack)

@@ -1,5 +1,9 @@
 package app.ransel.feature.members
 
+import app.ransel.ui.components.SkeletonList
+import ransel.composeapp.generated.resources.trip_gone_body
+import ransel.composeapp.generated.resources.trip_gone_title
+import app.ransel.ui.components.LoadFailureState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,7 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
@@ -66,9 +69,7 @@ import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
 import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.ConfirmDialog
-import app.ransel.ui.components.ConnectionErrorState
 import app.ransel.ui.components.MemberAvatar
-import app.ransel.ui.components.ServerErrorState
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
@@ -299,9 +300,7 @@ fun MembersContent(
     Column(modifier.fillMaxSize()) {
         MembersTopBar(state, onBack)
         when {
-            state.loading && state.members.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            state.loading && state.members.isEmpty() -> SkeletonList()
             state.failure != null && state.members.isEmpty() -> LoadFailure(state.failure, onRetry, onBack)
             else -> Column(
                 Modifier
@@ -420,11 +419,14 @@ private fun MembersTopBar(state: MembersUiState, onBack: () -> Unit) {
 
 @Composable
 private fun LoadFailure(failure: ApiFailure, onRetry: () -> Unit, onBack: () -> Unit) {
-    if (failure.isConnection) {
-        ConnectionErrorState(onRetry = onRetry, errorCode = failure.code, onBack = onBack)
-    } else {
-        ServerErrorState(onRetry = onRetry, errorCode = failure.code, onBack = onBack)
-    }
+    // TRIP_NOT_FOUND: the trip was deleted or the user is no longer in it
+    LoadFailureState(
+        failure = failure,
+        onRetry = onRetry,
+        goneTitle = stringResource(Res.string.trip_gone_title),
+        goneBody = stringResource(Res.string.trip_gone_body),
+        onBack = onBack,
+    )
 }
 
 @Composable

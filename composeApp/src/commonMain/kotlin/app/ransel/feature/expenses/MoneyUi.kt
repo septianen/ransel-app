@@ -1,5 +1,6 @@
 package app.ransel.feature.expenses
 
+import app.ransel.ui.components.SkeletonList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,12 +53,12 @@ import app.ransel.shared.dto.TransferDto
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.PaymentMethodKind
 import app.ransel.ui.components.AdaptiveSheet
-import app.ransel.ui.components.ConnectionErrorState
+import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.IrisTextField
+import app.ransel.ui.components.LoadFailureState
 import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.LoadingOutlinedButton
 import app.ransel.ui.components.MemberAvatar
-import app.ransel.ui.components.ServerErrorState
 import app.ransel.ui.format.amountToInput
 import app.ransel.ui.format.formatMoney
 import app.ransel.ui.format.parseAmountMinor
@@ -67,7 +68,11 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.jetbrains.compose.resources.painterResource
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.money_nothing_title
+import ransel.composeapp.generated.resources.money_nothing_body
+import ransel.composeapp.generated.resources.ic_sun_bathing
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.itinerary_close
 import ransel.composeapp.generated.resources.money_claim_confirm
@@ -147,13 +152,22 @@ fun SaldoContent(
     val data = balances.balances
     val failure = balances.failure
     when {
-        data == null && balances.loading -> Box(modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        data == null && failure != null ->
-            if (failure.isConnection) ConnectionErrorState(onRetry = onRetry, errorCode = failure.code, modifier = modifier)
-            else ServerErrorState(onRetry = onRetry, errorCode = failure.code, modifier = modifier)
+        // the tab already has the side padding
+        data == null && balances.loading -> SkeletonList(modifier, rows = 4, padding = 0.dp)
+        data == null && failure != null -> LoadFailureState(failure, onRetry, modifier, inScrollingParent = true)
         data == null -> Unit
+        // nothing paid together yet: no "Kamu sudah impas" and no empty "Supaya lunas" (owner, 1 Nov 2026)
+        data.members.all { it.paidMinor == 0L } && data.transfers.isEmpty() && balances.settledNow.isEmpty() && money.settlements.isEmpty() ->
+            Column(modifier, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                FullScreenState(
+                    title = stringResource(Res.string.money_nothing_title),
+                    body = stringResource(Res.string.money_nothing_body),
+                    illustration = painterResource(Res.drawable.ic_sun_bathing),
+                    illustrationSize = 180.dp,
+                    inScrollingParent = true,
+                )
+                if (data.members.any { it.memberId == myMemberId }) MyPayInfoCard(money.myMethods, money.includePayInfo, onOpenPayInfo)
+            }
         else -> Column(modifier, verticalArrangement = Arrangement.spacedBy(20.dp)) {
             val currency = data.baseCurrency
             val mine = data.members.firstOrNull { it.memberId == myMemberId }

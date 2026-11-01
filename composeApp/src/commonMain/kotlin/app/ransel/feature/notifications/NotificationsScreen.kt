@@ -1,5 +1,6 @@
 package app.ransel.feature.notifications
 
+import app.ransel.ui.components.SkeletonList
 import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.TripTab
 import androidx.compose.foundation.background
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -119,7 +119,7 @@ fun NotificationsContent(
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         TopBar(onBack, onMarkAllRead, enabled = (inbox?.unreadCount ?: 0) > 0)
         when {
-            state.loading && inbox == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            state.loading && inbox == null -> SkeletonList()
             state.failure != null && inbox == null ->
                 if (state.failure.isConnection) ConnectionErrorState(onRetry = onRetry, errorCode = state.failure.code, onBack = onBack)
                 else ServerErrorState(onRetry = onRetry, errorCode = state.failure.code, onBack = onBack)
