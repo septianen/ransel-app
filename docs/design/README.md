@@ -521,6 +521,7 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/KirimDaftarAnggota.html` | `MemberListSendSheet` | Packing: kirim daftar bawaan ke anggota | 390 |
 | `screens/PackingOwnerGunung.html` | `PersonalPackingTab` (editor, `MemberListCard`) | Packing pribadi owner: progres anggota | 390 |
 | `screens/PackingPribadiGunung.html` | `PersonalPackingTab` (member, `FromOwnerCard`) | Packing pribadi anggota: daftar dari owner trip | 390 |
+| `screens/PackingPribadiKosong.html` | `PersonalPackingTab` (empty, `FullScreenState`) | Packing pribadi kosong di trip grup: ilustrasi dan "Pakai template" seperti tab Bersama (owner, 1 Nov 2026; canvas only) | 390 |
 
 ### Polling anonim · toggle saat membuat, hasil tanpa nama pemilih
 
