@@ -46,6 +46,7 @@ import app.ransel.admin.generated.resources.nav_explore_ai
 import app.ransel.admin.generated.resources.nav_overview
 import app.ransel.admin.generated.resources.nav_system
 import app.ransel.admin.generated.resources.nav_users
+import app.ransel.admin.generated.resources.nav_vouchers
 import app.ransel.admin.generated.resources.sidebar_label
 import app.ransel.admin.generated.resources.sidebar_role
 import app.ransel.admin.generated.resources.sidebar_section_content
@@ -64,6 +65,7 @@ import org.jetbrains.compose.resources.stringResource
 enum class AdminSection(val label: StringResource, val symbol: String, val available: Boolean) {
     OVERVIEW(Res.string.nav_overview, Symbols.home, true),
     USERS(Res.string.nav_users, Symbols.person, true),
+    VOUCHERS(Res.string.nav_vouchers, Symbols.sell, true),
     EXPLORE_AI(Res.string.nav_explore_ai, Symbols.autoAwesome, true),
     SYSTEM(Res.string.nav_system, Symbols.warning, true),
     CONTENT_STRINGS(Res.string.nav_content_strings, Symbols.translate, true),
@@ -72,7 +74,7 @@ enum class AdminSection(val label: StringResource, val symbol: String, val avail
     CONTENT_INTERESTS(Res.string.nav_content_interests, Symbols.star, true),
 }
 
-private val WatchSections = listOf(AdminSection.OVERVIEW, AdminSection.USERS, AdminSection.EXPLORE_AI, AdminSection.SYSTEM)
+private val WatchSections = listOf(AdminSection.OVERVIEW, AdminSection.USERS, AdminSection.VOUCHERS, AdminSection.EXPLORE_AI, AdminSection.SYSTEM)
 private val ContentSections = listOf(
     AdminSection.CONTENT_STRINGS, AdminSection.CONTENT_ERRORS, AdminSection.CONTENT_CATEGORIES, AdminSection.CONTENT_INTERESTS,
 )

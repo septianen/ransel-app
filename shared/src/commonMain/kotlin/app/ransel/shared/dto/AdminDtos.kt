@@ -11,6 +11,7 @@ import app.ransel.shared.model.CreditDirection
 import app.ransel.shared.model.DevicePlatform
 import app.ransel.shared.model.Role
 import app.ransel.shared.model.UserStatus
+import app.ransel.shared.model.VoucherStatus
 import app.ransel.shared.serialization.Timestamp
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -127,6 +128,33 @@ data class AdminActionResult(
     val revokedSessions: Int,
 )
 
+/**
+ * POST /admin/vouchers: a promo code with a random value made by the server. 422 VALIDATION_FAILED (`credits`, `maxUses`,
+ * `validDays`: OUT_OF_RANGE; `note`: LENGTH). Limits: credits 1..10000, maxUses 1..100000, validDays 1..3650, note up to 200.
+ */
+@Serializable
+data class CreateVoucherRequest(
+    val credits: Int,
+    val maxUses: Int,
+    val validDays: Int,
+    /** What the voucher is for, only shown in Karung. */
+    val note: String? = null,
+)
+
+/** One voucher in Karung; users redeem [code] with `POST /credits/redeem`. */
+@Serializable
+data class AdminVoucherDto(
+    val code: String,
+    val credits: Int,
+    val maxUses: Int,
+    val usedCount: Int,
+    val status: VoucherStatus,
+    val note: String? = null,
+    val expiresAt: Timestamp? = null,
+    val revokedAt: Timestamp? = null,
+    val createdAt: Timestamp,
+)
+
 /** GET /admin/audit, newest first. [before]/[after] are the changed values as JSON (shape per [action]). */
 @Serializable
 data class AdminAuditEntryDto(
@@ -134,7 +162,7 @@ data class AdminAuditEntryDto(
     val adminId: String,
     val adminEmail: String,
     val action: AdminAction,
-    /** `USER`, `SETTING`, `CONTENT` or `EXPORT`. */
+    /** `USER`, `SETTING`, `CONTENT`, `EXPORT` or `VOUCHER`. */
     val targetType: String,
     val targetId: String? = null,
     val before: JsonElement? = null,

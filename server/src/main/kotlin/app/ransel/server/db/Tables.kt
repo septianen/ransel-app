@@ -581,6 +581,7 @@ object CreditVouchers : Table("credit_vouchers") {
     val expiresAt = timestamp("expires_at").nullable()
     val revokedAt = timestamp("revoked_at").nullable()
     val createdAt = timestamp("created_at")
+    val note = text("note").nullable()
     override val primaryKey = PrimaryKey(code)
 }
 

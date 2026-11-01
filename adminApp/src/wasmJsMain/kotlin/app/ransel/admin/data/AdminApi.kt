@@ -28,6 +28,8 @@ import app.ransel.shared.dto.AdminSearchDto
 import app.ransel.shared.dto.AdminSystemDto
 import app.ransel.shared.dto.AdminUserDetailDto
 import app.ransel.shared.dto.AdminUserDto
+import app.ransel.shared.dto.AdminVoucherDto
+import app.ransel.shared.dto.CreateVoucherRequest
 import app.ransel.shared.dto.AuthSessionDto
 import app.ransel.shared.dto.CreateUserRequest
 import app.ransel.shared.dto.CreditLedgerEntryDto
@@ -146,6 +148,14 @@ class AdminApi(
     suspend fun enable(userId: String): ApiResult<AdminActionResult> = post(AdminRoutes.userEnable(userId))
     suspend fun sendPasswordReset(userId: String): ApiResult<Unit> =
         call(HttpMethod.Post, AdminRoutes.userPasswordReset(userId)) { }
+
+    suspend fun vouchers(page: Int): ApiResult<Page<AdminVoucherDto>> =
+        call(HttpMethod.Get, AdminRoutes.VOUCHERS, { parameter("page", page) }) { it.page() }
+
+    suspend fun createVoucher(request: CreateVoucherRequest): ApiResult<AdminVoucherDto> =
+        send(HttpMethod.Post, AdminRoutes.VOUCHERS, request)
+
+    suspend fun revokeVoucher(code: String): ApiResult<AdminVoucherDto> = post(AdminRoutes.voucherRevoke(code))
 
     suspend fun audit(targetId: String?, page: Int = 1): ApiResult<Page<AdminAuditEntryDto>> =
         call(HttpMethod.Get, AdminRoutes.AUDIT, { targetId?.let { parameter("targetId", it) }; parameter("page", page) }) { it.page() }

@@ -108,7 +108,11 @@ enum class UserStatus { ACTIVE, DISABLED, DELETED }
 
 /** What an admin did; one audit row each. */
 @Serializable
-enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT, USER_CREATE, SETTINGS_UPDATE, CONTENT_PUBLISH }
+enum class AdminAction { CREDITS_ADJUST, USER_SIGN_OUT_ALL, USER_DISABLE, USER_ENABLE, PASSWORD_RESET_SEND, USERS_EXPORT, USER_CREATE, SETTINGS_UPDATE, CONTENT_PUBLISH, VOUCHER_CREATE, VOUCHER_REVOKE }
+
+/** A credit voucher as Karung shows it, worked out by the server. */
+@Serializable
+enum class VoucherStatus { ACTIVE, USED_UP, EXPIRED, REVOKED }
 
 /** Remote content (stage D): DEFAULT = the app's bundled text, DRAFT = changed but not published, PUBLISHED = live. */
 @Serializable

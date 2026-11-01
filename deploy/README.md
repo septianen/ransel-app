@@ -108,7 +108,7 @@ Every user has a wallet (30 credits on first use) plus 3 free credits a day (res
 ./deploy/create-voucher.sh 40 5 60       # 40 credits, five users, valid 60 days
 ```
 
-It prints the code (`ABCD-EFGH-JKLM`); the user enters it under Account > Credits. One user can redeem a code once. To revoke: `UPDATE credit_vouchers SET revoked_at = now() WHERE code = '...'`. Watch the real cost per search in the hourly `ai.metrics` log line before changing the pack prices.
+Promo vouchers are easier in Karung (Voucher page: make, copy, revoke). The script prints the code (`ABCD-EFGH-JKLM`); the user enters it under Account > Credits. One user can redeem a code once. To revoke: `UPDATE credit_vouchers SET revoked_at = now() WHERE code = '...'`. Watch the real cost per search in the hourly `ai.metrics` log line before changing the pack prices.
 
 ## Admin app (Karung)
 

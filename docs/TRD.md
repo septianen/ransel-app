@@ -241,7 +241,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET | /fx/rate?from=&to=&date= | Exchange rate for an expense: ECB reference rates (daily job, kept in `fx_rates`) crossed through EUR; the latest on or before the day, `stale` when earlier; 404 for a currency the ECB does not quote | 5 (group trips) |
 | GET | /places/photo/{placeId}?exp=&sig= | Signed place-photo proxy (no bearer; 404 if no photo) | 5 |
 | GET | /places/{placeId}/detail | Saved detail text of a place (about, tips, hours estimate) to open it again from the itinerary; rebuilt by one small LLM call when expired | 5 |
-| GET, POST ★ | /admin/... | Admin app (Karung): users (list, add with an invite email), credit adjustments, audit log, overview, Explore AI, system, settings, content. Only accounts in `ADMIN_EMAILS` with a verified email; full list in `docs/specs/admin-spec.md` "API" | 6 |
+| GET, POST ★ | /admin/... | Admin app (Karung): users (list, add with an invite email), credit adjustments, promo vouchers, audit log, overview, Explore AI, system, settings, content. Only accounts in `ADMIN_EMAILS` with a verified email; full list in `docs/specs/admin-spec.md` "API" | 6 |
 | GET | /content?version= | Remote content for the apps (public, `Cache-Control: max-age=300`): only what differs from the bundled copy (`ContentDto`); 204 when the app already has `version`. The apps read it from stage E | 6 |
 | GET ★ | /content?version= | Published remote content for the apps (apps call it in a later step) | 6 |
 

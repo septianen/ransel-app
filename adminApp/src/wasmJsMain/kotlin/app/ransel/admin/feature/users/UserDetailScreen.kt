@@ -61,6 +61,8 @@ import app.ransel.admin.generated.resources.audit_content_publish
 import app.ransel.admin.generated.resources.audit_settings_update
 import app.ransel.admin.generated.resources.audit_user_create
 import app.ransel.admin.generated.resources.audit_users_export
+import app.ransel.admin.generated.resources.audit_voucher_create
+import app.ransel.admin.generated.resources.audit_voucher_revoke
 import app.ransel.admin.generated.resources.confirm_disable_body
 import app.ransel.admin.generated.resources.confirm_disable_ok
 import app.ransel.admin.generated.resources.confirm_disable_title
@@ -702,6 +704,8 @@ private fun auditLabel(action: AdminAction): String = stringResource(
         AdminAction.USER_CREATE -> Res.string.audit_user_create
         AdminAction.SETTINGS_UPDATE -> Res.string.audit_settings_update
         AdminAction.CONTENT_PUBLISH -> Res.string.audit_content_publish
+        AdminAction.VOUCHER_CREATE -> Res.string.audit_voucher_create
+        AdminAction.VOUCHER_REVOKE -> Res.string.audit_voucher_revoke
     },
 )
 

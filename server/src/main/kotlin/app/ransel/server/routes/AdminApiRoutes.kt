@@ -13,6 +13,7 @@ import app.ransel.shared.api.AdminRoutes
 import app.ransel.shared.api.PageMeta
 import app.ransel.shared.dto.AdjustCreditsRequest
 import app.ransel.shared.dto.CreateUserRequest
+import app.ransel.shared.dto.CreateVoucherRequest
 import app.ransel.shared.dto.AdminInterestCurationDto
 import app.ransel.shared.dto.UpdateContentCategoriesRequest
 import app.ransel.shared.dto.UpdateContentErrorRequest
@@ -103,6 +104,21 @@ fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService,
             val admin = call.admin()
             service.sendPasswordReset(admin, call.user())
             call.respondNoContent()
+        }
+        get(AdminRoutes.VOUCHERS) {
+            call.admin()
+            val page = call.page()
+            val (rows, total) = service.vouchers(page, AdminService.PAGE_SIZE)
+            call.respondData(HttpStatusCode.OK, rows, PageMeta(page, AdminService.PAGE_SIZE, total))
+        }
+        post(AdminRoutes.VOUCHERS) {
+            val admin = call.admin()
+            val body = call.receive<CreateVoucherRequest>()
+            call.respondData(HttpStatusCode.Created, service.createVoucher(admin, body))
+        }
+        post(AdminRoutes.voucherRevoke("{code}")) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, service.revokeVoucher(admin, call.parameters["code"].orEmpty()))
         }
         get(AdminRoutes.AUDIT) {
             call.admin()

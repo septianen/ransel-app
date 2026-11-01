@@ -428,7 +428,7 @@ private fun UserRow(user: AdminUserDto, dimmed: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Pager(page: Page<AdminUserDto>, loading: Boolean, onPrevious: () -> Unit, onNext: () -> Unit) {
+internal fun Pager(page: Page<*>, loading: Boolean, onPrevious: () -> Unit, onNext: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     val format = LocalAdminFormat.current
     HorizontalDivider(color = scheme.outlineVariant)
