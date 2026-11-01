@@ -75,6 +75,7 @@ import app.ransel.feature.auth.VerifyEmailScreen
 import app.ransel.navigation.EmailVerifiedRoute
 import app.ransel.navigation.VerifyEmailRoute
 import app.ransel.platform.initialVerifyToken
+import app.ransel.platform.devicePlatform
 import app.ransel.platform.requiresAccount
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
@@ -191,6 +192,15 @@ import ransel.composeapp.generated.resources.placeholder_account_title
 import ransel.composeapp.generated.resources.placeholder_body
 import ransel.composeapp.generated.resources.placeholder_explore_title
 
+/**
+ * What shows while the app loads: the logo splash on Android and iOS. The web app (PWA) has no splash of its own, the
+ * browser's one (from the manifest) is enough, so it shows the plain background until the first screen is ready.
+ */
+@Composable
+private fun AppSplash() {
+    if (devicePlatform != null) SplashScreen() else Box(Modifier.fillMaxSize())
+}
+
 /** Back-stack result from "Semua transaksi" to the trip screen. */
 private const val OPEN_BALANCES_KEY = "open_balances"
 
@@ -225,7 +235,7 @@ fun App() {
             SystemBarsAppearance(darkTheme = dark)
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 when {
-                    !preferences.loaded -> SplashScreen()
+                    !preferences.loaded -> AppSplash()
                     !preferences.onboardingCompleted -> OnboardingScreen(
                         onFinish = { scope.launch { preferencesRepository.setOnboardingCompleted(true) } },
                         onSignIn = {
@@ -300,7 +310,7 @@ private fun SessionGate(openSignIn: Boolean) {
     }
     val pendingPoll: app.ransel.feature.guest.PendingPollLink = koinInject()
     when {
-        state is SessionState.Loading -> SplashScreen()
+        state is SessionState.Loading -> AppSplash()
         guest != null -> guest?.let { (code, invite) ->
             app.ransel.feature.guest.GuestPageScreen(
                 code = code,
