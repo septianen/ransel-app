@@ -1,5 +1,6 @@
 package app.ransel.feature.polls
 
+import app.ransel.ui.components.SkeletonCards
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,7 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -109,11 +109,16 @@ import ransel.composeapp.generated.resources.poll_delete_option_title
 import ransel.composeapp.generated.resources.poll_delete_title
 import ransel.composeapp.generated.resources.poll_dismiss_body
 import ransel.composeapp.generated.resources.poll_dismiss_title
-import ransel.composeapp.generated.resources.poll_error
+import ransel.composeapp.generated.resources.poll_gone_body
+import ransel.composeapp.generated.resources.trip_gone_body
+import ransel.composeapp.generated.resources.trip_gone_title
+import ransel.composeapp.generated.resources.poll_gone_title
+import app.ransel.ui.components.LoadFailureState
+import app.ransel.shared.api.ErrorCode
+import app.ransel.data.remote.ApiFailure
 import ransel.composeapp.generated.resources.poll_manage
 import ransel.composeapp.generated.resources.poll_option_delete
 import ransel.composeapp.generated.resources.poll_option_edit
-import ransel.composeapp.generated.resources.poll_retry
 import ransel.composeapp.generated.resources.poll_stale
 import ransel.composeapp.generated.resources.poll_status_closed
 import ransel.composeapp.generated.resources.poll_status_decided
@@ -368,14 +373,18 @@ fun PollContent(
     Column(modifier.fillMaxSize()) {
         TopBar(poll, state, onBack, onClose, onDecide, onReopen, onDelete, onShare)
         when {
-            poll == null && state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-            poll == null -> Column(
-                Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(stringResource(Res.string.poll_error), style = MaterialTheme.typography.bodyLarge)
-                TextButton(onClick = onRetry) { Text(stringResource(Res.string.poll_retry)) }
+            poll == null && state.loading -> SkeletonCards()
+            poll == null -> {
+                val failure = state.failure ?: ApiFailure(ErrorCode.INTERNAL_ERROR, "")
+                // not a member any more reads as the trip being gone, not the poll
+                val tripGone = failure.code == ErrorCode.TRIP_NOT_FOUND
+                LoadFailureState(
+                    failure = failure,
+                    onRetry = onRetry,
+                    goneTitle = stringResource(if (tripGone) Res.string.trip_gone_title else Res.string.poll_gone_title),
+                    goneBody = stringResource(if (tripGone) Res.string.trip_gone_body else Res.string.poll_gone_body),
+                    onBack = onBack,
+                )
             }
             else -> Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 32.dp).navigationBarsPadding(),

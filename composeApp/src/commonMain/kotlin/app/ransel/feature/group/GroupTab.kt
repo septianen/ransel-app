@@ -1,5 +1,6 @@
 package app.ransel.feature.group
 
+import app.ransel.ui.components.SkeletonCards
 import app.ransel.content.stringResource
 import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.SectionHeader
@@ -91,7 +92,6 @@ import ransel.composeapp.generated.resources.group_countdown_finished
 import ransel.composeapp.generated.resources.group_countdown_ongoing
 import ransel.composeapp.generated.resources.group_guest_tag
 import ransel.composeapp.generated.resources.group_members_title
-import ransel.composeapp.generated.resources.group_needs_empty
 import ransel.composeapp.generated.resources.group_need_confirm
 import ransel.composeapp.generated.resources.group_need_pay
 import ransel.composeapp.generated.resources.group_votings_ongoing
@@ -182,6 +182,7 @@ fun GroupTab(
         solo = state.solo && trip.myRole == Role.OWNER,
         onInvite = onInvite,
         onStartDatePoll = onStartDatePoll,
+        loading = state.loading && state.members.isEmpty(),
     )
 }
 
@@ -217,6 +218,8 @@ fun GroupContent(
     solo: Boolean = false,
     onInvite: (() -> Unit)? = null,
     onStartDatePoll: (() -> Unit)? = null,
+    /** The first load: shimmer cards under the countdown instead of sections popping in one by one. */
+    loading: Boolean = false,
 ) {
     val dates = rememberDateFormatter()
     // a trip without dates shows its open DATE poll as a card under the countdown (design ItineraryPolling), not twice
@@ -239,6 +242,10 @@ fun GroupContent(
             SignInCard()
             return@Column
         }
+        if (loading) {
+            SkeletonCards(padding = 0.dp)
+            return@Column
+        }
 
         if (solo) {
             // no voting, money or members on a trip of one; albums and documents stay, and friends can be invited
@@ -250,7 +257,8 @@ fun GroupContent(
             return@Column
         }
 
-        Section(stringResource(Res.string.group_needs_title)) {
+        // nothing waits for the user: the section is left out (owner, 1 Nov 2026)
+        if (hasNeeds || pollNeeds.isNotEmpty() || owes.isNotEmpty() || claimsToConfirm.isNotEmpty()) Section(stringResource(Res.string.group_needs_title)) {
             if (hasNeeds) needs()
             pollNeeds.forEach { (poll, need) -> PollNeedCard(poll, need) { onOpenPoll(poll.id) } }
             fun nameOf(id: String) = members.firstOrNull { it.memberId == id }?.displayName ?: "?"
@@ -269,11 +277,6 @@ fun GroupContent(
                     onClick = onOpenMoney,
                 )
             }
-            if (!hasNeeds && pollNeeds.isEmpty() && owes.isEmpty() && claimsToConfirm.isEmpty()) Text(
-                stringResource(Res.string.group_needs_empty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
 
         // Votings still running that wait for others (the ones waiting for me are in "Perlu tindakanmu" above);

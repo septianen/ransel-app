@@ -17,7 +17,9 @@ import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.sync.SyncStatus
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
+import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.MeDto
+import app.ransel.shared.dto.UpdateMeRequest
 import app.ransel.ui.components.PhotoProblem
 import app.ransel.ui.components.photoProblem
 import app.ransel.ui.theme.ThemeMode
@@ -68,6 +70,38 @@ class AccountViewModel(
         }
     }
 
+    /** "Ubah nama": the name members see in every trip (unless the owner added the user by another name). */
+    private val _name = MutableStateFlow(NameState())
+    val name: StateFlow<NameState> = _name.asStateFlow()
+
+    fun saveName(value: String) {
+        if (_name.value.busy) return
+        val trimmed = value.trim()
+        if (trimmed.isEmpty()) {
+            _name.value = NameState(problem = ErrorCode.VALIDATION_FAILED)
+            return
+        }
+        if (trimmed == session.user?.displayName) {
+            _name.value = NameState(saved = true)
+            return
+        }
+        _name.value = NameState(busy = true)
+        viewModelScope.launch {
+            when (val result = api.updateMe(UpdateMeRequest(displayName = trimmed))) {
+                is ApiResult.Success -> {
+                    session.updateUser(result.value)
+                    _name.value = NameState(saved = true)
+                }
+                is ApiResult.Failure -> _name.value = NameState(problem = result.error.code)
+            }
+        }
+    }
+
+    /** The sheet opens again, or closed after saving. */
+    fun resetName() {
+        _name.value = NameState()
+    }
+
     fun setTheme(mode: ThemeMode) = viewModelScope.launch { preferences.setThemeMode(mode) }
     fun setCurrency(code: String) = viewModelScope.launch { preferences.setDefaultCurrency(code) }
     fun setLanguage(language: AppLanguage) = viewModelScope.launch { preferences.setLanguage(language) }
@@ -81,5 +115,8 @@ class AccountViewModel(
         auth.signOut()
     }
 }
+
+/** [problem]: VALIDATION_FAILED for an empty name, else the API code. */
+data class NameState(val busy: Boolean = false, val saved: Boolean = false, val problem: String? = null)
 
 data class PhotoState(val busy: Boolean = false, val problem: PhotoProblem? = null)

@@ -1,5 +1,6 @@
 package app.ransel.feature.documents
 
+import app.ransel.ui.components.SkeletonList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -177,7 +178,7 @@ fun DocumentsContent(
             }
         }
         when {
-            state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            state.loading -> SkeletonList()
             state.documents.isEmpty() -> FullScreenState(
                 title = stringResource(Res.string.documents_empty_title),
                 body = stringResource(Res.string.documents_empty_body),

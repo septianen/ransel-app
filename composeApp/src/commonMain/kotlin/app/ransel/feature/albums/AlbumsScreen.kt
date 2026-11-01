@@ -1,5 +1,6 @@
 package app.ransel.feature.albums
 
+import app.ransel.ui.components.SkeletonCards
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,7 +21,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -182,7 +182,7 @@ fun AlbumsContent(
             }
         }
         when {
-            state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            state.loading -> SkeletonCards()
             state.albums.isEmpty() -> FullScreenState(
                 title = stringResource(Res.string.albums_empty_title),
                 body = stringResource(if (canAdd) Res.string.albums_empty_body else Res.string.albums_empty_body_viewer),

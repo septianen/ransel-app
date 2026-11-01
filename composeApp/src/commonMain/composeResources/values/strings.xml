@@ -377,6 +377,7 @@
     <string name="state_server_title">Under repair</string>
     <string name="state_server_body">Something is wrong on our server, not on your device. Your data is safe. Try again in a moment.</string>
     <string name="state_retry">Try again</string>
+    <string name="state_loading">Loading…</string>
     <string name="state_back_home">Back to Home</string>
     <string name="state_coming_soon_title">Coming soon</string>
 
@@ -986,7 +987,6 @@
     <string name="group_members_title">Members</string>
     <string name="group_guest_tag">No account</string>
     <string name="group_needs_title">Needs your action</string>
-    <string name="group_needs_empty">All clear for now.</string>
     <string name="group_signin_title">Plan together</string>
     <string name="group_signin_body">Sign in to invite friends, add them by name and comment on the plan.</string>
     <string name="group_fab_description">Add to the group</string>
@@ -1116,7 +1116,10 @@
     <string name="poll_winner_badge">Winner</string>
     <string name="poll_stale">That option changed. Choose again.</string>
     <string name="poll_closed_notice">Voting has ended.</string>
-    <string name="poll_error">The poll could not be loaded.</string>
+    <string name="poll_gone_title">This poll was deleted</string>
+    <string name="poll_gone_body">Its creator or the trip owner deleted it, so there is nothing left to vote on here.</string>
+    <string name="trip_gone_title">This trip is no longer here</string>
+    <string name="trip_gone_body">Its owner deleted it, or you are no longer a member.</string>
     <string name="poll_vote_error">Your vote did not go through. Try again.</string>
     <string name="poll_manage">Manage poll</string>
     <string name="poll_action_close">Close voting now</string>
@@ -1161,7 +1164,6 @@
     <string name="poll_price_night">%1$s / night</string>
     <string name="poll_price_person">%1$s / person</string>
     <string name="poll_budget_range">%1$s – %2$s per person</string>
-    <string name="poll_retry">Try again</string>
     <plurals name="poll_votes_count">
         <item quantity="one">%1$d vote</item>
         <item quantity="other">%1$d votes</item>
@@ -1187,6 +1189,8 @@
     <string name="poll_search_error_unavailable">Jelajah is busy. Try again later.</string>
     <string name="poll_search_error_failed">That did not work. Check your connection and try again.</string>
     <string name="money_claims_title">Waiting for confirmation</string>
+    <string name="money_nothing_title">No one owes anyone yet</string>
+    <string name="money_nothing_body">Add shared expenses and RANSEL works out who pays whom.</string>
     <string name="money_claim_from">%1$s says they paid you</string>
     <string name="money_claim_waiting">Waiting for %1$s to confirm</string>
     <string name="money_claim_confirm">Received</string>
@@ -1660,6 +1664,12 @@
     <string name="trip_cover_change">Change photo</string>
     <string name="trip_cover_sheet_title">Trip photo</string>
     <string name="account_photo_sheet_title">Profile photo</string>
+    <string name="account_name">Name</string>
+    <string name="account_name_sheet_title">Change name</string>
+    <string name="account_name_sheet_hint">Friends see this name in every trip.</string>
+    <string name="account_name_field">Name</string>
+    <string name="account_name_required">Name can't be empty.</string>
+    <string name="account_name_failed">Your name couldn't be saved. Check your connection and try again.</string>
     <string name="account_photo_change">Change profile photo</string>
 
     <!-- Trip albums (Google Drive folders and outside links) -->

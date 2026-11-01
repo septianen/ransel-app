@@ -1,5 +1,9 @@
 package app.ransel.feature.voting
 
+import app.ransel.ui.components.SkeletonCards
+import ransel.composeapp.generated.resources.trip_gone_body
+import ransel.composeapp.generated.resources.trip_gone_title
+import app.ransel.ui.components.GoneState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -164,12 +168,19 @@ fun VoteContent(
     Column(modifier.fillMaxSize().background(if (state.mode == VoteMode.WAITING) scheme.surface else scheme.surfaceContainer)) {
         val round = state.round
         when (state.mode) {
-            VoteMode.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            VoteMode.LOADING -> SkeletonCards(cards = 1, cardHeight = 360.dp)
             VoteMode.ERROR -> {
                 Header(stringResource(Res.string.vote_result_title), null, Symbols.close, onClose)
                 val failure = state.failure
                 if (failure != null && failure.isConnection) {
                     ConnectionErrorState(onRetry = onRetry, errorCode = failure.code, onBack = onClose)
+                } else if (failure?.code == ErrorCode.TRIP_NOT_FOUND) {
+                    GoneState(
+                        title = stringResource(Res.string.trip_gone_title),
+                        body = stringResource(Res.string.trip_gone_body),
+                        onBack = onClose,
+                        errorCode = failure.code,
+                    )
                 } else {
                     FullScreenState(
                         title = stringResource(Res.string.swipe_error_title),

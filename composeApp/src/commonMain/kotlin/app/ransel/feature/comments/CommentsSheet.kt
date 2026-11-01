@@ -1,5 +1,6 @@
 package app.ransel.feature.comments
 
+import app.ransel.ui.components.SkeletonList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -181,9 +181,7 @@ fun CommentsContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             when {
-                state.loading && state.comments.isEmpty() -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                state.loading && state.comments.isEmpty() -> SkeletonList(rows = 3)
                 state.comments.isEmpty() -> Text(
                     stringResource(Res.string.comments_empty),
                     style = MaterialTheme.typography.bodyMedium,

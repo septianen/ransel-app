@@ -40,6 +40,8 @@ import ransel.composeapp.generated.resources.error_code
  * design uses (see `docs/design/README.md`); the default confused capybara fits generic errors.
  * `null` leaves an empty box of the same size so layouts do not shift. With an [errorCode], what Karung published
  * for that code replaces the title, body, primary button and illustration.
+ * [inScrollingParent]: the state sits inside a screen that already scrolls (a tab's column), so it neither fills nor
+ * scrolls itself (a scroll inside a scroll of unbounded height crashes).
  */
 @Composable
 fun FullScreenState(
@@ -53,6 +55,7 @@ fun FullScreenState(
     onPrimary: (() -> Unit)? = null,
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
+    inScrollingParent: Boolean = false,
 ) {
     // Karung's copy for this error code wins over the screen's own (remote content, stage E)
     val remote = remoteErrorCopy(errorCode)
@@ -61,12 +64,11 @@ fun FullScreenState(
     val primaryLabel = if (primaryLabel != null) remote?.button ?: primaryLabel else null
     val illustration = remote?.illustration?.let { painterResource(it) } ?: illustration
     // Centered column, never wider than 480 dp: on a wide web window a full-width button looks wrong.
-    Box(modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+    Box(if (inScrollingParent) modifier.fillMaxWidth() else modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
     Column(
         modifier = Modifier
             .widthIn(max = 480.dp)
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .then(if (inScrollingParent) Modifier.fillMaxWidth() else Modifier.fillMaxSize().verticalScroll(rememberScrollState()))
             .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),

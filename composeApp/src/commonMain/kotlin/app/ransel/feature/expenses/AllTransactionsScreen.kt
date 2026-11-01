@@ -1,5 +1,6 @@
 package app.ransel.feature.expenses
 
+import app.ransel.ui.components.SkeletonList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -159,7 +159,7 @@ fun AllTransactionsContent(
             Text(stringResource(Res.string.transactions_title), Modifier.padding(start = 4.dp), style = MaterialTheme.typography.titleLarge)
         }
         if (state.loading || trip == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            SkeletonList()
             return@Column
         }
         // a solo trip has only expenses: no chips

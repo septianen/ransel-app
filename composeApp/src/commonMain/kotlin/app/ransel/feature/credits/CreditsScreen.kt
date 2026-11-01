@@ -1,5 +1,6 @@
 package app.ransel.feature.credits
 
+import app.ransel.ui.components.SkeletonList
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -94,7 +94,7 @@ fun CreditsContent(
         TopBar(onBack)
         val credits = state.credits
         when {
-            state.loading && credits == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            state.loading && credits == null -> SkeletonList()
             state.failure != null && credits == null -> LoadFailure(state.failure, onRetry, onBack)
             credits != null -> Column(
                 Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 24.dp).navigationBarsPadding(),

@@ -565,6 +565,21 @@ Approved by the owner on 31 Oct 2026. The album section on Ringkasan only shows 
 | `screens/AlbumGaleriError.html` | `AlbumGalleryScreen` (not public, unavailable, empty) | Galeri: folder tidak bisa dibuka | 390 |
 | `screens/WebTamuAlbum.html` | guest page album section | Web untuk tamu: album trip | 390 |
 
+### Rapikan · saldo kosong, ganti nama, item terhapus, shimmer
+
+Requested by the owner on 1 Nov 2026 and built straight away ("go ahead"); the boards record what was built. Empty Ringkasan sections stay hidden; first loads of server data use the shimmer (one effect, two shapes: rows and cards, square cards for the album grid); quiet refreshes keep the old data.
+
+| File | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `screens/SaldoKosong.html` | `SaldoContent` (nothing paid together yet) | Biaya: Saldo kosong (belum ada utang-piutang) | 390 |
+| `screens/AkunNama.html` | `AccountScreen`, "Nama" row | Akun: baris Nama | 390 |
+| `screens/AkunUbahNama.html` | `NameSheet` (`AccountViewModel.saveName`) | Akun: sheet Ubah nama | 390 |
+| `screens/RingkasanTanpaTindakan.html` | `GroupContent` without "Perlu tindakanmu" | Ringkasan: "Perlu tindakanmu" disembunyikan | 390 |
+| `screens/PollingDihapus.html` | `GoneState` in `PollScreen` (`NOT_FOUND`) | Polling sudah dihapus (dari notifikasi) | 390 |
+| `screens/TripTidakAda.html` | `GoneState` in `TripScreen`, `MembersScreen`, `VoteScreen` (`TRIP_NOT_FOUND`) | Trip sudah tidak ada | 390 |
+| `screens/ShimmerAnggota.html` | `SkeletonList` | Memuat: shimmer daftar | 390 |
+| `screens/ShimmerRingkasan.html` | `SkeletonCards` (`SkeletonGrid` for photos) | Memuat: shimmer kartu | 390 |
+
 ## Not designed yet
 
 Build these from existing patterns; ask the product owner before inventing new layouts: enter invite code, activity detail/edit (reuse *Tambah aktivitas* form), notifications, edit profile (the profile photo was added on 31 Oct 2026 as a button on the Account avatar, F22.1: needs review; trip cover buttons on Edit trip, same date), language sheet (reuse *Sheet tema* pattern), search trips (built 28 Oct 2026 from the currency sheet's search field, F19.2), the owner's "Pilih pemilik baru dulu" dialog before leaving (built 28 Oct 2026, F19.1), all transactions list (built 28 Oct 2026 without a design, F18.2: needs review), Explore credits (Credits screen with balance, voucher field, packs and history; the out-of-credits state of `SwipeScreen`), dark theme for Itinerary/Packing/Explore/sheets/dialogs (apply the IRIS dark tokens; see *GelapBeranda*, *GelapPengeluaran*, *GelapSwipe* for the pattern).
