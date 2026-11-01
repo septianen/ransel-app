@@ -572,7 +572,8 @@ Requested by the owner on 1 Nov 2026 and built straight away ("go ahead"); the b
 | File | Code name | Board title | Width |
 | --- | --- | --- | --- |
 | `screens/SaldoKosong.html` | `SaldoContent` (nothing paid together yet) | Biaya: Saldo kosong (belum ada utang-piutang) | 390 |
-| `screens/AkunNama.html` | `AccountScreen`, "Nama" row | Akun: baris Nama | 390 |
+| `screens/SaldoLunas.html` | `SaldoContent` (everything paid back) | Biaya: Saldo semua lunas | 390 |
+| `screens/Akun.html` | `AccountScreen`: edit button next to the name opens `NameSheet` (owner: no row of its own) | Akun | 390 |
 | `screens/AkunUbahNama.html` | `NameSheet` (`AccountViewModel.saveName`) | Akun: sheet Ubah nama | 390 |
 | `screens/RingkasanTanpaTindakan.html` | `GroupContent` without "Perlu tindakanmu" | Ringkasan: "Perlu tindakanmu" disembunyikan | 390 |
 | `screens/PollingDihapus.html` | `GoneState` in `PollScreen` (`NOT_FOUND`) | Polling sudah dihapus (dari notifikasi) | 390 |
