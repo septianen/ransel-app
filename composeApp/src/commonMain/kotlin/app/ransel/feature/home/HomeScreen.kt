@@ -236,7 +236,7 @@ private fun HomeTripContent(
         FeaturedTripCard(state, dates, onClick = { onOpenTrip(state.trip.id, TripSection.OVERVIEW) }) // Ringkasan is the way into a trip
         val canExplore = onExplore != null && state.trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
         TripPrepCard(state.trip, state.summary, onOpen = { onOpenTrip(state.trip.id, it) })
-        if (canExplore && onExplore != null) ExploreCallout(state.trip.destination, onTry = onExplore)
+        if (canExplore && onExplore != null) ExploreCallout(onTry = onExplore)
     }
 }
 
@@ -372,9 +372,9 @@ private fun TripPrepCard(trip: TripDto, summary: TripSummaryDto, onOpen: (TripSe
 
 private fun fractionOf(value: Long, total: Long): Float = if (total <= 0) 0f else (value.toFloat() / total).coerceIn(0f, 1f)
 
-/** "Bingung mau ke mana di Bali?" with a "Coba" button that opens Explore on a new trip. */
+/** "Bingung mau ke mana?" (general, without the destination: owner, 1 Nov 2026) with a "Coba" button that opens Explore on a new trip. */
 @Composable
-private fun ExploreCallout(destination: String, onTry: () -> Unit) {
+private fun ExploreCallout(onTry: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -386,7 +386,7 @@ private fun ExploreCallout(destination: String, onTry: () -> Unit) {
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                stringResource(Res.string.home_explore_title, destination),
+                stringResource(Res.string.home_explore_title),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )

@@ -3195,8 +3195,8 @@
   {
    "key": "home_explore_title",
    "area": "home",
-   "id": "Bingung mau ke mana di %1$s?",
-   "en": "Not sure where to go in %1$s?"
+   "id": "Bingung mau ke mana?",
+   "en": "Not sure where to go?"
   },
   {
    "key": "home_prep_arrange",

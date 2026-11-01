@@ -783,7 +783,7 @@
     <string name="receipt_error_paused">Reading receipts is taking a break. Add it by hand for now; no credits were taken.</string>
     <string name="swipe_none_title">Nothing matched yet</string>
     <string name="swipe_none_body">No place in %1$s fits budget %2$s and these interests. Try adding an interest or loosening the budget.</string>
-    <string name="home_explore_title">Not sure where to go in %1$s?</string>
+    <string name="home_explore_title">Not sure where to go?</string>
     <string name="home_explore_body">Pick your favourite places with a swipe.</string>
     <string name="home_explore_cta">Try</string>
     <string name="itinerary_explore_ai">Find inspiration with AI</string>
