@@ -1,7 +1,10 @@
 package app.ransel.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 
@@ -13,9 +16,11 @@ import androidx.lifecycle.compose.LifecycleEventEffect
  */
 @Composable
 fun RefreshOnReturn(onRefresh: () -> Unit) {
-    // the first ON_RESUME is the one an observer gets when it starts watching an already resumed screen
-    val seen = remember { BooleanArray(1) }
+    // The first ON_RESUME is the one an observer gets when it starts watching an already resumed screen. The screen
+    // below leaves the composition while another is on top (only its ViewModel and saved state stay), so "seen" is
+    // saved state: coming back composes it again, and a plain remember would take that for the first opening.
+    var seen by rememberSaveable { mutableStateOf(false) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-        if (seen[0]) onRefresh() else seen[0] = true
+        if (seen) onRefresh() else seen = true
     }
 }
