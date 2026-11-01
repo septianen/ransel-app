@@ -1539,6 +1539,7 @@
     <string name="recap_favourites">Group favourites</string>
     <string name="recap_settled">Everything is settled</string>
     <string name="recap_unsettled">%1$d transfers still open</string>
+    <string name="recap_settle_open">See open transfers</string>
     <string name="recap_share">Share the recap</string>
     <string name="recap_download">Download image</string>
     <string name="recap_share_failed">The recap image could not be made.</string>

@@ -791,6 +791,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             tripId = route.tripId,
             onClose = { navController.popBackStack() },
             onNewTrip = { navController.navigate(CreateTripRoute) },
+            onOpenExpenses = { navController.navigate(TripRoute(route.tripId, TripTab.EXPENSES.name)) },
         )
     }
     page<app.ransel.navigation.AllTransactionsRoute> { entry ->

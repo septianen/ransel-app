@@ -7045,6 +7045,12 @@
    "en": "Save as a trip template"
   },
   {
+   "key": "recap_settle_open",
+   "area": "recap",
+   "id": "Lihat yang belum lunas",
+   "en": "See open transfers"
+  },
+  {
    "key": "recap_settled",
    "area": "recap",
    "id": "Semua patungan lunas",
