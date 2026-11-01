@@ -72,6 +72,7 @@ fun RecapScreen(
     tripId: String,
     onClose: () -> Unit,
     onNewTrip: () -> Unit,
+    onOpenExpenses: () -> Unit,
     viewModel: RecapViewModel = koinViewModel(key = "recap-$tripId") { parametersOf(tripId) },
     files: DeviceFiles = koinInject(),
 ) {
@@ -130,6 +131,13 @@ fun RecapScreen(
                     RecapCard(trip.title, start, end, trip.baseCurrency, recap, state.members, state.openTransfers)
                 }
                 Column(Modifier.widthIn(max = 480.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Outside the card, which becomes the shared picture.
+                    if ((state.openTransfers ?: 0) > 0) {
+                        OutlinedButton(onClick = onOpenExpenses, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                            Text(stringResource(Res.string.recap_settle_open))
+                            Symbol(Symbols.chevronRight, modifier = Modifier.padding(start = 4.dp))
+                        }
+                    }
                     Button(onClick = share, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                         Symbol(Symbols.share, tint = MaterialTheme.colorScheme.onPrimary)
                         Text(stringResource(if (files.keepsFiles) Res.string.recap_share else Res.string.recap_download), modifier = Modifier.padding(start = 8.dp))

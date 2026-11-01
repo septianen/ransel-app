@@ -1527,6 +1527,7 @@
     <string name="recap_favourites">Favorit grup</string>
     <string name="recap_settled">Semua patungan lunas</string>
     <string name="recap_unsettled">%1$d transfer belum lunas</string>
+    <string name="recap_settle_open">Lihat yang belum lunas</string>
     <string name="recap_share">Bagikan rekap</string>
     <string name="recap_download">Unduh gambar</string>
     <string name="recap_share_failed">Gambar rekap belum bisa dibuat.</string>
