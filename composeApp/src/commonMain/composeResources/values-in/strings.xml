@@ -130,7 +130,6 @@
     <string name="trip_shorten_hint">Kalau tanggal dipersingkat, aktivitas di hari yang terhapus pindah ke Belum dijadwalkan, tidak ikut terhapus.</string>
     <string name="trip_save_changes">Simpan perubahan</string>
     <string name="trip_delete">Hapus trip</string>
-    <string name="trip_close">Tutup</string>
     <string name="error_required">Wajib diisi</string>
     <string name="date_range_title">Pilih tanggal trip</string>
     <string name="date_range_confirm">Selesai</string>
@@ -1728,7 +1727,6 @@
     <string name="album_photo">Foto %1$d</string>
     <string name="album_viewer_position">%1$d dari %2$d</string>
     <string name="album_viewer_position_more">%1$d dari %2$d+</string>
-    <string name="album_viewer_close">Tutup</string>
     <string name="album_viewer_previous">Foto sebelumnya</string>
     <string name="album_viewer_next">Foto berikutnya</string>
 </resources>

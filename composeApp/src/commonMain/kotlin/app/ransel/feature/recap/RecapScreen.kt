@@ -111,7 +111,7 @@ fun RecapScreen(
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClose), contentAlignment = Alignment.Center) {
-                    Symbol(Symbols.close, contentDescription = stringResource(Res.string.itinerary_close))
+                    Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
                 }
                 Text(stringResource(Res.string.recap_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp))
             }

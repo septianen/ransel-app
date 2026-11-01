@@ -667,12 +667,6 @@
    "en": "(optional)"
   },
   {
-   "key": "album_viewer_close",
-   "area": "album",
-   "id": "Tutup",
-   "en": "Close"
-  },
-  {
    "key": "album_viewer_next",
    "area": "album",
    "id": "Foto berikutnya",
@@ -8273,12 +8267,6 @@
    "area": "trip",
    "id": "Budget",
    "en": "Budget"
-  },
-  {
-   "key": "trip_close",
-   "area": "trip",
-   "id": "Tutup",
-   "en": "Close"
   },
   {
    "key": "trip_countdown_day",

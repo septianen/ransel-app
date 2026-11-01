@@ -36,9 +36,9 @@ import app.ransel.util.fromPickerMillis
 import app.ransel.util.toPickerMillis
 import kotlinx.datetime.LocalDate
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.date_range_confirm
 import ransel.composeapp.generated.resources.date_range_title
-import ransel.composeapp.generated.resources.trip_close
 
 /**
  * Full-screen M3 DateRangePicker for the trip dates (design "Pilih tanggal trip"). Days before [earliest] are greyed
@@ -82,8 +82,8 @@ fun TripDateRangePicker(
                     contentAlignment = Alignment.Center,
                 ) {
                     Symbol(
-                        Symbols.close,
-                        contentDescription = stringResource(Res.string.trip_close),
+                        Symbols.arrowBack,
+                        contentDescription = stringResource(Res.string.action_back),
                         tint = MaterialTheme.colorScheme.onSurface,
                     )
                 }

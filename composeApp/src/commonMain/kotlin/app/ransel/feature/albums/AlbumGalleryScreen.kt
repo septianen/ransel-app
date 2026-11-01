@@ -265,7 +265,7 @@ fun AlbumViewer(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClose), contentAlignment = Alignment.Center) {
-                    Symbol(Symbols.close, tint = white, contentDescription = stringResource(Res.string.album_viewer_close))
+                    Symbol(Symbols.arrowBack, tint = white, contentDescription = stringResource(Res.string.action_back))
                 }
                 Column(Modifier.weight(1f).padding(start = 4.dp)) {
                     Text(

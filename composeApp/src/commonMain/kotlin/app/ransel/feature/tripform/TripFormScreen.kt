@@ -81,7 +81,6 @@ import ransel.composeapp.generated.resources.delete_trip_title
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.error_required
 import ransel.composeapp.generated.resources.trip_budget
-import ransel.composeapp.generated.resources.trip_close
 import ransel.composeapp.generated.resources.trip_cover_description
 import ransel.composeapp.generated.resources.trip_currency
 import ransel.composeapp.generated.resources.trip_currency_hint
@@ -153,8 +152,6 @@ fun TripFormScreen(
         modifier = modifier,
         title = stringResource(if (state.isEditing) Res.string.trip_form_edit_title else Res.string.trip_form_create_title),
         onBack = onClose,
-        navigationSymbol = Symbols.close,
-        navigationDescription = stringResource(Res.string.trip_close),
         saveLabel = stringResource(
             when {
                 state.isEditing -> Res.string.trip_save_changes

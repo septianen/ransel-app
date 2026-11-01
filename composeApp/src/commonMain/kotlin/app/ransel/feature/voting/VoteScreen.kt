@@ -170,7 +170,7 @@ fun VoteContent(
         when (state.mode) {
             VoteMode.LOADING -> SkeletonCards(cards = 1, cardHeight = 360.dp)
             VoteMode.ERROR -> {
-                Header(stringResource(Res.string.vote_result_title), null, Symbols.close, onClose)
+                Header(stringResource(Res.string.vote_result_title), null, onClose)
                 val failure = state.failure
                 if (failure != null && failure.isConnection) {
                     ConnectionErrorState(onRetry = onRetry, errorCode = failure.code, onBack = onClose)
@@ -192,7 +192,7 @@ fun VoteContent(
                 }
             }
             VoteMode.GONE -> {
-                Header(stringResource(Res.string.vote_closed_title), null, Symbols.close, onClose)
+                Header(stringResource(Res.string.vote_closed_title), null, onClose)
                 FullScreenState(
                     title = stringResource(Res.string.vote_gone_title),
                     body = stringResource(Res.string.vote_gone_body),
@@ -211,12 +211,12 @@ fun VoteContent(
 }
 
 @Composable
-private fun Header(title: String, subtitle: String?, icon: String, onIcon: () -> Unit, action: (@Composable () -> Unit)? = null) {
+private fun Header(title: String, subtitle: String?, onBack: () -> Unit, action: (@Composable () -> Unit)? = null) {
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).heightIn(min = 56.dp).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconBox(icon, stringResource(if (icon == Symbols.close) Res.string.action_close else Res.string.action_back), onIcon)
+        IconBox(Symbols.arrowBack, stringResource(Res.string.action_back), onBack)
         Column(Modifier.weight(1f).padding(start = 4.dp)) {
             Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (subtitle != null) {
@@ -252,7 +252,7 @@ private fun ColumnScope.VotingDeck(
 ) {
     val cursor = state.cursor ?: 0
     val places = round.places
-    Header(voteTitle(state), timeLeft(state, round), Symbols.close, onClose) {
+    Header(voteTitle(state), timeLeft(state, round), onClose) {
         IconBox(Symbols.groupAdd, stringResource(Res.string.vote_members), onOpenMembers)
     }
     SwipeDeck(
@@ -283,7 +283,7 @@ private fun ColumnScope.Waiting(
 ) {
     val scheme = MaterialTheme.colorScheme
     val liked = round.places.filter { state.votes[it.item.placeId] == Vote.LIKE }
-    Header(voteTitle(state), timeLeft(state, round), Symbols.close, onClose)
+    Header(voteTitle(state), timeLeft(state, round), onClose)
     Column(
         Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(top = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -353,7 +353,6 @@ private fun ColumnScope.OwnerResult(
         stringResource(Res.string.vote_result_title),
         if (open) stringResource(Res.string.vote_result_subtitle_open, trip, hoursLeft(state.now, round.closesAt))
         else stringResource(Res.string.vote_result_subtitle_closed, trip),
-        Symbols.arrowBack,
         onClose,
     )
     Column(
@@ -511,7 +510,6 @@ private fun ColumnScope.MemberClosed(state: VoteUiState, round: RoundDto, onClos
     Header(
         stringResource(Res.string.vote_closed_title),
         stringResource(Res.string.vote_subtitle_closed, state.destination.ifBlank { state.tripTitle }, round.createdByName),
-        Symbols.arrowBack,
         onClose,
     )
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
