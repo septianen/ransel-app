@@ -53,6 +53,10 @@ actual val isDebugBuild: Boolean = browserHostname() != "ransel.mietek.tech"
 
 actual val requiresAccount: Boolean = true
 
+actual val devicePlatform: app.ransel.shared.model.DevicePlatform? = null
+
+actual val installedAppVersion: String? = null
+
 @JsFun("() => window.location.pathname")
 private external fun browserPath(): String
 

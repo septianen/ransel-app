@@ -52,6 +52,11 @@ actual val platformModule: Module = module {
 actual val isDebugBuild: Boolean = Platform.isDebugBinary
 
 
+actual val devicePlatform: app.ransel.shared.model.DevicePlatform? = app.ransel.shared.model.DevicePlatform.IOS
+
+actual val installedAppVersion: String? =
+    platform.Foundation.NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String
+
 actual val requiresAccount: Boolean = false
 
 actual fun initialResetToken(): String? = null

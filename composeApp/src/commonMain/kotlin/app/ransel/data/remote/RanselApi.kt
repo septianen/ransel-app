@@ -7,7 +7,9 @@ import app.ransel.shared.api.ApiResponse
 import app.ransel.shared.api.ApiRoutes
 import app.ransel.shared.api.ErrorCode
 import app.ransel.data.auth.ApiAuth
+import app.ransel.shared.model.DevicePlatform
 import app.ransel.shared.dto.AddMemberRequest
+import app.ransel.shared.dto.AppUpdateDto
 import app.ransel.shared.dto.AuthSessionDto
 import app.ransel.shared.dto.CreatePollRequest
 import app.ransel.shared.dto.DecidePollRequest
@@ -337,6 +339,13 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.pollShare(pollId)) { it.body<ApiResponse<PollShareDto>>().data }
     suspend fun unsharePoll(pollId: String): ApiResult<Unit> = delete(ApiRoutes.pollShare(pollId))
     suspend fun releaseGuestName(tripId: String, memberId: String): ApiResult<Unit> = delete(ApiRoutes.memberGuestSession(tripId, memberId))
+
+    // ── app update dialog ───────────────────────────────────────────────────
+    /** Public. What the installed [version] should do about updating (Karung sets the minimum per platform). */
+    suspend fun appUpdate(platform: DevicePlatform, version: String): ApiResult<AppUpdateDto> =
+        call(HttpMethod.Get, ApiRoutes.APP_UPDATE, bodyOf = { parameter("platform", platform.name); parameter("version", version) }) {
+            it.body<ApiResponse<AppUpdateDto>>().data
+        }
 
     // ── remote content (admin-spec stage E) ─────────────────────────────────
     /** Public. Null = the app already has [version] (204). */

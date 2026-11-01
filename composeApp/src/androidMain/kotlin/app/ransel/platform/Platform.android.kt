@@ -60,6 +60,10 @@ actual val isDebugBuild: Boolean = BuildConfig.DEBUG
 
 actual val requiresAccount: Boolean = false
 
+actual val devicePlatform: app.ransel.shared.model.DevicePlatform? = app.ransel.shared.model.DevicePlatform.ANDROID
+
+actual val installedAppVersion: String? = BuildConfig.VERSION_NAME
+
 actual fun initialResetToken(): String? = null
 
 actual fun initialVerifyToken(): String? = null

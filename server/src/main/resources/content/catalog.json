@@ -8743,6 +8743,42 @@
    "en": "Upcoming"
   },
   {
+   "key": "update_action",
+   "area": "update",
+   "id": "Perbarui",
+   "en": "Update"
+  },
+  {
+   "key": "update_body_optional",
+   "area": "update",
+   "id": "Versi %1$s sudah rilis. Kamu memakai %2$s.",
+   "en": "Version %1$s is out. You are using %2$s."
+  },
+  {
+   "key": "update_body_required",
+   "area": "update",
+   "id": "Perbarui ke versi %1$s untuk terus memakai RANSEL. Kamu memakai %2$s.",
+   "en": "Update to version %1$s to keep using RANSEL. You are using %2$s."
+  },
+  {
+   "key": "update_later",
+   "area": "update",
+   "id": "Nanti",
+   "en": "Later"
+  },
+  {
+   "key": "update_title_optional",
+   "area": "update",
+   "id": "Pembaruan tersedia",
+   "en": "Update available"
+  },
+  {
+   "key": "update_title_required",
+   "area": "update",
+   "id": "Perlu diperbarui",
+   "en": "Update required"
+  },
+  {
    "key": "use_without_account",
    "area": "use",
    "id": "Pakai tanpa akun dulu",
