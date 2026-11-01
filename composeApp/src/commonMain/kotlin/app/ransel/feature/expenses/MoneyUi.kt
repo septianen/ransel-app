@@ -72,6 +72,8 @@ import org.jetbrains.compose.resources.painterResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.money_nothing_title
 import ransel.composeapp.generated.resources.money_nothing_body
+import ransel.composeapp.generated.resources.money_all_settled_body
+import ransel.composeapp.generated.resources.money_all_settled_title
 import ransel.composeapp.generated.resources.ic_sun_bathing
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.itinerary_close
@@ -156,12 +158,15 @@ fun SaldoContent(
         data == null && balances.loading -> SkeletonList(modifier, rows = 4, padding = 0.dp)
         data == null && failure != null -> LoadFailureState(failure, onRetry, modifier, inScrollingParent = true)
         data == null -> Unit
-        // nothing paid together yet: no "Kamu sudah impas" and no empty "Supaya lunas" (owner, 1 Nov 2026)
-        data.members.all { it.paidMinor == 0L } && data.transfers.isEmpty() && balances.settledNow.isEmpty() && money.settlements.isEmpty() ->
+        // nothing to settle: no "Kamu sudah impas" and no empty "Supaya lunas" (owner, 1 Nov 2026)
+        data.transfers.isEmpty() && balances.settledNow.isEmpty() &&
+            money.settlements.none { it.status == app.ransel.shared.model.SettlementStatus.CLAIMED_PAID } ->
             Column(modifier, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                // nobody paid for the group yet, or everything is paid back
+                val nothingYet = data.members.all { it.paidMinor == 0L }
                 FullScreenState(
-                    title = stringResource(Res.string.money_nothing_title),
-                    body = stringResource(Res.string.money_nothing_body),
+                    title = stringResource(if (nothingYet) Res.string.money_nothing_title else Res.string.money_all_settled_title),
+                    body = stringResource(if (nothingYet) Res.string.money_nothing_body else Res.string.money_all_settled_body),
                     illustration = painterResource(Res.drawable.ic_sun_bathing),
                     illustrationSize = 180.dp,
                     inScrollingParent = true,

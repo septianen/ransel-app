@@ -1179,6 +1179,8 @@
     <string name="money_claims_title">Menunggu konfirmasi</string>
     <string name="money_nothing_title">Belum ada utang-piutang</string>
     <string name="money_nothing_body">Catat pengeluaran bareng, nanti RANSEL hitung siapa bayar ke siapa.</string>
+    <string name="money_all_settled_title">Semua sudah lunas</string>
+    <string name="money_all_settled_body">Tidak ada yang perlu dibayar. Santai dulu!</string>
     <string name="money_claim_from">%1$s bilang sudah bayar ke kamu</string>
     <string name="money_claim_waiting">Menunggu %1$s mengonfirmasi</string>
     <string name="money_claim_confirm">Sudah masuk</string>
@@ -1647,7 +1649,6 @@
     <string name="trip_cover_change">Ganti foto</string>
     <string name="trip_cover_sheet_title">Foto trip</string>
     <string name="account_photo_sheet_title">Foto profil</string>
-    <string name="account_name">Nama</string>
     <string name="account_name_sheet_title">Ubah nama</string>
     <string name="account_name_sheet_hint">Nama ini yang dilihat teman di setiap trip.</string>
     <string name="account_name_field">Nama</string>

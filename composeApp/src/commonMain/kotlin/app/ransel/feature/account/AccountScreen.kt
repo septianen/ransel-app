@@ -7,11 +7,11 @@ import ransel.composeapp.generated.resources.account_name_required
 import ransel.composeapp.generated.resources.account_name_field
 import ransel.composeapp.generated.resources.account_name_sheet_hint
 import ransel.composeapp.generated.resources.account_name_sheet_title
-import ransel.composeapp.generated.resources.account_name
 import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.components.IrisTextField
 import app.ransel.shared.api.ErrorCode
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.IconButton
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
@@ -168,14 +168,18 @@ fun AccountScreen(
             Section(null) {
                 val user = (session as? SessionState.SignedIn)?.user
                 if (user != null) {
-                    ProfileRow(user.displayName, user.email, user.avatarUrl, photo.busy, onChangePhoto = { photoSheet = true })
+                    ProfileRow(
+                        user.displayName, user.email, user.avatarUrl, photo.busy,
+                        onChangePhoto = { photoSheet = true },
+                        // an edit button next to the name, not a row of its own (owner, 1 Nov 2026)
+                        onChangeName = {
+                            viewModel.resetName()
+                            nameSheet = true
+                        },
+                    )
                     photo.problem?.let { problem ->
                         Text(problem.text(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     }
-                    SettingRow(Symbols.badge, stringResource(Res.string.account_name), user.displayName, onClick = {
-                        viewModel.resetName()
-                        nameSheet = true
-                    })
                     if (nameSheet) {
                         if (nameState.saved) LaunchedEffect(Unit) {
                             nameSheet = false
@@ -375,7 +379,7 @@ private fun SwitchRow(symbol: String, title: String, hint: String, checked: Bool
 }
 
 @Composable
-private fun ProfileRow(name: String, email: String, avatarUrl: String?, busy: Boolean, onChangePhoto: () -> Unit) {
+private fun ProfileRow(name: String, email: String, avatarUrl: String?, busy: Boolean, onChangePhoto: () -> Unit, onChangeName: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 64.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -424,6 +428,9 @@ private fun ProfileRow(name: String, email: String, avatarUrl: String?, busy: Bo
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        IconButton(onClick = onChangeName, modifier = Modifier.size(48.dp)) {
+            Symbol(Symbols.edit, size = 22.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant, contentDescription = stringResource(Res.string.account_name_sheet_title))
         }
     }
 }

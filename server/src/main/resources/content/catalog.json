@@ -37,12 +37,6 @@
    "en": "Language"
   },
   {
-   "key": "account_name",
-   "area": "account",
-   "id": "Nama",
-   "en": "Name"
-  },
-  {
    "key": "account_name_failed",
    "area": "account",
    "id": "Nama belum bisa disimpan. Cek koneksimu, lalu coba lagi.",
@@ -4415,6 +4409,18 @@
    "area": "members",
    "id": "(kamu)",
    "en": "(you)"
+  },
+  {
+   "key": "money_all_settled_body",
+   "area": "money",
+   "id": "Tidak ada yang perlu dibayar. Santai dulu!",
+   "en": "Nobody needs to pay anyone. Time to relax!"
+  },
+  {
+   "key": "money_all_settled_title",
+   "area": "money",
+   "id": "Semua sudah lunas",
+   "en": "All settled up"
   },
   {
    "key": "money_claim_confirm",
