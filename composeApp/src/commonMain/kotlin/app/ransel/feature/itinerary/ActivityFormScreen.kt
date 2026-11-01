@@ -77,7 +77,6 @@ import ransel.composeapp.generated.resources.activity_time_start
 import ransel.composeapp.generated.resources.activity_title
 import ransel.composeapp.generated.resources.error_required
 import ransel.composeapp.generated.resources.itinerary_day_chip
-import ransel.composeapp.generated.resources.trip_close
 import ransel.composeapp.generated.resources.trip_optional
 
 private enum class TimeTarget { START, END }
@@ -106,8 +105,6 @@ fun ActivityFormScreen(
         modifier = modifier,
         title = stringResource(if (state.isEditing) Res.string.activity_form_edit_title else Res.string.activity_form_add_title),
         onBack = onClose,
-        navigationSymbol = Symbols.close,
-        navigationDescription = stringResource(Res.string.trip_close),
         saveLabel = stringResource(Res.string.activity_save),
         onSave = viewModel::save,
         saveEnabled = !state.loading,

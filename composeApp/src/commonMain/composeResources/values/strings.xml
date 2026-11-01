@@ -130,7 +130,6 @@
     <string name="trip_shorten_hint">If the dates get shorter, activities on removed days move to Unscheduled instead of being deleted.</string>
     <string name="trip_save_changes">Save changes</string>
     <string name="trip_delete">Delete trip</string>
-    <string name="trip_close">Close</string>
     <string name="error_required">Required</string>
     <string name="date_range_title">Select trip dates</string>
     <string name="date_range_confirm">Done</string>
@@ -1745,7 +1744,6 @@
     <string name="album_photo">Photo %1$d</string>
     <string name="album_viewer_position">%1$d of %2$d</string>
     <string name="album_viewer_position_more">%1$d of %2$d+</string>
-    <string name="album_viewer_close">Close</string>
     <string name="album_viewer_previous">Previous photo</string>
     <string name="album_viewer_next">Next photo</string>
 </resources>

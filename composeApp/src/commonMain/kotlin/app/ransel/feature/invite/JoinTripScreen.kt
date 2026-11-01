@@ -59,7 +59,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.action_close
+import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.ic_data_not_found
 import ransel.composeapp.generated.resources.ic_accept_invitation
 import ransel.composeapp.generated.resources.invalid_invite_expired_body
@@ -159,7 +159,7 @@ fun JoinTripContent(
             Modifier.padding(horizontal = 4.dp).size(48.dp).clip(CircleShape)
                 .clickable(role = SemanticsRole.Button, onClick = onClose),
             contentAlignment = Alignment.Center,
-        ) { Symbol(Symbols.close, contentDescription = stringResource(Res.string.action_close)) }
+        ) { Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back)) }
 
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Column(

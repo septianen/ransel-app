@@ -206,7 +206,7 @@ fun SwipeScreen(
 private fun StateWithClose(onClose: () -> Unit, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconBox(Symbols.close, stringResource(Res.string.action_close), onClose)
+            IconBox(Symbols.arrowBack, stringResource(Res.string.action_back), onClose)
             Text(stringResource(Res.string.swipe_ai_title), style = MaterialTheme.typography.titleLarge)
         }
         Box(Modifier.weight(1f)) { content() }
@@ -227,7 +227,7 @@ private fun SwipeHeader(session: ExploreSession?, destination: String, onClose: 
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).heightIn(min = 56.dp).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconBox(Symbols.close, stringResource(Res.string.action_close), onClose)
+        IconBox(Symbols.arrowBack, stringResource(Res.string.action_back), onClose)
         Column(Modifier.weight(1f).padding(start = 4.dp)) {
             Text(stringResource(Res.string.explore_for, destination), style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (session != null) {
