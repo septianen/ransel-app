@@ -159,7 +159,7 @@ fun RecapScreen(
                 }
             }
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(16.dp)) { UndoSnackbar(message = it.visuals.message) }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp)) { UndoSnackbar(message = it.visuals.message) }
     }
 }
 

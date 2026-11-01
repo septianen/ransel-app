@@ -108,7 +108,7 @@ fun ExplorePreferencesScreen(
         }
         SnackbarHost(
             hostState = snackbar,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp),
             snackbar = { data -> UndoSnackbar(data.visuals.message) },
         )
     }
