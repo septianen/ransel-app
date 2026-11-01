@@ -63,6 +63,7 @@ import app.ransel.admin.feature.monitoring.OverviewScreen
 import app.ransel.admin.feature.monitoring.SystemScreen
 import app.ransel.admin.feature.users.UserDetailScreen
 import app.ransel.admin.feature.users.UsersScreen
+import app.ransel.admin.feature.vouchers.VouchersScreen
 import app.ransel.admin.generated.resources.Res
 import app.ransel.admin.generated.resources.not_admin_body
 import app.ransel.admin.generated.resources.not_admin_switch
@@ -105,6 +106,10 @@ sealed interface AdminRoute {
         override val hash = "#/users"
     }
 
+    data object Vouchers : AdminRoute {
+        override val hash = "#/vouchers"
+    }
+
     data class User(val id: String) : AdminRoute {
         override val hash = "#/users/$id"
     }
@@ -125,6 +130,7 @@ sealed interface AdminRoute {
             return when {
                 parts.size == 2 && parts[0] == "users" -> User(parts[1])
                 parts.firstOrNull() == "users" -> Users
+                parts.firstOrNull() == "vouchers" -> Vouchers
                 parts.firstOrNull() == "explore" -> ExploreAi
                 parts.firstOrNull() == "system" -> System
                 parts.firstOrNull() == "content" -> Content(
@@ -214,12 +220,14 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                     AdminRoute.ExploreAi -> AdminSection.EXPLORE_AI
                     AdminRoute.System -> AdminSection.SYSTEM
                     AdminRoute.Users, is AdminRoute.User -> AdminSection.USERS
+                    AdminRoute.Vouchers -> AdminSection.VOUCHERS
                     is AdminRoute.Content -> r.section
                 },
                 onSelect = { section ->
                     when (section) {
                         AdminSection.OVERVIEW -> navigate(AdminRoute.Overview)
                         AdminSection.USERS -> navigate(AdminRoute.Users)
+                        AdminSection.VOUCHERS -> navigate(AdminRoute.Vouchers)
                         AdminSection.EXPLORE_AI -> navigate(AdminRoute.ExploreAi)
                         AdminSection.SYSTEM -> navigate(AdminRoute.System)
                         AdminSection.CONTENT_STRINGS, AdminSection.CONTENT_ERRORS,
@@ -266,6 +274,7 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         AdminRoute.System -> SystemScreen(api, onAccessLost)
                         AdminRoute.Users -> UsersScreen(api, snackbar, onAccessLost, onOpenUser = { navigate(AdminRoute.User(it)) }, canAddUsers = me.passwordResetEmailEnabled)
                         is AdminRoute.User -> UserDetailScreen(api, me, r.id, snackbar, onAccessLost, onBack = { navigate(AdminRoute.Users) })
+                        AdminRoute.Vouchers -> VouchersScreen(api, snackbar, onAccessLost)
                         is AdminRoute.Content -> when (r.section) {
                             AdminSection.CONTENT_ERRORS -> ContentErrorsScreen(api, onAccessLost)
                             AdminSection.CONTENT_CATEGORIES -> ContentCategoriesScreen(api, onAccessLost)

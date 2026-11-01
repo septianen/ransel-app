@@ -3,6 +3,7 @@ package app.ransel.server.service
 import app.ransel.server.AppConfig
 import app.ransel.server.db.AdminAuditLog
 import app.ransel.server.db.CreditDaily
+import app.ransel.server.db.CreditVouchers
 import app.ransel.server.db.CreditWallets
 import app.ransel.server.db.Devices
 import app.ransel.server.db.Expenses
@@ -31,6 +32,9 @@ import app.ransel.shared.dto.AdminMeDto
 import app.ransel.shared.dto.AdminTripDto
 import app.ransel.shared.dto.AdminUserDetailDto
 import app.ransel.shared.dto.AdminUserDto
+import app.ransel.shared.dto.AdminVoucherDto
+import app.ransel.shared.dto.CreateVoucherRequest
+import app.ransel.shared.model.VoucherStatus
 import app.ransel.shared.dto.CreditLedgerEntryDto
 import app.ransel.shared.dto.CreditsDto
 import app.ransel.shared.model.AdminAction
@@ -71,6 +75,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import java.sql.SQLException
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.time.Clock
 
@@ -339,6 +344,83 @@ class AdminService(
     }
 
     /** Newest first. */
+    /** Newest first. Returns the page and the total. */
+    fun vouchers(page: Int, pageSize: Int): Pair<List<AdminVoucherDto>, Int> = transaction {
+        val total = CreditVouchers.selectAll().count().toInt()
+        val rows = CreditVouchers.selectAll()
+            .orderBy(CreditVouchers.createdAt to SortOrder.DESC, CreditVouchers.code to SortOrder.ASC)
+            .limit(pageSize).offset(((page - 1) * pageSize).toLong())
+            .map(::voucherDto)
+        rows to total
+    }
+
+    fun createVoucher(admin: AdminPrincipal, body: CreateVoucherRequest): AdminVoucherDto {
+        val note = body.note?.trim()?.takeIf { it.isNotEmpty() }
+        requireValid(
+            buildMap {
+                if (body.credits !in 1..MAX_ADJUSTMENT) put("credits", "OUT_OF_RANGE")
+                if (body.maxUses !in 1..MAX_VOUCHER_USES) put("maxUses", "OUT_OF_RANGE")
+                if (body.validDays !in 1..MAX_VOUCHER_DAYS) put("validDays", "OUT_OF_RANGE")
+                if (note != null && note.length > MAX_VOUCHER_NOTE) put("note", "LENGTH")
+            },
+        )
+        val code = newVoucherCode()
+        return transaction {
+            CreditVouchers.insert {
+                it[CreditVouchers.code] = code
+                it[credits] = body.credits
+                it[maxUses] = body.maxUses
+                it[expiresAt] = Instant.now().plus(body.validDays.toLong(), ChronoUnit.DAYS)
+                it[CreditVouchers.note] = note
+            }
+            audit(admin, AdminAction.VOUCHER_CREATE, "VOUCHER", code, null, buildJsonObject {
+                put("credits", body.credits)
+                put("maxUses", body.maxUses)
+                put("validDays", body.validDays)
+                put("note", note)
+            })
+            voucher(code)
+        }
+    }
+
+    /** Asking twice changes nothing and writes no second audit row. */
+    fun revokeVoucher(admin: AdminPrincipal, code: String): AdminVoucherDto = transaction {
+        val current = voucher(code)
+        if (current.revokedAt != null) return@transaction current
+        CreditVouchers.update({ CreditVouchers.code eq code }) { it[revokedAt] = Instant.now() }
+        audit(admin, AdminAction.VOUCHER_REVOKE, "VOUCHER", code, null, null)
+        voucher(code)
+    }
+
+    private fun voucher(code: String): AdminVoucherDto =
+        CreditVouchers.selectAll().where { CreditVouchers.code eq code }.singleOrNull()?.let(::voucherDto)
+            ?: throw ApiException(HttpStatusCode.NotFound, ErrorCode.VOUCHER_INVALID, "Voucher not found")
+
+    private fun voucherDto(row: ResultRow): AdminVoucherDto {
+        val expires = row[CreditVouchers.expiresAt]
+        val revoked = row[CreditVouchers.revokedAt]
+        return AdminVoucherDto(
+            code = row[CreditVouchers.code],
+            credits = row[CreditVouchers.credits],
+            maxUses = row[CreditVouchers.maxUses],
+            usedCount = row[CreditVouchers.usedCount],
+            status = when {
+                revoked != null -> VoucherStatus.REVOKED
+                expires != null && !expires.isAfter(Instant.now()) -> VoucherStatus.EXPIRED
+                row[CreditVouchers.usedCount] >= row[CreditVouchers.maxUses] -> VoucherStatus.USED_UP
+                else -> VoucherStatus.ACTIVE
+            },
+            note = row[CreditVouchers.note],
+            expiresAt = expires?.toTimestamp(),
+            revokedAt = revoked?.toTimestamp(),
+            createdAt = row[CreditVouchers.createdAt].toTimestamp(),
+        )
+    }
+
+    /** 12 characters without look-alikes (no 0/O/1/I), grouped 4-4-4, like `deploy/create-voucher.sh`. */
+    private fun newVoucherCode(): String =
+        List(12) { VOUCHER_ALPHABET[voucherRandom.nextInt(VOUCHER_ALPHABET.length)] }.chunked(4).joinToString("-") { it.joinToString("") }
+
     fun auditLog(targetId: String?, action: AdminAction?, page: Int, pageSize: Int): Pair<List<AdminAuditEntryDto>, Int> = transaction {
         val where: Op<Boolean> = listOfNotNull(
             targetId?.let { AdminAuditLog.targetId eq it },
@@ -478,6 +560,11 @@ class AdminService(
     companion object {
         const val PAGE_SIZE = 25
         const val MAX_ADJUSTMENT = 10_000
+        const val MAX_VOUCHER_USES = 100_000
+        const val MAX_VOUCHER_DAYS = 3_650
+        const val MAX_VOUCHER_NOTE = 200
+        private const val VOUCHER_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        private val voucherRandom = java.security.SecureRandom()
         const val RESET_EMAILS_PER_HOUR = 3
         private const val UNIQUE_VIOLATION = "23505"
     }
