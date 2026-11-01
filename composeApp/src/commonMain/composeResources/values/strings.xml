@@ -1549,7 +1549,6 @@
     <string name="recap_next_body">Use this plan again, then invite the same group with the invite link.</string>
     <string name="recap_new_trip">New trip with this group</string>
     <string name="recap_not_yet">The recap comes after the trip ends</string>
-    <string name="home_recap_badge">Recap ready</string>
     <string name="home_recap_open">See the recap</string>
     <string name="home_recap_places">places</string>
     <string name="home_recap_total">total</string>
