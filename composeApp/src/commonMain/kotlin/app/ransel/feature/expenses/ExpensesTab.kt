@@ -107,7 +107,11 @@ fun ExpensesTab(
     onBalancesOpened: () -> Unit = {},
     viewModel: ExpensesViewModel = koinViewModel(key = "expenses-${trip.id}") { parametersOf(trip) },
 ) {
-    RefreshOnReturn(viewModel::loadMembers)
+    RefreshOnReturn {
+        viewModel.loadMembers()
+        // "Info pembayaranmu" opens its own screen: what was added there shows on the Saldo card
+        viewModel.loadMyMethods(again = true)
+    }
     LaunchedEffect(refreshKey) { if (refreshKey > 0) viewModel.loadMembers() }
     val state by viewModel.state.collectAsState()
     val members by viewModel.members.collectAsState()

@@ -72,8 +72,13 @@ class HomeViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState.Loading)
 
-    private fun countMembers(tripId: String) {
-        if (session.user == null || tripId in memberCounts.value) return
+    /** Back on Beranda: someone may have joined the trips counted so far. */
+    fun refresh() {
+        memberCounts.value.keys.forEach { countMembers(it, again = true) }
+    }
+
+    private fun countMembers(tripId: String, again: Boolean = false) {
+        if (session.user == null || (tripId in memberCounts.value && !again)) return
         viewModelScope.launch {
             (api.members(tripId) as? ApiResult.Success)?.let { r -> memberCounts.update { it + (tripId to r.value.size) } }
         }
