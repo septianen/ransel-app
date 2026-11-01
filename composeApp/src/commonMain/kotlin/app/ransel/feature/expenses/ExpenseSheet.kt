@@ -152,7 +152,8 @@ fun ExpenseSheet(
     var category by remember { mutableStateOf(existing?.category ?: Category.FOOD) }
     var note by remember { mutableStateOf(existing?.note.orEmpty()) }
     var date by remember { mutableStateOf(existingLocal?.date ?: defaultDate) }
-    var method by remember { mutableStateOf(existing?.paymentMethod ?: PaymentMethod.CASH) }
+    // a new expense starts on e-wallet, the usual way to pay (owner, 1 Nov 2026)
+    var method by remember { mutableStateOf(existing?.paymentMethod ?: PaymentMethod.E_WALLET) }
     var rateText by remember { mutableStateOf(existing?.fxRateToBase?.let(::fxRateToInput).orEmpty()) }
     var fxSource by remember { mutableStateOf(existing?.fxSource) }
     var fxDate by remember { mutableStateOf(existing?.fxDate) }
