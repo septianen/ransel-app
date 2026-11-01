@@ -73,7 +73,7 @@ class CreditService(private val settings: SettingsService) {
 
     fun packages() = CreditPackagesResponse(
         packages = config.creditPackages.map { CreditPackageDto(it.id, it.credits, it.priceMinor, it.currency) },
-        purchasable = false,
+        purchasable = config.creditPurchaseEnabled,
     )
 
     /** Newest first. */

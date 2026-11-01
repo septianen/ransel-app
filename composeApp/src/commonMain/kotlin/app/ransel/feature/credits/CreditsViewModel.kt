@@ -2,6 +2,7 @@ package app.ransel.feature.credits
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.ransel.data.auth.SessionManager
 import app.ransel.data.credit.CreditsStore
 import app.ransel.data.remote.ApiFailure
 import app.ransel.data.remote.ApiResult
@@ -28,13 +29,18 @@ data class CreditsUiState(
     val redeemError: String? = null,
     /** Credits added by the last successful redeem, shown once. */
     val redeemed: Int? = null,
+    /** Put in the order email so the owner knows which account gets the credits. */
+    val accountEmail: String = "",
 )
 
 class CreditsViewModel(
     private val api: RanselApi,
     private val store: CreditsStore,
+    sessionManager: SessionManager,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(CreditsUiState(credits = store.state.value, loading = store.state.value == null))
+    private val _state = MutableStateFlow(
+        CreditsUiState(credits = store.state.value, loading = store.state.value == null, accountEmail = sessionManager.user?.email.orEmpty()),
+    )
     val state: StateFlow<CreditsUiState> = _state.asStateFlow()
 
     init {

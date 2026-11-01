@@ -814,6 +814,12 @@
     <string name="credits_package_credits">%1$d kredit</string>
     <string name="credits_package_per_search">sekitar %1$s per pencarian</string>
     <string name="credits_packages_soon">Pembelian segera hadir. Untuk sementara, top up lewat kode voucher.</string>
+    <string name="credits_order_note">Ketuk paket untuk membuka draft email. Pesanan diproses manual: kami balas dengan cara bayar, lalu kredit ditambahkan ke akunmu setelah pembayaran diterima.</string>
+    <string name="credits_order_fallback">Email tidak terbuka? Kirim pesananmu ke:</string>
+    <string name="credits_order_copy">Salin</string>
+    <string name="credits_order_copied">Tersalin</string>
+    <string name="credits_order_subject">Pesan paket %1$d kredit RANSEL</string>
+    <string name="credits_order_body">Halo, saya mau pesan paket kredit RANSEL.\n\nPaket: %1$d kredit\nHarga: %2$s\nEmail akun: %3$s\n\nMohon kirim cara pembayarannya. Terima kasih.</string>
     <string name="credits_history_title">Riwayat</string>
     <string name="credits_history_empty">Belum ada.</string>
     <string name="credits_kind_signup">Kredit awal</string>

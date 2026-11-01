@@ -182,6 +182,8 @@ jobs:
           # Admin app "Karung": repository variable ADMIN_EMAILS (comma separated). This file overwrites the VPS .env on
           # every deploy, so a value typed into .env by hand does not survive the next deploy.
           ADMIN_EMAILS: ${{ vars.ADMIN_EMAILS }}
+          # true = the web app offers the credit packs by email (repository variable).
+          CREDIT_PURCHASE_ENABLED: ${{ vars.CREDIT_PURCHASE_ENABLED }}
           ADMIN_PASSWORD_RESET_ENABLED: ${{ vars.ADMIN_PASSWORD_RESET_ENABLED }}
           # Karung's "Server dan database" cost line, USD per month (repository variable).
           SERVER_MONTHLY_COST_USD: ${{ vars.SERVER_MONTHLY_COST_USD }}
@@ -229,6 +231,7 @@ jobs:
             echo "LLM_MODEL=${LLM_MODEL:-gemini-3.1-flash-lite}"
             echo "LLM_FALLBACK_MODEL=${LLM_FALLBACK_MODEL:-gemini-3.5-flash}"
             echo "ADMIN_EMAILS=$ADMIN_EMAILS"
+            echo "CREDIT_PURCHASE_ENABLED=${CREDIT_PURCHASE_ENABLED:-false}"
             echo "ADMIN_APP_ORIGIN=https://karung.mietek.tech"
             echo "ADMIN_PASSWORD_RESET_ENABLED=${ADMIN_PASSWORD_RESET_ENABLED:-false}"
             echo "SERVER_MONTHLY_COST_USD=$SERVER_MONTHLY_COST_USD"

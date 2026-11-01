@@ -73,8 +73,10 @@ data class AppConfig(
     val creditCostPlaceDetail: Int = 0,
     /** One receipt photo read by Gemini: about Rp50 of tokens (Rp130 on the fallback model) against Rp550–667 per credit. */
     val creditCostReceipt: Int = 1,
-    /** Top-up packs shown by `GET /credits/packages`. Buying is not possible until a payment provider is connected. */
+    /** Top-up packs shown by `GET /credits/packages`. */
     val creditPackages: List<CreditPack> = DEFAULT_CREDIT_PACKS,
+    /** `purchasable` of `GET /credits/packages`: packs can be ordered (by email for now, the owner adds the credits in Karung). */
+    val creditPurchaseEnabled: Boolean = false,
     /** Push (FCM HTTP v1). Blank service account = pushes are only logged; the inbox works either way. */
     val fcmProjectId: String = "",
     val fcmServiceAccountJson: String = "",
@@ -253,6 +255,7 @@ data class AppConfig(
                 creditCostPlaceDetail = env["CREDIT_COST_PLACE_DETAIL"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0,
                 creditCostReceipt = env["CREDIT_COST_RECEIPT"]?.toIntOrNull()?.coerceAtLeast(0) ?: 1,
                 creditPackages = parseCreditPacks(env["CREDIT_PACKAGES"]).ifEmpty { DEFAULT_CREDIT_PACKS },
+                creditPurchaseEnabled = env["CREDIT_PURCHASE_ENABLED"].toBoolean(),
                 fcmProjectId = env["FCM_PROJECT_ID"].orEmpty().trim(),
                 fcmServiceAccountJson = serviceAccountJson(env["FCM_SERVICE_ACCOUNT_JSON"]),
                 notifyPackingHour = env["NOTIFY_PACKING_HOUR"]?.toIntOrNull()?.coerceIn(0, 23) ?: 18,

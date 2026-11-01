@@ -1087,6 +1087,42 @@
    "en": "Voucher"
   },
   {
+   "key": "credits_order_body",
+   "area": "credits",
+   "id": "Halo, saya mau pesan paket kredit RANSEL.\n\nPaket: %1$d kredit\nHarga: %2$s\nEmail akun: %3$s\n\nMohon kirim cara pembayarannya. Terima kasih.",
+   "en": "Hi, I would like to order a RANSEL credit pack.\n\nPack: %1$d credits\nPrice: %2$s\nAccount email: %3$s\n\nPlease send me the payment instructions. Thank you."
+  },
+  {
+   "key": "credits_order_copied",
+   "area": "credits",
+   "id": "Tersalin",
+   "en": "Copied"
+  },
+  {
+   "key": "credits_order_copy",
+   "area": "credits",
+   "id": "Salin",
+   "en": "Copy"
+  },
+  {
+   "key": "credits_order_fallback",
+   "area": "credits",
+   "id": "Email tidak terbuka? Kirim pesananmu ke:",
+   "en": "Email did not open? Send your order to:"
+  },
+  {
+   "key": "credits_order_note",
+   "area": "credits",
+   "id": "Ketuk paket untuk membuka draft email. Pesanan diproses manual: kami balas dengan cara bayar, lalu kredit ditambahkan ke akunmu setelah pembayaran diterima.",
+   "en": "Tap a pack to open an email draft. Orders are handled manually: we reply with how to pay, then add the credits to your account once payment arrives."
+  },
+  {
+   "key": "credits_order_subject",
+   "area": "credits",
+   "id": "Pesan paket %1$d kredit RANSEL",
+   "en": "Order the %1$d credit RANSEL pack"
+  },
+  {
    "key": "credits_package_credits",
    "area": "credits",
    "id": "%1$d kredit",

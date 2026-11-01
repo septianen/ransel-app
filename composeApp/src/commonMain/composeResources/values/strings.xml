@@ -824,6 +824,12 @@
     <string name="credits_package_credits">%1$d credits</string>
     <string name="credits_package_per_search">about %1$s per search</string>
     <string name="credits_packages_soon">Buying is coming soon. For now, top up with a voucher code.</string>
+    <string name="credits_order_note">Tap a pack to open an email draft. Orders are handled manually: we reply with how to pay, then add the credits to your account once payment arrives.</string>
+    <string name="credits_order_fallback">Email did not open? Send your order to:</string>
+    <string name="credits_order_copy">Copy</string>
+    <string name="credits_order_copied">Copied</string>
+    <string name="credits_order_subject">Order the %1$d credit RANSEL pack</string>
+    <string name="credits_order_body">Hi, I would like to order a RANSEL credit pack.\n\nPack: %1$d credits\nPrice: %2$s\nAccount email: %3$s\n\nPlease send me the payment instructions. Thank you.</string>
     <string name="credits_history_title">History</string>
     <string name="credits_history_empty">Nothing yet.</string>
     <string name="credits_kind_signup">Welcome credits</string>
