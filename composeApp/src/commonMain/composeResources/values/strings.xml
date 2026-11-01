@@ -742,7 +742,7 @@
     <string name="explore_style_packed_hint">4–6 places a day</string>
     <string name="explore_notes">Notes</string>
     <string name="explore_optional">(optional)</string>
-    <string name="explore_notes_hint">E.g. travelling with a small child, avoid heavy trekking</string>
+    <string name="explore_notes_hint">E.g. with kids, no heavy trekking</string>
     <string name="explore_search">Find recommendations</string>
     <string name="explore_for">Recommendations for %1$s</string>
     <string name="explore_resume_label">Unfinished</string>
