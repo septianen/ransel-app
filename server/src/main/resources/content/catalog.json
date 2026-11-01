@@ -7699,6 +7699,12 @@
    "en": "Create an account"
   },
   {
+   "key": "splash_tagline",
+   "area": "splash",
+   "id": "Rencana Bareng, Berangkat Bareng",
+   "en": "Plan Together, Go Together"
+  },
+  {
    "key": "state_back_home",
    "area": "state",
    "id": "Kembali ke Beranda",
