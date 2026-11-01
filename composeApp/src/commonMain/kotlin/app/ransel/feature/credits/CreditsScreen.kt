@@ -23,19 +23,27 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role as SemanticsRole
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import app.ransel.content.remoteErrorCopy
 import app.ransel.content.stringResource
 import app.ransel.data.remote.ApiFailure
+import app.ransel.platform.requiresAccount
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.CreditCostsDto
 import app.ransel.shared.dto.CreditLedgerEntryDto
@@ -102,7 +110,10 @@ fun CreditsContent(
             ) {
                 BalanceCard(credits)
                 VoucherSection(state, onCodeChange, onRedeem)
-                state.packages?.takeIf { it.packages.isNotEmpty() }?.let { PackagesSection(it.packages, it.purchasable, credits.costs) }
+                state.packages?.takeIf { it.packages.isNotEmpty() }?.let {
+                    // Web only (owner, 1 Nov 2026): store rules on digital goods keep Android and iOS on "coming soon".
+                    PackagesSection(it.packages, canOrder = it.purchasable && requiresAccount, credits.costs, state.accountEmail)
+                }
                 HistorySection(state.ledger)
             }
         }
@@ -194,13 +205,28 @@ private fun voucherError(code: String): String = remoteErrorCopy(code)?.message 
 )
 
 @Composable
-private fun PackagesSection(packages: List<CreditPackageDto>, purchasable: Boolean, costs: CreditCostsDto) {
+private fun PackagesSection(packages: List<CreditPackageDto>, canOrder: Boolean, costs: CreditCostsDto, accountEmail: String) {
     val scheme = MaterialTheme.colorScheme
+    val uriHandler = LocalUriHandler.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(stringResource(Res.string.credits_packages_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         packages.forEach { pack ->
+            val price = formatMoney(pack.priceMinor, pack.currency)
+            val orderLink = if (canOrder) {
+                creditOrderMailto(
+                    subject = stringResource(Res.string.credits_order_subject, pack.credits),
+                    body = stringResource(Res.string.credits_order_body, pack.credits, price, accountEmail),
+                )
+            } else null
             Row(
-                Modifier.fillMaxWidth().clip(IrisShape.lg).border(1.dp, scheme.outlineVariant, IrisShape.lg).padding(horizontal = 16.dp, vertical = 14.dp),
+                Modifier.fillMaxWidth().clip(IrisShape.lg).border(1.dp, scheme.outlineVariant, IrisShape.lg)
+                    .then(
+                        if (orderLink != null) {
+                            // The address under the packs covers a browser with no mail app: opening fails silently there.
+                            Modifier.clickable(role = SemanticsRole.Button) { runCatching { uriHandler.openUri(orderLink) } }
+                        } else Modifier,
+                    )
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -216,12 +242,36 @@ private fun PackagesSection(packages: List<CreditPackageDto>, purchasable: Boole
                         )
                     }
                 }
-                Text(formatMoney(pack.priceMinor, pack.currency), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(price, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                if (orderLink != null) Symbol(Symbols.mail, tint = scheme.primary)
             }
         }
-        if (!purchasable) {
+        if (canOrder) {
+            OrderNote()
+        } else {
             Text(stringResource(Res.string.credits_packages_soon), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
         }
+    }
+}
+
+/** How an order works, and the address to copy when no mail app opens. */
+@Composable
+private fun OrderNote() {
+    val scheme = MaterialTheme.colorScheme
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    Text(stringResource(Res.string.credits_order_note), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(Res.string.credits_order_fallback), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            Text(CREDIT_ORDER_EMAIL, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        }
+        TextButton(
+            onClick = {
+                clipboard.setText(AnnotatedString(CREDIT_ORDER_EMAIL))
+                copied = true
+            },
+        ) { Text(stringResource(if (copied) Res.string.credits_order_copied else Res.string.credits_order_copy)) }
     }
 }
 

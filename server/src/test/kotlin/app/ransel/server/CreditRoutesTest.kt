@@ -43,13 +43,20 @@ class CreditRoutesTest {
     }
 
     @Test
-    fun packagesListThePricesButCannotBeBoughtYet() {
+    fun packagesListThePricesAndCannotBeOrderedByDefault() {
         apiTest {
             val data = get("/credits/packages").data().jsonObject
             val packs = data.getValue("packages").jsonArray.map { it.jsonObject }
             assertEquals(listOf("15", "40", "100"), packs.map { it.getValue("credits").jsonPrimitive.content })
             assertEquals(listOf("10000", "25000", "55000"), packs.map { it.getValue("priceMinor").jsonPrimitive.content })
             assertEquals("false", data.getValue("purchasable").jsonPrimitive.content)
+        }
+    }
+
+    @Test
+    fun packagesCanBeOrderedOnceTheServerEnablesIt() {
+        apiTest(config = TestDb.config().copy(creditPurchaseEnabled = true)) {
+            assertEquals("true", get("/credits/packages").data().jsonObject.getValue("purchasable").jsonPrimitive.content)
         }
     }
 

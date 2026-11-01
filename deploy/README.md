@@ -104,7 +104,7 @@ Keep the release keystore and its passwords safe outside git: the Play Store lat
 Every user has a wallet (30 credits on first use) plus 3 free credits a day (resets 00:00 WIB). A new search costs 3, the next batch 1. All numbers and the pack list can be changed in the VPS `.env` (`CREDIT_SIGNUP_GRANT`, `CREDIT_DAILY_FREE`, `CREDIT_COST_SEARCH`, `CREDIT_COST_NEXT_BATCH`, `CREDIT_COST_PLACE_DETAIL`, `CREDIT_COST_RECEIPT` (one receipt photo, default 1), `CREDIT_PACKAGES=id:credits:priceMinor;...`); restart the server container after changing them. These env values are the defaults: an admin can override each credit number (receipt photo included) in Karung, Sistem > Pengaturan, without a restart; "Kembalikan bawaan" goes back to the env value. Nothing can be bought yet: until a payment provider exists, top up users with a voucher. On the VPS:
 
 ```
-./deploy/create-voucher.sh 15            # 15 credits, one use, valid 30 days
+./deploy/create-voucher.sh 15            # 15 credits, one use, valid 365 days
 ./deploy/create-voucher.sh 40 5 60       # 40 credits, five users, valid 60 days
 ```
 
