@@ -21,7 +21,8 @@ val AI_BUDGET_ALERT_PERCENTS = listOf(80, 90, 100)
 
 /**
  * Checks a value typed in Karung; the server applies the same rule. Null = fine, else the `details` code:
- * NOT_A_NUMBER, OUT_OF_RANGE, NOT_ALLOWED (an alert share, mode or model outside its list). [llmModels] = the
+ * NOT_A_NUMBER, OUT_OF_RANGE, NOT_ALLOWED (an alert share, mode or model outside its list), NOT_A_VERSION ("1.2.3"),
+ * NOT_A_URL (an https link). [llmModels] = the
  * server's allow-list.
  */
 fun validateSetting(key: SettingKey, value: String, llmModels: List<String>): String? {
@@ -38,6 +39,9 @@ fun validateSetting(key: SettingKey, value: String, llmModels: List<String>): St
         SettingKey.AI_BUDGET_ALERT_PERCENT -> if (text.toIntOrNull() in AI_BUDGET_ALERT_PERCENTS) null else "NOT_ALLOWED"
         SettingKey.AI_BUDGET_MODE -> if (AiBudgetMode.entries.any { it.name == text }) null else "NOT_ALLOWED"
         SettingKey.LLM_MODEL -> if (text in llmModels) null else "NOT_ALLOWED"
+        SettingKey.ANDROID_MIN_VERSION, SettingKey.IOS_MIN_VERSION -> if (isValidAppVersion(text)) null else "NOT_A_VERSION"
+        SettingKey.ANDROID_FORCE_UPDATE, SettingKey.IOS_FORCE_UPDATE -> if (text == "true" || text == "false") null else "NOT_ALLOWED"
+        SettingKey.ANDROID_STORE_URL, SettingKey.IOS_STORE_URL -> if (text.startsWith("https://") && text.length <= 300 && ' ' !in text) null else "NOT_A_URL"
         else -> null
     }
 }
