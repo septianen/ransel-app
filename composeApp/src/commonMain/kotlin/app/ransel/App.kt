@@ -213,6 +213,9 @@ fun App() {
             ImageLoader.Builder(context).components { add(KtorNetworkFetcherFactory()) }.build()
         }
     }
+    // Read at app start, not when SessionGate first shows: otherwise finishing onboarding flashes the splash again.
+    val sessionManager: SessionManager = koinInject()
+    LaunchedEffect(sessionManager) { sessionManager.restore() }
     val preferencesRepository: PreferencesRepository = koinInject()
     val preferences by preferencesRepository.observe().collectAsState(initial = AppPreferences(loaded = false))
     val scope = rememberCoroutineScope()
@@ -261,7 +264,6 @@ private fun SessionGate(openSignIn: Boolean) {
     val syncEngine = koinInject<SyncStatus>() // creates the sync engine (mobile) so it starts with the session
     LifecycleEventEffect(Lifecycle.Event.ON_START) { syncEngine.setInForeground(true) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { syncEngine.setInForeground(false) }
-    LaunchedEffect(session) { session.restore() }
     val inviteLinks: InviteLinks = koinInject()
     LaunchedEffect(inviteLinks) { initialInviteCode()?.let(inviteLinks::offerCode) } // web: opened /j/<code>
     // Web, signed in, opened /verify-email?token=: the app shows the result. Signed out, WebAuthNavigation starts on it.
