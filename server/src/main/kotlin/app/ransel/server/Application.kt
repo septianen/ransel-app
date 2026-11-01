@@ -49,6 +49,7 @@ import app.ransel.server.routes.receiptRoutes
 import app.ransel.server.service.ReceiptService
 import app.ransel.server.routes.exploreRoutes
 import app.ransel.server.routes.expenseRoutes
+import app.ransel.server.routes.appUpdateRoutes
 import app.ransel.server.routes.contentRoutes
 import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
@@ -277,6 +278,7 @@ fun Application.module(
         route(ApiRoutes.BASE) {
             healthRoutes()
             contentRoutes(content)
+            appUpdateRoutes(settings)
             authRoutes(auth, passwordReset, verification)
             placePhotoRoutes(photoSigner, placePhotos)
             val invites = InviteService(config)

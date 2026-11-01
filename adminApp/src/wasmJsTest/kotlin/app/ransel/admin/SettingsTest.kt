@@ -48,4 +48,15 @@ class SettingsTest {
         assertEquals(mapOf(SettingKey.DAILY_FREE to "OUT_OF_RANGE", SettingKey.LLM_MODEL to "NOT_ALLOWED"), form.problems)
         assertFalse(form.canSave)
     }
+
+    @Test
+    fun theUpdateSettingsAreCheckedLikeTheServerDoes() {
+        val form = SettingsForm(saved)
+            .edit(SettingKey.ANDROID_MIN_VERSION, "0.3")
+            .edit(SettingKey.IOS_STORE_URL, "apps.apple.com/app/id1")
+            .edit(SettingKey.ANDROID_FORCE_UPDATE, "true")
+        assertEquals(mapOf(SettingKey.ANDROID_MIN_VERSION to "NOT_A_VERSION", SettingKey.IOS_STORE_URL to "NOT_A_URL"), form.problems)
+        assertFalse(form.canSave)
+        assertTrue(form.edit(SettingKey.ANDROID_MIN_VERSION, "0.3.0").edit(SettingKey.IOS_STORE_URL, "https://apps.apple.com/app/id1").canSave)
+    }
 }

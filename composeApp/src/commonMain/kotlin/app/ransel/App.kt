@@ -317,6 +317,8 @@ private fun SessionGate(openSignIn: Boolean) {
         requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
         else -> RanselNavigation(openSignIn = openSignIn)
     }
+    // Below the minimum Karung sets for this platform: an update dialog over whatever is showing (mobile only).
+    app.ransel.feature.update.AppUpdatePrompt(ready = state !is SessionState.Loading)
     if (explainPermission) {
         NotificationPermissionSheet(
             onAllow = { explainPermission = false; registrar.explanationDismissed(); registrar.requestPermission() },

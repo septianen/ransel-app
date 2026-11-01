@@ -31,6 +31,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.ransel.admin.generated.resources.Res
+import app.ransel.admin.generated.resources.settings_app_title
+import app.ransel.admin.generated.resources.settings_app_subtitle
+import app.ransel.admin.generated.resources.settings_app_note
+import app.ransel.admin.generated.resources.settings_android_min_version
+import app.ransel.admin.generated.resources.settings_android_force
+import app.ransel.admin.generated.resources.settings_android_store_url
+import app.ransel.admin.generated.resources.settings_ios_min_version
+import app.ransel.admin.generated.resources.settings_ios_force
+import app.ransel.admin.generated.resources.settings_ios_store_url
+import app.ransel.admin.generated.resources.settings_force_yes
+import app.ransel.admin.generated.resources.settings_force_no
+import app.ransel.admin.generated.resources.settings_problem_version
+import app.ransel.admin.generated.resources.settings_problem_url
+import app.ransel.admin.generated.resources.settings_confirm_force_warning
 import app.ransel.admin.generated.resources.settings_alert
 import app.ransel.admin.generated.resources.settings_budget
 import app.ransel.admin.generated.resources.settings_cancel
@@ -88,7 +102,20 @@ private val CREDITS = listOf(
     SettingKey.COST_PLACE_DETAIL, SettingKey.COST_RECEIPT,
 )
 
+private val FORCE_KEYS = setOf(SettingKey.ANDROID_FORCE_UPDATE, SettingKey.IOS_FORCE_UPDATE)
+
+private val APP_VERSION_KEYS = listOf(
+    SettingKey.ANDROID_MIN_VERSION, SettingKey.ANDROID_FORCE_UPDATE, SettingKey.ANDROID_STORE_URL,
+    SettingKey.IOS_MIN_VERSION, SettingKey.IOS_FORCE_UPDATE, SettingKey.IOS_STORE_URL,
+)
+
 private fun SettingKey.label(): StringResource = when (this) {
+    SettingKey.ANDROID_MIN_VERSION -> Res.string.settings_android_min_version
+    SettingKey.ANDROID_FORCE_UPDATE -> Res.string.settings_android_force
+    SettingKey.ANDROID_STORE_URL -> Res.string.settings_android_store_url
+    SettingKey.IOS_MIN_VERSION -> Res.string.settings_ios_min_version
+    SettingKey.IOS_FORCE_UPDATE -> Res.string.settings_ios_force
+    SettingKey.IOS_STORE_URL -> Res.string.settings_ios_store_url
     SettingKey.SIGNUP_GRANT -> Res.string.settings_signup_grant
     SettingKey.DAILY_FREE -> Res.string.settings_daily_free
     SettingKey.COST_SEARCH -> Res.string.settings_cost_search
@@ -110,6 +137,10 @@ private fun shown(key: SettingKey, value: String): String = when (key) {
         else -> stringResource(Res.string.settings_mode_keep_going)
     }
     SettingKey.AI_BUDGET_ALERT_PERCENT -> "$value%"
+    SettingKey.ANDROID_FORCE_UPDATE, SettingKey.IOS_FORCE_UPDATE ->
+        stringResource(if (value == "true") Res.string.settings_force_yes else Res.string.settings_force_no)
+    SettingKey.ANDROID_MIN_VERSION, SettingKey.IOS_MIN_VERSION, SettingKey.ANDROID_STORE_URL, SettingKey.IOS_STORE_URL ->
+        value.ifBlank { "—" }
     else -> value
 }
 
@@ -135,7 +166,8 @@ fun SettingsCard(presenter: SettingsPresenter) {
         }
         ConfirmDialog(
             title = stringResource(Res.string.settings_confirm_title),
-            body = stringResource(Res.string.settings_confirm_body, lines.joinToString("\n")),
+            body = stringResource(Res.string.settings_confirm_body, lines.joinToString("\n")) +
+                if (form.changes.any { (key, value) -> value == "true" && key in FORCE_KEYS }) "\n\n" + stringResource(Res.string.settings_confirm_force_warning) else "",
             confirmLabel = stringResource(Res.string.settings_save),
             destructive = false,
             busy = state.saving,
@@ -175,6 +207,17 @@ private fun SettingsBody(form: SettingsForm, state: SettingsUiState, presenter: 
         Text(stringResource(Res.string.settings_credits_note), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
 
         HorizontalDivider(color = scheme.outlineVariant)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(stringResource(Res.string.settings_app_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(Res.string.settings_app_subtitle), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterVertically),
+            )
+        }
+        TileGrid(minWidth = 220.dp, gap = 16.dp, tiles = APP_VERSION_KEYS.map { key -> { m -> SettingField(form, key, presenter, m) } })
+        Text(stringResource(Res.string.settings_app_note), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+
+        HorizontalDivider(color = scheme.outlineVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.weight(1f)) {
                 if (state.saved) Text(stringResource(Res.string.settings_saved), style = MaterialTheme.typography.bodyMedium, color = scheme.primary)
@@ -198,6 +241,26 @@ private fun SettingField(form: SettingsForm, key: SettingKey, presenter: Setting
         val label = stringResource(key.label())
         when (key) {
             SettingKey.LLM_MODEL -> SettingSelect(label, form.text(key), form.saved.llmModels.map { it to it }) { presenter.edit(key, it) }
+            SettingKey.ANDROID_FORCE_UPDATE, SettingKey.IOS_FORCE_UPDATE -> SettingSelect(
+                label, form.text(key),
+                listOf("false" to stringResource(Res.string.settings_force_no), "true" to stringResource(Res.string.settings_force_yes)),
+            ) { presenter.edit(key, it) }
+            SettingKey.ANDROID_MIN_VERSION, SettingKey.IOS_MIN_VERSION -> OutlinedTextField(
+                value = form.text(key),
+                onValueChange = { text -> presenter.edit(key, text.filter { it.isDigit() || it == '.' }.take(14)) },
+                label = { Text(label) },
+                singleLine = true,
+                isError = problem != null,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            SettingKey.ANDROID_STORE_URL, SettingKey.IOS_STORE_URL -> OutlinedTextField(
+                value = form.text(key),
+                onValueChange = { text -> presenter.edit(key, text.filter { !it.isWhitespace() }.take(300)) },
+                label = { Text(label) },
+                singleLine = true,
+                isError = problem != null,
+                modifier = Modifier.fillMaxWidth(),
+            )
             SettingKey.AI_BUDGET_ALERT_PERCENT ->
                 SettingSelect(label, form.text(key), AI_BUDGET_ALERT_PERCENTS.map { "$it" to "$it%" }) { presenter.edit(key, it) }
             SettingKey.AI_BUDGET_MODE -> SettingSelect(
@@ -239,6 +302,8 @@ private fun SettingField(form: SettingsForm, key: SettingKey, presenter: Setting
 @Composable
 private fun problemText(key: SettingKey, code: String): String = when (code) {
     "NOT_A_NUMBER" -> stringResource(Res.string.settings_problem_number)
+    "NOT_A_VERSION" -> stringResource(Res.string.settings_problem_version)
+    "NOT_A_URL" -> stringResource(Res.string.settings_problem_url)
     "OUT_OF_RANGE" -> {
         val range = SETTING_RANGES[key]
         if (range != null) stringResource(Res.string.settings_problem_range, "${range.first}", "${range.last}")

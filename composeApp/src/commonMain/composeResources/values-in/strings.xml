@@ -381,6 +381,14 @@
     <string name="state_back_home">Kembali ke Beranda</string>
     <string name="state_coming_soon_title">Segera hadir</string>
 
+    <!-- App update dialog (Karung sets the minimum version) -->
+    <string name="update_title_optional">Pembaruan tersedia</string>
+    <string name="update_title_required">Perlu diperbarui</string>
+    <string name="update_body_optional">Versi %1$s sudah rilis. Kamu memakai %2$s.</string>
+    <string name="update_body_required">Perbarui ke versi %1$s untuk terus memakai RANSEL. Kamu memakai %2$s.</string>
+    <string name="update_action">Perbarui</string>
+    <string name="update_later">Nanti</string>
+
     <!-- Web side panel -->
     <string name="sidepanel_packing_ready">%1$d/%2$d siap</string>
     <string name="sidepanel_open_packing">Buka daftar packing</string>

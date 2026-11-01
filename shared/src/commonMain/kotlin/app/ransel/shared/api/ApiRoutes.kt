@@ -173,6 +173,7 @@ object ApiRoutes {
     // Explore credits (replaces the fixed daily quota)
     // Phase 6 ─ remote content for the apps (stage E reads it; public, no token)
     const val CONTENT = "/content"                                 // GET ?version= → ContentDto; 204 when the app already has [version]
+    const val APP_UPDATE = "/app-update"                           // GET ?platform=ANDROID|IOS&version=<installed> → AppUpdateDto (public; the apps ask once per launch)
 
         const val CREDITS = "/credits"                                 // GET → CreditsDto (creates the wallet with the signup grant on first call)
     const val CREDITS_LEDGER = "/credits/ledger"                   // GET ?limit= (default 50, max 200), newest first → List<CreditLedgerEntryDto>

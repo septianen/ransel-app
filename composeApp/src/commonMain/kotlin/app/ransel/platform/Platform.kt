@@ -1,6 +1,7 @@
 package app.ransel.platform
 
 import androidx.compose.runtime.Composable
+import app.ransel.shared.model.DevicePlatform
 import org.koin.core.module.Module
 
 /** Per-platform Koin bindings (database builder, token storage, Ktor engine, ...). Filled in from Phase 1. */
@@ -11,6 +12,15 @@ expect val isDebugBuild: Boolean
 
 /** The web app has no guest mode: every screen needs a signed-in user. Mobile works offline without an account. */
 expect val requiresAccount: Boolean
+
+/** Which store build this is (Android, iOS); null on the web, which is always the latest build and is never asked to update. */
+expect val devicePlatform: DevicePlatform?
+
+/**
+ * The installed version, "0.1.0" (Android: `versionName`, a debug build adds "-debug"; iOS: `CFBundleShortVersionString`);
+ * null on the web. The About row and the update check both read it, so there is one place to bump.
+ */
+expect val installedAppVersion: String?
 
 /** The password-reset token in the page URL (`/reset-password?token=…`), web only; null elsewhere. */
 expect fun initialResetToken(): String?

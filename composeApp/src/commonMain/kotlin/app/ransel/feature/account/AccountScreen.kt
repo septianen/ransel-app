@@ -98,6 +98,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import app.ransel.data.auth.SessionState
+import app.ransel.platform.installedAppVersion
 import app.ransel.platform.requiresAccount
 import app.ransel.ui.components.ConfirmDialog
 import kotlinx.datetime.TimeZone
@@ -126,7 +127,6 @@ import ransel.composeapp.generated.resources.theme_system
 
 private enum class AccountSheet { CURRENCY, THEME, LANGUAGE }
 
-private const val APP_VERSION = "0.1.0"
 
 /** Account tab without sign-in (Phase 1): preferences and app info. Sync rows arrive with Phase 3. */
 @Composable
@@ -261,7 +261,7 @@ fun AccountScreen(
                 )
             }
             Section(stringResource(Res.string.account_section_other)) {
-                SettingRow(Symbols.info, stringResource(Res.string.account_about), "v$APP_VERSION", onClick = null)
+                SettingRow(Symbols.info, stringResource(Res.string.account_about), installedAppVersion?.let { "v$it" }.orEmpty(), onClick = null)
             }
             debugContent?.invoke()
         }

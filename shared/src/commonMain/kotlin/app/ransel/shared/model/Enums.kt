@@ -164,7 +164,21 @@ enum class SettingKey {
     SUGGESTIONS_PER_HOUR,
     /** The LLM model, one of the server's allow-list (`LLM_MODEL`, `LLM_MODELS`). */
     LLM_MODEL,
+    /** Lowest Android version allowed to run without a prompt, "1.2.3"; "" = no update prompt (`ANDROID_MIN_VERSION`). */
+    ANDROID_MIN_VERSION,
+    /** "true" = an Android app below [ANDROID_MIN_VERSION] cannot dismiss the update dialog (`ANDROID_FORCE_UPDATE`). */
+    ANDROID_FORCE_UPDATE,
+    /** Where the Android update dialog sends people, an https link (`ANDROID_STORE_URL`). */
+    ANDROID_STORE_URL,
+    /** Same three for iOS (`IOS_MIN_VERSION`, `IOS_FORCE_UPDATE`, `IOS_STORE_URL`). */
+    IOS_MIN_VERSION,
+    IOS_FORCE_UPDATE,
+    IOS_STORE_URL,
 }
+
+/** What an installed app should do about its version: nothing, offer the update, or insist on it. */
+@Serializable
+enum class AppUpdateStatus { NONE, OPTIONAL, REQUIRED }
 
 /** ENV = the env var or the built-in default; OVERRIDE = set in Karung. */
 @Serializable

@@ -243,6 +243,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET | /places/{placeId}/detail | Saved detail text of a place (about, tips, hours estimate) to open it again from the itinerary; rebuilt by one small LLM call when expired | 5 |
 | GET, POST ★ | /admin/... | Admin app (Karung): users (list, add with an invite email), credit adjustments, promo vouchers, audit log, overview, Explore AI, system, settings, content. Only accounts in `ADMIN_EMAILS` with a verified email; full list in `docs/specs/admin-spec.md` "API" | 6 |
 | GET | /content?version= | Remote content for the apps (public, `Cache-Control: max-age=300`): only what differs from the bundled copy (`ContentDto`); 204 when the app already has `version`. The apps read it from stage E | 6 |
+| GET | /app-update?platform=ANDROID\|IOS&version= | Whether the installed app should offer or insist on an update (public, no cache): `AppUpdateDto` (status NONE / OPTIONAL / REQUIRED, latest version, store link). Minimum, force flag and store link per platform are Karung settings; a platform without a store link answers NONE. The apps ask once per launch and ignore a failed call; the web is never asked | 6 |
 | GET ★ | /content?version= | Published remote content for the apps (apps call it in a later step) | 6 |
 
 The exact request and response classes for every row are in the `shared` module (`api/ApiRoutes.kt`, `dto/`), which is the contract between the app and the server.

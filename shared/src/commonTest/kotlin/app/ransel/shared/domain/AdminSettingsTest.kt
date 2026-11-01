@@ -32,4 +32,14 @@ class AdminSettingsTest {
         assertEquals("170.50", microToUsdText(170_500_000))
         assertEquals("170", microToUsdText(170_000_000))
     }
+
+    @Test fun appUpdateSettingsAreCheckedByShape() {
+        assertNull(validateSetting(SettingKey.ANDROID_MIN_VERSION, "0.3.0", models))
+        assertEquals("NOT_A_VERSION", validateSetting(SettingKey.IOS_MIN_VERSION, "0.3", models))
+        assertEquals("NOT_A_VERSION", validateSetting(SettingKey.ANDROID_MIN_VERSION, "v1.0.0", models))
+        assertNull(validateSetting(SettingKey.ANDROID_FORCE_UPDATE, "true", models))
+        assertEquals("NOT_ALLOWED", validateSetting(SettingKey.IOS_FORCE_UPDATE, "yes", models))
+        assertNull(validateSetting(SettingKey.ANDROID_STORE_URL, "https://play.google.com/store/apps/details?id=app.ransel", models))
+        assertEquals("NOT_A_URL", validateSetting(SettingKey.IOS_STORE_URL, "http://apps.apple.com/app/id1", models))
+    }
 }
