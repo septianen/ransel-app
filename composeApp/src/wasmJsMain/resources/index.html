@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Deep links such as /j/<code> are served index.html too; without this the script and .wasm load from /j/. -->
     <base href="/">
+    <!-- The app draws on a canvas, so a browser translation cannot change it: no "Translate page?" prompt. -->
+    <meta name="google" content="notranslate">
     <title>RANSEL</title>
     <!-- Fallback link preview for any page; nginx gives crawlers a per-link page for /j/ and /p/ instead (OgRoutes).
          Crawlers need an absolute image URL, and staging and production share this file: the production image. -->
