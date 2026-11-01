@@ -773,7 +773,7 @@
     <string name="receipt_error_paused">Baca struk otomatis sedang istirahat. Catat manual dulu ya; kreditmu tidak dipotong.</string>
     <string name="swipe_none_title">Belum ketemu yang cocok</string>
     <string name="swipe_none_body">Tidak ada tempat di %1$s yang pas dengan budget %2$s dan minat ini. Coba tambah minat lain atau longgarkan budget.</string>
-    <string name="home_explore_title">Bingung mau ke mana di %1$s?</string>
+    <string name="home_explore_title">Bingung mau ke mana?</string>
     <string name="home_explore_body">Pilih tempat favoritmu dengan swipe.</string>
     <string name="home_explore_cta">Coba</string>
     <string name="itinerary_explore_ai">Cari inspirasi dengan AI</string>
