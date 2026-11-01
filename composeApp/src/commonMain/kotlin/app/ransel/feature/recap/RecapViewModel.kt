@@ -11,16 +11,12 @@ import app.ransel.data.repository.TripRepository
 import app.ransel.feature.trip.zone
 import app.ransel.shared.domain.TripRecap
 import app.ransel.shared.domain.tripRecap
-import app.ransel.shared.dto.CreateTripTemplateRequest
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripMemberDto
-import app.ransel.util.newId
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -31,14 +27,10 @@ data class RecapUiState(
     val members: List<TripMemberDto> = emptyList(),
     /** Open transfers ("Supaya lunas"); null = not known (offline, guest). 0 = "Semua patungan lunas". */
     val openTransfers: Int? = null,
-    val savingTemplate: Boolean = false,
-    val templateSaved: Boolean = false,
 )
 
-enum class RecapEvent { TEMPLATE_SAVED, TEMPLATE_FAILED, SHARE_FAILED }
-
 /**
- * "Rekap trip" (designs "RekapTrip", "WebRekapTrip", "BerandaRekap"). The numbers come from the device's own itinerary
+ * The trip recap (`RecapSheet`, and the card on Home; designs "RekapTrip", "WebRekapTrip", "BerandaRekap"). The numbers come from the device's own itinerary
  * and expenses (`domain/Recap.kt`), so the recap works offline; whether everything is settled comes from the server.
  */
 class RecapViewModel(
@@ -51,9 +43,6 @@ class RecapViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow(RecapUiState())
     val state: StateFlow<RecapUiState> = _state.asStateFlow()
-
-    private val events = Channel<RecapEvent>(Channel.BUFFERED)
-    val eventFlow = events.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -74,23 +63,5 @@ class RecapViewModel(
             (api.members(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(members = r.value) } }
             (api.balances(tripId) as? ApiResult.Success)?.let { r -> _state.update { it.copy(openTransfers = r.value.transfers.size) } }
         }
-    }
-
-    val signedIn: Boolean get() = session.user != null
-
-    /** "Simpan jadi template trip": named after the trip. */
-    fun saveTemplate() {
-        val trip = _state.value.trip ?: return
-        if (_state.value.savingTemplate || _state.value.templateSaved) return
-        _state.update { it.copy(savingTemplate = true) }
-        viewModelScope.launch {
-            val result = api.createTripTemplate(CreateTripTemplateRequest(newId(), trip.title.take(60), tripId))
-            _state.update { it.copy(savingTemplate = false, templateSaved = result is ApiResult.Success) }
-            events.send(if (result is ApiResult.Success) RecapEvent.TEMPLATE_SAVED else RecapEvent.TEMPLATE_FAILED)
-        }
-    }
-
-    fun shareFailed() {
-        viewModelScope.launch { events.send(RecapEvent.SHARE_FAILED) }
     }
 }

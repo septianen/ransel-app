@@ -30,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -103,7 +104,6 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
     onOpenNotifications: () -> Unit = {},
-    onOpenRecap: (tripId: String) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     RefreshOnReturn(viewModel::refresh)
@@ -113,7 +113,7 @@ fun HomeScreen(
     val signedIn = session.state.collectAsState().value is SessionState.SignedIn
     val inbox by koinInject<NotificationsStore>().inbox.collectAsState()
     val recapTrip by viewModel.recapTrip.collectAsState()
-    val recap: (@Composable () -> Unit)? = recapTrip?.let { trip -> { RecapCardOnHome(trip.id) { onOpenRecap(trip.id) } } }
+    val recap: (@Composable () -> Unit)? = recapTrip?.let { trip -> { RecapCardOnHome(trip.id) { section -> onOpenTrip(trip.id, section) } } }
     HomeContent(state, onOpenTrip, onCreateTrip, modifier, onExplore, unreadCount = if (signedIn) (inbox?.unreadCount ?: 0) else null, onOpenNotifications = onOpenNotifications, recap = recap)
 }
 
@@ -476,12 +476,20 @@ private fun HomeContentPreview() = IrisPreview {
     )
 }
 
-/** The recap card's numbers come from the trip's own recap view model. */
+/** The recap card's numbers come from the trip's own recap view model; open transfers lead to the Biaya tab. */
 @Composable
-private fun RecapCardOnHome(tripId: String, onOpen: () -> Unit) {
+private fun RecapCardOnHome(tripId: String, onOpen: (TripSection) -> Unit) {
     val recapVm: app.ransel.feature.recap.RecapViewModel = koinViewModel(key = "recap-$tripId") { org.koin.core.parameter.parametersOf(tripId) }
+    // Settling up happens in the trip: back on Home the card shows what is left.
+    RefreshOnReturn(recapVm::refresh)
     val state by recapVm.state.collectAsState()
+    var sharing by androidx.compose.runtime.saveable.rememberSaveable(tripId) { androidx.compose.runtime.mutableStateOf(false) }
     val trip = state.trip ?: return
     val recap = state.recap ?: return
-    app.ransel.feature.recap.RecapHomeCard(trip.title, trip.baseCurrency, recap, state.openTransfers, onOpen)
+    app.ransel.feature.recap.RecapHomeCard(
+        trip.title, trip.baseCurrency, recap, state.openTransfers,
+        onOpen = { onOpen(if ((state.openTransfers ?: 0) > 0) TripSection.EXPENSES else TripSection.OVERVIEW) },
+        onShare = { sharing = true },
+    )
+    if (sharing) app.ransel.feature.recap.RecapSheet(tripId, onDismiss = { sharing = false }, viewModel = recapVm)
 }

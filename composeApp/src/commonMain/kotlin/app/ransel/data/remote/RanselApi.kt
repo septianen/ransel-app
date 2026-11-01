@@ -102,8 +102,6 @@ import app.ransel.shared.dto.TripDocumentDto
 import app.ransel.shared.dto.CreateDocumentRequest
 import app.ransel.shared.dto.PatchDocumentRequest
 import app.ransel.shared.dto.DocumentDownloadDto
-import app.ransel.shared.dto.TripTemplateDto
-import app.ransel.shared.dto.CreateTripTemplateRequest
 import app.ransel.shared.dto.PollShareDto
 import app.ransel.shared.dto.GuestPageDto
 import app.ransel.shared.dto.GuestIdentityRequest
@@ -329,10 +327,6 @@ class RanselApi(
     /** A path from the API (signed file links) as a full URL; full URLs pass through. */
     fun absoluteUrl(path: String): String = if (path.startsWith("http")) path else url(path)
 
-    suspend fun tripTemplates(): ApiResult<List<TripTemplateDto>> = get(ApiRoutes.TRIP_TEMPLATES)
-    suspend fun createTripTemplate(request: CreateTripTemplateRequest): ApiResult<TripTemplateDto> =
-        send(HttpMethod.Post, ApiRoutes.TRIP_TEMPLATES, request)
-    suspend fun deleteTripTemplate(id: String): ApiResult<Unit> = delete(ApiRoutes.tripTemplate(id))
 
     // ── sharing and the guest page (stage 8) ────────────────────────────────
     suspend fun sharePoll(pollId: String): ApiResult<PollShareDto> =
