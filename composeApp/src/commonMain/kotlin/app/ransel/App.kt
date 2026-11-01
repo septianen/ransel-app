@@ -191,8 +191,6 @@ import ransel.composeapp.generated.resources.placeholder_account_title
 import ransel.composeapp.generated.resources.placeholder_body
 import ransel.composeapp.generated.resources.placeholder_explore_title
 
-private const val SPLASH_MIN_MS = 1_200L
-
 /** Back-stack result from "Semua transaksi" to the trip screen. */
 private const val OPEN_BALANCES_KEY = "open_balances"
 
@@ -209,9 +207,6 @@ fun App() {
     val preferences by preferencesRepository.observe().collectAsState(initial = AppPreferences(loaded = false))
     val scope = rememberCoroutineScope()
     var openSignInAfterOnboarding by remember { mutableStateOf(false) }
-    // The splash stays at least this long on a cold start so it does not flash by while preferences load.
-    var splashHeld by remember { mutableStateOf(true) }
-    LaunchedEffect(Unit) { delay(SPLASH_MIN_MS); splashHeld = false }
     // Karung's published copy (stage E): the saved one at once, a newer one whenever the app comes to the front.
     val remoteContent: RemoteContentStore = koinInject()
     LifecycleEventEffect(Lifecycle.Event.ON_START) { remoteContent.refresh() }
@@ -230,7 +225,7 @@ fun App() {
             SystemBarsAppearance(darkTheme = dark)
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 when {
-                    !preferences.loaded || splashHeld -> SplashScreen()
+                    !preferences.loaded -> SplashScreen()
                     !preferences.onboardingCompleted -> OnboardingScreen(
                         onFinish = { scope.launch { preferencesRepository.setOnboardingCompleted(true) } },
                         onSignIn = {
