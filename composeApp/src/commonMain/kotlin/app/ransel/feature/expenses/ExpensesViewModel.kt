@@ -227,9 +227,9 @@ class ExpensesViewModel(
 
     fun closePayTo() = _money.update { it.copy(payTo = null) }
 
-    /** My own payment info, for the reminder message. */
-    fun loadMyMethods() {
-        if (session.user == null || _money.value.myMethods != null) return
+    /** My own payment info, for the reminder message and the Saldo card; [again] after it may have changed elsewhere. */
+    fun loadMyMethods(again: Boolean = false) {
+        if (session.user == null || (_money.value.myMethods != null && !again)) return
         viewModelScope.launch {
             (api.paymentMethods() as? ApiResult.Success)?.let { r -> _money.update { it.copy(myMethods = r.value) } }
         }

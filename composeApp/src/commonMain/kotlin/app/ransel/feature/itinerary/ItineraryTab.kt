@@ -1,5 +1,6 @@
 package app.ransel.feature.itinerary
 
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.content.getString
 import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
@@ -153,6 +154,8 @@ fun ItineraryTab(
     // the days come from the trip's dates: new dates (a decided DATE poll, Edit trip) make a new ViewModel
     viewModel: ItineraryViewModel = koinViewModel(key = "itinerary-${trip.id}-${trip.startDate}-${trip.endDate}") { parametersOf(trip) },
 ) {
+    // the date poll card: votes cast on the poll screen show when coming back
+    RefreshOnReturn { if (trip.startDate == null || trip.endDate == null) viewModel.loadDatePoll() }
     val state by viewModel.state.collectAsState()
     // Viewers see the plan but cannot change it (PRD "Roles"); the server refuses their writes anyway.
     val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)

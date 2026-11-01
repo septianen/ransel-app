@@ -1,5 +1,6 @@
 package app.ransel.feature.trip
 
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.shared.dto.TripDto
 import ransel.composeapp.generated.resources.trip_gone_body
 import ransel.composeapp.generated.resources.trip_gone_title
@@ -117,6 +118,9 @@ fun TripScreen(
     val api: RanselApi = koinInject()
     val rounds by voting.rounds.collectAsState()
     LaunchedEffect(tripId, signedIn) { if (signedIn) voting.refresh(api, tripId) }
+    // the effect above runs again when the screen comes back from another; this also covers the app coming to the front
+    val refreshScope = rememberCoroutineScope()
+    RefreshOnReturn { if (signedIn) refreshScope.launch { voting.refresh(api, tripId) } }
     val tripRounds = if (signedIn) rounds[tripId].orEmpty() else emptyList()
     val isOwner = current?.myRole == app.ransel.shared.model.Role.OWNER
     val actionRounds = tripRounds.actionRounds(isOwner)

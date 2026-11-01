@@ -1,5 +1,6 @@
 package app.ransel.feature.home
 
+import app.ransel.ui.RefreshOnReturn
 import androidx.compose.foundation.background
 import app.ransel.content.stringResource
 import org.koin.compose.koinInject
@@ -106,6 +107,7 @@ fun HomeScreen(
     onOpenRecap: (tripId: String) -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
 ) {
+    RefreshOnReturn(viewModel::refresh)
     val state by viewModel.state.collectAsState()
     // The bell is only for signed-in users; its badge is the unread count of the inbox.
     val session: SessionManager = koinInject()
