@@ -40,6 +40,7 @@ Code names follow `docs/design/README.md` (English names in code, design file na
 | `Pengguna` | `UsersScreen` | A | Searchable, filterable, paged user table; CSV export |
 | `PenggunaDetail` | `UserDetailScreen` | A (recent activity: B) | Profile, trips (metadata only), credit history, devices, actions; the recent activity list needs the stage B logs |
 | `PenggunaAturKredit` | `AdjustCreditsDialog` | A | Add or subtract credits (rules below) |
+| None yet (owner to review) | `VouchersScreen` | A | Promo vouchers: make one (credits, uses, days valid, note), copy the code, see uses and status, revoke |
 | `JelajahAI` | `ExploreAiScreen` | B | Searches, cache rate, saved cards, latency, users out of credits, credits used, daily cost, user choices, recent searches |
 | `Sistem` | `SystemScreen` | B (health, errors), C (settings) | Health, errors per code, settings including credit settings |
 | `KontenTeks` | `ContentStringsScreen` | D | Server-delivered UI strings, ID and EN, draft/publish |
@@ -98,7 +99,7 @@ Every action asks for confirmation in Karung and writes an audit row.
 
 ## Audit log
 
-New table `admin_audit_log`: id, admin user id, action (`CREDITS_ADJUST`, `SETTINGS_UPDATE`, `USER_SIGN_OUT_ALL`, `USER_DISABLE`, `USER_ENABLE`, `PASSWORD_RESET_SEND`, `CONTENT_PUBLISH`, `USERS_EXPORT`), target (user id / setting key / content key), JSON before/after, created_at. Append-only; nothing in Karung edits or deletes it. Shown on the user detail page (actions on that user) and on the System page (settings changes).
+New table `admin_audit_log`: id, admin user id, action (`CREDITS_ADJUST`, `SETTINGS_UPDATE`, `USER_SIGN_OUT_ALL`, `USER_DISABLE`, `USER_ENABLE`, `PASSWORD_RESET_SEND`, `CONTENT_PUBLISH`, `USERS_EXPORT`, `VOUCHER_CREATE`, `VOUCHER_REVOKE`), target (user id / setting key / content key / voucher code), JSON before/after, created_at. Append-only; nothing in Karung edits or deletes it. Shown on the user detail page (actions on that user) and on the System page (settings changes).
 
 ## Monitoring data (stage B)
 
@@ -143,6 +144,8 @@ All under `/admin`, bearer token with the admin claim (403 `FORBIDDEN` otherwise
 | POST | /admin/users/{id}/sign-out-all | Revoke refresh tokens | A |
 | POST | /admin/users/{id}/disable · /enable | Deactivate / reactivate | A |
 | POST | /admin/users/{id}/password-reset | Send reset email | A (hidden until provider) |
+| GET · POST | /admin/vouchers?page= | Promo vouchers: list newest first; POST `CreateVoucherRequest` → 201 `AdminVoucherDto` (audited `VOUCHER_CREATE`) | A |
+| POST | /admin/vouchers/{code}/revoke | Stop a voucher from being redeemed → `AdminVoucherDto` (audited `VOUCHER_REVOKE`) | A |
 | GET | /admin/audit?targetId=&action=&page= | Audit log | A |
 | GET | /admin/overview?range=TODAY\|LAST\_7\_DAYS\|LAST\_30\_DAYS | Overview numbers and charts (`AdminOverviewDto`) | B (built) |
 | GET | /admin/explore?month=YYYY-MM | Explore AI page (`AdminExploreDto`) | B (built) |

@@ -20,6 +20,8 @@ object AdminRoutes {
     fun userDisable(userId: String) = "/admin/users/$userId/disable"       // POST → AdminActionResult
     fun userEnable(userId: String) = "/admin/users/$userId/enable"         // POST → AdminActionResult
     fun userPasswordReset(userId: String) = "/admin/users/$userId/password-reset" // POST → 204; 409 CONFLICT while email is not set up
+    const val VOUCHERS = "/admin/vouchers"                         // GET ?page= → List<AdminVoucherDto> + meta, newest first; POST CreateVoucherRequest → 201 AdminVoucherDto
+    fun voucherRevoke(code: String) = "/admin/vouchers/$code/revoke" // POST → AdminVoucherDto; 404 VOUCHER_INVALID
     const val AUDIT = "/admin/audit"                               // GET ?targetId=&action=&page= → List<AdminAuditEntryDto> + meta
 
     // Stage B ─ monitoring (read only; days are WIB days, provider money in micro-USD, never trip content)
