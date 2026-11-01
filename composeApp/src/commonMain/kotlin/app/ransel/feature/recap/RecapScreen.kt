@@ -240,10 +240,6 @@ fun RecapHomeCard(title: String, currency: String, recap: TripRecap, openTransfe
         modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.primaryContainer).clickable(role = Role.Button, onClick = onOpen).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Symbol(Symbols.star, size = 18.dp, tint = scheme.primary)
-            Text(stringResource(Res.string.home_recap_badge), style = MaterialTheme.typography.labelLarge, color = scheme.primary)
-        }
         Text(stringResource(Res.string.recap_headline, title), style = MaterialTheme.typography.titleLarge, color = scheme.onPrimaryContainer)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             MiniStat(recap.placesVisited.toString(), stringResource(Res.string.home_recap_places))

@@ -3265,12 +3265,6 @@
    "en": "unscheduled"
   },
   {
-   "key": "home_recap_badge",
-   "area": "home",
-   "id": "Rekap siap",
-   "en": "Recap ready"
-  },
-  {
    "key": "home_recap_open",
    "area": "home",
    "id": "Lihat rekap",
