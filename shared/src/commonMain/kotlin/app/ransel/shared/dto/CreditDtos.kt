@@ -83,6 +83,6 @@ data class CreditPackageDto(
 @Serializable
 data class CreditPackagesResponse(
     val packages: List<CreditPackageDto>,
-    /** True when the server takes orders (`CREDIT_PURCHASE_ENABLED`; by email and voucher, no payment provider yet). False: show the packs but do not offer to buy. */
+    /** True when the server takes orders (`CREDIT_PURCHASE_ENABLED`; by email and paid manually, no payment provider yet). False: show the packs but do not offer to buy. */
     val purchasable: Boolean = false,
 )
