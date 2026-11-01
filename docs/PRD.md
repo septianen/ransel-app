@@ -55,7 +55,7 @@ Main scenarios:
 4. The owner sends a members' packing list; everyone ticks their own bag, and the group shares who brings the stove.
 5. During the trip the group records expenses (also from a receipt photo); at the end Saldo shows the fewest transfers and the receiver's bank details.
 6. The user uses the app without signal; changes are sent when back online.
-7. After the trip the group gets a recap card to share and can start the next trip from it.
+7. After the trip the group gets a recap card to share.
 
 ## Scope per phase
 
@@ -69,7 +69,7 @@ Five product phases in order; Phase 1 is already useful for a real trip without 
 | 4 — Multi-member | Invites, roles, paid by, split bill, balances, settlements, packing templates | Two accounts manage one trip and the split result is correct |
 | 5 — Explore AI | Preference form, swipe cards, Unscheduled, Explore credits, place voting on group trips | Recommendations are real places and can be scheduled into the itinerary |
 | 6 — Admin (Karung) | Internal admin web app: users, credit adjustments, monitoring, settings, remote content | An admin can find a user, adjust their credits and see it in their credit history |
-| Group trips (stages 1–9) | Members by name, comments, polls, group money, destinations, overseas trips, group packing, sharing and the guest page, documents, recap, trip templates | A group of four, one without an account, plans, packs and settles one trip in the app |
+| Group trips (stages 1–9) | Members by name, comments, polls, group money, destinations, overseas trips, group packing, sharing and the guest page, documents, recap | A group of four, one without an account, plans, packs and settles one trip in the app |
 
 The UI is designed in the "RANSEL — IRIS" canvas and the admin app in the "Karung" canvas; what remains is listed under Open questions.
 
@@ -81,7 +81,7 @@ The UI is designed in the "RANSEL — IRIS" canvas and the admin app in the "Kar
 
 - Home shows the nearest trip (cover, countdown), a **Persiapan trip** card (itinerary days filled, packing items ready, number of unscheduled places), and a prompt to Explore AI. Tapping the nearest trip opens **Ringkasan** for a group trip and **Itinerary** for a solo trip. For two weeks after a trip ends, a "Rekap siap" card opens its recap. There is no remaining-budget card and no shortcut tiles.
 - My trips groups trips into Ongoing, Upcoming, and Finished. The Create trip button is the FAB.
-- Create/edit trip: name, destination (destination picker), date range (DateRangePicker; no day before today, except that a trip under way keeps its saved start), budget, currency, cover, and on Create an optional **trip template**. Deleting a trip goes through a dialog that lists how many activities, items, and expense entries will be deleted with it.
+- Create/edit trip: name, destination (destination picker), date range (DateRangePicker; no day before today, except that a trip under way keeps its saved start), budget, currency, cover. Deleting a trip goes through a dialog that lists how many activities, items, and expense entries will be deleted with it.
 - A trip has four tabs: **Ringkasan**, **Itinerary**, **Packing**, **Biaya**. Tab labels always stay on one line (they shrink to at least 12 sp before an ellipsis). The header shows back, the title and dates (plus the difference with WIB abroad or in WITA/WIT), **Rekap trip** after the end date, and **Ubah trip** for the owner. Members open from Ringkasan, not from the header (27 Oct 2026).
 - Empty states: Home without trips, My trips empty, and My trips without upcoming trips.
 
@@ -247,7 +247,7 @@ Built in stage 4 (a third Biaya view "Kas", deposits, "Ambil dari kas"), then re
 
 ### P2 · Trip recap
 
-- After the end date, the trip header has "Rekap trip", Home shows a "Rekap siap" card for two weeks, and a notification arrives the next morning: days, activities, places, total spend, and "Semua patungan lunas" when all balances are settled. It can be shared as an image or saved as a trip template, and "Buat trip dengan grup ini" starts the next trip through the invite sheet.
+- After the end date, the trip header has "Rekap trip", Home shows a recap card for two weeks, and a notification arrives the next morning: days, activities, places, total spend, and "Semua patungan lunas" when all balances are settled. The recap is a sheet with the card and its share action (an image; web: download), not a screen of its own (owner, 1 Nov 2026). The Home card has "Bagikan", which opens the sheet, and leads to the trip: "Selesaikan pembayaran" to Biaya while transfers are open, else "Lihat detail trip". Trip templates and "Buat trip dengan grup ini" were removed from the apps (owner, 1 Nov 2026): nothing saves or uses a trip template; the server endpoints and saved rows stay unused. Packing templates are not affected.
 
 ### Polls (agreed 24–25 Oct 2026)
 

@@ -85,7 +85,6 @@ val commonModule: Module = module {
     single { InviteLinks() }
     single { app.ransel.feature.guest.PendingPollLink() }
     single { app.ransel.platform.deviceFiles() }
-    viewModel { app.ransel.feature.tripform.TripTemplatesViewModel(get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.recap.RecapViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.documents.DocumentsViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.albums.AlbumsViewModel(params.get(), get(), get(), get()) }

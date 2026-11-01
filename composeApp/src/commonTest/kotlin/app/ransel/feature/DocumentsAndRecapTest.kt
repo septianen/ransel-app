@@ -15,7 +15,6 @@ import app.ransel.feature.documents.DocumentsEvent
 import app.ransel.feature.documents.DocumentsViewModel
 import app.ransel.feature.documents.PickedFile
 import app.ransel.feature.recap.RecapViewModel
-import app.ransel.feature.tripform.TripTemplatesViewModel
 import app.ransel.platform.DeviceFiles
 import app.ransel.shared.dto.AuthSessionDto
 import app.ransel.shared.dto.CreateTripRequest
@@ -158,26 +157,13 @@ class DocumentsAndRecapTest {
     }
 
     @Test
-    fun aTemplateFillsTheNewTripAndTheRecapCountsIt() = runTest {
+    fun theRecapCountsTheTripsDays() = runTest {
         val store = InMemoryStore()
         val trips = InMemoryTripRepository(store)
-        val itinerary = InMemoryItineraryRepository(store)
-        val packing = InMemoryPackingRepository(store)
         trips.create(CreateTripRequest("t1", "Bali", "Bali", LocalDate(2026, 11, 20), LocalDate(2026, 11, 22), "IDR"))
-        val templates = TripTemplatesViewModel(api(), signedIn(), itinerary, packing)
-        eventually { templates.state.value.templates.isNotEmpty() }
-        templates.choose(templates.state.value.templates.single())
-        var done = false
-        templates.applyTo("t1", LocalDate(2026, 11, 20), LocalDate(2026, 11, 22)) { done = true }
-        eventually { done }
-        val items = itinerary.observe("t1").first()
-        assertEquals(setOf(LocalDate(2026, 11, 21), null), items.map { it.dayDate }.toSet(), "day 6 does not fit a 3-day trip")
-        assertEquals(2, packing.observe("t1").first().single().quantity)
-
-        val recap = RecapViewModel("t1", trips, itinerary, InMemoryExpenseRepository(store), api(), signedIn())
+        val recap = RecapViewModel("t1", trips, InMemoryItineraryRepository(store), InMemoryExpenseRepository(store), api(), signedIn())
         eventually { recap.state.value.recap != null }
         assertEquals(3, recap.state.value.recap?.days)
-        templates.viewModelScope.cancel()
         recap.viewModelScope.cancel()
     }
 }

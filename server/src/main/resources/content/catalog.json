@@ -3265,12 +3265,6 @@
    "en": "unscheduled"
   },
   {
-   "key": "home_recap_open",
-   "area": "home",
-   "id": "Lihat rekap",
-   "en": "See the recap"
-  },
-  {
    "key": "home_recap_per_person",
    "area": "home",
    "id": "per orang",
@@ -3283,10 +3277,22 @@
    "en": "places"
   },
   {
+   "key": "home_recap_settle",
+   "area": "home",
+   "id": "Selesaikan pembayaran",
+   "en": "Settle payments"
+  },
+  {
    "key": "home_recap_total",
    "area": "home",
    "id": "total",
    "en": "total"
+  },
+  {
+   "key": "home_recap_trip",
+   "area": "home",
+   "id": "Lihat detail trip",
+   "en": "See trip details"
   },
   {
    "key": "home_title",
@@ -7003,24 +7009,6 @@
    "en": "%1$s, done!"
   },
   {
-   "key": "recap_new_trip",
-   "area": "recap",
-   "id": "Buat trip dengan grup ini",
-   "en": "New trip with this group"
-  },
-  {
-   "key": "recap_next_body",
-   "area": "recap",
-   "id": "Pakai susunan ini lagi, lalu ajak grup yang sama lewat link undangan.",
-   "en": "Use this plan again, then invite the same group with the invite link."
-  },
-  {
-   "key": "recap_next_title",
-   "area": "recap",
-   "id": "Trip berikutnya?",
-   "en": "Next trip?"
-  },
-  {
    "key": "recap_not_yet",
    "area": "recap",
    "id": "Rekap ada setelah trip selesai",
@@ -7039,18 +7027,6 @@
    "en": "places visited"
   },
   {
-   "key": "recap_save_template",
-   "area": "recap",
-   "id": "Simpan jadi template trip",
-   "en": "Save as a trip template"
-  },
-  {
-   "key": "recap_settle_open",
-   "area": "recap",
-   "id": "Lihat yang belum lunas",
-   "en": "See open transfers"
-  },
-  {
    "key": "recap_settled",
    "area": "recap",
    "id": "Semua patungan lunas",
@@ -7067,18 +7043,6 @@
    "area": "recap",
    "id": "Gambar rekap belum bisa dibuat.",
    "en": "The recap image could not be made."
-  },
-  {
-   "key": "recap_template_failed",
-   "area": "recap",
-   "id": "Template belum tersimpan. Coba lagi.",
-   "en": "The template was not saved. Try again."
-  },
-  {
-   "key": "recap_template_saved",
-   "area": "recap",
-   "id": "Template trip tersimpan. Pakai saat Buat trip.",
-   "en": "Trip template saved. Use it when you create a trip."
   },
   {
    "key": "recap_title",
@@ -8567,36 +8531,6 @@
    "area": "trip",
    "id": "Packing",
    "en": "Packing"
-  },
-  {
-   "key": "trip_template_applied",
-   "area": "trip",
-   "id": "Itinerary dan packing dari \"%1$s\" ditambahkan",
-   "en": "Itinerary and packing from \"%1$s\" added"
-  },
-  {
-   "key": "trip_template_delete",
-   "area": "trip",
-   "id": "Hapus template",
-   "en": "Delete template"
-  },
-  {
-   "key": "trip_template_hint",
-   "area": "trip",
-   "id": "%1$d hari · %2$d aktivitas · %3$d barang",
-   "en": "%1$d days · %2$d activities · %3$d items"
-  },
-  {
-   "key": "trip_template_none",
-   "area": "trip",
-   "id": "Tanpa template",
-   "en": "No template"
-  },
-  {
-   "key": "trip_template_use",
-   "area": "trip",
-   "id": "Pakai template trip",
-   "en": "Use a trip template"
   },
   {
    "key": "trips_create",
