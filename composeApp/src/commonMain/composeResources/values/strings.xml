@@ -1191,6 +1191,8 @@
     <string name="money_claims_title">Waiting for confirmation</string>
     <string name="money_nothing_title">No one owes anyone yet</string>
     <string name="money_nothing_body">Add shared expenses and RANSEL works out who pays whom.</string>
+    <string name="money_all_settled_title">All settled up</string>
+    <string name="money_all_settled_body">Nobody needs to pay anyone. Time to relax!</string>
     <string name="money_claim_from">%1$s says they paid you</string>
     <string name="money_claim_waiting">Waiting for %1$s to confirm</string>
     <string name="money_claim_confirm">Received</string>
@@ -1664,7 +1666,6 @@
     <string name="trip_cover_change">Change photo</string>
     <string name="trip_cover_sheet_title">Trip photo</string>
     <string name="account_photo_sheet_title">Profile photo</string>
-    <string name="account_name">Name</string>
     <string name="account_name_sheet_title">Change name</string>
     <string name="account_name_sheet_hint">Friends see this name in every trip.</string>
     <string name="account_name_field">Name</string>
