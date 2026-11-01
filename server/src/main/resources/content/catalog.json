@@ -1113,8 +1113,8 @@
   {
    "key": "credits_order_note",
    "area": "credits",
-   "id": "Ketuk paket untuk membuka draft email. Pesanan diproses manual: kami balas dengan cara bayar, lalu kirim kode voucher lewat email setelah pembayaran diterima. Email akunmu harus sudah terverifikasi untuk memakai kode.",
-   "en": "Tap a pack to open an email draft. Orders are handled manually: we reply with how to pay, then email you a voucher code once payment arrives. Your account email must be verified to use the code."
+   "id": "Ketuk paket untuk membuka draft email. Pesanan diproses manual: kami balas dengan cara bayar, lalu kredit ditambahkan ke akunmu setelah pembayaran diterima.",
+   "en": "Tap a pack to open an email draft. Orders are handled manually: we reply with how to pay, then add the credits to your account once payment arrives."
   },
   {
    "key": "credits_order_subject",

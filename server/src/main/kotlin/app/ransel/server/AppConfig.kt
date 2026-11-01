@@ -75,7 +75,7 @@ data class AppConfig(
     val creditCostReceipt: Int = 1,
     /** Top-up packs shown by `GET /credits/packages`. */
     val creditPackages: List<CreditPack> = DEFAULT_CREDIT_PACKS,
-    /** `purchasable` of `GET /credits/packages`: packs can be ordered (by email for now, the owner answers with a voucher). */
+    /** `purchasable` of `GET /credits/packages`: packs can be ordered (by email for now, the owner adds the credits in Karung). */
     val creditPurchaseEnabled: Boolean = false,
     /** Push (FCM HTTP v1). Blank service account = pushes are only logged; the inbox works either way. */
     val fcmProjectId: String = "",

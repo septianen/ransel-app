@@ -29,7 +29,7 @@ data class CreditsUiState(
     val redeemError: String? = null,
     /** Credits added by the last successful redeem, shown once. */
     val redeemed: Int? = null,
-    /** Put in the order email so the owner knows which account to send the voucher to. */
+    /** Put in the order email so the owner knows which account gets the credits. */
     val accountEmail: String = "",
 )
 

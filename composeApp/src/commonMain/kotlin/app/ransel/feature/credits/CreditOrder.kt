@@ -2,7 +2,7 @@ package app.ransel.feature.credits
 
 import io.ktor.http.encodeURLParameter
 
-/** Receives credit pack orders until a payment provider exists: the owner answers with payment instructions, then a voucher. */
+/** Receives credit pack orders until a payment provider exists: the owner answers with payment instructions, then adds the credits in Karung. */
 const val CREDIT_ORDER_EMAIL = "developer.septianen@gmail.com"
 
 /** A `mailto:` link with the draft filled in. RFC 6068 asks for CRLF line breaks in the body. */
