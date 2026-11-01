@@ -255,13 +255,13 @@ private fun PackingList(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
             )
         }
+        // inside the Box: in the group's Column an empty host below it took 32 dp and lifted the FAB and empty state
+        androidx.compose.material3.SnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+            snackbar = { data -> app.ransel.ui.components.UndoSnackbar(message = data.visuals.message) },
+        )
     }
-
-    androidx.compose.material3.SnackbarHost(
-        hostState = snackbar,
-        modifier = Modifier.padding(16.dp),
-        snackbar = { data -> app.ransel.ui.components.UndoSnackbar(message = data.visuals.message) },
-    )
 
     val allItems = state.groups.flatMap { it.items }
     when (val target = sheet) {
