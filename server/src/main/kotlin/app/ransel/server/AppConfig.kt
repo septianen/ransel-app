@@ -1,5 +1,6 @@
 package app.ransel.server
 
+import app.ransel.shared.domain.isValidAppVersion
 import app.ransel.shared.model.AiBudgetMode
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -77,6 +78,9 @@ data class AppConfig(
     val creditPackages: List<CreditPack> = DEFAULT_CREDIT_PACKS,
     /** `purchasable` of `GET /credits/packages`: packs can be ordered (by email for now, the owner adds the credits in Karung). */
     val creditPurchaseEnabled: Boolean = false,
+    /** Update dialog per platform; Karung overrides these (`SettingsService`). Blank minimum or link = no dialog. */
+    val androidUpdate: AppUpdate = AppUpdate(),
+    val iosUpdate: AppUpdate = AppUpdate(),
     /** Push (FCM HTTP v1). Blank service account = pushes are only logged; the inbox works either way. */
     val fcmProjectId: String = "",
     val fcmServiceAccountJson: String = "",
@@ -128,6 +132,9 @@ data class AppConfig(
         val placesGeocode: Long = 5_000,
     )
 
+    /** [minVersion] "1.2.3" or blank; [force] = the dialog cannot be dismissed; [storeUrl] = an https store link or blank. */
+    data class AppUpdate(val minVersion: String = "", val force: Boolean = false, val storeUrl: String = "")
+
     data class CreditPack(val id: String, val credits: Int, val priceMinor: Long, val currency: String = "IDR")
 
     data class SeedUser(val email: String, val password: String, val displayName: String)
@@ -156,6 +163,13 @@ data class AppConfig(
         )
 
         /** `CREDIT_PACKAGES` = `id:credits:priceMinor;id:credits:priceMinor` (currency IDR). */
+        /** `<PLATFORM>_MIN_VERSION`, `_FORCE_UPDATE`, `_STORE_URL`; a value Karung would refuse is ignored. */
+        private fun appUpdate(env: Map<String, String>, platform: String) = AppUpdate(
+            minVersion = env["${platform}_MIN_VERSION"].orEmpty().trim().takeIf(::isValidAppVersion).orEmpty(),
+            force = env["${platform}_FORCE_UPDATE"].toBoolean(),
+            storeUrl = env["${platform}_STORE_URL"].orEmpty().trim().takeIf { it.startsWith("https://") && ' ' !in it }.orEmpty(),
+        )
+
         fun parseCreditPacks(raw: String?): List<CreditPack> =
             raw.orEmpty().split(';').map { it.trim() }.filter { it.isNotEmpty() }.mapIndexed { index, entry ->
                 val parts = entry.split(':').map { it.trim() }
@@ -256,6 +270,8 @@ data class AppConfig(
                 creditCostReceipt = env["CREDIT_COST_RECEIPT"]?.toIntOrNull()?.coerceAtLeast(0) ?: 1,
                 creditPackages = parseCreditPacks(env["CREDIT_PACKAGES"]).ifEmpty { DEFAULT_CREDIT_PACKS },
                 creditPurchaseEnabled = env["CREDIT_PURCHASE_ENABLED"].toBoolean(),
+                androidUpdate = appUpdate(env, "ANDROID"),
+                iosUpdate = appUpdate(env, "IOS"),
                 fcmProjectId = env["FCM_PROJECT_ID"].orEmpty().trim(),
                 fcmServiceAccountJson = serviceAccountJson(env["FCM_SERVICE_ACCOUNT_JSON"]),
                 notifyPackingHour = env["NOTIFY_PACKING_HOUR"]?.toIntOrNull()?.coerceIn(0, 23) ?: 18,

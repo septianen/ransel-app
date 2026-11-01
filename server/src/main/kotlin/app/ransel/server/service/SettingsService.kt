@@ -123,6 +123,12 @@ class SettingsService(private val base: AppConfig) {
             SettingKey.AI_BUDGET_MODE -> config.aiBudgetMode.name
             SettingKey.SUGGESTIONS_PER_HOUR -> config.suggestionsRateLimitPerHour.toString()
             SettingKey.LLM_MODEL -> config.llmModel
+            SettingKey.ANDROID_MIN_VERSION -> config.androidUpdate.minVersion
+            SettingKey.ANDROID_FORCE_UPDATE -> config.androidUpdate.force.toString()
+            SettingKey.ANDROID_STORE_URL -> config.androidUpdate.storeUrl
+            SettingKey.IOS_MIN_VERSION -> config.iosUpdate.minVersion
+            SettingKey.IOS_FORCE_UPDATE -> config.iosUpdate.force.toString()
+            SettingKey.IOS_STORE_URL -> config.iosUpdate.storeUrl
         }
 
         /** [config] with [values] applied; a stored value that no longer passes the rule (a model taken off the list) is skipped. */
@@ -141,6 +147,12 @@ class SettingsService(private val base: AppConfig) {
                     SettingKey.AI_BUDGET_MODE -> c.copy(aiBudgetMode = AiBudgetMode.valueOf(value))
                     SettingKey.SUGGESTIONS_PER_HOUR -> c.copy(suggestionsRateLimitPerHour = value.toInt())
                     SettingKey.LLM_MODEL -> c.copy(llmModel = value)
+                    SettingKey.ANDROID_MIN_VERSION -> c.copy(androidUpdate = c.androidUpdate.copy(minVersion = value))
+                    SettingKey.ANDROID_FORCE_UPDATE -> c.copy(androidUpdate = c.androidUpdate.copy(force = value.toBoolean()))
+                    SettingKey.ANDROID_STORE_URL -> c.copy(androidUpdate = c.androidUpdate.copy(storeUrl = value))
+                    SettingKey.IOS_MIN_VERSION -> c.copy(iosUpdate = c.iosUpdate.copy(minVersion = value))
+                    SettingKey.IOS_FORCE_UPDATE -> c.copy(iosUpdate = c.iosUpdate.copy(force = value.toBoolean()))
+                    SettingKey.IOS_STORE_URL -> c.copy(iosUpdate = c.iosUpdate.copy(storeUrl = value))
                 }
             }
     }
