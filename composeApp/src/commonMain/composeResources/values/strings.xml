@@ -823,7 +823,6 @@
     <string name="credits_packages_title">Credit packs</string>
     <string name="credits_package_credits">%1$d credits</string>
     <string name="credits_package_per_search">about %1$s per search</string>
-    <string name="credits_packages_soon">Buying is coming soon. For now, top up with a voucher code.</string>
     <string name="credits_order_note">Tap a pack to open an email draft. Orders are handled manually: we reply with how to pay, then add the credits to your account once payment arrives.</string>
     <string name="credits_order_fallback">Email did not open? Send your order to:</string>
     <string name="credits_order_copy">Copy</string>

@@ -1135,12 +1135,6 @@
    "en": "about %1$s per search"
   },
   {
-   "key": "credits_packages_soon",
-   "area": "credits",
-   "id": "Pembelian segera hadir. Untuk sementara, top up lewat kode voucher.",
-   "en": "Buying is coming soon. For now, top up with a voucher code."
-  },
-  {
    "key": "credits_packages_title",
    "area": "credits",
    "id": "Paket kredit",

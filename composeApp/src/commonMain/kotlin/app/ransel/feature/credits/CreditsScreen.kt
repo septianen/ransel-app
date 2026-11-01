@@ -110,9 +110,9 @@ fun CreditsContent(
             ) {
                 BalanceCard(credits)
                 VoucherSection(state, onCodeChange, onRedeem)
-                state.packages?.takeIf { it.packages.isNotEmpty() }?.let {
-                    // Web only (owner, 1 Nov 2026): store rules on digital goods keep Android and iOS on "coming soon".
-                    PackagesSection(it.packages, canOrder = it.purchasable && requiresAccount, credits.costs, state.accountEmail)
+                // Web only (owner, 1 Nov 2026): store rules on digital goods mean Android and iOS show no packs at all.
+                state.packages?.takeIf { it.packages.isNotEmpty() && it.purchasable && requiresAccount }?.let {
+                    PackagesSection(it.packages, credits.costs, state.accountEmail)
                 }
                 HistorySection(state.ledger)
             }
@@ -205,27 +205,21 @@ private fun voucherError(code: String): String = remoteErrorCopy(code)?.message 
 )
 
 @Composable
-private fun PackagesSection(packages: List<CreditPackageDto>, canOrder: Boolean, costs: CreditCostsDto, accountEmail: String) {
+private fun PackagesSection(packages: List<CreditPackageDto>, costs: CreditCostsDto, accountEmail: String) {
     val scheme = MaterialTheme.colorScheme
     val uriHandler = LocalUriHandler.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(stringResource(Res.string.credits_packages_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         packages.forEach { pack ->
             val price = formatMoney(pack.priceMinor, pack.currency)
-            val orderLink = if (canOrder) {
-                creditOrderMailto(
-                    subject = stringResource(Res.string.credits_order_subject, pack.credits),
-                    body = stringResource(Res.string.credits_order_body, pack.credits, price, accountEmail),
-                )
-            } else null
+            val orderLink = creditOrderMailto(
+                subject = stringResource(Res.string.credits_order_subject, pack.credits),
+                body = stringResource(Res.string.credits_order_body, pack.credits, price, accountEmail),
+            )
             Row(
                 Modifier.fillMaxWidth().clip(IrisShape.lg).border(1.dp, scheme.outlineVariant, IrisShape.lg)
-                    .then(
-                        if (orderLink != null) {
-                            // The address under the packs covers a browser with no mail app: opening fails silently there.
-                            Modifier.clickable(role = SemanticsRole.Button) { runCatching { uriHandler.openUri(orderLink) } }
-                        } else Modifier,
-                    )
+                    // The address under the packs covers a browser with no mail app: opening fails silently there.
+                    .clickable(role = SemanticsRole.Button) { runCatching { uriHandler.openUri(orderLink) } }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -243,14 +237,10 @@ private fun PackagesSection(packages: List<CreditPackageDto>, canOrder: Boolean,
                     }
                 }
                 Text(price, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                if (orderLink != null) Symbol(Symbols.mail, tint = scheme.primary)
+                Symbol(Symbols.mail, tint = scheme.primary)
             }
         }
-        if (canOrder) {
-            OrderNote()
-        } else {
-            Text(stringResource(Res.string.credits_packages_soon), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-        }
+        OrderNote()
     }
 }
 
