@@ -137,6 +137,12 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                         RanselMark(size = 32.dp, tint = MaterialTheme.colorScheme.primary)
                     }
                 }
+                Section("RecapHomeCard") {
+                    app.ransel.feature.recap.RecapHomeCard(
+                        "Bali 4 hari", "IDR", app.ransel.shared.domain.TripRecap(11, 4, 3_700_000, 740_000, 5, emptyList()),
+                        openTransfers = 1, shareLabel = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {},
+                    )
+                }
                 Section("TripHeader") {
                     TripHeader("Bali 4 hari", "20–23 Nov 2026", TripTab.ITINERARY, {}, {}, onEdit = {})
                 }

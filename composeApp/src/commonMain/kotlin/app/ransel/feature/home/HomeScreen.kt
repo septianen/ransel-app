@@ -1,5 +1,6 @@
 package app.ransel.feature.home
 
+import app.ransel.feature.recap.storyText
 import app.ransel.ui.RefreshOnReturn
 import androidx.compose.foundation.background
 import app.ransel.content.stringResource
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +63,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.recap_download
+import ransel.composeapp.generated.resources.recap_share
 import ransel.composeapp.generated.resources.ic_data_not_found
 import ransel.composeapp.generated.resources.greeting_afternoon
 import ransel.composeapp.generated.resources.greeting_evening
@@ -476,14 +480,24 @@ private fun HomeContentPreview() = IrisPreview {
     )
 }
 
-/** The recap card's numbers come from the trip's own recap view model. */
+/** The recap card's numbers come from the trip's own recap view model. "Bagikan rekap" picks a picture from here. */
 @Composable
 private fun RecapCardOnHome(tripId: String, onOpen: () -> Unit, onSettle: () -> Unit) {
     val recapVm: app.ransel.feature.recap.RecapViewModel = koinViewModel(key = "recap-$tripId") { org.koin.core.parameter.parametersOf(tripId) }
+    val files: app.ransel.platform.DeviceFiles = koinInject()
     // Settling up happens in the trip: back on Home the card shows what is left.
     RefreshOnReturn(recapVm::refresh)
     val state by recapVm.state.collectAsState()
+    var picking by androidx.compose.runtime.saveable.rememberSaveable(tripId) { androidx.compose.runtime.mutableStateOf(false) }
     val trip = state.trip ?: return
     val recap = state.recap ?: return
-    app.ransel.feature.recap.RecapHomeCard(trip.title, trip.baseCurrency, recap, state.openTransfers, onOpen, onSettle)
+    app.ransel.feature.recap.RecapHomeCard(
+        trip.title, trip.baseCurrency, recap, state.openTransfers,
+        shareLabel = stringResource(if (files.keepsFiles) Res.string.recap_share else Res.string.recap_download),
+        onOpen = onOpen,
+        onSettle = onSettle,
+        onShare = { picking = true },
+    )
+    val story = state.storyText()
+    if (picking && story != null) app.ransel.feature.recap.RecapTemplateSheet(story, files, onDismiss = { picking = false })
 }

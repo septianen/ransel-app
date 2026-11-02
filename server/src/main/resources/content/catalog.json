@@ -3265,12 +3265,6 @@
    "en": "unscheduled"
   },
   {
-   "key": "home_recap_open",
-   "area": "home",
-   "id": "Lihat rekap",
-   "en": "See the recap"
-  },
-  {
    "key": "home_recap_per_person",
    "area": "home",
    "id": "per orang",
@@ -3281,18 +3275,6 @@
    "area": "home",
    "id": "tempat",
    "en": "places"
-  },
-  {
-   "key": "home_recap_settle",
-   "area": "home",
-   "id": "Selesaikan pembayaran",
-   "en": "Settle payments"
-  },
-  {
-   "key": "home_recap_total",
-   "area": "home",
-   "id": "total",
-   "en": "total"
   },
   {
    "key": "home_title",

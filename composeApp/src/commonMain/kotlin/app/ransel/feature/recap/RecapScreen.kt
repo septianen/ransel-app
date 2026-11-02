@@ -20,7 +20,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.widthIn
+import app.ransel.ui.theme.IrisTheme
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.FilterQuality
@@ -125,7 +128,7 @@ fun RecapScreen(
  * are the real pictures, so what is picked is what is sent.
  */
 @Composable
-private fun RecapTemplateSheet(story: RecapStoryText, files: DeviceFiles, onDismiss: () -> Unit) {
+fun RecapTemplateSheet(story: RecapStoryText, files: DeviceFiles, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     val measurer = rememberTextMeasurer()
     val family = MaterialTheme.typography.bodyMedium.fontFamily
@@ -207,7 +210,7 @@ private fun RecapTemplate.label(): StringResource = when (this) {
 
 /** What the picture says; null until the trip and its recap are there. */
 @Composable
-private fun RecapUiState.storyText(): RecapStoryText? {
+fun RecapUiState.storyText(): RecapStoryText? {
     val trip = trip ?: return null
     val recap = recap ?: return null
     val dates = rememberDateFormatter()
@@ -369,53 +372,106 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
 }
 
 /**
- * Design "BerandaRekap": the card on Home after a trip ended. A tap opens the recap; [onSettle] goes to the trip's
- * expenses while transfers are open.
+ * Board BerandaRekap, "Hero hijau": the card on Home after a trip ended. A tap opens the recap ([onOpen]); while
+ * transfers are open the status line goes to the expenses ([onSettle]); [onShare] picks a picture from here. Accent
+ * green with white text in both themes. Fixed heights keep it at 192 dp with 48 dp touch targets; a larger font scale
+ * grows it. Text beside the mascot keeps clear of it, so white small print never sits on the drawing.
  */
 @Composable
-fun RecapHomeCard(title: String, currency: String, recap: TripRecap, openTransfers: Int?, onOpen: () -> Unit, onSettle: () -> Unit, modifier: Modifier = Modifier) {
-    val scheme = MaterialTheme.colorScheme
-    val k = stringResource(Res.string.money_unit_thousand)
-    val m = stringResource(Res.string.money_unit_million)
-    val b = stringResource(Res.string.money_unit_billion)
-    Column(
-        modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.primaryContainer).clickable(role = Role.Button, onClick = onOpen).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(stringResource(Res.string.recap_headline, title), style = MaterialTheme.typography.titleLarge, color = scheme.onPrimaryContainer)
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            MiniStat(recap.placesVisited.toString(), stringResource(Res.string.home_recap_places))
-            MiniStat(formatMoneyCompact(recap.totalMinor, currency, k, m, b), stringResource(Res.string.home_recap_total))
-            MiniStat(formatMoneyCompact(recap.perPersonMinor, currency, k, m, b), stringResource(Res.string.home_recap_per_person))
-        }
-        val unsettled = openTransfers != null && openTransfers > 0
-        if (unsettled) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Symbol(Symbols.schedule, size = 16.dp, tint = scheme.onPrimaryContainer)
-                Text(stringResource(Res.string.recap_unsettled, openTransfers ?: 0), style = MaterialTheme.typography.bodySmall, color = scheme.onPrimaryContainer, modifier = Modifier.padding(start = 4.dp))
+fun RecapHomeCard(
+    title: String,
+    currency: String,
+    recap: TripRecap,
+    openTransfers: Int?,
+    shareLabel: String,
+    onOpen: () -> Unit,
+    onSettle: () -> Unit,
+    onShare: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val green = IrisTheme.accents.green
+    val white = IrisTheme.accents.onAccent
+    Box(modifier.fillMaxWidth().heightIn(min = 192.dp).clip(IrisShape.lg).background(green).clickable(role = Role.Button, onClick = onOpen)) {
+        // cut off by the card's bottom edge, above the legs
+        Image(
+            painterResource(Res.drawable.splash_peeking),
+            contentDescription = null,
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 68.dp, end = 21.dp).requiredSize(102.dp, 133.dp),
+        )
+        Column(Modifier.fillMaxWidth().padding(top = 12.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)) {
+            Text(
+                stringResource(Res.string.recap_headline, title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = white,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(Modifier.padding(top = 8.dp, end = MASCOT_CLEARANCE), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                HeroStat(recap.placesVisited.toString(), stringResource(Res.string.home_recap_places))
+                if (recap.totalMinor > 0) {
+                    HeroStat(compactMoney(recap.perPersonMinor, currency), stringResource(Res.string.home_recap_per_person), Modifier.weight(1f, fill = false))
+                }
+            }
+            HeroStatus(openTransfers, onSettle)
+            // 48 dp to tap, a 44 dp pill to see
+            Box(Modifier.heightIn(min = 48.dp).clickable(role = Role.Button, onClick = onShare), contentAlignment = Alignment.CenterStart) {
+                Row(
+                    Modifier.heightIn(min = 44.dp).clip(CircleShape).background(white).padding(start = 14.dp, end = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Symbol(Symbols.share, size = 20.dp, tint = green)
+                    Text(shareLabel, style = MaterialTheme.typography.titleSmall, color = green, maxLines = 1)
+                }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+    }
+}
+
+/** Room the text under the title leaves for the mascot (102 wide + 21 margin − the card's 16 padding, plus a gap). */
+private val MASCOT_CLEARANCE = 115.dp
+
+/**
+ * Open transfers lead to the expenses, all settled is only said; not known (offline, guest) shows nothing but keeps the
+ * room. 48 dp tall to tap, the text sits at the bottom next to the pill and may take two lines on a narrow phone.
+ */
+@Composable
+private fun HeroStatus(openTransfers: Int?, onSettle: () -> Unit) {
+    val white = IrisTheme.accents.onAccent
+    val row = Modifier.fillMaxWidth().padding(end = MASCOT_CLEARANCE).heightIn(min = 48.dp)
+    when {
+        openTransfers == null -> Spacer(row)
+        else -> {
+            val open = openTransfers > 0
             Row(
-                Modifier.heightIn(min = 48.dp).clip(IrisShape.md).then(if (unsettled) Modifier.clickable(role = Role.Button, onClick = onSettle) else Modifier).padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                if (open) row.clickable(role = Role.Button, onClick = onSettle) else row,
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    stringResource(if (unsettled) Res.string.home_recap_settle else Res.string.home_recap_open),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = scheme.primary,
-                )
-                Symbol(Symbols.chevronRight, tint = scheme.primary)
+                Row(Modifier.heightIn(min = 28.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Symbol(if (open) Symbols.schedule else Symbols.checkCircle, size = 16.dp, tint = white, filled = !open)
+                    Text(
+                        if (open) stringResource(Res.string.recap_unsettled, openTransfers) else stringResource(Res.string.recap_settled),
+                        Modifier.weight(1f, fill = false),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = white,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (open) Symbol(Symbols.chevronRight, size = 16.dp, tint = white)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MiniStat(value: String, label: String) {
-    Column {
-        Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+private fun HeroStat(value: String, label: String, modifier: Modifier = Modifier) {
+    val white = IrisTheme.accents.onAccent
+    Column(modifier) {
+        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = white, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -429,6 +485,12 @@ private fun RecapCardPreview() = IrisPreview {
 
 @Preview
 @Composable
-private fun RecapHomeCardPreview() = IrisPreview {
-    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 1, onOpen = {}, onSettle = {})
+private fun RecapHomeCardOpenPreview() = IrisPreview {
+    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 1, shareLabel = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {})
+}
+
+@Preview
+@Composable
+private fun RecapHomeCardSettledPreview() = IrisPreview {
+    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 0, shareLabel = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {})
 }
