@@ -99,6 +99,27 @@ One-time setup:
 
 Keep the release keystore and its passwords safe outside git: the Play Store later needs the same key (or Play App Signing's upload key), and an app signed with another key cannot update the installed one. For push in the debug app, add its SHA fingerprints in Firebase only if a feature needs them (FCM does not).
 
+## Google Play (closed testing)
+
+A release run of *Distribute Android* (push to `main`, or *Run workflow* on `main` with target `production`) also builds `composeApp-release.aab` and keeps it with `mapping.txt` as the workflow artifact `ransel-play-<run>` for 90 days. Upload the AAB in Play Console -> Test and release -> Closed testing (the first upload is always by hand). The bundle is signed with the release keystore, which becomes the **upload key** once Play App Signing is on.
+
+- **Version:** `versionName` is in `composeApp/build.gradle.kts` (1.0.0); `versionCode` is the run number of *Distribute Android*, so it only goes up. Do not rename or recreate that workflow file, or the count starts again at 1 and Play rejects the upload.
+- **Checks in every run:** the permission list of the APK is printed; the run fails on `AD_ID` / AdServices permissions (the app has no ads, the manifest removes what Firebase Analytics adds) and on native libraries that are not 16 KB aligned.
+- **App Links with Play App Signing:** Play re-signs the app with its own key, so `assetlinks.json` must list both fingerprints. Set the repository variable `ANDROID_CERT_SHA256` to both, comma separated: the *App signing key certificate* SHA-256 and the *Upload key certificate* SHA-256 (Play Console -> Test and release -> App integrity -> App signing). Run *Deploy server*, then check `https://ransel.mietek.tech/.well-known/assetlinks.json`. Add the Play signing SHA-1/SHA-256 to the `app.ransel` app in Firebase too.
+- **Privacy policy and account deletion URLs** (Play Console -> App content): `https://ransel.mietek.tech/privacy.html` and `https://ransel.mietek.tech/delete-account.html` (live once the delete-account branch is deployed by *Deploy web*).
+
+### Store review account
+
+Reviewers need a verified account with a full trip. Accounts in `SEED_USERS` (repository **secret**, `email|password|name;...`) are created verified on every server start and never get a password reset, so:
+
+1. Add `reviewer@<your domain>|<password>|Reviewer RANSEL` to the `SEED_USERS` secret (keep the entries already there) and run *Deploy server*. The password must pass the sign-up rule and must not contain `|` or `;`.
+2. Make the sample trip from any machine (the password is asked for, never typed on the command line):
+   ```
+   python3 deploy/seed-demo-trip.py --api https://ranselapi.mietek.tech --email reviewer@<your domain>
+   ```
+   It makes "Liburan Jogja" three weeks from today: three days of itinerary, two members without an account, packing items with who brings what, four shared expenses and an open poll with the reviewer's vote. Running it again does nothing; `--replace` makes it again with fresh dates (do that before each review if the dates have passed).
+3. Give the email and password in Play Console -> App content -> App access.
+
 ## Explore credits and vouchers
 
 Every user has a wallet (30 credits on first use) plus 3 free credits a day (resets 00:00 WIB). A new search costs 3, the next batch 1. All numbers and the pack list can be changed in the VPS `.env` (`CREDIT_SIGNUP_GRANT`, `CREDIT_DAILY_FREE`, `CREDIT_COST_SEARCH`, `CREDIT_COST_NEXT_BATCH`, `CREDIT_COST_PLACE_DETAIL`, `CREDIT_COST_RECEIPT` (one receipt photo, default 1), `CREDIT_PACKAGES=id:credits:priceMinor;...`); restart the server container after changing them. These env values are the defaults: an admin can override each credit number (receipt photo included) in Karung, Sistem > Pengaturan, without a restart; "Kembalikan bawaan" goes back to the env value. There is no payment provider. With the repository variable `CREDIT_PURCHASE_ENABLED=true` (takes effect with the next *Deploy server* run), the web app lets users order a pack: it opens an email draft to the owner, who answers with payment instructions and adds the credits in Karung once the money arrives. Android and iOS keep showing "coming soon". Promo codes are made in Karung (Voucher page) once that branch is merged; on the VPS the script still works:

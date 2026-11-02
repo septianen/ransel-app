@@ -112,15 +112,48 @@ jobs:
           RANSEL_KEY_ALIAS: ${{ secrets.RANSEL_KEY_ALIAS }}
           RANSEL_KEY_PASSWORD: ${{ secrets.RANSEL_KEY_PASSWORD }}
         run: |
-          TASK=":composeApp:assemble$(echo "${BUILD_TYPE:0:1}" | tr a-z A-Z)${BUILD_TYPE:1}"
-          ./gradlew "$TASK" -Pransel.versionCode=${{ github.run_number }} --no-daemon
+          # versionCode = this workflow's run number: it only goes up (debug and release share it), which Google Play
+          # requires. Renaming or recreating this workflow file restarts the count, so keep its name.
+          TYPE="$(echo "${BUILD_TYPE:0:1}" | tr a-z A-Z)${BUILD_TYPE:1}"
+          TASKS=":composeApp:assemble$TYPE"
+          # Release also builds the App Bundle (AAB) for Google Play, signed with the same (upload) key.
+          if [ "$BUILD_TYPE" = release ]; then TASKS="$TASKS :composeApp:bundleRelease"; fi
+          ./gradlew $TASKS -Pransel.versionCode=${{ github.run_number }} --no-daemon
           test -f "$APK" || { echo "no APK at $APK" >&2; ls -R composeApp/build/outputs/apk >&2; exit 1; }
+          if [ "$BUILD_TYPE" = release ]; then
+            test -f composeApp/build/outputs/bundle/release/composeApp-release.aab || { echo "no AAB" >&2; exit 1; }
+            test -f composeApp/build/outputs/mapping/release/mapping.txt || { echo "no R8 mapping.txt" >&2; exit 1; }
+          fi
+
+      - name: Check permissions and 16 KB page alignment
+        run: |
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          echo "Permissions in the APK (versionCode ${{ github.run_number }}):"
+          "$BT/aapt2" dump permissions "$APK" | tee "$RUNNER_TEMP/permissions.txt"
+          # No ads: Play Console is told the app uses no advertising ID (composeApp AndroidManifest.xml removes it).
+          if grep -E 'AD_ID|ACCESS_ADSERVICES' "$RUNNER_TEMP/permissions.txt"; then
+            echo "::error::The APK asks for an advertising-ID permission"; exit 1
+          fi
+          # Android 15+ devices with 16 KB pages: native libraries must be stored uncompressed on 16 KB boundaries.
+          "$BT/zipalign" -c -P 16 -v 4 "$APK" > "$RUNNER_TEMP/zipalign.txt" || { grep -v 'OK' "$RUNNER_TEMP/zipalign.txt"; echo "::error::Native libraries are not 16 KB aligned"; exit 1; }
+          grep '\.so' "$RUNNER_TEMP/zipalign.txt" || true
 
       - uses: actions/upload-artifact@v4
         with:
           name: ransel-${{ env.BUILD_TYPE }}-${{ github.run_number }}
           path: ${{ env.APK }}
           retention-days: 14
+
+      # For Google Play: upload the AAB in Play Console (closed testing), and mapping.txt under App bundle explorer ->
+      # Downloads -> ReTrace mapping file if Play does not take it from the bundle (Crashlytics gets it from the build).
+      - uses: actions/upload-artifact@v4
+        if: env.BUILD_TYPE == 'release'
+        with:
+          name: ransel-play-${{ github.run_number }}
+          path: |
+            composeApp/build/outputs/bundle/release/composeApp-release.aab
+            composeApp/build/outputs/mapping/release/mapping.txt
+          retention-days: 90
 
       - name: Upload to Firebase App Distribution
         env:
