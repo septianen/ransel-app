@@ -2397,8 +2397,8 @@
   {
    "key": "explore_picker_body",
    "area": "explore",
-   "id": "Tempat yang kamu simpan masuk ke kotak Belum dijadwalkan di trip itu.",
-   "en": "Places you save go into the Unscheduled box of that trip."
+   "id": "Jelajahi hal menarik di destinasi tujuanmu dengan AI",
+   "en": "Explore great things to do at your destination with AI"
   },
   {
    "key": "explore_picker_empty_itinerary",
@@ -2433,8 +2433,8 @@
   {
    "key": "explore_picker_title",
    "area": "explore",
-   "id": "Cari inspirasi untuk trip mana?",
-   "en": "Find inspiration for which trip?"
+   "id": "Cari inspirasi trip?",
+   "en": "Looking for trip ideas?"
   },
   {
    "key": "explore_picker_unscheduled",
@@ -7690,7 +7690,7 @@
    "key": "splash_tagline",
    "area": "splash",
    "id": "Rencana Bareng, Berangkat Bareng",
-   "en": "Plan Together, Go Together"
+   "en": "Rencana Bareng, Berangkat Bareng"
   },
   {
    "key": "state_back_home",
