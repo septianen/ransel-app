@@ -1529,8 +1529,6 @@
     <string name="recap_download">Unduh gambar</string>
     <string name="recap_share_failed">Gambar rekap belum bisa dibuat.</string>
     <string name="recap_not_yet">Rekap ada setelah trip selesai</string>
-    <string name="home_recap_settle">Selesaikan pembayaran</string>
-    <string name="home_recap_open">Lihat rekap</string>
     <string name="recap_done">beres!</string>
     <string name="recap_template_title">Pilih gambar</string>
     <string name="recap_template_ticket">Tiket</string>
@@ -1538,7 +1536,6 @@
     <string name="recap_template_numbers">Angka besar</string>
     <string name="recap_template_share">Bagikan</string>
     <string name="home_recap_places">tempat</string>
-    <string name="home_recap_total">total</string>
     <string name="home_recap_per_person">per orang</string>
     <string name="group_votings_ongoing">Voting berjalan</string>
     <string name="group_votings_ongoing_empty">Tidak ada voting yang sedang menunggu anggota lain.</string>
