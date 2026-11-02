@@ -3,14 +3,82 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kebijakan privasi RANSEL</title>
-<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:0 auto;padding:24px 16px;line-height:1.6;color:#1b1b1b}a{color:#008808}.draft{background:#fff4d6;padding:12px 16px;border-radius:12px}</style>
+<meta name="google" content="notranslate">
+<title>Kebijakan Privasi RANSEL</title>
+<style>
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;max-width:680px;margin:0 auto;padding:24px 16px 48px;line-height:1.6;color:#1b1b1b;background:#fff}
+h1{font-size:26px;line-height:1.25;margin:0 0 4px}
+h2{font-size:18px;margin:28px 0 8px}
+p,li{font-size:16px}
+ol,ul{padding-left:22px}
+li{margin:4px 0}
+a{color:#007a07}
+.muted{color:#5b6356;margin:0 0 20px}
+@media (prefers-color-scheme:dark){body{background:#121512;color:#e6ebe3}.muted{color:#a8b2a2}a{color:#6fd862}}
+</style>
 </head>
 <body>
-<h1>Kebijakan privasi RANSEL</h1>
-<!-- PLACEHOLDER: the owner writes the policy; nothing legal is drafted here. -->
-<p class="draft"><strong>[DRAF, BELUM BERLAKU]</strong> Isi kebijakan privasi sedang disiapkan oleh pemilik aplikasi.</p>
-<p>Pertanyaan: <a href="mailto:developer.septianen@gmail.com">developer.septianen@gmail.com</a></p>
-<p><a href="delete-account.html">Cara menghapus akun</a></p>
+<!-- Text approved by the owner on the release board (2 Nov 2026). Edit here; the URL is filed in Play Console. -->
+<h1>Kebijakan Privasi RANSEL</h1>
+<p class="muted">Berlaku sejak: 3 November 2026</p>
+
+<p>RANSEL ("kami") adalah aplikasi untuk merencanakan perjalanan bersama grup. Kebijakan ini menjelaskan data apa yang kami kumpulkan, untuk apa, siapa yang memprosesnya, dan apa hak kamu atas data tersebut, sesuai Undang-Undang No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.</p>
+
+<h2>1. Data yang kami kumpulkan</h2>
+<ol type="a">
+<li><b>Data akun:</b> nama, alamat email, kata sandi (disimpan dalam bentuk hash), dan foto profil jika kamu menambahkannya.</li>
+<li><b>Data trip:</b> nama trip, destinasi, tanggal, foto sampul, itinerary, polling dan pilihan suaramu, komentar, daftar bawaan dan template, catatan pengeluaran, serta link album.</li>
+<li><b>Data anggota:</b> nama dan foto anggota, serta nomor WhatsApp jika kamu menambahkan anggota lewat nama. Nomor ini hanya dipakai untuk mengirim link trip.</li>
+<li><b>Info pembayaran:</b> nomor rekening atau e-wallet yang kamu isi di Info pembayaran, supaya teman tahu ke mana harus membayar.</li>
+<li><b>Foto struk dan dokumen:</b> foto struk yang kamu pilih untuk dibaca otomatis, dan dokumen trip (PDF atau gambar) yang kamu unggah.</li>
+<li><b>Lokasi:</b> jika kamu mengetuk "Gunakan lokasi saat ini", kami memakai lokasi perkiraan perangkat satu kali untuk mengisi destinasi. Kami tidak memakai lokasi akurat, tidak melacak lokasi di latar belakang, dan tidak membagikan lokasi ke anggota lain.</li>
+<li><b>Album:</b> jika kamu menempelkan link folder Google Drive atau link album lain, kami menyimpan link tersebut. Foto tetap berada di layanan pemiliknya.</li>
+<li><b>Kredit Jelajah:</b> saldo dan riwayat pemakaian kredit.</li>
+<li><b>Data teknis:</b> jenis perangkat, versi aplikasi, laporan error, data pemakaian aplikasi, dan token notifikasi.</li>
+</ol>
+
+<h2>2. Cara kami memakai data</h2>
+<p>Untuk menjalankan fitur RANSEL (membuat trip, mengundang anggota, polling, itinerary, patungan, daftar bawaan, Jelajah, dan baca struk), mengelola akunmu, mengirim notifikasi, menjaga keamanan layanan, dan memperbaiki error. Kami tidak menjual data pribadimu dan tidak menampilkan iklan.</p>
+
+<h2>3. Siapa yang bisa melihat datamu</h2>
+<ol type="a">
+<li><b>Anggota trip:</b> nama, foto, pilihan polling (kecuali polling anonim), komentar, barang bawaan bersama, dokumen trip, dan catatan pengeluaran terlihat oleh anggota trip yang sama. Info pembayaranmu hanya terlihat oleh anggota yang perlu membayar ke kamu. Barang bawaan pribadi hanya terlihat olehmu.</li>
+<li><b>Pemegang link undangan:</b> siapa pun yang memiliki link undangan bisa melihat informasi trip yang dibagikan lewat link itu, dan bisa memilih di polling tanpa akun. Bagikan link hanya ke orang yang kamu percaya.</li>
+<li><b>Penyedia layanan yang memproses data atas nama kami:</b>
+<ul>
+<li>Google Gemini: membaca foto struk dan membuat rekomendasi tempat di Jelajah.</li>
+<li>Google Places: mencari destinasi dan tempat.</li>
+<li>Google Drive API: menampilkan foto dari folder album publik.</li>
+<li>Firebase (Google): Analytics untuk data pemakaian, Crashlytics untuk laporan error, dan Cloud Messaging untuk notifikasi.</li>
+<li>Penyedia layanan email: mengirim email verifikasi dan reset kata sandi.</li>
+<li>Penyedia server tempat data kami disimpan.</li>
+</ul>
+Mereka memproses data sesuai kebijakan privasi masing-masing.</li>
+<li><b>Kewajiban hukum:</b> jika diminta oleh hukum yang berlaku.</li>
+</ol>
+
+<h2>4. Penyimpanan dan keamanan</h2>
+<p>Data dikirim melalui koneksi terenkripsi (HTTPS) dan disimpan di server kami di Malaysia. Di Android dan iOS, data trip juga tersimpan di perangkatmu supaya bisa dipakai offline. Data trip disimpan selama akunmu aktif atau sampai trip dihapus.</p>
+
+<h2>5. Hak kamu</h2>
+<p>Kamu berhak mengakses, memperbaiki, dan menghapus data pribadimu, serta menarik persetujuan (misalnya izin lokasi atau notifikasi) kapan saja lewat pengaturan perangkat.</p>
+
+<h2 id="hapus-akun">6. Menghapus akun</h2>
+<p>Hapus akun lewat menu Akun &gt; Hapus akun di aplikasi, lalu masukkan kata sandi. Akun langsung terhapus saat itu juga dan tidak bisa dikembalikan. Tanpa aplikasi, ikuti langkah di <a href="https://ransel.mietek.tech/delete-account.html">https://ransel.mietek.tech/delete-account.html</a>.</p>
+<ul>
+<li>Yang dihapus: profil, foto, email, kata sandi, info pembayaran, perangkat, notifikasi, template, dan semua sesi login.</li>
+<li>Trip milikmu dialihkan ke anggota berakun yang paling lama bergabung. Kalau tidak ada anggota berakun lain, trip ikut terhapus.</li>
+<li>Catatanmu di trip bersama, seperti pengeluaran dan saldo, tetap ada atas nama "Anggota terhapus" supaya hitungan anggota lain tidak berubah.</li>
+<li>Sisa kredit Jelajah hangus dan tidak bisa dikembalikan.</li>
+</ul>
+
+<h2>7. Anak-anak</h2>
+<p>RANSEL tidak ditujukan untuk anak di bawah 13 tahun dan kami tidak sengaja mengumpulkan data mereka.</p>
+
+<h2>8. Perubahan kebijakan</h2>
+<p>Jika kebijakan ini berubah, kami memberi tahu lewat aplikasi atau halaman ini.</p>
+
+<h2>9. Kontak</h2>
+<p>Pertanyaan atau permintaan terkait data pribadi: <a href="mailto:developer.septianen@gmail.com">developer.septianen@gmail.com</a></p>
 </body>
 </html>
