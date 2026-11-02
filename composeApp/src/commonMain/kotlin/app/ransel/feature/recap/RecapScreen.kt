@@ -15,6 +15,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import app.ransel.ui.adaptive.rememberIsExpanded
 import org.jetbrains.compose.resources.decodeToImageBitmap
 import org.jetbrains.compose.resources.painterResource
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
+import app.ransel.ui.RefreshOnReturn
+import org.jetbrains.compose.resources.StringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -63,57 +77,132 @@ import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.*
 
 /**
- * The recap as a sheet, opened from "Bagikan" on the Home card, the trip header and the notification: the ticket
- * (boards RekapTrip, WebRekapTrip) and the action that shares a separate picture, [renderRecapStory] (web: downloads it).
+ * The recap, full screen (from the Home card, the trip header and the notification): the ticket on the green panel.
+ * "Bagikan rekap" opens [RecapTemplateSheet].
  */
 @Composable
-fun RecapSheet(
+fun RecapScreen(
     tripId: String,
-    onDismiss: () -> Unit,
+    onBack: () -> Unit,
     viewModel: RecapViewModel = koinViewModel(key = "recap-$tripId") { parametersOf(tripId) },
     files: DeviceFiles = koinInject(),
 ) {
+    RefreshOnReturn(viewModel::refresh)
     val state by viewModel.state.collectAsState()
-    val scope = rememberCoroutineScope()
-    val measurer = rememberTextMeasurer()
-    val family = MaterialTheme.typography.bodyMedium.fontFamily
-    val story = state.storyText()
-    var shareFailed by remember { mutableStateOf(false) }
-    val share: () -> Unit = {
-        shareFailed = false
-        scope.launch {
-            runCatching {
-                val mascot = Res.readBytes("drawable/splash_peeking.webp").decodeToImageBitmap()
-                val png = renderRecapStory(requireNotNull(story), mascot, measurer, family).toPngBytes()
-                check(png.isNotEmpty())
-                files.share("rekap-${state.trip?.title.orEmpty().lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').ifEmpty { "trip" }}.png", png)
-            }.onFailure { shareFailed = true }
-        }
-    }
-    AdaptiveSheet(onDismiss = onDismiss, maxWidth = 760.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(Res.string.recap_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
-            Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onDismiss), contentAlignment = Alignment.Center) {
-                Symbol(Symbols.close, contentDescription = stringResource(Res.string.action_close))
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val scheme = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxSize().background(scheme.surface).statusBarsPadding().navigationBarsPadding()) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onBack), contentAlignment = Alignment.Center) {
+                Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
             }
+            Text(stringResource(Res.string.recap_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp))
         }
         val trip = state.trip
         val recap = state.recap
         val start = trip?.startDate
         val end = trip?.endDate
-        if (trip != null && recap != null && start != null && end != null) {
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
-                RecapCard(trip.title, start, end, trip.baseCurrency, recap, state.members, state.openTransfers)
+        Box(Modifier.weight(1f).fillMaxWidth().background(scheme.primary), contentAlignment = Alignment.TopCenter) {
+            if (trip != null && recap != null && start != null && end != null) {
+                RecapCard(trip.title, start, end, trip.baseCurrency, recap, state.members, state.openTransfers, Modifier.verticalScroll(rememberScrollState()))
             }
-            if (shareFailed) {
-                Text(stringResource(Res.string.recap_share_failed), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp))
-            }
-            Button(onClick = share, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Symbol(Symbols.share, tint = MaterialTheme.colorScheme.onPrimary)
+        }
+        if (trip != null && recap != null) {
+            Button(onClick = { picking = true }, modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp)) {
+                Symbol(Symbols.share, tint = scheme.onPrimary)
                 Text(stringResource(if (files.keepsFiles) Res.string.recap_share else Res.string.recap_download), modifier = Modifier.padding(start = 8.dp))
             }
         }
     }
+    val story = state.storyText()
+    if (picking && story != null) {
+        RecapTemplateSheet(story, files, onDismiss = { picking = false })
+    }
+}
+
+/**
+ * Pick one of the three pictures. Then the system's share sheet asks where it goes; the web downloads it. The previews
+ * are the real pictures, so what is picked is what is sent.
+ */
+@Composable
+private fun RecapTemplateSheet(story: RecapStoryText, files: DeviceFiles, onDismiss: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val measurer = rememberTextMeasurer()
+    val family = MaterialTheme.typography.bodyMedium.fontFamily
+    val scheme = MaterialTheme.colorScheme
+    var chosen by rememberSaveable { mutableStateOf(RecapTemplate.TICKET) }
+    var pictures by remember { mutableStateOf(emptyMap<RecapTemplate, ImageBitmap>()) }
+    var failed by remember { mutableStateOf(false) }
+    LaunchedEffect(story) {
+        runCatching {
+            RecapTemplate.entries.forEach { template ->
+                val mascot = Res.readBytes(template.resource).decodeToImageBitmap()
+                pictures = pictures + (template to renderRecapStory(template, story, mascot, measurer, family))
+            }
+        }.onFailure { failed = true }
+    }
+    AdaptiveSheet(onDismiss = onDismiss) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(Res.string.recap_template_title), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+            Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onDismiss), contentAlignment = Alignment.Center) {
+                Symbol(Symbols.close, contentDescription = stringResource(Res.string.action_close))
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            RecapTemplate.entries.forEach { template ->
+                val selected = template == chosen
+                Column(
+                    Modifier.weight(1f).clip(IrisShape.md).selectable(selected, role = Role.RadioButton) { chosen = template },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val picture = pictures[template]
+                    val frame = Modifier.fillMaxWidth().aspectRatio(9f / 16f).clip(IrisShape.md)
+                        .border(if (selected) 3.dp else 1.dp, if (selected) scheme.primary else scheme.outlineVariant, IrisShape.md)
+                    if (picture != null) {
+                        Image(picture, contentDescription = null, modifier = frame, contentScale = ContentScale.Crop, filterQuality = FilterQuality.Medium)
+                    } else {
+                        Box(frame.background(scheme.surfaceContainerHigh))
+                    }
+                    Text(
+                        stringResource(template.label()),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        if (failed) {
+            Text(stringResource(Res.string.recap_share_failed), style = MaterialTheme.typography.bodySmall, color = scheme.error, modifier = Modifier.padding(bottom = 8.dp))
+        }
+        val picture = pictures[chosen]
+        Button(
+            onClick = {
+                val bitmap = picture ?: return@Button
+                failed = false
+                scope.launch {
+                    runCatching {
+                        val png = bitmap.toPngBytes()
+                        check(png.isNotEmpty())
+                        files.share("rekap-${story.title.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').ifEmpty { "trip" }}.png", png)
+                    }.onSuccess { onDismiss() }.onFailure { failed = true }
+                }
+            },
+            enabled = picture != null,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+        ) {
+            Symbol(Symbols.share, tint = if (picture != null) scheme.onPrimary else scheme.onSurfaceVariant)
+            Text(stringResource(if (files.keepsFiles) Res.string.recap_template_share else Res.string.recap_download), modifier = Modifier.padding(start = 8.dp))
+        }
+    }
+}
+
+private fun RecapTemplate.label(): StringResource = when (this) {
+    RecapTemplate.TICKET -> Res.string.recap_template_ticket
+    RecapTemplate.DONE -> Res.string.recap_template_done
+    RecapTemplate.BIG_NUMBERS -> Res.string.recap_template_numbers
 }
 
 /** What the picture says; null until the trip and its recap are there. */
@@ -125,6 +214,7 @@ private fun RecapUiState.storyText(): RecapStoryText? {
     val range = dates.range(trip.startDate ?: return null, trip.endDate ?: return null)
     return RecapStoryText(
         finished = stringResource(Res.string.recap_finished),
+        done = stringResource(Res.string.recap_done),
         title = trip.title,
         dates = range,
         places = recap.placesVisited.toString(),
@@ -150,7 +240,7 @@ private fun compactMoney(minor: Long, currency: String): String = formatMoneyCom
     stringResource(Res.string.money_unit_billion),
 )
 
-/** Boards RekapTrip and WebRekapTrip: the mascot peeks over a ticket on the green panel. Only shown in the app. */
+/** The look of the shared ticket, for the screen: the mascot peeks over the ticket on the green panel. Only shown in the app. */
 @Composable
 fun RecapCard(
     title: String,
@@ -164,16 +254,16 @@ fun RecapCard(
 ) {
     val scheme = MaterialTheme.colorScheme
     val wide = rememberIsExpanded()
-    Box(modifier.fillMaxWidth().clip(IrisShape.xl).background(scheme.primary)) {
+    Box(modifier.widthIn(max = if (wide) 712.dp else 480.dp).fillMaxWidth()) {
         Image(
             painterResource(Res.drawable.splash_peeking),
             contentDescription = null,
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp).size(102.dp, 133.dp),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp).size(126.dp, 164.dp),
         )
-        Column(Modifier.fillMaxWidth().padding(top = 112.dp, bottom = 16.dp, start = 14.dp, end = 14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(top = 136.dp, bottom = 24.dp, start = 16.dp, end = 16.dp)) {
             Ticket(title, start, end, currency, recap, members, openTransfers, wide)
             Row(
-                Modifier.fillMaxWidth().padding(top = 16.dp),
+                Modifier.fillMaxWidth().padding(top = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -182,6 +272,14 @@ fun RecapCard(
                 Canvas(Modifier.size(18.dp, 24.dp)) { drawRanselMark(tint, pocket, size.width) }
                 Text("RANSEL", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = tint)
             }
+            Text(
+                stringResource(Res.string.splash_tagline),
+                Modifier.fillMaxWidth().padding(top = 4.dp),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = scheme.onPrimary,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
@@ -271,11 +369,11 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
 }
 
 /**
- * Design "BerandaRekap": the card on Home after a trip ended. [onOpen] goes to the trip, whose open transfers are the
- * action left to finish; [onShare] opens [RecapSheet].
+ * Design "BerandaRekap": the card on Home after a trip ended. A tap opens the recap; [onSettle] goes to the trip's
+ * expenses while transfers are open.
  */
 @Composable
-fun RecapHomeCard(title: String, currency: String, recap: TripRecap, openTransfers: Int?, onOpen: () -> Unit, onShare: () -> Unit, modifier: Modifier = Modifier) {
+fun RecapHomeCard(title: String, currency: String, recap: TripRecap, openTransfers: Int?, onOpen: () -> Unit, onSettle: () -> Unit, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     val k = stringResource(Res.string.money_unit_thousand)
     val m = stringResource(Res.string.money_unit_million)
@@ -297,17 +395,18 @@ fun RecapHomeCard(title: String, currency: String, recap: TripRecap, openTransfe
                 Text(stringResource(Res.string.recap_unsettled, openTransfers ?: 0), style = MaterialTheme.typography.bodySmall, color = scheme.onPrimaryContainer, modifier = Modifier.padding(start = 4.dp))
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onShare), contentAlignment = Alignment.Center) {
-                Symbol(Symbols.share, tint = scheme.primary, contentDescription = stringResource(Res.string.recap_share))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Row(
+                Modifier.heightIn(min = 48.dp).clip(IrisShape.md).then(if (unsettled) Modifier.clickable(role = Role.Button, onClick = onSettle) else Modifier).padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(if (unsettled) Res.string.home_recap_settle else Res.string.home_recap_open),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = scheme.primary,
+                )
+                Symbol(Symbols.chevronRight, tint = scheme.primary)
             }
-            Box(Modifier.weight(1f))
-            Text(
-                stringResource(if (unsettled) Res.string.home_recap_settle else Res.string.home_recap_trip),
-                style = MaterialTheme.typography.labelLarge,
-                color = scheme.primary,
-            )
-            Symbol(Symbols.chevronRight, tint = scheme.primary)
         }
     }
 }
@@ -331,5 +430,5 @@ private fun RecapCardPreview() = IrisPreview {
 @Preview
 @Composable
 private fun RecapHomeCardPreview() = IrisPreview {
-    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 1, onOpen = {}, onShare = {})
+    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 1, onOpen = {}, onSettle = {})
 }

@@ -17,7 +17,7 @@ import kotlinx.serialization.Serializable
  * Trip detail: header + Ringkasan / Itinerary / Packing / Biaya tabs. [tab] is a `TripTab` name; Ringkasan is the
  * default way into a trip (owner, 28 Oct 2026), other tabs only when the entry point is about them.
  */
-@Serializable data class TripRoute(val tripId: String, val tab: String = "OVERVIEW", val openRecap: Boolean = false)
+@Serializable data class TripRoute(val tripId: String, val tab: String = "OVERVIEW")
 @Serializable data object CreateTripRoute
 /** Design AjakTeman: right after "Buat trip" (signed in), share the invite link or add friends by name. */
 @Serializable data class InviteFriendsRoute(val tripId: String)
@@ -35,6 +35,7 @@ import kotlinx.serialization.Serializable
 
 /** "Rekap trip". */
 @Serializable data class EditTripRoute(val tripId: String)
+@Serializable data class RecapRoute(val tripId: String)
 
 /** Add (`itemId == null`) or edit an activity. [dayDate] is an ISO date preselecting the day. */
 @Serializable data class ActivityFormRoute(val tripId: String, val itemId: String? = null, val dayDate: String? = null)

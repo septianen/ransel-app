@@ -1542,7 +1542,13 @@
     <string name="recap_share_failed">The recap image could not be made.</string>
     <string name="recap_not_yet">The recap comes after the trip ends</string>
     <string name="home_recap_settle">Settle payments</string>
-    <string name="home_recap_trip">See trip details</string>
+    <string name="home_recap_open">See the recap</string>
+    <string name="recap_done">done!</string>
+    <string name="recap_template_title">Pick a picture</string>
+    <string name="recap_template_ticket">Ticket</string>
+    <string name="recap_template_done">Done!</string>
+    <string name="recap_template_numbers">Big numbers</string>
+    <string name="recap_template_share">Share</string>
     <string name="home_recap_places">places</string>
     <string name="home_recap_total">total</string>
     <string name="home_recap_per_person">per person</string>
