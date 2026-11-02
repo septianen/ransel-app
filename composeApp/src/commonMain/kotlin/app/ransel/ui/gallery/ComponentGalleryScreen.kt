@@ -140,7 +140,7 @@ fun ComponentGalleryScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Section("RecapHomeCard") {
                     app.ransel.feature.recap.RecapHomeCard(
                         "Bali 4 hari", "IDR", app.ransel.shared.domain.TripRecap(11, 4, 3_700_000, 740_000, 5, emptyList()),
-                        openTransfers = 1, shareLabel = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {},
+                        openTransfers = 1, shareDescription = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {},
                     )
                 }
                 Section("TripHeader") {

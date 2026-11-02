@@ -493,7 +493,7 @@ private fun RecapCardOnHome(tripId: String, onOpen: () -> Unit, onSettle: () -> 
     val recap = state.recap ?: return
     app.ransel.feature.recap.RecapHomeCard(
         trip.title, trip.baseCurrency, recap, state.openTransfers,
-        shareLabel = stringResource(if (files.keepsFiles) Res.string.recap_share else Res.string.recap_download),
+        shareDescription = stringResource(if (files.keepsFiles) Res.string.recap_share else Res.string.recap_download),
         onOpen = onOpen,
         onSettle = onSettle,
         onShare = { picking = true },
