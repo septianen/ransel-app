@@ -92,7 +92,7 @@ One-time setup:
 | `FIREBASE_APP_ID_RELEASE` | variable | App ID of `app.ransel` |
 | `FIREBASE_TESTER_GROUPS` | variable, optional | Group aliases, comma separated (default `testers`) |
 | `FIREBASE_DISTRIBUTION_SERVICE_ACCOUNT` | secret | The service-account key file from step 2, pasted as is (or base64) |
-| `GOOGLE_SERVICES_JSON` | secret | `composeApp/google-services.json` (both packages), base64; without it the APK has no push, Analytics or Crashlytics |
+| `GOOGLE_SERVICES_JSON` | secret | `composeApp/google-services.json` (both packages), pasted as is or as base64; without it the APK has no push, Analytics or Crashlytics. The run log lists the packages it found |
 | `DEBUG_KEYSTORE_BASE64` | secret | Your `~/.android/debug.keystore`, base64, so every staging build has the same signature (testers can update, and it matches your local debug builds). Without it each build must be uninstalled first |
 | `RANSEL_KEYSTORE_BASE64` | secret | The release keystore (`keystore.properties.example`), base64; required for production |
 | `RANSEL_KEYSTORE_PASSWORD`, `RANSEL_KEY_ALIAS`, `RANSEL_KEY_PASSWORD` | secrets | Its passwords and alias |
