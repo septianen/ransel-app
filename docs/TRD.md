@@ -179,6 +179,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET | /trips/{id}/albums/{albumId}/items?pageToken= | The photos of a public Drive folder, listed with the server's Drive API key and cached a few minutes; the app loads the images from Google | 4 |
 | GET ★ | /guest/{code}/albums/{albumId}/items?pageToken= | The same for the guest page | 4 |
 | PUT, DELETE | /trips/{id}/cover | Trip cover photo (B19.1): JPEG body up to 1 MB, the server rewrites it (no EXIF) at most 1280 px; EDITOR+ → TripDto | 4 |
+| GET, POST | /me/deletion | Delete the account: GET previews the credits lost and the trips handed over or deleted; POST with the password anonymises at once, ends every session; 422 `password` = WRONG | 4 |
 | PUT, DELETE | /me/avatar | Profile photo (B19.1): JPEG body up to 1 MB, at most 320 px → MeDto | 4 |
 | GET ★ | /files/images/{imageId} | A cover or profile photo (no bearer; a random id per upload, cached for a year) | 4 |
 | GET, POST, DELETE | /trip-templates, /trip-templates/{id} | My trip templates; POST copies a trip's itinerary (by day number) and shared packing list | 4 |

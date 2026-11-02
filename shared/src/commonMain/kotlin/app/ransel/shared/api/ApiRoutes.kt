@@ -57,6 +57,7 @@ object ApiRoutes {
     const val AUTH_EMAIL_VERIFY = "/auth/email/verify"             // POST VerifyEmailRequest → VerifyEmailResponse (no token needed; the link is the proof)
     const val AUTH_EMAIL_RESEND = "/auth/email/resend"             // POST (bearer) → 204, sends a new link and voids older ones; 204 too when already verified
     const val ME = "/me"                                           // GET MeDto, PATCH UpdateMeRequest
+    const val ME_DELETION = "/me/deletion"                         // GET → AccountDeletionPreviewDto; POST DeleteAccountRequest → 204; 422 VALIDATION_FAILED `password` = WRONG
     const val ME_AVATAR = "/me/avatar"                             // PUT image/jpeg body (≤ PHOTO_MAX_BYTES) → MeDto, DELETE → MeDto; 413 FILE_TOO_LARGE, 415 UNSUPPORTED_FILE
     const val SYNC = "/sync"                                       // GET ?since=<ISO instant>&tripLimit=&afterTripId= → SyncPullResponse (paging in its KDoc), POST SyncPushRequest → SyncPushResponse
 
