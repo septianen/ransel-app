@@ -36,7 +36,7 @@ const val RECAP_STORY_HEIGHT = 1920
 
 /** The three pictures to pick from (canvas "RANSEL — Rekap Story"). [resource] is the mascot, under composeResources. */
 enum class RecapTemplate(val resource: String) {
-    TICKET("drawable/splash_peeking.webp"),
+    TICKET("drawable/ic_binocular.webp"),
     DONE("drawable/ic_recap_floating.webp"),
     BIG_NUMBERS("drawable/ic_recap_hiking.webp"),
 }
