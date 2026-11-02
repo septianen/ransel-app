@@ -233,9 +233,11 @@ fun App() {
         ThemeMode.DARK -> true
     }
 
-    key(preferences.language) {
-        IrisTheme(mode = preferences.themeMode) {
-            SystemBarsAppearance(darkTheme = dark)
+    // The key is inside the theme: rebuilding the theme when the saved language is read cancels the font loading on the
+    // web, and the app then stays on the fallback font.
+    IrisTheme(mode = preferences.themeMode) {
+        SystemBarsAppearance(darkTheme = dark)
+        key(preferences.language) {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 when {
                     !preferences.loaded -> AppSplash()
@@ -1014,7 +1016,9 @@ private fun NavHostController.openTab(tab: MainTab) {
     navigate(route) {
         popUpTo(graph.findStartDestination().id) { saveState = true }
         launchSingleTop = true
-        restoreState = true
+        // Home is the start: nothing of its own to bring back. On the web, after a reload on another tab, what is saved
+        // under it is that other tab, so restoring would keep the user there.
+        restoreState = tab != MainTab.HOME
     }
 }
 
