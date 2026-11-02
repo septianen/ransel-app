@@ -247,7 +247,7 @@ Built in stage 4 (a third Biaya view "Kas", deposits, "Ambil dari kas"), then re
 
 ### P2 · Trip recap
 
-- After the end date, the trip header has "Rekap trip", Home shows a recap card for two weeks, and a notification arrives the next morning: days, activities, places, total spend, and "Semua patungan lunas" when all balances are settled. The recap is a sheet with the card and its share action (an image; web: download), not a screen of its own (owner, 1 Nov 2026). The Home card has "Bagikan", which opens the sheet, and leads to the trip: "Selesaikan pembayaran" to Biaya while transfers are open, else "Lihat detail trip". Trip templates and "Buat trip dengan grup ini" were removed from the apps (owner, 1 Nov 2026): nothing saves or uses a trip template; the server endpoints and saved rows stay unused. Packing templates are not affected.
+- After the end date, the trip header has "Rekap trip", Home shows a recap card for two weeks, and a notification arrives the next morning: days, activities, places, total spend, and "Semua patungan lunas" when all balances are settled. The recap is a sheet with the ticket and its share action, not a screen of its own (owner, 1 Nov 2026). What is shared is a separate 1080×1920 picture (web: downloaded) without the total spend, the settled status or the member avatars; those stay in the app. The Home card has "Bagikan", which opens the sheet, and leads to the trip: "Selesaikan pembayaran" to Biaya while transfers are open, else "Lihat detail trip". Trip templates and "Buat trip dengan grup ini" were removed from the apps (owner, 1 Nov 2026): nothing saves or uses a trip template; the server endpoints and saved rows stay unused. Packing templates are not affected.
 
 ### Polls (agreed 24–25 Oct 2026)
 

@@ -6979,12 +6979,6 @@
    "en": "Your choice"
   },
   {
-   "key": "recap_brand",
-   "area": "recap",
-   "id": "RANSEL · %1$s",
-   "en": "RANSEL · %1$s"
-  },
-  {
    "key": "recap_days",
    "area": "recap",
    "id": "hari",
@@ -6997,10 +6991,10 @@
    "en": "Download image"
   },
   {
-   "key": "recap_favourites",
+   "key": "recap_finished",
    "area": "recap",
-   "id": "Favorit grup",
-   "en": "Group favourites"
+   "id": "Trip selesai",
+   "en": "Trip finished"
   },
   {
    "key": "recap_headline",
@@ -7015,16 +7009,10 @@
    "en": "The recap comes after the trip ends"
   },
   {
-   "key": "recap_per_person",
+   "key": "recap_people",
    "area": "recap",
-   "id": "rata-rata per orang",
-   "en": "average per person"
-  },
-  {
-   "key": "recap_places",
-   "area": "recap",
-   "id": "tempat dikunjungi",
-   "en": "places visited"
+   "id": "orang",
+   "en": "people"
   },
   {
    "key": "recap_settled",
