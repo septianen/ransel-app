@@ -20,6 +20,9 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(request.url);
     if (url.origin !== self.location.origin || url.pathname.startsWith('/.well-known/')) return;
 
+    // Plain pages, not the app: left to the network, or they would be cached as the app's index.html.
+    if (url.pathname === '/privacy.html' || url.pathname === '/delete-account.html') return;
+
     if (request.mode === 'navigate') {
         // Every page, including invite links /j/<code>, is the single-page app.
         event.respondWith(networkFirst(request, '/index.html'));

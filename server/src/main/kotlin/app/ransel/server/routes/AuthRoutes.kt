@@ -2,12 +2,14 @@ package app.ransel.server.routes
 
 import app.ransel.server.plugins.AuthRateLimit
 import app.ransel.server.plugins.VerificationEmailRateLimit
+import app.ransel.server.service.AccountDeletionService
 import app.ransel.server.service.AuthService
 import app.ransel.server.service.EmailVerificationService
 import app.ransel.server.service.MeService
 import app.ransel.server.service.PasswordResetService
 import app.ransel.server.service.userId
 import app.ransel.shared.api.ApiRoutes
+import app.ransel.shared.dto.DeleteAccountRequest
 import app.ransel.shared.dto.ForgotPasswordRequest
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.RefreshRequest
@@ -56,7 +58,17 @@ fun Route.authRoutes(auth: AuthService, passwordReset: PasswordResetService, ver
 }
 
 /** Needs a token. */
-fun Route.meRoutes(verification: EmailVerificationService) {
+fun Route.meRoutes(verification: EmailVerificationService, deletion: AccountDeletionService) {
+    get(ApiRoutes.ME_DELETION) {
+        call.respondData(HttpStatusCode.OK, deletion.preview(call.userId()))
+    }
+    // the password is checked here too, so it gets the same limit as signing in
+    rateLimit(AuthRateLimit) {
+        post(ApiRoutes.ME_DELETION) {
+            deletion.delete(call.userId(), call.receive<DeleteAccountRequest>())
+            call.respondNoContent()
+        }
+    }
     rateLimit(VerificationEmailRateLimit) {
         post(ApiRoutes.AUTH_EMAIL_RESEND) {
             verification.send(call.userId())

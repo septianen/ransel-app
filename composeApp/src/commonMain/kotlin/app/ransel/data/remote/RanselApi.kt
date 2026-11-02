@@ -8,6 +8,8 @@ import app.ransel.shared.api.ApiRoutes
 import app.ransel.shared.api.ErrorCode
 import app.ransel.data.auth.ApiAuth
 import app.ransel.shared.model.DevicePlatform
+import app.ransel.shared.dto.AccountDeletionPreviewDto
+import app.ransel.shared.dto.DeleteAccountRequest
 import app.ransel.shared.dto.AddMemberRequest
 import app.ransel.shared.dto.AppUpdateDto
 import app.ransel.shared.dto.AuthSessionDto
@@ -333,6 +335,11 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.pollShare(pollId)) { it.body<ApiResponse<PollShareDto>>().data }
     suspend fun unsharePoll(pollId: String): ApiResult<Unit> = delete(ApiRoutes.pollShare(pollId))
     suspend fun releaseGuestName(tripId: String, memberId: String): ApiResult<Unit> = delete(ApiRoutes.memberGuestSession(tripId, memberId))
+
+    // ── account deletion ────────────────────────────────────────────────────
+    suspend fun accountDeletionPreview(): ApiResult<AccountDeletionPreviewDto> = get(ApiRoutes.ME_DELETION)
+    suspend fun deleteAccount(password: String): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.ME_DELETION, bodyOf = { setBody(DeleteAccountRequest(password)) }) { }
 
     // ── app update dialog ───────────────────────────────────────────────────
     /** Public. What the installed [version] should do about updating (Karung sets the minimum per platform). */

@@ -43,6 +43,7 @@ import kotlinx.serialization.Serializable
 /** Explore credits: balance, voucher, packs, history (opened from Account and from the out-of-credits state). */
 @Serializable data object CreditsRoute
 /** Account → Info pembayaran. */
+@Serializable data object DeleteAccountRoute
 @Serializable data object PaymentMethodsRoute
 
 /** Notification inbox (the Home bell) and its settings (Account). */

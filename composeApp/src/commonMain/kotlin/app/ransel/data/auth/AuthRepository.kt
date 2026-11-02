@@ -18,11 +18,15 @@ interface SessionHooks {
 
     /** The user chose to sign out on this device: remove the account's data from it. */
     suspend fun onSignedOut()
+
+    /** The account no longer exists: remove its data from this device; nothing can be sent any more. */
+    suspend fun onAccountDeleted()
 }
 
 object NoSessionHooks : SessionHooks {
     override suspend fun onSignedIn(userId: String) = Unit
     override suspend fun onSignedOut() = Unit
+    override suspend fun onAccountDeleted() = Unit
 }
 
 /** Sign up / in / out and password reset. ViewModels use this, never [RanselApi] directly. */
@@ -72,6 +76,16 @@ class AuthRepository(
         // Hook first: it still needs the token to send what is pending before the data is wiped.
         hooks.onSignedOut()
         session.signOut()
+    }
+
+    /** On success the server has already ended every session, so this device only forgets. */
+    suspend fun deleteAccount(password: String): ApiResult<Unit> {
+        val result = api.deleteAccount(password)
+        if (result is ApiResult.Success) {
+            hooks.onAccountDeleted()
+            session.forget()
+        }
+        return result
     }
 
     private suspend fun started(result: ApiResult<AuthSessionDto>): ApiResult<Unit> = when (result) {

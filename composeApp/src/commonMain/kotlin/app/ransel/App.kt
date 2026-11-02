@@ -113,6 +113,7 @@ import app.ransel.feature.tripform.TripFormScreen
 import app.ransel.feature.trips.TripListScreen
 import app.ransel.navigation.AccountRoute
 import app.ransel.navigation.CreditsRoute
+import app.ransel.navigation.DeleteAccountRoute
 import app.ransel.navigation.PaymentMethodsRoute
 import app.ransel.navigation.NotificationSettingsRoute
 import app.ransel.navigation.NotificationsRoute
@@ -700,6 +701,9 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
     page<CreditsRoute> {
         CreditsScreen(onBack = { navController.popBackStack() })
     }
+    page<DeleteAccountRoute> {
+        app.ransel.feature.account.DeleteAccountScreen(onBack = { navController.popBackStack() })
+    }
     page<PaymentMethodsRoute> {
         app.ransel.feature.account.PaymentMethodsScreen(onBack = { navController.popBackStack() })
     }
@@ -725,6 +729,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             onOpenCredits = { navController.navigate(CreditsRoute) },
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenNotifications = { navController.navigate(NotificationSettingsRoute) },
+            onDeleteAccount = { navController.navigate(DeleteAccountRoute) },
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
             debugContent = if (!isDebugBuild) null else ({

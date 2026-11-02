@@ -46,7 +46,10 @@ fun Application.configureAuth(config: AppConfig, tokens: TokenService, onAuthent
             verifier(tokens.verifier)
             validate { credential ->
                 credential.payload.subject?.let { subject ->
-                    runCatching { UUID.fromString(subject) }.getOrNull()?.let(onAuthenticated)
+                    val user = runCatching { UUID.fromString(subject) }.getOrNull()
+                    // an access token outlives its deleted account by up to 15 minutes otherwise
+                    if (user != null && user in app.ransel.server.service.DeletedAccounts) return@validate null
+                    user?.let(onAuthenticated)
                     JWTPrincipal(credential.payload)
                 }
             }

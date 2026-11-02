@@ -75,6 +75,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.paymethod_title
 import ransel.composeapp.generated.resources.account_about
+import ransel.composeapp.generated.resources.account_delete
+import ransel.composeapp.generated.resources.account_privacy
 import ransel.composeapp.generated.resources.account_confirm_reorder
 import ransel.composeapp.generated.resources.account_confirm_reorder_hint
 import ransel.composeapp.generated.resources.account_credits
@@ -138,6 +140,7 @@ fun AccountScreen(
     onOpenNotifications: () -> Unit = {},
     onSignIn: () -> Unit = {},
     onSignUp: () -> Unit = {},
+    onDeleteAccount: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
 ) {
     val prefs by viewModel.state.collectAsState()
@@ -223,6 +226,7 @@ fun AccountScreen(
                     SettingRow(Symbols.autoAwesome, stringResource(Res.string.account_credits), credits?.available?.toString(), onClick = onOpenCredits)
                     SettingRow(Symbols.accountBalance, stringResource(Res.string.paymethod_title), null, onClick = onOpenPaymentMethods)
                     SettingRow(Symbols.logout, stringResource(Res.string.account_sign_out), null, onClick = { confirmSignOut = true })
+                    SettingRow(Symbols.delete, stringResource(Res.string.account_delete), null, onClick = onDeleteAccount)
                 } else if (!requiresAccount) {
                     Text(
                         stringResource(Res.string.account_signed_out_body),
@@ -261,6 +265,8 @@ fun AccountScreen(
                 )
             }
             Section(stringResource(Res.string.account_section_other)) {
+                val links = androidx.compose.ui.platform.LocalUriHandler.current
+                SettingRow(Symbols.lock, stringResource(Res.string.account_privacy), null, onClick = { runCatching { links.openUri(PRIVACY_POLICY_URL) } })
                 SettingRow(Symbols.info, stringResource(Res.string.account_about), installedAppVersion?.let { "v$it" }.orEmpty(), onClick = null)
             }
             debugContent?.invoke()

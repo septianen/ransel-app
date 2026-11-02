@@ -88,3 +88,25 @@ data class UpdateMeRequest(
     val displayName: String? = null,
     val defaultCurrency: String? = null,
 )
+
+/**
+ * GET /me/deletion: what deleting the account would do, for the confirmation screen. [credits] are lost. Trips the user
+ * owns go to the member with an account who joined first ([tripsHandedOver]); with no such member they are deleted
+ * ([tripsDeleted]). Titles, not ids: only shown to the person.
+ */
+@Serializable
+data class AccountDeletionPreviewDto(
+    val credits: Int,
+    val tripsHandedOver: List<String> = emptyList(),
+    val tripsDeleted: List<String> = emptyList(),
+)
+
+/**
+ * POST /me/deletion: deletes the account at once, it cannot be undone. [password] proves it is the owner. Personal data
+ * goes and every session ends; the member rows stay under [DELETED_MEMBER_NAME], so the group's balances do not change.
+ */
+@Serializable
+data class DeleteAccountRequest(val password: String)
+
+/** Name a deleted account's member rows keep, in expenses and balances. */
+const val DELETED_MEMBER_NAME = "Anggota terhapus"

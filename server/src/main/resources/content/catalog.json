@@ -31,6 +31,12 @@
    "en": "Default currency"
   },
   {
+   "key": "account_delete",
+   "area": "account",
+   "id": "Hapus akun",
+   "en": "Delete account"
+  },
+  {
    "key": "account_language",
    "area": "account",
    "id": "Bahasa",
@@ -89,6 +95,12 @@
    "area": "account",
    "id": "Foto profil",
    "en": "Profile photo"
+  },
+  {
+   "key": "account_privacy",
+   "area": "account",
+   "id": "Kebijakan privasi",
+   "en": "Privacy policy"
   },
   {
    "key": "account_section_other",
@@ -1355,6 +1367,72 @@
    "area": "debug",
    "id": "Tampilkan onboarding lagi (debug)",
    "en": "Show onboarding again (debug)"
+  },
+  {
+   "key": "delete_account_action",
+   "area": "delete",
+   "id": "Hapus akun selamanya",
+   "en": "Delete my account for good"
+  },
+  {
+   "key": "delete_account_credits",
+   "area": "delete",
+   "id": "Sisa %1$d kredit hangus dan tidak bisa dikembalikan.",
+   "en": "Your remaining %1$d credits are lost and cannot be refunded."
+  },
+  {
+   "key": "delete_account_deleted",
+   "area": "delete",
+   "id": "Ikut terhapus: %1$s",
+   "en": "Also deleted: %1$s"
+  },
+  {
+   "key": "delete_account_failed",
+   "area": "delete",
+   "id": "Akun belum terhapus. Coba lagi.",
+   "en": "Your account was not deleted. Try again."
+  },
+  {
+   "key": "delete_account_gone",
+   "area": "delete",
+   "id": "Yang dihapus: profil, foto, email, info pembayaran, perangkat, template, dan semua sesi login.",
+   "en": "Deleted: your profile, photo, email, payment info, devices, templates and every sign-in."
+  },
+  {
+   "key": "delete_account_handed",
+   "area": "delete",
+   "id": "Pindah ke anggota lain: %1$s",
+   "en": "Handed to another member: %1$s"
+  },
+  {
+   "key": "delete_account_kept",
+   "area": "delete",
+   "id": "Pengeluaran bersama tetap ada atas nama \"Anggota terhapus\", supaya hitungan temanmu tidak berubah.",
+   "en": "Shared expenses stay under \"Anggota terhapus\", so your friends' numbers do not change."
+  },
+  {
+   "key": "delete_account_lead",
+   "area": "delete",
+   "id": "Akunmu dihapus saat itu juga dan tidak bisa dikembalikan.",
+   "en": "Your account is deleted straight away and cannot be restored."
+  },
+  {
+   "key": "delete_account_password",
+   "area": "delete",
+   "id": "Masukkan kata sandi untuk mengonfirmasi.",
+   "en": "Enter your password to confirm."
+  },
+  {
+   "key": "delete_account_title",
+   "area": "delete",
+   "id": "Hapus akun",
+   "en": "Delete account"
+  },
+  {
+   "key": "delete_account_wrong",
+   "area": "delete",
+   "id": "Kata sandi salah.",
+   "en": "Wrong password."
   },
   {
    "key": "delete_trip_activities",
