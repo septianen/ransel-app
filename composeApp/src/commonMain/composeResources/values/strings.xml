@@ -1530,13 +1530,11 @@
     <string name="document_error_generic">The document was not saved. Try again.</string>
     <string name="group_documents">Documents</string>
     <string name="recap_title">Trip recap</string>
-    <string name="recap_brand">RANSEL · %1$s</string>
     <string name="recap_headline">%1$s, done!</string>
-    <string name="recap_places">places visited</string>
+    <string name="recap_finished">Trip finished</string>
+    <string name="recap_people">people</string>
     <string name="recap_days">days</string>
     <string name="recap_total">total spent</string>
-    <string name="recap_per_person">average per person</string>
-    <string name="recap_favourites">Group favourites</string>
     <string name="recap_settled">Everything is settled</string>
     <string name="recap_unsettled">%1$d transfers still open</string>
     <string name="recap_share">Share the recap</string>

@@ -1518,13 +1518,11 @@
     <string name="document_error_generic">Dokumen belum tersimpan. Coba lagi.</string>
     <string name="group_documents">Dokumen</string>
     <string name="recap_title">Rekap trip</string>
-    <string name="recap_brand">RANSEL · %1$s</string>
     <string name="recap_headline">%1$s, beres!</string>
-    <string name="recap_places">tempat dikunjungi</string>
+    <string name="recap_finished">Trip selesai</string>
+    <string name="recap_people">orang</string>
     <string name="recap_days">hari</string>
     <string name="recap_total">total pengeluaran</string>
-    <string name="recap_per_person">rata-rata per orang</string>
-    <string name="recap_favourites">Favorit grup</string>
     <string name="recap_settled">Semua patungan lunas</string>
     <string name="recap_unsettled">%1$d transfer belum lunas</string>
     <string name="recap_share">Bagikan rekap</string>

@@ -391,7 +391,8 @@ Exported from the canvas on 26 Oct 2026, grouped by the canvas section they sit 
 | `screens/FotoStruk.html` | `ReceiptFlow` (pick) | Foto struk: kamera | 390 |
 | `screens/HasilStruk.html` | `ReceiptFlow` (result, `ReceiptFormState`) | Foto struk: hasil dan bagi per item | 390 |
 | `screens/DokumenTrip.html` | `DocumentsScreen` + `AddDocumentSheet` | Dokumen trip | 390 |
-| `screens/RekapTrip.html` | `RecapSheet` (`RecapCard`) | Rekap trip untuk dibagikan | 390 |
+| `screens/RekapTrip.html` | `RecapSheet` (`RecapCard`) | Rekap trip (tiket di sheet). Canvas page "Rekap" is newer than this export | 390 |
+| Canvas board `RekapStory` | `renderRecapStory` | The shared picture, 1080×1920 | 1080 |
 
 ### Trip grup · titik masuk: polling, foto struk, dokumen, rekap
 
