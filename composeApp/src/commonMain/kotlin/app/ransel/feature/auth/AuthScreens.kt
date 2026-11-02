@@ -77,6 +77,7 @@ import ransel.composeapp.generated.resources.session_expired_title
 import ransel.composeapp.generated.resources.sign_in_action
 import ransel.composeapp.generated.resources.sign_in_subtitle
 import ransel.composeapp.generated.resources.sign_in_title
+import ransel.composeapp.generated.resources.account_privacy
 import ransel.composeapp.generated.resources.sign_up_action
 import ransel.composeapp.generated.resources.sign_up_link
 import ransel.composeapp.generated.resources.sign_up_subtitle
@@ -167,6 +168,11 @@ fun SignUpScreen(
         PasswordRules(state.passwordCheck)
         AuthProblemText(state.problem)
         AuthPrimaryButton(stringResource(Res.string.sign_up_action), viewModel::submit, loading = state.loading)
+        val links = androidx.compose.ui.platform.LocalUriHandler.current
+        androidx.compose.material3.TextButton(
+            onClick = { runCatching { links.openUri(app.ransel.feature.account.PRIVACY_POLICY_URL) } },
+            modifier = Modifier.align(androidx.compose.ui.Alignment.CenterHorizontally),
+        ) { Text(stringResource(Res.string.account_privacy)) }
     }
 }
 

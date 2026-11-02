@@ -41,4 +41,6 @@ class RoomSessionHooks(
         runCatching { coordinator().flush() }
         coordinator().wipe()
     }
+
+    override suspend fun onAccountDeleted() = coordinator().wipe()
 }

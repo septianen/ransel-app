@@ -117,6 +117,13 @@ class SessionManager(
         if (stored != null) runCatching { api().logout(stored.refreshToken) }
     }
 
+    /** The account was deleted: the server has no session left to tell. */
+    suspend fun forget() {
+        current = null
+        _state.value = SessionState.SignedOut
+        runCatching { store.clear() }
+    }
+
     /** "Nanti saja, pakai offline": keep working locally without a session. */
     fun continueOffline() {
         if (_state.value is SessionState.Expired) _state.value = SessionState.SignedOut
