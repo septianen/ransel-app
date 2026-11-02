@@ -374,7 +374,7 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
 /**
  * Board BerandaRekap, "Hero hijau": the card on Home after a trip ended. A tap opens the recap ([onOpen]); while
  * transfers are open the status line goes to the expenses ([onSettle]); [onShare] picks a picture from here. Accent
- * green with white text in both themes. Fixed heights keep it at 192 dp with 48 dp touch targets; a larger font scale
+ * green with white text in both themes. Fixed heights keep it at 148 dp with 48 dp touch targets; a larger font scale
  * grows it. Text beside the mascot keeps clear of it, so white small print never sits on the drawing.
  */
 @Composable
@@ -383,7 +383,7 @@ fun RecapHomeCard(
     currency: String,
     recap: TripRecap,
     openTransfers: Int?,
-    shareLabel: String,
+    shareDescription: String,
     onOpen: () -> Unit,
     onSettle: () -> Unit,
     onShare: () -> Unit,
@@ -391,16 +391,17 @@ fun RecapHomeCard(
 ) {
     val green = IrisTheme.accents.green
     val white = IrisTheme.accents.onAccent
-    Box(modifier.fillMaxWidth().heightIn(min = 192.dp).clip(IrisShape.lg).background(green).clickable(role = Role.Button, onClick = onOpen)) {
+    Box(modifier.fillMaxWidth().heightIn(min = 148.dp).clip(IrisShape.lg).background(green).clickable(role = Role.Button, onClick = onOpen)) {
         // cut off by the card's bottom edge, above the legs
         Image(
             painterResource(Res.drawable.splash_peeking),
             contentDescription = null,
-            modifier = Modifier.align(Alignment.TopEnd).padding(top = 68.dp, end = 21.dp).requiredSize(102.dp, 133.dp),
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 50.dp, end = 40.dp).requiredSize(81.dp, 106.dp),
         )
-        Column(Modifier.fillMaxWidth().padding(top = 12.dp, start = 16.dp, end = 16.dp, bottom = 8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(top = 12.dp, start = 16.dp, end = 16.dp, bottom = 12.dp)) {
             Text(
                 stringResource(Res.string.recap_headline, title),
+                Modifier.padding(end = 48.dp), // 64 from the card's edge, clear of the share button
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = white,
@@ -414,27 +415,25 @@ fun RecapHomeCard(
                 }
             }
             HeroStatus(openTransfers, onSettle)
-            // 48 dp to tap, a 44 dp pill to see
-            Box(Modifier.heightIn(min = 48.dp).clickable(role = Role.Button, onClick = onShare), contentAlignment = Alignment.CenterStart) {
-                Row(
-                    Modifier.heightIn(min = 44.dp).clip(CircleShape).background(white).padding(start = 14.dp, end = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Symbol(Symbols.share, size = 20.dp, tint = green)
-                    Text(shareLabel, style = MaterialTheme.typography.titleSmall, color = green, maxLines = 1)
-                }
+        }
+        // 48 dp to tap, a 40 dp circle to see
+        Box(
+            Modifier.align(Alignment.TopEnd).padding(4.dp).size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onShare),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(white), contentAlignment = Alignment.Center) {
+                Symbol(Symbols.share, size = 20.dp, tint = green, contentDescription = shareDescription)
             }
         }
     }
 }
 
-/** Room the text under the title leaves for the mascot (102 wide + 21 margin − the card's 16 padding, plus a gap). */
-private val MASCOT_CLEARANCE = 115.dp
+/** Room the text under the title leaves for the mascot (81 wide + 40 margin − the card's 16 padding, plus a gap). */
+private val MASCOT_CLEARANCE = 113.dp
 
 /**
  * Open transfers lead to the expenses, all settled is only said; not known (offline, guest) shows nothing but keeps the
- * room. 48 dp tall to tap, the text sits at the bottom next to the pill and may take two lines on a narrow phone.
+ * room. 48 dp tall to tap, the text sits at the bottom and may take two lines on a narrow phone.
  */
 @Composable
 private fun HeroStatus(openTransfers: Int?, onSettle: () -> Unit) {
@@ -486,11 +485,11 @@ private fun RecapCardPreview() = IrisPreview {
 @Preview
 @Composable
 private fun RecapHomeCardOpenPreview() = IrisPreview {
-    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 1, shareLabel = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {})
+    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 1, shareDescription = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {})
 }
 
 @Preview
 @Composable
 private fun RecapHomeCardSettledPreview() = IrisPreview {
-    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 0, shareLabel = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {})
+    RecapHomeCard("Bali 4 hari", "IDR", previewRecap, openTransfers = 0, shareDescription = "Bagikan rekap", onOpen = {}, onSettle = {}, onShare = {})
 }
