@@ -16,7 +16,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -34,8 +33,6 @@ import app.ransel.ui.theme.IrisShape
 fun AdaptiveSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    /** Width of the dialog on a wide window. */
-    maxWidth: Dp = 480.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // back closes the sheet first, the screen stays (Android back, the browser's back button)
@@ -48,7 +45,7 @@ fun AdaptiveSheet(
             Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                 Surface(
                     // A bounded height is required: sheet contents may scroll, and a dialog gives no height limit itself.
-                    modifier = modifier.widthIn(max = maxWidth).heightIn(max = 640.dp).fillMaxWidth(),
+                    modifier = modifier.widthIn(max = 480.dp).heightIn(max = 640.dp).fillMaxWidth(),
                     shape = IrisShape.xl,
                     color = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.onSurface,

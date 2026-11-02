@@ -164,6 +164,7 @@ import app.ransel.data.analytics.applySessionContext
 import app.ransel.data.remote.RanselApi
 import app.ransel.feature.members.MembersScreen
 import app.ransel.navigation.TripListRoute
+import app.ransel.navigation.RecapRoute
 import app.ransel.navigation.TripRoute
 import app.ransel.navigation.TrackScreens
 import app.ransel.platform.isDebugBuild
@@ -573,6 +574,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             },
             onCreateTrip = { navController.navigate(CreateTripRoute) },
             onOpenNotifications = { navController.navigate(NotificationsRoute) },
+            onOpenRecap = { navController.navigate(RecapRoute(it)) },
             // "Coba": the preferences step on a new trip ("Trip baru"), full screen over Home.
             onExplore = { navController.navigate(ExplorePreferencesRoute(null)) },
         )
@@ -709,7 +711,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             onOpenSettings = { navController.navigate(NotificationSettingsRoute) },
             onOpenTripTab = { tripId, tab -> navController.navigate(TripRoute(tripId, tab.name)) },
             onOpenDocuments = { navController.navigate(DocumentsRoute(it)) },
-            onOpenRecap = { navController.navigate(TripRoute(it, openRecap = true)) },
+            onOpenRecap = { navController.navigate(RecapRoute(it)) },
         )
     }
     page<NotificationSettingsRoute> {
@@ -775,13 +777,17 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenDocuments = { upload -> navController.navigate(DocumentsRoute(route.tripId, upload)) },
             onOpenAlbums = { add -> navController.navigate(app.ransel.navigation.AlbumsRoute(route.tripId, add)) },
-            openRecap = route.openRecap,
+            onOpenRecap = { navController.navigate(RecapRoute(route.tripId)) },
             onOpenAllTransactions = { navController.navigate(app.ransel.navigation.AllTransactionsRoute(route.tripId)) },
         )
     }
     page<PollRoute> { entry ->
         val route = entry.toRoute<PollRoute>()
         PollScreen(tripId = route.tripId, pollId = route.pollId, openShare = route.share, onBack = { navController.popBackStack() })
+    }
+    page<RecapRoute> { entry ->
+        val route = entry.toRoute<RecapRoute>()
+        app.ransel.feature.recap.RecapScreen(tripId = route.tripId, onBack = { navController.popBackStack() })
     }
     page<app.ransel.navigation.AllTransactionsRoute> { entry ->
         val route = entry.toRoute<app.ransel.navigation.AllTransactionsRoute>()

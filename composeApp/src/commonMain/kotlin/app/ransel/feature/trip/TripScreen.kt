@@ -90,8 +90,7 @@ fun TripScreen(
     onOpenDocuments: (upload: Boolean) -> Unit = {},
     /** "Album trip"; add = opened from "Tambah album". */
     onOpenAlbums: (add: Boolean) -> Unit = {},
-    /** Opened from the "Rekap siap" notification: the recap sheet shows over the trip. */
-    openRecap: Boolean = false,
+    onOpenRecap: () -> Unit = {},
     /** "Lihat semua" on the Biaya tab: "Semua transaksi". */
     onOpenAllTransactions: () -> Unit = {},
     /** Back from a payment in "Semua transaksi": the Biaya tab shows Saldo, then [onBalancesOpened] clears it. */
@@ -105,7 +104,6 @@ fun TripScreen(
     val answer by remember(tripId) { trips.observeTrip(tripId).map { TripAnswer(it) } }.collectAsState(initial = null)
     val trip = answer?.trip
     var tab by rememberSaveable { mutableStateOf(initialTab) }
-    var showRecap by rememberSaveable { mutableStateOf(openRecap) }
     val dates = rememberDateFormatter()
     val current = trip
 
@@ -166,9 +164,8 @@ fun TripScreen(
                 onTabSelected = { tab = it },
                 onBack = onBack,
                 onEdit = if (current?.myRole == app.ransel.shared.model.Role.OWNER) onEditTrip else null,
-                onRecap = current?.takeIf { app.ransel.shared.domain.recapAvailable(it.endDate, app.ransel.util.today()) }?.let { { showRecap = true } },
+                onRecap = current?.takeIf { app.ransel.shared.domain.recapAvailable(it.endDate, app.ransel.util.today()) }?.let { { onOpenRecap() } },
             )
-            if (showRecap) app.ransel.feature.recap.RecapSheet(tripId, onDismiss = { showRecap = false })
             if (offline) app.ransel.ui.components.OfflineBanner()
             Box(Modifier.weight(1f).navigationBarsPadding()) {
             PullToRefresh(

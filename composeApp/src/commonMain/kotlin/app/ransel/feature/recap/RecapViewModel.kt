@@ -30,7 +30,7 @@ data class RecapUiState(
 )
 
 /**
- * The trip recap (`RecapSheet`, and the card on Home; designs "RekapTrip", "WebRekapTrip", "BerandaRekap"). The numbers come from the device's own itinerary
+ * The trip recap (`RecapScreen`, and the card on Home; designs "RekapTrip", "WebRekapTrip", "BerandaRekap"). The numbers come from the device's own itinerary
  * and expenses (`domain/Recap.kt`), so the recap works offline; whether everything is settled comes from the server.
  */
 class RecapViewModel(

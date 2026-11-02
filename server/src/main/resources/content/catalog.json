@@ -3265,6 +3265,12 @@
    "en": "unscheduled"
   },
   {
+   "key": "home_recap_open",
+   "area": "home",
+   "id": "Lihat rekap",
+   "en": "See the recap"
+  },
+  {
    "key": "home_recap_per_person",
    "area": "home",
    "id": "per orang",
@@ -3287,12 +3293,6 @@
    "area": "home",
    "id": "total",
    "en": "total"
-  },
-  {
-   "key": "home_recap_trip",
-   "area": "home",
-   "id": "Lihat detail trip",
-   "en": "See trip details"
   },
   {
    "key": "home_title",
@@ -6985,6 +6985,12 @@
    "en": "days"
   },
   {
+   "key": "recap_done",
+   "area": "recap",
+   "id": "beres!",
+   "en": "done!"
+  },
+  {
    "key": "recap_download",
    "area": "recap",
    "id": "Unduh gambar",
@@ -7031,6 +7037,36 @@
    "area": "recap",
    "id": "Gambar rekap belum bisa dibuat.",
    "en": "The recap image could not be made."
+  },
+  {
+   "key": "recap_template_done",
+   "area": "recap",
+   "id": "Beres!",
+   "en": "Done!"
+  },
+  {
+   "key": "recap_template_numbers",
+   "area": "recap",
+   "id": "Angka besar",
+   "en": "Big numbers"
+  },
+  {
+   "key": "recap_template_share",
+   "area": "recap",
+   "id": "Bagikan",
+   "en": "Share"
+  },
+  {
+   "key": "recap_template_ticket",
+   "area": "recap",
+   "id": "Tiket",
+   "en": "Ticket"
+  },
+  {
+   "key": "recap_template_title",
+   "area": "recap",
+   "id": "Pilih gambar",
+   "en": "Pick a picture"
   },
   {
    "key": "recap_title",
@@ -9207,6 +9243,8 @@
   "ic_exploring_cave_cart",
   "ic_itinerary_empty",
   "ic_packing_empty",
+  "ic_recap_floating",
+  "ic_recap_hiking",
   "ic_send_invitation",
   "ic_sun_bathing",
   "ic_sun_bathing_water",
