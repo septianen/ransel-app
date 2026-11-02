@@ -47,6 +47,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -94,25 +95,30 @@ fun RecapScreen(
     val state by viewModel.state.collectAsState()
     var picking by rememberSaveable { mutableStateOf(false) }
     val scheme = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxSize().background(scheme.surface).statusBarsPadding().navigationBarsPadding()) {
+    // All one green, like the ticket's picture: no white bars above and below it.
+    Column(Modifier.fillMaxSize().background(scheme.primary).statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onBack), contentAlignment = Alignment.Center) {
-                Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
+                Symbol(Symbols.arrowBack, tint = scheme.onPrimary, contentDescription = stringResource(Res.string.action_back))
             }
-            Text(stringResource(Res.string.recap_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(start = 4.dp))
+            Text(stringResource(Res.string.recap_title), style = MaterialTheme.typography.titleLarge, color = scheme.onPrimary, modifier = Modifier.padding(start = 4.dp))
         }
         val trip = state.trip
         val recap = state.recap
         val start = trip?.startDate
         val end = trip?.endDate
-        Box(Modifier.weight(1f).fillMaxWidth().background(scheme.primary), contentAlignment = Alignment.TopCenter) {
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             if (trip != null && recap != null && start != null && end != null) {
                 RecapCard(trip.title, start, end, trip.baseCurrency, recap, state.members, state.openTransfers, Modifier.verticalScroll(rememberScrollState()))
             }
         }
         if (trip != null && recap != null) {
-            Button(onClick = { picking = true }, modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp)) {
-                Symbol(Symbols.share, tint = scheme.onPrimary)
+            Button(
+                onClick = { picking = true },
+                modifier = Modifier.fillMaxWidth().padding(16.dp).heightIn(min = 48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = scheme.onPrimary, contentColor = scheme.primary),
+            ) {
+                Symbol(Symbols.share, tint = scheme.primary)
                 Text(stringResource(if (files.keepsFiles) Res.string.recap_share else Res.string.recap_download), modifier = Modifier.padding(start = 8.dp))
             }
         }
