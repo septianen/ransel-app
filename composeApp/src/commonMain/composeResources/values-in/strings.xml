@@ -695,9 +695,9 @@
     <string name="explore_price_high_example">Fine dining, pengalaman premium</string>
     <string name="explore_price_from_budget">Dipilih dari budget trip %1$s: sekitar %2$s per orang per hari.</string>
     <string name="explore_price_no_budget">Trip ini belum punya budget, jadi Sedang dipilih sebagai awal. Isi budget di Edit trip supaya terpilih otomatis.</string>
-    <string name="explore_picker_title">Cari inspirasi untuk trip mana?</string>
+    <string name="explore_picker_title">Cari inspirasi trip?</string>
     <string name="explore_picker_other_trip">Atau cari untuk trip lain</string>
-    <string name="explore_picker_body">Tempat yang kamu simpan masuk ke kotak Belum dijadwalkan di trip itu.</string>
+    <string name="explore_picker_body">Jelajahi hal menarik di destinasi tujuanmu dengan AI</string>
     <string name="explore_picker_your_trips">Trip kamu</string>
     <plurals name="explore_picker_in_days">
         <item quantity="other">%1$d hari lagi</item>
