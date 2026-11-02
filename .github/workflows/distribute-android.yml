@@ -71,20 +71,37 @@ jobs:
           RELEASE_KEYSTORE: ${{ secrets.RANSEL_KEYSTORE_BASE64 }}
           DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
         run: |
-          # google-services.json (base64) turns on push, Analytics and Crashlytics; without it they are off in the build.
+          # Decodes a base64 secret into a file. Line breaks and spaces (Windows clipboard, wrapped output) are ignored,
+          # and a bad value names its secret instead of a bare "base64: invalid input".
+          decode() {
+            if ! printf '%s' "$1" | tr -d ' \t\r\n' | base64 -d > "$2" 2>/dev/null; then
+              echo "::error::$3 is not valid base64. Paste the output of: base64 -w0 <file> (PowerShell: [Convert]::ToBase64String([IO.File]::ReadAllBytes(\"<file>\")))"
+              exit 1
+            fi
+          }
+          # google-services.json turns on push, Analytics and Crashlytics; without it they are off in the build.
+          # The secret may hold the file as is or as base64.
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON" | base64 -d > composeApp/google-services.json
+            case "$(printf '%s' "$GOOGLE_SERVICES_JSON" | tr -d ' \t\r\n' | head -c 1)" in
+              "{") printf '%s' "$GOOGLE_SERVICES_JSON" > composeApp/google-services.json ;;
+              *) decode "$GOOGLE_SERVICES_JSON" composeApp/google-services.json GOOGLE_SERVICES_JSON ;;
+            esac
+            if ! packages=$(python3 -c 'import json,sys; print(", ".join(c["client_info"]["android_client_info"]["package_name"] for c in json.load(open(sys.argv[1]))["client"]))' composeApp/google-services.json 2>/dev/null); then
+              echo "::error::GOOGLE_SERVICES_JSON is not a google-services.json file (download it from Firebase -> Project settings -> Your apps)"
+              exit 1
+            fi
+            echo "google-services.json packages: $packages"
           else
             echo "::warning::GOOGLE_SERVICES_JSON is not set: the APK has no push, Analytics or Crashlytics"
           fi
           if [ "$BUILD_TYPE" = release ]; then
             if [ -z "$RELEASE_KEYSTORE" ]; then echo "RANSEL_KEYSTORE_BASE64 is not set: a release build must be signed" >&2; exit 1; fi
-            printf '%s' "$RELEASE_KEYSTORE" | base64 -d > "$RUNNER_TEMP/ransel-release.jks"
+            decode "$RELEASE_KEYSTORE" "$RUNNER_TEMP/ransel-release.jks" RANSEL_KEYSTORE_BASE64
             echo "RANSEL_KEYSTORE_FILE=$RUNNER_TEMP/ransel-release.jks" >> "$GITHUB_ENV"
           elif [ -n "$DEBUG_KEYSTORE" ]; then
             # The same debug key every run, or testers could not update over the previous build.
             mkdir -p ~/.android
-            printf '%s' "$DEBUG_KEYSTORE" | base64 -d > ~/.android/debug.keystore
+            decode "$DEBUG_KEYSTORE" ~/.android/debug.keystore DEBUG_KEYSTORE_BASE64
           else
             echo "::warning::DEBUG_KEYSTORE_BASE64 is not set: each build has a new debug key and must be reinstalled"
           fi
