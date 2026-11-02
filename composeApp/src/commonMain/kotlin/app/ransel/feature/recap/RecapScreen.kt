@@ -161,7 +161,8 @@ fun RecapTemplateSheet(story: RecapStoryText, files: DeviceFiles, onDismiss: () 
                 ) {
                     val picture = pictures[template]
                     val frame = Modifier.fillMaxWidth().aspectRatio(9f / 16f).clip(IrisShape.md)
-                        .border(if (selected) 3.dp else 1.dp, if (selected) scheme.primary else scheme.outlineVariant, IrisShape.md)
+                        // magenta: green would not stand out against the green pictures
+                        .border(if (selected) 3.dp else 1.dp, if (selected) IrisTheme.accents.magenta else scheme.outlineVariant, IrisShape.md)
                     if (picture != null) {
                         Image(picture, contentDescription = null, modifier = frame, contentScale = ContentScale.Crop, filterQuality = FilterQuality.Medium)
                     } else {
