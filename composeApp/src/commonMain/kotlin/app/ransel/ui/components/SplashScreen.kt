@@ -27,7 +27,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.splash_logo_tile
-import ransel.composeapp.generated.resources.splash_peeking
+import ransel.composeapp.generated.resources.ic_binocular
 import ransel.composeapp.generated.resources.splash_tagline
 
 /*
@@ -50,7 +50,7 @@ fun SplashScreen(modifier: Modifier = Modifier) {
         val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
         Box(Modifier.size(width, u * FRAME_HEIGHT)) {
             Image(
-                painterResource(Res.drawable.splash_peeking),
+                painterResource(Res.drawable.ic_binocular),
                 contentDescription = null,
                 modifier = Modifier.offset(u * 142.6f, u * 14.8f).size(u * 315f, u * 411f),
             )

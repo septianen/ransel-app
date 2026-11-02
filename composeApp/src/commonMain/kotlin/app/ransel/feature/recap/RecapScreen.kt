@@ -259,7 +259,7 @@ fun RecapCard(
     val wide = rememberIsExpanded()
     Box(modifier.widthIn(max = if (wide) 712.dp else 480.dp).fillMaxWidth()) {
         Image(
-            painterResource(Res.drawable.splash_peeking),
+            painterResource(Res.drawable.ic_binocular),
             contentDescription = null,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp).size(126.dp, 164.dp),
         )
@@ -394,7 +394,7 @@ fun RecapHomeCard(
     Box(modifier.fillMaxWidth().heightIn(min = 148.dp).clip(IrisShape.lg).background(green).clickable(role = Role.Button, onClick = onOpen)) {
         // cut off by the card's bottom edge, above the legs
         Image(
-            painterResource(Res.drawable.splash_peeking),
+            painterResource(Res.drawable.ic_binocular),
             contentDescription = null,
             modifier = Modifier.align(Alignment.TopEnd).padding(top = 50.dp, end = 40.dp).requiredSize(81.dp, 106.dp),
         )
