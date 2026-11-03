@@ -14,7 +14,7 @@ private external fun browserOrigin(): String
 @JsFun("() => window.location.hostname")
 private external fun browserHostname(): String
 
-/** Optional override, set before the app script in `index.html`: `window.RANSEL_API_ORIGIN = "https://ranselapi.mietek.tech"`. */
+/** Optional override, set before the app script in `index.html`: `window.RANSEL_API_ORIGIN = "https://api.ransel.app"`. */
 @JsFun("() => (typeof window.RANSEL_API_ORIGIN === 'string' ? window.RANSEL_API_ORIGIN : '')")
 private external fun configuredOrigin(): String
 

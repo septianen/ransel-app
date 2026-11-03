@@ -5,7 +5,7 @@ The account must already exist and be verified: add it to the SEED_USERS secret 
 account"). The trip gets two members without an account, an itinerary over three days, packing items, shared
 expenses and an open poll with the reviewer's vote, so every tab has something to show.
 
-    python3 deploy/seed-demo-trip.py --api https://ranselapi.mietek.tech --email reviewer@example.com
+    python3 deploy/seed-demo-trip.py --api https://api.ransel.app --email reviewer@example.com
 
 The password is asked for (or read from RANSEL_SEED_PASSWORD), never passed on the command line. Running it again
 does nothing while the account has a trip with that title; --replace deletes it and makes a new one with fresh
@@ -172,7 +172,7 @@ def seed(api):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--api", required=True, help="API origin, e.g. https://ranselapi.mietek.tech")
+    parser.add_argument("--api", required=True, help="API origin, e.g. https://api.ransel.app")
     parser.add_argument("--email", required=True, help="the reviewer account (from SEED_USERS)")
     parser.add_argument("--replace", action="store_true", help="delete the sample trip first and make it again")
     args = parser.parse_args()

@@ -15,15 +15,15 @@ data class ApiEnvironment(val id: String, val origin: String) {
 
 /**
  * The servers Karung may talk to from this page (scheme + host + port, no `/api/v1`):
- *  - `karung.mietek.tech`: production and staging, picked on the sign-in screen or in the sidebar;
+ *  - `karung.ransel.app`: production and staging, picked on the sign-in screen or in the sidebar;
  *  - `localhost` / `127.0.0.1`: the local server on port 8080;
  *  - otherwise `window.RANSEL_API_ORIGIN` when set, else the page's own origin.
  * The first one is the default.
  */
 fun environmentsFor(hostname: String, pageOrigin: String, configuredOrigin: String): List<ApiEnvironment> = when {
-    hostname == "karung.mietek.tech" -> listOf(
-        ApiEnvironment(ApiEnvironment.PRODUCTION, "https://ranselapi.mietek.tech"),
-        ApiEnvironment(ApiEnvironment.STAGING, "https://ranselapi-dev.mietek.tech"),
+    hostname == "karung.ransel.app" -> listOf(
+        ApiEnvironment(ApiEnvironment.PRODUCTION, "https://api.ransel.app"),
+        ApiEnvironment(ApiEnvironment.STAGING, "https://api-staging.ransel.app"),
     )
     configuredOrigin.isNotBlank() -> listOf(ApiEnvironment(ApiEnvironment.PRODUCTION, configuredOrigin))
     hostname == "localhost" || hostname == "127.0.0.1" -> listOf(ApiEnvironment(ApiEnvironment.DEVELOPMENT, "http://$hostname:8080"))
