@@ -1,6 +1,5 @@
 package app.ransel.data.local
 
-import androidx.room3.AutoMigration
 import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
@@ -18,19 +17,9 @@ import kotlinx.coroutines.IO // Dispatchers.IO is an extension outside the JVM
         ExpenseEntity::class,
         PreferenceEntity::class,
     ],
-    version = 11,
-    autoMigrations = [
-        AutoMigration(from = 1, to = 2), // expenses.splitsJson
-        AutoMigration(from = 2, to = 3), // trips.myRole
-        AutoMigration(from = 3, to = 4), // expenses.payersJson
-        AutoMigration(from = 4, to = 5, spec = Migration4To5::class), // paidByUserId -> paidByMemberId, member ids in the JSON
-        AutoMigration(from = 5, to = 6), // expenses.paidFromKitty, isEstimate, itemsJson
-        AutoMigration(from = 6, to = 7), // trips.destPlaceId, destLat, destLng, destViewportJson
-        AutoMigration(from = 7, to = 8), // trips.countryCode, localCurrency, timeZone; expenses.fxSource, fxDate
-        AutoMigration(from = 8, to = 9), // packing_items.assigneeMemberId, personal_items
-        AutoMigration(from = 9, to = 10, spec = Migration9To10::class), // drop expenses.paidFromKitty (kitty removed)
-        AutoMigration(from = 10, to = 11), // trips.startDate, endDate nullable ("Tanggal belum pasti"); Room copies the table
-    ],
+    // Squashed to 1 on 3 Nov 2026 before the first store release (owner); earlier builds must be reinstalled.
+    // From here on, raise the version with an AutoMigration for every schema change.
+    version = 1,
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
 abstract class RanselDatabase : RoomDatabase() {
