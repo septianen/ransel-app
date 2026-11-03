@@ -18,7 +18,7 @@ server/src/main/kotlin/app/ransel/server/
   ai/                   LLM + Places clients, prompt, cache (Phase 5)
 server/src/main/resources/
   application.yaml
-  db/migration/V1__init.sql … (one file per change, V32 on 31 Oct 2026)
+  db/migration/V1__init.sql … (one file per change; V1 is the schema squashed on 3 Nov 2026)
 server/src/test/kotlin/  testApplication + Postgres (Testcontainers or docker compose)
 ```
 
@@ -28,7 +28,7 @@ server/src/test/kotlin/  testApplication + Postgres (Testcontainers or docker co
 - **Responses**: success via a `call.respondData(status, data)` helper that wraps `ApiResponse`; every failure through StatusPages from typed exceptions (`ApiException(status, ErrorCode.X, message, details)`). Never leak stack traces or SQL messages. 204 has an empty body.
 - **Validation** uses `shared/src/commonMain/kotlin/app/ransel/shared/domain/Validation.kt` (same rules as the forms) → 422 `VALIDATION_FAILED` with `details` per field.
 - **Authorization**: every trip route calls one `requireRole(tripId, minRole)`; non-members get 404 `TRIP_NOT_FOUND`, members with a too-low role get 403 `FORBIDDEN`. The caller is the JWT subject (`call.userId()`). The V1 dummy user `00000000-0000-0000-0000-000000000001` only exists as the owner of guest data before the first sign-in; it has no email and cannot log in.
-- **Migrations**: run with Flyway at startup. Production has applied them, so never edit an existing migration: add the next number (V33, …) and tell the frontend agent if a column changes.
+- **Migrations**: run with Flyway at startup. Production has applied them, so never edit an existing migration: add the next number (V2, …) and tell the frontend agent if a column changes.
 - **Soft delete** everywhere (`deleted_at`); lists exclude deleted rows; `/sync` pulls include them.
 - **`updated_at`** is set by the DB trigger (server clock). Pull cursors (`GET /sync?since=`) use server time. Last-write-wins on push compares the incoming `updatedAt` with the stored one.
 - **Transactions**: day reorder (`PUT .../days/{date}/order`), sync push batches, invite accept (`trip_members` insert + `used_count + 1`), expense + splits — each in one transaction.
@@ -58,5 +58,5 @@ Live at `https://ranselapi.mietek.tech` (VPS `sen@187.127.97.109`, SSH port 2212
 - The VPS already runs nginx for other sites, so nginx is the public entry (`deploy/nginx/`), not Caddy. `docker-compose.prod.yml` runs `server` (published on `127.0.0.1:8080` only) and `db` (Postgres 16, private volume).
 - `.github/workflows/deploy-server.yml`: on push to `main` touching server/shared/deploy it runs the tests, builds `:server:installDist`, pushes `ghcr.io/septianen/ransel-server:<sha>` and rolls it out over SSH. Gradle does not run inside Docker because `:shared` configures the Android plugin.
 - Sign-up is open (`REGISTRATION_ENABLED` defaults to true; set `false` to close it). New accounts verify their email (SMTP via `SMTP_*`) before Explore and the signup credits; `SEED_USER_*` accounts start verified.
-- Migrations V1–V4 are now applied in production: **never edit them again**, add V5, V6, ...
+- The migrations were squashed into one `V1__init.sql` on 3 Nov 2026 (owner, before the first store release; production and staging were reset). Once V1 is applied in production: **never edit it again**, add V2, V3, ...
 - Daily `pg_dump` via `deploy/backup-db.sh` (cron on the VPS); copying dumps off the VPS is still manual.
