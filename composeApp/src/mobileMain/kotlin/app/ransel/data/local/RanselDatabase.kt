@@ -44,4 +44,7 @@ const val DATABASE_FILE = "ransel.db"
 fun RoomDatabase.Builder<RanselDatabase>.configureAndBuild(): RanselDatabase =
     setDriver(BundledSQLiteDriver())
         .setQueryCoroutineContext(Dispatchers.IO)
+        // A database from a newer schema (a restored backup from before the reset to version 1, or a downgrade) starts
+        // empty instead of crashing; trips come back with the next sync. Upgrades still need a migration.
+        .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
         .build()
