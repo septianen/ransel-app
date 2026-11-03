@@ -33,7 +33,12 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         if (Build.VERSION.SDK_INT >= 33) {
-            AndroidPushRegistrar.permissionRequest = { notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS) }
+            AndroidPushRegistrar.permissionRequest = { askedBefore ->
+                // Asked before and no rationale = refused twice ("don't ask again"): the system would show nothing.
+                val blocked = askedBefore && !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+                if (!blocked) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                !blocked
+            }
         }
     }
 

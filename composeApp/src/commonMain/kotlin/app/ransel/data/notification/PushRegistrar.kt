@@ -18,13 +18,16 @@ interface PushRegistrar {
 
     fun hasPermission(): Boolean
 
-    /** Asks for the permission to show notifications (Android 13+ and iOS: the system dialog); a no-op elsewhere. */
+    /**
+     * Asks for the permission to show notifications (Android 13+ and iOS: the system dialog, or the app's notification
+     * settings once the system no longer shows it); a no-op elsewhere.
+     */
     fun requestPermission()
 
-    /** True once: the explanation sheet should be shown at app start (permission missing, not explained before). */
+    /** The explanation sheet should be shown at this app start: the permission is missing and the sheet was not answered in this launch. */
     fun shouldExplainPermission(): Boolean
 
-    /** The explanation sheet was shown and answered ("Nanti saja" or "Ya"): do not show it again. */
+    /** The explanation sheet was answered ("Nanti saja" or "Ya"): not again until the next app start. */
     fun explanationDismissed()
 
     /** Opens the phone's notification settings for this app. */

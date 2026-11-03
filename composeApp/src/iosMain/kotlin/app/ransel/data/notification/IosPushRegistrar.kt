@@ -37,16 +37,25 @@ class IosPushRegistrar : PushRegistrar {
 
     override fun hasPermission(): Boolean = granted
 
-    /** The system dialog; iOS shows it only once per install and answers at once afterwards. */
+    /** The system dialog; iOS shows it only once per install, so after that the app's settings open instead. */
     override fun requestPermission() {
+        if (granted) return
+        if (defaults.boolForKey(KEY_ASKED)) return openSystemSettings()
+        defaults.setBool(true, KEY_ASKED)
         UNUserNotificationCenter.currentNotificationCenter().requestAuthorizationWithOptions(
             UNAuthorizationOptionAlert or UNAuthorizationOptionSound or UNAuthorizationOptionBadge,
         ) { allowed, _ -> granted = allowed }
     }
 
-    override fun shouldExplainPermission(): Boolean = !granted && !defaults.boolForKey(KEY_EXPLAINED)
+    /** At every app start while the permission is missing (owner, 3 Nov 2026), once per launch. */
+    override fun shouldExplainPermission(): Boolean = !granted && !explainedThisLaunch
 
-    override fun explanationDismissed() = defaults.setBool(true, KEY_EXPLAINED)
+    override fun explanationDismissed() {
+        explainedThisLaunch = true
+    }
+
+    @Volatile
+    private var explainedThisLaunch = false
 
     override fun openSystemSettings() {
         val url = NSURL.URLWithString(UIApplicationOpenSettingsURLString) ?: return
@@ -67,6 +76,6 @@ class IosPushRegistrar : PushRegistrar {
     private val defaults get() = NSUserDefaults.standardUserDefaults
 
     private companion object {
-        const val KEY_EXPLAINED = "ransel_push_permission_explained"
+        const val KEY_ASKED = "ransel_push_permission_asked"
     }
 }
