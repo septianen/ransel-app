@@ -80,6 +80,8 @@ object TestDb {
                 conn.createStatement().use { it.execute("TRUNCATE recommendation_cache, explore_suggestions_cache, place_detail_cache, place_autocomplete_cache, place_details_cache") }
                 conn.createStatement().use { it.execute("TRUNCATE credit_vouchers CASCADE") }
                 conn.createStatement().use { it.execute("TRUNCATE admin_audit_log") }
+                // built-in templates too: the seed only inserts missing ones, so an edit would outlive its test
+                conn.createStatement().use { it.execute("TRUNCATE packing_templates") }
                 conn.createStatement().use { it.execute("TRUNCATE ai_search_log, provider_usage, error_counts, error_count_users, user_active_days, app_settings") }
                 conn.createStatement().use { it.execute("TRUNCATE content_errors, content_categories, destination_interests; UPDATE content_meta SET version = 0, published_at = NULL, published_by = NULL") }
                 // Real accounts go (their refresh tokens cascade); the seeded dummy user has no email and stays.

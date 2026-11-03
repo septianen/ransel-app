@@ -5,6 +5,7 @@ import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.AdminPrincipal
 import app.ransel.server.service.AdminMonitoringService
 import app.ransel.server.service.AdminService
+import app.ransel.server.service.BuiltinTemplateService
 import app.ransel.server.service.ContentService
 import app.ransel.server.service.SettingsService
 import app.ransel.server.service.UserFilter
@@ -15,6 +16,7 @@ import app.ransel.shared.dto.AdjustCreditsRequest
 import app.ransel.shared.dto.CreateUserRequest
 import app.ransel.shared.dto.CreateVoucherRequest
 import app.ransel.shared.dto.AdminInterestCurationDto
+import app.ransel.shared.dto.SaveBuiltinTemplateRequest
 import app.ransel.shared.dto.UpdateContentCategoriesRequest
 import app.ransel.shared.dto.UpdateContentErrorRequest
 import app.ransel.shared.dto.UpdateSettingsRequest
@@ -31,6 +33,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
@@ -181,6 +184,28 @@ fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService,
         put(AdminRoutes.CONTENT_CATEGORIES) {
             val admin = call.admin()
             call.respondData(HttpStatusCode.OK, content.saveCategories(admin, call.receive<UpdateContentCategoriesRequest>()))
+        }
+        // Built-in packing templates (owner, 3 Nov 2026)
+        get(AdminRoutes.PACKING_TEMPLATES) {
+            call.admin()
+            call.respondData(HttpStatusCode.OK, BuiltinTemplateService.list())
+        }
+        post(AdminRoutes.PACKING_TEMPLATES) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.Created, BuiltinTemplateService.create(admin, call.receive<SaveBuiltinTemplateRequest>()))
+        }
+        put(AdminRoutes.packingTemplate("{templateId}")) {
+            val admin = call.admin()
+            val id = call.pathUuid("templateId", "Template")
+            call.respondData(HttpStatusCode.OK, BuiltinTemplateService.update(admin, id, call.receive<SaveBuiltinTemplateRequest>()))
+        }
+        delete(AdminRoutes.packingTemplate("{templateId}")) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, BuiltinTemplateService.delete(admin, call.pathUuid("templateId", "Template")))
+        }
+        post(AdminRoutes.packingTemplateRestore("{templateId}")) {
+            val admin = call.admin()
+            call.respondData(HttpStatusCode.OK, BuiltinTemplateService.restore(admin, call.pathUuid("templateId", "Template")))
         }
         get(AdminRoutes.CONTENT_INTERESTS) {
             call.admin()
