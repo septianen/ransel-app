@@ -40,6 +40,22 @@ data class ApiError(
     val message: String,
     /** Field-level problems for VALIDATION_FAILED, e.g. {"endDate": "MUST_BE_AFTER_START"}. */
     val details: Map<String, String>? = null,
+    /**
+     * The copy Karung published for [code] (admin-spec, "Pesan error"), in the request's `Accept-Language` ("id",
+     * else "en"), placeholders already filled from [details]. Null, or a null field = the app's own copy.
+     */
+    val text: ApiErrorText? = null,
+)
+
+/** What an error screen, snackbar or dialog shows instead of the app's bundled copy for one error. */
+@Serializable
+data class ApiErrorText(
+    val title: String? = null,
+    val message: String? = null,
+    val button: String? = null,
+    /** A drawable of the app (`ic_confuse`, ...); null = the screen's own. */
+    val illustration: String? = null,
+    val display: app.ransel.shared.model.ErrorDisplay? = null,
 )
 
 /**

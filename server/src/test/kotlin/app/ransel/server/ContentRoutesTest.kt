@@ -21,39 +21,12 @@ class ContentRoutesTest {
     private fun JsonObject.obj(key: String) = getValue(key).jsonObject
 
     @Test
-    fun aStringDraftGoesLiveOnPublishAndKeepsItsPlaceholders() = apiTest(config) {
+    fun screenTextsAreNoLongerRemoteContent() = apiTest(config) {
         signUp(email = "admin@example.com")
-        val key = "trip_duration"
-        val row = get("/admin/content/strings").data().jsonObject.getValue("strings").jsonArray.map { it.jsonObject }.single { it.str("key") == key }
-        assertEquals("DEFAULT", row.str("status"))
-        val bundled = row.obj("defaults").str("id")
-        assertTrue("%1\$d" in bundled && "%2\$d" in bundled, bundled)
-
-        val bad = put("/admin/content/strings", """{"key":"$key","text":{"id":"Lama perjalanan"}}""")
-        assertEquals("VALIDATION_FAILED", bad.errorCode())
-        assertTrue("PLACEHOLDER_MISMATCH" in bad.bodyAsText())
-        assertEquals("VALIDATION_FAILED", put("/admin/content/strings", """{"key":"no_such_key","text":{"id":"x"}}""").errorCode())
-
-        val draft = put("/admin/content/strings", """{"key":"$key","text":{"id":"%1${'$'}d hari, %2${'$'}d malam"}}""")
-        assertEquals(HttpStatusCode.OK, draft.status, draft.bodyAsText())
-        assertEquals("DRAFT", draft.data().jsonObject.str("status"))
-        // nothing is live before "Terbitkan"
-        assertEquals("0", get("/content").data().jsonObject.str("version"))
-
-        val published = post("/admin/content/publish", "{}").data().jsonObject
-        assertEquals("1", published.str("version"))
-        assertEquals("1", published.str("published"))
+        assertEquals(HttpStatusCode.NotFound, get("/admin/content/strings").status)
         val content = get("/content").data().jsonObject
-        assertEquals("%1\$d hari, %2\$d malam", content.obj("strings").obj("id").str(key))
-        assertEquals(HttpStatusCode.NoContent, get("/content?version=1").status)
-        assertEquals("CONTENT_PUBLISH", get("/admin/audit?action=CONTENT_PUBLISH").data().jsonArray.single().jsonObject.str("action"))
-
-        // "Kembalikan bawaan": a draft without text removes the override when published
-        put("/admin/content/strings", """{"key":"$key","text":{}}""")
-        post("/admin/content/publish", "{}")
-        val after = get("/content").data().jsonObject
-        assertEquals("2", after.str("version"))
-        assertNull(after["strings"]?.jsonObject?.get("id")?.jsonObject?.get(key))
+        assertTrue(content["strings"]?.jsonObject.isNullOrEmpty())
+        assertTrue(content["errors"]?.jsonArray.isNullOrEmpty())
     }
 
     @Test
@@ -72,10 +45,41 @@ class ContentRoutesTest {
         )
         assertEquals(HttpStatusCode.OK, ok.status, ok.bodyAsText())
         assertEquals("1", get("/admin/content/errors").data().jsonObject.str("drafts"))
+        val published = post("/admin/content/publish", "{}").data().jsonObject
+        assertEquals("1", published.str("published"))
+        assertEquals("CONTENT_PUBLISH", get("/admin/audit?action=CONTENT_PUBLISH").data().jsonArray.single().jsonObject.str("action"))
+        // error copy is not in GET /content any more: it comes with the error itself
+        assertTrue(get("/content").data().jsonObject["errors"]?.jsonArray.isNullOrEmpty())
+    }
+
+    @Test
+    fun anErrorResponseCarriesKarungsCopyInTheCallersLanguage() = apiTest(config) {
+        signUp(email = "admin@example.com")
+        val missing = "/trips/${java.util.UUID.randomUUID()}"
+        assertNull(get(missing).jsonBody().getValue("error").jsonObject["text"], "nothing published yet")
+        put(
+            "/admin/content/errors",
+            """{"code":"TRIP_NOT_FOUND","text":{"titleId":"Trip tidak ada","messageEn":"This trip is gone.","illustration":"ic_confuse"}}""",
+        )
         post("/admin/content/publish", "{}")
-        val error = get("/content").data().jsonObject.getValue("errors").jsonArray.single().jsonObject
-        assertEquals("INSUFFICIENT_CREDITS", error.str("code"))
-        assertEquals("Kredit belum cukup", error.obj("text").str("titleId"))
+
+        language = "id-ID,id;q=0.9,en;q=0.8"
+        val id = get(missing).jsonBody().getValue("error").jsonObject
+        assertEquals("TRIP_NOT_FOUND", id.str("code"))
+        assertEquals("Trip tidak ada", id.obj("text").str("title"))
+        assertNull(id.obj("text")["message"])
+        assertEquals("ic_confuse", id.obj("text").str("illustration"))
+
+        language = "en"
+        val en = get(missing).jsonBody().getValue("error").jsonObject.obj("text")
+        assertEquals("This trip is gone.", en.str("message"))
+        assertNull(en["title"])
+
+        // the 401 from the auth challenge goes the same way
+        put("/admin/content/errors", """{"code":"UNAUTHORIZED","text":{"titleEn":"Please sign in"}}""")
+        post("/admin/content/publish", "{}")
+        token = null
+        assertEquals("Please sign in", get("/trips").jsonBody().getValue("error").jsonObject.obj("text").str("title"))
     }
 
     @Test

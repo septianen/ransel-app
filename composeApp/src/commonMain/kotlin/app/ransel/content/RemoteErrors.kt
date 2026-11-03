@@ -1,14 +1,15 @@
 package app.ransel.content
 
 import androidx.compose.runtime.Composable
-import app.ransel.shared.dto.ErrorTextDto
+import app.ransel.shared.api.ApiErrorText
 import org.jetbrains.compose.resources.DrawableResource
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.allDrawableResources
+import kotlin.concurrent.Volatile
 
 /**
- * Karung's copy for one `ErrorCode` in the language the app shows; a null field keeps the screen's own. `{cost}`,
- * `{available}`, ... are filled from the error's `details` (a placeholder without a value is left out).
+ * Karung's copy for one `ErrorCode`, as the server sent it with the error (`ApiError.text`: already in the app's
+ * language, `{cost}` and the other details filled in). A null field keeps the screen's own copy.
  */
 data class ErrorCopy(
     val title: String?,
@@ -17,23 +18,37 @@ data class ErrorCopy(
     val illustration: DrawableResource?,
 )
 
+/**
+ * The last copy the server sent per error code. Screens only get the code (`FullScreenState(errorCode = ...)`), so
+ * `RanselApi` records the copy here when the error arrives and the screen looks it up when it shows that error.
+ * Plain memory, not snapshot state: it is written from network threads and must never be read before it exists.
+ * Client-only codes (offline, timeout, location) never have server copy and keep the bundled one.
+ */
+object ServerErrorCopy {
+    @Volatile private var copies: Map<String, ApiErrorText> = emptyMap()
+
+    /** A null [text] forgets the code: Karung went back to the app's own copy. */
+    fun record(code: String, text: ApiErrorText?) {
+        val known = copies[code]
+        if (known == text) return
+        copies = if (text == null) copies - code else copies + (code to text)
+    }
+
+    fun forCode(code: String): ApiErrorText? = copies[code]
+
+    internal fun clear() {
+        copies = emptyMap()
+    }
+}
+
+/** Karung's copy for [code] from the last error response with it; null = the screen's own copy. */
 @Composable
-fun remoteErrorCopy(code: String?, details: Map<String, String>? = null): ErrorCopy? {
-    val text = code?.let { LiveContent.current.error(it) } ?: return null
-    return text.copyFor(contentLocale(), details.orEmpty())
-}
+fun remoteErrorCopy(code: String?): ErrorCopy? =
+    code?.let(ServerErrorCopy::forCode)?.toCopy()
 
-internal fun ErrorTextDto.copyFor(locale: String, details: Map<String, String>): ErrorCopy {
-    fun pick(id: String?, en: String?) = (if (locale == "id") id else en)?.takeIf { it.isNotBlank() }?.let { fillDetails(it, details) }
-    return ErrorCopy(
-        title = pick(titleId, titleEn),
-        message = pick(messageId, messageEn),
-        button = pick(buttonId, buttonEn),
-        illustration = illustration?.let { Res.allDrawableResources[it] },
-    )
-}
-
-private val NAMED = Regex("""\{([A-Za-z]+)\}""")
-
-internal fun fillDetails(text: String, details: Map<String, String>): String =
-    NAMED.replace(text) { m -> details[m.groupValues[1]].orEmpty() }.replace(Regex(" {2,}"), " ").trim()
+internal fun ApiErrorText.toCopy(): ErrorCopy = ErrorCopy(
+    title = title?.takeIf { it.isNotBlank() },
+    message = message?.takeIf { it.isNotBlank() },
+    button = button?.takeIf { it.isNotBlank() },
+    illustration = illustration?.let { Res.allDrawableResources[it] },
+)

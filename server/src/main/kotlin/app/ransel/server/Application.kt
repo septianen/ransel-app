@@ -33,6 +33,8 @@ import app.ransel.server.plugins.configureCallLogging
 import app.ransel.server.plugins.configureCors
 import app.ransel.server.plugins.configureRateLimit
 import app.ransel.server.plugins.configureSerialization
+import app.ransel.server.plugins.ErrorTextSource
+import app.ransel.server.plugins.ErrorTextSourceKey
 import app.ransel.server.plugins.configureStatusPages
 import app.ransel.server.routes.adminRoutes
 import app.ransel.server.routes.imageFileRoutes
@@ -267,6 +269,8 @@ fun Application.module(
     configureCors(config.corsOrigins)
     configureSerialization()
     configureStatusPages()
+    // Karung's published error copy travels with every error response (ApiError.text)
+    attributes.put(ErrorTextSourceKey, ErrorTextSource(content::errorText))
     configureRateLimit(config) { settings.current.suggestionsRateLimitPerHour }
     val requestStats = RequestStats()
     configureMonitoring(errorCounter, requestStats)

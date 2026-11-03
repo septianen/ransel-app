@@ -1,5 +1,6 @@
 package app.ransel.content
 
+import app.ransel.shared.api.ApiErrorText
 import app.ransel.shared.dto.ContentCategoryDto
 import app.ransel.shared.dto.ContentDto
 import app.ransel.shared.dto.ContentErrorDto
@@ -33,10 +34,11 @@ class RemoteContentTest {
     )
 
     @Test
-    fun stringsArePerLocaleAndCategoryLabelsWin() {
-        assertEquals("Rumah", content.text("id", "tab_home"))
-        assertNull(content.text("en", "tab_home"))
+    fun onlyCategoryLabelsAreRemoteEvenFromAnOlderSavedCopy() {
+        // an older build saved strings and errors too; they no longer apply (owner, 3 Nov 2026)
+        assertNull(content.text("id", "tab_home"))
         assertEquals("Kuliner", content.text("id", "expense_category_food"))
+        assertNull(content.text("en", "expense_category_food"))
     }
 
     @Test
@@ -54,12 +56,17 @@ class RemoteContentTest {
     }
 
     @Test
-    fun errorsFillDetailsAndIgnoreEmptyCopy() {
-        val copy = content.error("INSUFFICIENT_CREDITS")!!.copyFor("id", mapOf("cost" to "3", "available" to "1"))
+    fun errorCopyIsWhatTheLastErrorResponseSent() {
+        ServerErrorCopy.clear()
+        assertNull(ServerErrorCopy.forCode("INSUFFICIENT_CREDITS"))
+        ServerErrorCopy.record("INSUFFICIENT_CREDITS", ApiErrorText(message = "Butuh 3 kredit, sisa 1.", illustration = "ic_nope"))
+        val copy = ServerErrorCopy.forCode("INSUFFICIENT_CREDITS")!!.toCopy()
         assertEquals("Butuh 3 kredit, sisa 1.", copy.message)
         assertNull(copy.title)
-        assertNull(content.error("INSUFFICIENT_CREDITS")!!.copyFor("en", emptyMap()).message)
-        assertNull(content.error("NOT_FOUND"))
+        assertNull(copy.illustration, "an unknown drawable keeps the screen's own")
+        // Karung went back to the app's copy
+        ServerErrorCopy.record("INSUFFICIENT_CREDITS", null)
+        assertNull(ServerErrorCopy.forCode("INSUFFICIENT_CREDITS"))
     }
 
     @Test

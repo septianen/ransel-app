@@ -3,7 +3,6 @@ package app.ransel.server.plugins
 import app.ransel.server.AppConfig
 import app.ransel.server.security.TokenService
 import app.ransel.shared.api.ApiError
-import app.ransel.shared.api.ApiErrorResponse
 import app.ransel.shared.api.ErrorCode
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -17,7 +16,6 @@ import io.ktor.server.plugins.origin
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.ratelimit.RateLimiter
 import io.ktor.server.plugins.ratelimit.RateLimitName
-import io.ktor.server.response.respond
 import java.util.UUID
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
@@ -54,11 +52,7 @@ fun Application.configureAuth(config: AppConfig, tokens: TokenService, onAuthent
                 }
             }
             challenge { _, _ ->
-                call.attributes.put(ErrorCodeKey, ErrorCode.UNAUTHORIZED)
-                call.respond(
-                    HttpStatusCode.Unauthorized,
-                    ApiErrorResponse(ApiError(ErrorCode.UNAUTHORIZED, "Sign in required")),
-                )
+                call.respondError(HttpStatusCode.Unauthorized, ApiError(ErrorCode.UNAUTHORIZED, "Sign in required"))
             }
         }
     }

@@ -49,7 +49,6 @@
     <string name="nav_users">Pengguna</string>
     <string name="nav_explore_ai">Jelajah AI</string>
     <string name="nav_system">Sistem &amp; error</string>
-    <string name="nav_content_strings">Teks &amp; wording</string>
     <string name="nav_content_errors">Pesan error</string>
     <string name="nav_content_categories">Kategori</string>
     <string name="nav_content_interests">Minat khas</string>
@@ -418,19 +417,7 @@
     <string name="content_show_more">Tampilkan lebih banyak</string>
     <string name="content_empty">Tidak ada yang cocok</string>
     <string name="content_close">Tutup</string>
-    <string name="strings_title">Teks &amp; wording</string>
-    <string name="strings_subtitle">Teks yang bisa diubah dari server. Kalau belum dimuat, aplikasi pakai teks bawaan.</string>
-    <string name="strings_search">Cari kunci atau teks</string>
-    <string name="strings_filter_all">Semua</string>
-    <string name="strings_filter_drafts">Draf</string>
-    <string name="strings_filter_changed">Diubah</string>
-    <string name="strings_col_key">Kunci</string>
     <string name="strings_col_status">Status</string>
-    <string name="strings_edit_title">Ubah teks</string>
-    <string name="strings_bundled">Bawaan aplikasi: “%1$s”</string>
-    <string name="strings_rule_placeholders">Maks. %1$d karakter · harus memuat %2$s</string>
-    <string name="strings_rule">Maks. %1$d karakter</string>
-    <string name="strings_pick">Pilih teks di tabel untuk mengubahnya.</string>
     <string name="errors_title">Pesan error</string>
     <string name="errors_subtitle">Judul, pesan dan tombol yang dilihat pengguna untuk tiap kode error. %1$d kode, sama dengan daftar di server.</string>
     <string name="errors_search">Cari kode</string>

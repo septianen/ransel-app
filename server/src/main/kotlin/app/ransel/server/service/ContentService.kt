@@ -5,13 +5,13 @@ import app.ransel.server.ai.normalizeDestination
 import app.ransel.server.db.ContentCategories
 import app.ransel.server.db.ContentErrors
 import app.ransel.server.db.ContentMeta
-import app.ransel.server.db.ContentStrings
 import app.ransel.server.db.DestinationInterests
 import app.ransel.server.db.ErrorCounts
 import app.ransel.server.db.ExploreSuggestionsCache
 import app.ransel.server.db.Users
 import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.validationFailed
+import app.ransel.shared.api.ApiErrorText
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.domain.CATEGORY_COLORS
 import app.ransel.shared.domain.CATEGORY_ICONS
@@ -21,26 +21,21 @@ import app.ransel.shared.domain.MAX_INTEREST_LABEL
 import app.ransel.shared.domain.categoryConstants
 import app.ransel.shared.domain.categoryLabelKey
 import app.ransel.shared.domain.defaultCategoryStyle
-import app.ransel.shared.domain.validateContentString
+import app.ransel.shared.domain.forLanguage
 import app.ransel.shared.domain.validateErrorText
 import app.ransel.shared.dto.AdminContentCategoriesDto
 import app.ransel.shared.dto.AdminContentCategoryDto
 import app.ransel.shared.dto.AdminContentErrorDto
 import app.ransel.shared.dto.AdminContentErrorsDto
-import app.ransel.shared.dto.AdminContentStringDto
-import app.ransel.shared.dto.AdminContentStringsDto
 import app.ransel.shared.dto.AdminInterestCurationDto
 import app.ransel.shared.dto.AdminInterestSummaryDto
 import app.ransel.shared.dto.ContentCategoryDto
 import app.ransel.shared.dto.ContentDto
-import app.ransel.shared.dto.ContentErrorDto
 import app.ransel.shared.dto.ContentPublishResultDto
-import app.ransel.shared.dto.ContentTextDto
 import app.ransel.shared.dto.ErrorTextDto
 import app.ransel.shared.dto.InterestChipDto
 import app.ransel.shared.dto.UpdateContentCategoriesRequest
 import app.ransel.shared.dto.UpdateContentErrorRequest
-import app.ransel.shared.dto.UpdateContentStringRequest
 import app.ransel.shared.model.AdminAction
 import app.ransel.shared.model.CategoryKind
 import app.ransel.shared.model.ContentStatus
@@ -71,9 +66,10 @@ import java.util.UUID
 import kotlin.time.toKotlinInstant
 
 /**
- * Remote content (admin-spec stage D, B9.9). Strings and error messages are saved as drafts and go live together
- * with [publish]; categories and destination interests go live when saved. [content] is what `GET /content` sends,
- * rebuilt after every change that is live.
+ * Remote content (admin-spec stage D, B9.9). Error messages are saved as drafts and go live together with [publish],
+ * then travel in error responses ([errorText]); categories and destination interests go live when saved. [content]
+ * is what `GET /content` sends, rebuilt after every change that is live. Screen texts are no longer remote content
+ * (owner, 3 Nov 2026); the catalog still gives the categories' bundled labels and the illustrations.
  */
 class ContentService(
     private val suggestions: ExploreSuggestionService? = null,
@@ -82,61 +78,7 @@ class ContentService(
     private val wib = ZoneId.of("Asia/Jakarta")
 
     @Volatile private var cached: ContentDto? = null
-
-    // ── strings ─────────────────────────────────────────────────────────────
-
-    fun strings(): AdminContentStringsDto = transaction {
-        val rows = ContentStrings.selectAll().toList()
-        val emails = emails(rows.mapNotNull { it[ContentStrings.updatedBy] })
-        val byKey = rows.groupBy { it[ContentStrings.key] }
-        AdminContentStringsDto(
-            version = version(),
-            drafts = draftCount(),
-            strings = catalog.strings.map { entry ->
-                val published = byKey[entry.key]?.firstOrNull { it[ContentStrings.status] == PUBLISHED }
-                val draft = byKey[entry.key]?.firstOrNull { it[ContentStrings.status] == DRAFT }
-                val latest = draft ?: published
-                AdminContentStringDto(
-                    key = entry.key,
-                    area = entry.area,
-                    defaults = ContentTextDto(entry.id, entry.en),
-                    published = published?.text(),
-                    draft = draft?.text(),
-                    status = when {
-                        draft != null -> ContentStatus.DRAFT
-                        published != null -> ContentStatus.PUBLISHED
-                        else -> ContentStatus.DEFAULT
-                    },
-                    updatedByEmail = latest?.get(ContentStrings.updatedBy)?.let { emails[it] },
-                    updatedAt = latest?.get(ContentStrings.updatedAt)?.toKotlinInstant(),
-                )
-            },
-        )
-    }
-
-    fun saveString(admin: AdminPrincipal, body: UpdateContentStringRequest): AdminContentStringDto {
-        val entry = catalog.string(body.key) ?: throw validationFailed(mapOf("key" to "UNKNOWN"))
-        val text = body.text.cleaned()
-        if (!body.discard) {
-            val problems = validateContentString(entry.id, entry.en, text.id, text.en)
-            if (problems.isNotEmpty()) throw validationFailed(problems)
-        }
-        transaction {
-            if (body.discard) {
-                ContentStrings.deleteWhere { (ContentStrings.key eq body.key) and (ContentStrings.status eq DRAFT) }
-            } else {
-                ContentStrings.upsert {
-                    it[key] = body.key
-                    it[status] = DRAFT
-                    it[valueId] = text.id
-                    it[valueEn] = text.en
-                    it[updatedBy] = admin.id
-                    it[updatedAt] = Instant.now()
-                }
-            }
-        }
-        return strings().strings.first { it.key == body.key }
-    }
+    @Volatile private var cachedErrors: Map<String, ErrorTextDto>? = null
 
     // ── error messages ──────────────────────────────────────────────────────
 
@@ -205,41 +147,20 @@ class ContentService(
 
     // ── publish ─────────────────────────────────────────────────────────────
 
-    /** "Terbitkan": every string and error draft goes live at once; a draft with no text removes the override. */
+    /** "Terbitkan": every error draft goes live at once; a draft with no text removes the override. */
     fun publish(admin: AdminPrincipal): ContentPublishResultDto {
         val result = transaction {
-            val strings = ContentStrings.selectAll().where { ContentStrings.status eq DRAFT }.toList()
             val errors = ContentErrors.selectAll().where { ContentErrors.status eq DRAFT }.toList()
             // the catalog may have changed since a draft was saved: check them all again
             val problems = buildMap {
-                strings.forEach { row ->
-                    val entry = catalog.string(row[ContentStrings.key])
-                    val bad = entry == null || validateContentString(entry.id, entry.en, row[ContentStrings.valueId], row[ContentStrings.valueEn]).isNotEmpty()
-                    if (bad) put(row[ContentStrings.key], "PLACEHOLDER_MISMATCH")
-                }
                 errors.forEach { row ->
                     if (validateErrorText(row.errorText(), catalog.illustrations).isNotEmpty()) put(row[ContentErrors.code], "PLACEHOLDER_MISMATCH")
                 }
             }
             if (problems.isNotEmpty()) throw validationFailed(problems)
-            val count = strings.size + errors.size
+            val count = errors.size
             if (count == 0) return@transaction ContentPublishResultDto(version(), 0)
 
-            strings.forEach { row ->
-                val key = row[ContentStrings.key]
-                ContentStrings.deleteWhere { (ContentStrings.key eq key) and (ContentStrings.status eq PUBLISHED) }
-                if (row[ContentStrings.valueId] != null || row[ContentStrings.valueEn] != null) {
-                    ContentStrings.insert {
-                        it[ContentStrings.key] = key
-                        it[status] = PUBLISHED
-                        it[valueId] = row[ContentStrings.valueId]
-                        it[valueEn] = row[ContentStrings.valueEn]
-                        it[updatedBy] = row[ContentStrings.updatedBy]
-                        it[updatedAt] = Instant.now()
-                    }
-                }
-            }
-            ContentStrings.deleteWhere { ContentStrings.status eq DRAFT }
             errors.forEach { row ->
                 val code = row[ContentErrors.code]
                 ContentErrors.deleteWhere { (ContentErrors.code eq code) and (ContentErrors.status eq PUBLISHED) }
@@ -267,13 +188,13 @@ class ContentService(
                 admin, AdminAction.CONTENT_PUBLISH, "CONTENT", "v$version", null,
                 buildJsonObject {
                     put("version", version)
-                    put("strings", strings.size)
                     put("errors", errors.size)
                 },
             )
             ContentPublishResultDto(version, count)
         }
         cached = null
+        cachedErrors = null
         return result
     }
 
@@ -436,22 +357,26 @@ class ContentService(
 
     // ── for the apps ────────────────────────────────────────────────────────
 
-    /** `GET /content`: what is live. Null = the app already has [known]. */
+    /** `GET /content`: what is live (categories only since 3 Nov 2026). Null = the app already has [known]. */
     fun content(known: Int?): ContentDto? {
         val now = cached ?: build().also { cached = it }
         return if (known != null && known == now.version) null else now
     }
 
+    /**
+     * The published copy for [code] in [language] ("id" / "en") with [details] filled in, for an error response
+     * (`ApiError.text`). Cached with [content]; null = the app keeps its own copy.
+     */
+    fun errorText(code: String, language: String, details: Map<String, String>?): ApiErrorText? {
+        val errors = cachedErrors ?: transaction {
+            ContentErrors.selectAll().where { ContentErrors.status eq PUBLISHED }.associate { it[ContentErrors.code] to it.errorText() }
+        }.also { cachedErrors = it }
+        return errors[code]?.forLanguage(language, details)
+    }
+
     private fun build(): ContentDto = transaction {
-        val strings = ContentStrings.selectAll().where { ContentStrings.status eq PUBLISHED }.toList()
         ContentDto(
             version = version(),
-            strings = mapOf(
-                "id" to strings.mapNotNull { r -> r[ContentStrings.valueId]?.let { r[ContentStrings.key] to it } }.toMap(),
-                "en" to strings.mapNotNull { r -> r[ContentStrings.valueEn]?.let { r[ContentStrings.key] to it } }.toMap(),
-            ).filterValues { it.isNotEmpty() },
-            errors = ContentErrors.selectAll().where { ContentErrors.status eq PUBLISHED }
-                .map { ContentErrorDto(it[ContentErrors.code], it.errorText()) },
             categories = ContentCategories.selectAll().map { it.category() }.sortedWith(compareBy({ it.kind }, { it.sortOrder })),
         )
     }
@@ -480,14 +405,11 @@ class ContentService(
     }
 
     private fun JdbcTransaction.draftCount(): Int =
-        (ContentStrings.selectAll().where { ContentStrings.status eq DRAFT }.count() +
-            ContentErrors.selectAll().where { ContentErrors.status eq DRAFT }.count()).toInt()
+        ContentErrors.selectAll().where { ContentErrors.status eq DRAFT }.count().toInt()
 
     private fun JdbcTransaction.emails(ids: Collection<UUID>): Map<UUID, String> =
         if (ids.isEmpty()) emptyMap() else Users.select(Users.id, Users.email).where { Users.id inList ids.distinct() }
             .mapNotNull { r -> r[Users.email]?.let { r[Users.id] to it } }.toMap()
-
-    private fun ResultRow.text() = ContentTextDto(this[ContentStrings.valueId], this[ContentStrings.valueEn])
 
     private fun ResultRow.errorText() = ErrorTextDto(
         titleId = this[ContentErrors.titleId], titleEn = this[ContentErrors.titleEn],
@@ -504,8 +426,6 @@ class ContentService(
     )
 
     /** Blank fields mean "the app's own". */
-    private fun ContentTextDto.cleaned() = ContentTextDto(id?.takeIf { it.isNotBlank() }, en?.takeIf { it.isNotBlank() })
-
     private fun ErrorTextDto.cleaned() = copy(
         titleId = titleId?.trim()?.ifEmpty { null }, titleEn = titleEn?.trim()?.ifEmpty { null },
         messageId = messageId?.trim()?.ifEmpty { null }, messageEn = messageEn?.trim()?.ifEmpty { null },

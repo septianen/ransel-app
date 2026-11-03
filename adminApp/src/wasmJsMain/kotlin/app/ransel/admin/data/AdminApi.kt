@@ -8,9 +8,6 @@ import app.ransel.shared.dto.ContentPublishResultDto
 import app.ransel.shared.dto.UpdateContentErrorRequest
 import app.ransel.shared.dto.AdminContentErrorDto
 import app.ransel.shared.dto.AdminContentErrorsDto
-import app.ransel.shared.dto.UpdateContentStringRequest
-import app.ransel.shared.dto.AdminContentStringDto
-import app.ransel.shared.dto.AdminContentStringsDto
 import app.ransel.shared.dto.UpdateSettingsRequest
 import app.ransel.shared.dto.AdminSettingsDto
 import app.ransel.shared.api.AdminRoutes
@@ -181,10 +178,7 @@ class AdminApi(
         send(HttpMethod.Put, AdminRoutes.SETTINGS, request)
 
     // ── remote content (stage D) ───────────────────────────────────────────
-    suspend fun contentStrings(): ApiResult<AdminContentStringsDto> = get(AdminRoutes.CONTENT_STRINGS)
 
-    suspend fun saveContentString(request: UpdateContentStringRequest): ApiResult<AdminContentStringDto> =
-        send(HttpMethod.Put, AdminRoutes.CONTENT_STRINGS, request)
 
     suspend fun contentErrors(): ApiResult<AdminContentErrorsDto> = get(AdminRoutes.CONTENT_ERRORS)
 

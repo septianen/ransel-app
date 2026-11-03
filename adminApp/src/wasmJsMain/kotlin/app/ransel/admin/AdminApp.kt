@@ -57,7 +57,6 @@ import app.ransel.admin.feature.shell.EnvironmentStrip
 import app.ransel.admin.feature.content.ContentCategoriesScreen
 import app.ransel.admin.feature.content.ContentErrorsScreen
 import app.ransel.admin.feature.content.ContentInterestsScreen
-import app.ransel.admin.feature.content.ContentStringsScreen
 import app.ransel.admin.feature.monitoring.ExploreAiScreen
 import app.ransel.admin.feature.monitoring.OverviewScreen
 import app.ransel.admin.feature.monitoring.SystemScreen
@@ -114,13 +113,12 @@ sealed interface AdminRoute {
         override val hash = "#/users/$id"
     }
 
-    /** Stage D: `#/content/strings`, `errors`, `categories`, `interests`. */
+    /** Stage D: `#/content/errors` (also `#/content`), `categories`, `interests`. */
     data class Content(val section: AdminSection) : AdminRoute {
         override val hash = "#/content/" + when (section) {
-            AdminSection.CONTENT_ERRORS -> "errors"
             AdminSection.CONTENT_CATEGORIES -> "categories"
             AdminSection.CONTENT_INTERESTS -> "interests"
-            else -> "strings"
+            else -> "errors"
         }
     }
 
@@ -135,10 +133,10 @@ sealed interface AdminRoute {
                 parts.firstOrNull() == "system" -> System
                 parts.firstOrNull() == "content" -> Content(
                     when (parts.getOrNull(1)) {
-                        "errors" -> AdminSection.CONTENT_ERRORS
                         "categories" -> AdminSection.CONTENT_CATEGORIES
                         "interests" -> AdminSection.CONTENT_INTERESTS
-                        else -> AdminSection.CONTENT_STRINGS
+                        // "strings" (removed 3 Nov 2026) and anything else land on the error messages
+                        else -> AdminSection.CONTENT_ERRORS
                     },
                 )
                 else -> Overview
@@ -230,7 +228,7 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         AdminSection.VOUCHERS -> navigate(AdminRoute.Vouchers)
                         AdminSection.EXPLORE_AI -> navigate(AdminRoute.ExploreAi)
                         AdminSection.SYSTEM -> navigate(AdminRoute.System)
-                        AdminSection.CONTENT_STRINGS, AdminSection.CONTENT_ERRORS,
+                        AdminSection.CONTENT_ERRORS,
                         AdminSection.CONTENT_CATEGORIES, AdminSection.CONTENT_INTERESTS -> navigate(AdminRoute.Content(section))
                     }
                     scope.launch { drawer.close() }
@@ -276,10 +274,9 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         is AdminRoute.User -> UserDetailScreen(api, me, r.id, snackbar, onAccessLost, onBack = { navigate(AdminRoute.Users) })
                         AdminRoute.Vouchers -> VouchersScreen(api, snackbar, onAccessLost)
                         is AdminRoute.Content -> when (r.section) {
-                            AdminSection.CONTENT_ERRORS -> ContentErrorsScreen(api, onAccessLost)
                             AdminSection.CONTENT_CATEGORIES -> ContentCategoriesScreen(api, onAccessLost)
                             AdminSection.CONTENT_INTERESTS -> ContentInterestsScreen(api, onAccessLost)
-                            else -> ContentStringsScreen(api, onAccessLost)
+                            else -> ContentErrorsScreen(api, onAccessLost)
                         }
                     }
                 }

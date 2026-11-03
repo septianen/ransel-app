@@ -1,5 +1,6 @@
 package app.ransel.shared.domain
 
+import app.ransel.shared.api.ApiErrorText
 import app.ransel.shared.dto.ErrorTextDto
 import app.ransel.shared.dto.InterestChipDto
 import app.ransel.shared.model.Category
@@ -9,7 +10,6 @@ import app.ransel.shared.model.PackingCategory
 
 // Remote content rules (admin-spec stage D), the same in Karung and on the server.
 
-const val MAX_CONTENT_STRING = 500
 const val MAX_ERROR_TITLE = 80
 const val MAX_ERROR_MESSAGE = 300
 const val MAX_ERROR_BUTTON = 40
@@ -26,20 +26,6 @@ private val NAMED = Regex("""\{[A-Za-z]+\}""")
 /** The placeholders of a text: Android format arguments (`%1$s`, `%d`) and `{name}` tokens. */
 fun placeholdersOf(text: String): Set<String> =
     (FORMAT_ARG.findAll(text) + NAMED.findAll(text)).map { it.value }.toSet()
-
-/** An app string must keep exactly the placeholders of its bundled text, or the app could not fill it in. */
-fun placeholdersMatch(bundled: String, value: String): Boolean = placeholdersOf(bundled) == placeholdersOf(value)
-
-/** Problems of one string draft (`id` / `en`): PLACEHOLDER_MISMATCH or TOO_LONG. */
-fun validateContentString(bundledId: String, bundledEn: String, id: String?, en: String?): Map<String, String> = buildMap {
-    fun check(field: String, bundled: String, value: String?) {
-        if (value == null) return
-        if (value.length > MAX_CONTENT_STRING || value.isBlank()) put(field, "TOO_LONG")
-        else if (!placeholdersMatch(bundled, value)) put(field, "PLACEHOLDER_MISMATCH")
-    }
-    check("id", bundledId, id)
-    check("en", bundledEn, en)
-}
 
 /** Problems of one error-message draft, per field. */
 fun validateErrorText(text: ErrorTextDto, illustrations: List<String>): Map<String, String> = buildMap {
@@ -111,3 +97,26 @@ fun curatedInterests(ai: List<String>, chips: List<InterestChipDto>, limit: Int 
     val rest = ai.filter { norm(it) !in hidden }
     return (first + rest).distinctBy(::norm).take(limit)
 }
+
+
+/**
+ * Karung's copy for one error in [language] ("id"; anything else = English), with `{cost}`, `{available}`, ... filled
+ * from [details] (a placeholder without a value is left out). Null when nothing is set for that language.
+ */
+fun ErrorTextDto.forLanguage(language: String, details: Map<String, String>?): ApiErrorText? {
+    val id = language == "id"
+    fun pick(idText: String?, enText: String?) =
+        (if (id) idText else enText)?.takeIf { it.isNotBlank() }?.let { fillErrorDetails(it, details.orEmpty()) }
+    val text = ApiErrorText(
+        title = pick(titleId, titleEn),
+        message = pick(messageId, messageEn),
+        button = pick(buttonId, buttonEn),
+        illustration = illustration?.takeIf { it.isNotBlank() },
+        display = display,
+    )
+    return text.takeUnless { it == ApiErrorText() }
+}
+
+/** `{cost}` and the other [ERROR_PLACEHOLDERS] from an error's details; unknown ones become empty. */
+fun fillErrorDetails(text: String, details: Map<String, String>): String =
+    NAMED.replace(text) { m -> details[m.value.trim('{', '}')].orEmpty() }.replace(Regex(" {2,}"), " ").trim()
