@@ -199,7 +199,7 @@ class MembersViewModelTest {
                     request.method == HttpMethod.Get && path.endsWith("/members") -> respond(membersJson, HttpStatusCode.OK, json)
                     request.method == HttpMethod.Get && path.endsWith("/invites") -> respond("""{"data":[]}""", HttpStatusCode.OK, json)
                     request.method == HttpMethod.Post && path.endsWith("/invites") -> respond(
-                        """{"data":{"code":"BALI-7K2Q","tripId":"$TRIP","role":"EDITOR","usedCount":0,"expiresAt":"2099-01-01T00:00:00Z","url":"https://ransel.mietek.tech/j/BALI-7K2Q","createdAt":"2026-10-25T00:00:00Z"}}""",
+                        """{"data":{"code":"BALI-7K2Q","tripId":"$TRIP","role":"EDITOR","usedCount":0,"expiresAt":"2099-01-01T00:00:00Z","url":"https://ransel.app/j/BALI-7K2Q","createdAt":"2026-10-25T00:00:00Z"}}""",
                         HttpStatusCode.Created, json,
                     )
                     request.method == HttpMethod.Post && path.endsWith("/members") -> respond(
@@ -256,7 +256,7 @@ class MembersViewModelTest {
         vm.sendLink(rina)
         val event = withContext(Dispatchers.Default) { withTimeout(5_000) { vm.eventFlow.first() } }
         assertTrue(event is MembersEvent.SendLink)
-        assertEquals("https://ransel.mietek.tech/j/BALI-7K2Q", event.url)
+        assertEquals("https://ransel.app/j/BALI-7K2Q", event.url)
         assertEquals("Rina", event.member.displayName)
     }
 

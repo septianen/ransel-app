@@ -149,7 +149,7 @@
     <string name="action_adjust_credits">Atur kredit</string>
     <string name="action_balance">saldo %1$s</string>
     <string name="action_password_reset">Kirim email reset kata sandi</string>
-    <string name="action_password_reset_from">dari no-reply@mietek.tech</string>
+    <string name="action_password_reset_from">dari no-reply@ransel.app</string>
     <string name="action_sign_out_all">Keluarkan dari semua perangkat</string>
     <string name="action_disable">Nonaktifkan akun</string>
     <string name="action_enable">Aktifkan lagi</string>

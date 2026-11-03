@@ -38,8 +38,8 @@ class MembersTest {
 
     @Test fun whatsappLinkEncodesTheMessage() {
         assertEquals(
-            "https://wa.me/6281234567890?text=Halo%20Rina%21%20https%3A%2F%2Fransel.mietek.tech%2Fj%2FBALI-7K2Q",
-            whatsappLink("0812 3456 7890", "Halo Rina! https://ransel.mietek.tech/j/BALI-7K2Q"),
+            "https://wa.me/6281234567890?text=Halo%20Rina%21%20https%3A%2F%2Fransel.app%2Fj%2FBALI-7K2Q",
+            whatsappLink("0812 3456 7890", "Halo Rina! https://ransel.app/j/BALI-7K2Q"),
         )
         assertEquals("https://wa.me/6281234567890?text=%C3%A9", whatsappLink("081234567890", "é"))
         assertNull(whatsappLink(null, "x"))

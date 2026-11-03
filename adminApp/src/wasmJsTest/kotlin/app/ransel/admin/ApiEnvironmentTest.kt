@@ -8,14 +8,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ApiEnvironmentTest {
-    private val karung = environmentsFor("karung.mietek.tech", "https://karung.mietek.tech", "")
+    private val karung = environmentsFor("karung.ransel.app", "https://karung.ransel.app", "")
 
     @Test
     fun karungOffersProductionFirstThenStaging() {
         assertEquals(
             listOf(
-                ApiEnvironment("production", "https://ranselapi.mietek.tech"),
-                ApiEnvironment("staging", "https://ranselapi-dev.mietek.tech"),
+                ApiEnvironment("production", "https://api.ransel.app"),
+                ApiEnvironment("staging", "https://api-staging.ransel.app"),
             ),
             karung,
         )

@@ -47,8 +47,8 @@ actual val platformModule: Module = module {
 @JsFun("() => window.location.hostname")
 private external fun browserHostname(): String
 
-// Web has no build types: only the production host (ransel.mietek.tech) counts as a release; staging and localhost keep the debug tools.
-actual val isDebugBuild: Boolean = browserHostname() != "ransel.mietek.tech"
+// Web has no build types: only the production host (ransel.app) counts as a release; staging and localhost keep the debug tools.
+actual val isDebugBuild: Boolean = browserHostname() != "ransel.app"
 
 
 actual val requiresAccount: Boolean = true

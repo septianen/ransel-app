@@ -107,6 +107,6 @@ data class GuestTickRequest(val isPacked: Boolean)
 @Serializable
 data class PollShareDto(
     val code: String,
-    /** https://ransel.mietek.tech/p/<code> (APP_BASE_URL). */
+    /** https://ransel.app/p/<code> (APP_BASE_URL). */
     val url: String,
 )

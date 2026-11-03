@@ -1,14 +1,14 @@
 # Deploy (VPS behind the host's nginx)
 
-Public entry: `https://ranselapi.mietek.tech` -> host nginx -> `127.0.0.1:8080` (server container) -> Postgres container (private).
+Public entry: `https://api.ransel.app` -> host nginx -> `127.0.0.1:8080` (server container) -> Postgres container (private).
 
 ## One-time setup on the VPS (needs sudo)
 
 ```
-sudo cp deploy/nginx/ranselapi.mietek.tech.conf /etc/nginx/sites-available/ranselapi.mietek.tech
-sudo ln -s /etc/nginx/sites-available/ranselapi.mietek.tech /etc/nginx/sites-enabled/
+sudo cp deploy/nginx/api.ransel.app.conf /etc/nginx/sites-available/api.ransel.app
+sudo ln -s /etc/nginx/sites-available/api.ransel.app /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d ranselapi.mietek.tech
+sudo certbot --nginx -d api.ransel.app
 ```
 
 The user that deploys (`sen`) must be in the `docker` group and own the deploy folder. The default is `/opt/ransel` (override with the repository variable `DEPLOY_PATH`):
@@ -28,7 +28,7 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 | `PHOTO_SIGNING_SECRET` | 32+ random characters, different from `JWT_SECRET` (`openssl rand -hex 32`); signs place-photo links |
 | `DATABASE_PASSWORD` | random, letters and digits (`openssl rand -hex 24`) |
 | `SEED_USER_EMAIL`, `SEED_USER_PASSWORD`, `SEED_USER_NAME` | an account created at startup (already verified) |
-| `SMTP_USERNAME`, `SMTP_PASSWORD` (secrets) and `SMTP_HOST`, `SMTP_PORT` (default 587), `EMAIL_FROM` (default `RANSEL <no-reply@mietek.tech>`) (variables) | outgoing email over the provider's SMTP relay: the verification link after sign-up and password reset. Without `SMTP_HOST` nothing is sent, so new accounts cannot verify and never reach Explore. See "Email" below |
+| `SMTP_USERNAME`, `SMTP_PASSWORD` (secrets) and `SMTP_HOST`, `SMTP_PORT` (default 587), `EMAIL_FROM` (default `RANSEL <no-reply@ransel.app>`) (variables) | outgoing email over the provider's SMTP relay: the verification link after sign-up and password reset. Without `SMTP_HOST` nothing is sent, so new accounts cannot verify and never reach Explore. See "Email" below |
 | `REGISTRATION_ENABLED` (variable, optional) | `false` closes sign-up again (only seeded accounts); unset = open |
 | `LLM_API_KEY`, `PLACES_API_KEY` (optional until Explore goes live) | Gemini API key (Google AI Studio) and Google Places (New) key. Set the repository *variable* `LLM_MODEL` to a model id your key can call (`curl -H "x-goog-api-key: $KEY" https://generativelanguage.googleapis.com/v1beta/models`). Without them Explore answers 503 `AI_UNAVAILABLE`. Restrict the Places key to the Places API and set a **budget alert** in Google Cloud |
 | `GOOGLE_DRIVE_API_KEY` (optional) | Trip albums: a Google Cloud API key with the **Google Drive API** enabled, restricted to that API. It only lists folders shared as "Anyone with the link" (no OAuth, no user data); the photos load from Google, not through the server. Without it albums still save but the gallery answers 503 `ALBUM_UNAVAILABLE` |
@@ -40,10 +40,10 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 
 ### Email
 
-Sign-up is open and every new account gets an email with a verification link (`https://ransel.mietek.tech/verify-email?token=...`, 24 hours). Until the link is opened the account works, except Explore and vouchers, and the 30 signup credits wait. The server sends mail over SMTP, so any provider with an SMTP relay works (Brevo, Resend, Amazon SES, a mailbox host); `no-reply@mietek.tech` does not need a real mailbox, only a verified sending domain:
+Sign-up is open and every new account gets an email with a verification link (`https://ransel.app/verify-email?token=...`, 24 hours). Until the link is opened the account works, except Explore and vouchers, and the 30 signup credits wait. The server sends mail over SMTP, so any provider with an SMTP relay works (Brevo, Resend, Amazon SES, a mailbox host); `no-reply@ransel.app` does not need a real mailbox, only a verified sending domain:
 
-1. Create the account at the provider and add `mietek.tech` as a sending domain.
-2. Add the DNS records it asks for at the domain's DNS host: SPF (TXT on `mietek.tech`, merge with an existing `v=spf1` record instead of adding a second one), DKIM (usually one or more CNAME/TXT records), and a DMARC record (`_dmarc.mietek.tech TXT "v=DMARC1; p=none"` is a safe start). Wait until the provider shows the domain as verified.
+1. Create the account at the provider and add `ransel.app` as a sending domain (Brevo; done 3 Nov 2026).
+2. Add the DNS records it asks for at the domain's DNS host: SPF (TXT on `ransel.app`, merge with an existing `v=spf1` record instead of adding a second one), DKIM (usually one or more CNAME/TXT records), and a DMARC record (`_dmarc.ransel.app TXT "v=DMARC1; p=none"` is a safe start). Wait until the provider shows the domain as verified.
 3. Create SMTP credentials at the provider and set them in GitHub: secrets `SMTP_USERNAME`, `SMTP_PASSWORD`; variables `SMTP_HOST`, `SMTP_PORT` (587 for STARTTLS, 465 for TLS), optionally `EMAIL_FROM`.
 4. Run *Deploy server*. Check: sign up with your own address, the email arrives (look in spam the first time), the link opens "Email terverifikasi".
 
@@ -64,7 +64,7 @@ The server and the apps are ready and stay quiet until these steps are done.
 5. Android 13+ asks for the notification permission once, after the first sign-in. If it is refused the inbox still works.
 6. Crashlytics: open Crashlytics in the console once (it waits for the first crash). Debug and release builds both report (debug as the app `app.ransel.debug`), and the Gradle plugin uploads the R8 mapping file with each release build, so `assembleRelease` needs network access to Firebase. Try it: install a debug build, `adb shell am crash app.ransel.debug`, open the app again, and the crash shows up within a few minutes.
 7. Analytics on Android: debug and release builds both send; debug shows up as the app `app.ransel.debug`, so pick the app (stream) in the console to keep test data apart. To watch events live in DebugView: `adb shell setprop debug.firebase.analytics.app app.ransel.debug` (or `app.ransel` for a release build) (back to normal: `.none.`).
-8. Analytics on the web: Project settings -> Your apps -> Add app -> Web ("RANSEL web"), with Analytics on. Copy `apiKey`, `appId` and `measurementId` into `firebaseConfig` in `composeApp/src/wasmJsMain/resources/index.html` (public client config, not a secret) and deploy the web app. It only sends from `ransel.mietek.tech`; staging and localhost stay silent.
+8. Analytics on the web: Project settings -> Your apps -> Add app -> Web ("RANSEL web"), with Analytics on. Copy `apiKey`, `appId` and `measurementId` into `firebaseConfig` in `composeApp/src/wasmJsMain/resources/index.html` (public client config, not a secret) and deploy the web app. It only sends from `ransel.app`; staging and localhost stay silent.
 9. iOS (later, on a Mac): add the iOS app (bundle id `app.ransel`) in Firebase, upload an APNs auth key (Apple Developer -> Keys) under Cloud Messaging, add the Firebase iOS SDK (Messaging, Analytics, Crashlytics) and the Push Notifications capability to the Xcode project, and replace `NoPushRegistrar`, `NoAnalytics` and `NoCrashReporter` in `Platform.ios.kt`.
 
 Reminders run on the server every minute and use WIB for every trip: the packing reminder at 18:00 the day before departure (`NOTIFY_PACKING_HOUR`), the activity reminder 30 minutes before it starts (`NOTIFY_ACTIVITY_LEAD_MINUTES`). A trip in WITA/WIT gets them 1-2 hours off until trips have a timezone.
@@ -75,8 +75,8 @@ The *Distribute Android* workflow (`.github/workflows/distribute-android.yml`) b
 
 | Trigger | Build | App | API |
 | --- | --- | --- | --- |
-| push to `develop` (app, `iris`, `shared` or Gradle changes), or *Run workflow* with target `staging` | debug | "RANSEL Dev" `app.ransel.debug` | `ranselapi-dev.mietek.tech` |
-| push to `main`, or *Run workflow* on `main` with target `production` | release (R8, signed) | "RANSEL" `app.ransel` | `ranselapi.mietek.tech` |
+| push to `develop` (app, `iris`, `shared` or Gradle changes), or *Run workflow* with target `staging` | debug | "RANSEL Dev" `app.ransel.debug` | `api-staging.ransel.app` |
+| push to `main`, or *Run workflow* on `main` with target `production` | release (R8, signed) | "RANSEL" `app.ransel` | `api.ransel.app` |
 
 `versionCode` is the workflow's run number, so every build installs over the previous one; the release notes are the commit message (or the text given to *Run workflow*). Each run also keeps the APK as a workflow artifact for 14 days.
 
@@ -105,8 +105,8 @@ A release run of *Distribute Android* (push to `main`, or *Run workflow* on `mai
 
 - **Version:** `versionName` is in `composeApp/build.gradle.kts` (1.0.0); `versionCode` is the run number of *Distribute Android*, so it only goes up. Do not rename or recreate that workflow file, or the count starts again at 1 and Play rejects the upload.
 - **Checks in every run:** the permission list of the APK is printed; the run fails on `AD_ID` / AdServices permissions (the app has no ads, the manifest removes what Firebase Analytics adds) and on native libraries that are not 16 KB aligned.
-- **App Links with Play App Signing:** Play re-signs the app with its own key, so `assetlinks.json` must list both fingerprints. Set the repository variable `ANDROID_CERT_SHA256` to both, comma separated: the *App signing key certificate* SHA-256 and the *Upload key certificate* SHA-256 (Play Console -> Test and release -> App integrity -> App signing). Run *Deploy server*, then check `https://ransel.mietek.tech/.well-known/assetlinks.json`. Add the Play signing SHA-1/SHA-256 to the `app.ransel` app in Firebase too.
-- **Privacy policy and account deletion URLs** (Play Console -> App content): `https://ransel.mietek.tech/privacy.html` and `https://ransel.mietek.tech/delete-account.html` (live once the delete-account branch is deployed by *Deploy web*).
+- **App Links with Play App Signing:** Play re-signs the app with its own key, so `assetlinks.json` must list both fingerprints. Set the repository variable `ANDROID_CERT_SHA256` to both, comma separated: the *App signing key certificate* SHA-256 and the *Upload key certificate* SHA-256 (Play Console -> Test and release -> App integrity -> App signing). Run *Deploy server*, then check `https://ransel.app/.well-known/assetlinks.json`. Add the Play signing SHA-1/SHA-256 to the `app.ransel` app in Firebase too.
+- **Privacy policy and account deletion URLs** (Play Console -> App content): `https://ransel.app/privacy.html` and `https://ransel.app/delete-account.html` (live once the delete-account branch is deployed by *Deploy web*).
 
 ### Store review account
 
@@ -115,7 +115,7 @@ Reviewers need a verified account with a full trip. Accounts in `SEED_USERS` (re
 1. Add `reviewer@<your domain>|<password>|Reviewer RANSEL` to the `SEED_USERS` secret (keep the entries already there) and run *Deploy server*. The password must pass the sign-up rule and must not contain `|` or `;`.
 2. Make the sample trip from any machine (the password is asked for, never typed on the command line):
    ```
-   python3 deploy/seed-demo-trip.py --api https://ranselapi.mietek.tech --email reviewer@<your domain>
+   python3 deploy/seed-demo-trip.py --api https://api.ransel.app --email reviewer@<your domain>
    ```
    It makes "Liburan Jogja" three weeks from today: three days of itinerary, two members without an account, packing items with who brings what, four shared expenses and an open poll with the reviewer's vote. Running it again does nothing; `--replace` makes it again with fresh dates (do that before each review if the dates have passed).
 3. Give the email and password in Play Console -> App content -> App access.
@@ -133,7 +133,7 @@ Promo vouchers are easier in Karung (Voucher page: make, copy, revoke). The scri
 
 ## Admin app (Karung)
 
-Admins are the accounts in `ADMIN_EMAILS` (comma separated, case-insensitive). The deploy workflow rewrites the VPS `.env` on every deploy, so set it as the GitHub **repository variable** `ADMIN_EMAILS` (Settings > Secrets and variables > Actions > Variables), not by editing `.env`; it takes effect with the next *Deploy server* run. The server checks the list on every `/admin` request, so removing an email locks that person out at once. Set `ADMIN_APP_ORIGIN=https://karung.mietek.tech` so the browser may call the API. `APP_ENV` (`production` / `staging`) is shown as a badge in Karung. Karung manages both servers: pick Production or Staging on its sign-in screen (switching signs out). To use Staging, your account must exist there (e.g. via the seed variables) and be in staging's `ADMIN_EMAILS` (the staging Environment, else the repository value); staging's `ADMIN_APP_ORIGIN` is `https://karung.mietek.tech` as well, so the browser may call it. Leave `ADMIN_PASSWORD_RESET_ENABLED` unset until an email provider is connected. Every admin action is in the `admin_audit_log` table. Karung's cost card estimates provider cost from list prices per call (`COST_*_MICRO_USD`, defaults in `AppConfig.ProviderPrices`); set the VPS price per month as the repository variable `SERVER_MONTHLY_COST_USD` (e.g. `24.60`) for the "Server dan database" line. `AI_MONTHLY_BUDGET_USD` (repository variable, blank = no warning) is the LLM + Places budget Karung warns about from `AI_BUDGET_ALERT_PERCENT` (80/90/100); with `AI_BUDGET_MODE=CACHE_ONLY` new LLM calls stop once it is spent (searches from the cache still work, new ones and receipt photos answer 503 `AI_PAUSED` and charge nothing). `LLM_MODELS` lists the other models Karung may switch to. All of these can be overridden in Karung (stage C, table `app_settings`). "Backup terakhir" on the system page is the time `deploy/backup-db.sh` writes to `/data/documents/.last-backup` after a good backup (copy the new script to the VPS: the deploy does that). Karung itself: `deploy/nginx/karung.mietek.tech.conf` (copy, enable, `certbot --nginx -d karung.mietek.tech`, DNS A record for `karung`), served from `/opt/ransel/karung`; the *Deploy admin* workflow (`.github/workflows/deploy-admin.yml`) builds `:adminApp:wasmJsBrowserDistribution` and swaps it in the same way as *Deploy web*, with the same secrets.
+Admins are the accounts in `ADMIN_EMAILS` (comma separated, case-insensitive). The deploy workflow rewrites the VPS `.env` on every deploy, so set it as the GitHub **repository variable** `ADMIN_EMAILS` (Settings > Secrets and variables > Actions > Variables), not by editing `.env`; it takes effect with the next *Deploy server* run. The server checks the list on every `/admin` request, so removing an email locks that person out at once. Set `ADMIN_APP_ORIGIN=https://karung.ransel.app` so the browser may call the API. `APP_ENV` (`production` / `staging`) is shown as a badge in Karung. Karung manages both servers: pick Production or Staging on its sign-in screen (switching signs out). To use Staging, your account must exist there (e.g. via the seed variables) and be in staging's `ADMIN_EMAILS` (the staging Environment, else the repository value); staging's `ADMIN_APP_ORIGIN` is `https://karung.ransel.app` as well, so the browser may call it. Leave `ADMIN_PASSWORD_RESET_ENABLED` unset until an email provider is connected. Every admin action is in the `admin_audit_log` table. Karung's cost card estimates provider cost from list prices per call (`COST_*_MICRO_USD`, defaults in `AppConfig.ProviderPrices`); set the VPS price per month as the repository variable `SERVER_MONTHLY_COST_USD` (e.g. `24.60`) for the "Server dan database" line. `AI_MONTHLY_BUDGET_USD` (repository variable, blank = no warning) is the LLM + Places budget Karung warns about from `AI_BUDGET_ALERT_PERCENT` (80/90/100); with `AI_BUDGET_MODE=CACHE_ONLY` new LLM calls stop once it is spent (searches from the cache still work, new ones and receipt photos answer 503 `AI_PAUSED` and charge nothing). `LLM_MODELS` lists the other models Karung may switch to. All of these can be overridden in Karung (stage C, table `app_settings`). "Backup terakhir" on the system page is the time `deploy/backup-db.sh` writes to `/data/documents/.last-backup` after a good backup (copy the new script to the VPS: the deploy does that). Karung itself: `deploy/nginx/karung.ransel.app.conf` (copy, enable, `certbot --nginx -d karung.ransel.app`, DNS A record for `karung`), served from `/opt/ransel/karung`; the *Deploy admin* workflow (`.github/workflows/deploy-admin.yml`) builds `:adminApp:wasmJsBrowserDistribution` and swaps it in the same way as *Deploy web*, with the same secrets.
 
 ## Backups
 
@@ -150,7 +150,7 @@ Copying the dumps off the VPS (rsync/rclone to another machine or bucket) is a s
 Every deploy tags the image with the commit SHA. On the VPS (in `/opt/ransel`, or `/opt/ransel-dev` for staging): edit `SERVER_IMAGE` in `.env` to an older SHA and run
 `docker compose -f docker-compose.prod.yml up -d`.
 
-## Staging (`ranselapi-dev.mietek.tech`, `ransel-dev.mietek.tech`)
+## Staging (`api-staging.ransel.app`, `staging.ransel.app`)
 
 A second, separate server and web app for the Android **debug** build (`app.ransel.debug`, see `composeApp/CLAUDE.md` /
 the build types in `composeApp/build.gradle.kts`) and for trying a branch before `main`. Same VPS, same image and web
@@ -159,8 +159,8 @@ build, its own Postgres and data (Karung has no staging):
 | | production | staging |
 | --- | --- | --- |
 | Deployed by | push to `main` | push to `develop`, or Actions -> Deploy server / Deploy web -> Run workflow with target `staging` (any branch) |
-| API host | `ranselapi.mietek.tech` | `ranselapi-dev.mietek.tech` |
-| Web host | `ransel.mietek.tech` | `ransel-dev.mietek.tech` (`index.html` picks the API from the hostname) |
+| API host | `api.ransel.app` | `api-staging.ransel.app` |
+| Web host | `ransel.app` | `staging.ransel.app` (`index.html` picks the API from the hostname) |
 | Folder on the VPS | `/opt/ransel` (`DEPLOY_PATH`), web in `web/` | `/opt/ransel-dev` (`STAGING_DEPLOY_PATH`), web in `web/` |
 | Loopback port | 8080 | 8090 |
 | `APP_ENV` | `production` | `staging` (same required-secret checks) |
@@ -170,7 +170,7 @@ One-time setup:
 
 1. DNS: A records `ranselapi-dev` and `ransel-dev` -> the VPS address.
 2. VPS: `sudo mkdir -p /opt/ransel-dev && sudo chown -R sen:sen /opt/ransel-dev`, then nginx like the production hosts,
-   with `deploy/nginx/ranselapi-dev.mietek.tech.conf` and `deploy/nginx/ransel-dev.mietek.tech.conf` (copy, symlink
+   with `deploy/nginx/api-staging.ransel.app.conf` and `deploy/nginx/staging.ransel.app.conf` (copy, symlink
    into `sites-enabled`, `sudo nginx -t && sudo systemctl reload nginx`, `sudo certbot --nginx -d <host>`; the gotchas
    under "Web host" below apply to `ransel-dev` too).
 3. GitHub -> Settings -> Environments -> New environment `staging`. Add its **own** secrets `JWT_SECRET`,
@@ -181,32 +181,32 @@ One-time setup:
    Anything not set there is taken from the repository, i.e. staging then shares the production key and its quota and
    bill (Gemini, Places) or sends real email through the same SMTP account. Without SMTP, staging sign-ups cannot
    verify their email: use `SEED_USER_*` / `SEED_USERS` accounts (already verified) instead. `APP_BASE_URL` and
-   `CORS_ORIGINS` (variables) default to `https://ransel-dev.mietek.tech`, so staging's invite and verification links
+   `CORS_ORIGINS` (variables) default to `https://staging.ransel.app`, so staging's invite and verification links
    open the staging web app, or the debug app. For the debug app to open them directly (no chooser), set the
    Environment variable `ANDROID_CERT_SHA256` to the debug key's SHA-256 (`./gradlew :composeApp:signingReport`);
    staging already answers `assetlinks.json` for `app.ransel.debug`.
 5. Create the branch `develop` (`git push origin main:develop`) or run both workflows by hand with target `staging`.
-6. Check: `curl https://ranselapi-dev.mietek.tech/api/v1/health` and open `https://ransel-dev.mietek.tech`.
+6. Check: `curl https://api-staging.ransel.app/api/v1/health` and open `https://staging.ransel.app`.
 
 Push for the debug app: register `app.ransel.debug` as a second Android app in the same Firebase project (see "Push
 notifications"); staging then uses the same `FCM_*` values from the repository. Backups: add a second cron line with
 `cd /opt/ransel-dev`. Rollback works the same way inside `/opt/ransel-dev`. Staging pushes the image tag `:staging`;
 `:latest` stays production.
 
-## Web host and invite links (`ransel.mietek.tech`)
+## Web host and invite links (`ransel.app`)
 
 **Trip covers and profile photos (B19.1).** JPEG files at most 1 MB per upload, stored in `IMAGES_DIR` (default `DOCUMENTS_DIR/images`, so the `ransel-documents` volume and its backup hold them too). Files that no live trip or account uses are removed hourly. They fit under nginx's default `client_max_body_size`.
 
 **Trip documents (stage 9).** Files live on the `ransel-documents` Docker volume (`DOCUMENTS_DIR=/data/documents`, owner decision 26 Oct 2026: VPS disk, not object storage). Limits are 20 MB per file and 200 MB per trip; files of deleted documents and trips are removed hourly. `deploy/backup-db.sh` also writes a `ransel-documents-*.tar.gz` of the volume next to the dump. nginx: uploads go through the API host, so `client_max_body_size 25m;` must be raised from 5m to 25m in the live `ranselapi` (and `ranselapi-dev`) server block, or nginx answers 413 to documents above 5 MB.
 
-**Link previews and the guest page (stage 8).** `/p/<code>` (poll links) opens the web app like `/j/<code>`. WhatsApp and other crawlers must get Open Graph tags from the API instead: copy `deploy/nginx/ransel-preview-bots.conf` to `/etc/nginx/conf.d/` once, then add the `location ~ ^/(p|j)/...` and `location /og/` blocks from `deploy/nginx/ransel.mietek.tech.conf` (and the `-dev` file, port 8090) to the **live** site files: certbot rewrote those, so copying the repo files over them would drop the 443 block. `sudo nginx -t && sudo systemctl reload nginx`. Check with `curl -A WhatsApp https://ransel.mietek.tech/p/<code>` (HTML with `og:title`) and a browser (the app). The preview images `og/poll.png` and `og/invite.png` ship with the web build.
+**Link previews and the guest page (stage 8).** `/p/<code>` (poll links) opens the web app like `/j/<code>`. WhatsApp and other crawlers must get Open Graph tags from the API instead: copy `deploy/nginx/ransel-preview-bots.conf` to `/etc/nginx/conf.d/` once, then add the `location ~ ^/(p|j)/...` and `location /og/` blocks from `deploy/nginx/ransel.app.conf` (and the `-dev` file, port 8090) to the **live** site files: certbot rewrote those, so copying the repo files over them would drop the 443 block. `sudo nginx -t && sudo systemctl reload nginx`. Check with `curl -A WhatsApp https://ransel.app/p/<code>` (HTML with `og:title`) and a browser (the app). The preview images `og/poll.png` and `og/invite.png` ship with the web build.
 
-One-time, like the API host: copy `deploy/nginx/ransel.mietek.tech.conf` to `sites-available`, enable it, `nginx -t`, reload, then `sudo certbot --nginx -d ransel.mietek.tech`. It serves the web app from `/opt/ransel/web` (single-page fallback, so `/j/<code>` opens the app) and forwards `/.well-known/` to the API.
+One-time, like the API host: copy `deploy/nginx/ransel.app.conf` to `sites-available`, enable it, `nginx -t`, reload, then `sudo certbot --nginx -d ransel.app`. It serves the web app from `/opt/ransel/web` (single-page fallback, so `/j/<code>` opens the app) and forwards `/.well-known/` to the API.
 
 Gotchas from the first setup:
 
-- **Symlink into `sites-enabled` before running certbot** (`sudo ln -s /etc/nginx/sites-available/ransel.mietek.tech.conf /etc/nginx/sites-enabled/ransel.mietek.tech`). Otherwise certbot attaches the certificate to the `default` site with `return 404` and every path answers 404.
-- After certbot, the 443 block may contain `if ($host = ransel.mietek.tech) { return 301 https://$host$request_uri; }`. Delete it from the 443 block (keep it in the port 80 block); left there it is a redirect loop.
+- **Symlink into `sites-enabled` before running certbot** (`sudo ln -s /etc/nginx/sites-available/ransel.app.conf /etc/nginx/sites-enabled/ransel.app`). Otherwise certbot attaches the certificate to the `default` site with `return 404` and every path answers 404.
+- After certbot, the 443 block may contain `if ($host = ransel.app) { return 301 https://$host$request_uri; }`. Delete it from the 443 block (keep it in the port 80 block); left there it is a redirect loop.
 - SSH to the VPS listens on port 2212, not 22.
 - `index.html` has `<base href="/">`, so the script, `.wasm` files and resources also load on deep links like `/j/<code>`.
 - The web app is an installable PWA (`manifest.webmanifest`, `sw.js`). The conf keeps `index.html`, `sw.js` and the
@@ -215,7 +215,7 @@ Gotchas from the first setup:
   certbot turned the live one into a 443 block plus a port 80 redirect block. Overwriting it drops both: HTTPS falls
   back to another site's certificate and `http://` stops redirecting. Instead, paste only the changed `location`
   blocks into the 443 block (for the PWA: `= /index.html`, `= /sw.js`, `= /manifest.webmanifest`). If it happens
-  anyway, `sudo certbot --nginx -d ransel.mietek.tech` (reinstall) restores the 443 block; the port 80 block must end
+  anyway, `sudo certbot --nginx -d ransel.app` (reinstall) restores the 443 block; the port 80 block must end
   up as just `return 301 https://$host$request_uri;`.
 - `nginx -t` needs `sudo`: without it nginx cannot read the Let's Encrypt keys and reports `Permission denied`.
 
@@ -233,7 +233,7 @@ Permissions: the deploy user must be able to create, rename and delete folders *
 inside `web/`), because the swap renames `web`. The `chown -R sen:sen /opt/ransel` from the top of this file covers that;
 if `/opt/ransel/web` was created by root, run `sudo chown -R sen:sen /opt/ransel/web` once. Files are uploaded as
 755/644 so nginx (`www-data`) can read them. If you set `DEPLOY_PATH` to something else, the `root` in
-`deploy/nginx/ransel.mietek.tech.conf` must point at `$DEPLOY_PATH/web` too.
+`deploy/nginx/ransel.app.conf` must point at `$DEPLOY_PATH/web` too.
 
 Fallback by hand, from the repo root (not atomic: fine when nobody is using the site):
 
@@ -242,7 +242,7 @@ Fallback by hand, from the repo root (not atomic: fine when nobody is using the 
 rsync -a --delete -e "ssh -p 2212" composeApp/build/dist/wasmJs/productionExecutable/ <user>@<vps>:/opt/ransel/web/
 ```
 
-`index.html` points the app at `https://ranselapi.mietek.tech` when it is served from `ransel.mietek.tech` (the API's
+`index.html` points the app at `https://api.ransel.app` when it is served from `ransel.app` (the API's
 `CORS_ORIGINS` already allows that origin). About 21 MB, mostly two `.wasm` files; nginx should serve them gzip-compressed.
 
 ### App Links / Universal Links
@@ -259,7 +259,7 @@ location /.well-known/ { proxy_pass http://127.0.0.1:8080; }
 is `app.ransel.debug`, which these files do not name, so on a debug build invite links open through the "Open with" chooser
 instead of directly; pick "RANSEL Dev". Changing a repository variable does not start a deploy: run *Deploy server* by hand
 (`gh workflow run deploy-server.yml --ref main`) or push a change under `server/`, `shared/` or `deploy/`. Check with
-`curl https://ransel.mietek.tech/.well-known/assetlinks.json`, and on the phone
+`curl https://ransel.app/.well-known/assetlinks.json`, and on the phone
 `adb shell pm verify-app-links --re-verify app.ransel`, then `adb shell pm get-app-links app.ransel`.
 
 Invite URLs returned by the API are `APP_BASE_URL/j/<code>`.

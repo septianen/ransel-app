@@ -149,7 +149,7 @@
     <string name="action_adjust_credits">Adjust credits</string>
     <string name="action_balance">balance %1$s</string>
     <string name="action_password_reset">Send password reset email</string>
-    <string name="action_password_reset_from">from no-reply@mietek.tech</string>
+    <string name="action_password_reset_from">from no-reply@ransel.app</string>
     <string name="action_sign_out_all">Sign out of all devices</string>
     <string name="action_disable">Deactivate account</string>
     <string name="action_enable">Reactivate account</string>

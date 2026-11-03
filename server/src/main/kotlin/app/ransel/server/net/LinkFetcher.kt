@@ -89,7 +89,7 @@ class SafeLinkFetcher(
 
     private companion object {
         val REDIRECTS = setOf(301, 302, 303, 307, 308)
-        const val USER_AGENT = "RanselLinkPreview/1.0 (+https://ransel.mietek.tech)"
+        const val USER_AGENT = "RanselLinkPreview/1.0 (+https://ransel.app)"
     }
 }
 
