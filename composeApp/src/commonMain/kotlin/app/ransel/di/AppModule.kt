@@ -46,6 +46,8 @@ import app.ransel.feature.auth.SignInViewModel
 import app.ransel.feature.auth.SignUpViewModel
 import app.ransel.feature.auth.VerifyEmailViewModel
 import app.ransel.platform.platformModule
+import app.ransel.content.LiveContent
+import app.ransel.data.remote.MemberPhotos
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
@@ -127,6 +129,12 @@ val commonModule: Module = module {
 }
 
 fun initKoin(config: KoinAppDeclaration? = null) {
+    // App-wide snapshot state must exist before the first composition. An object first touched by a background
+    // coroutine (RemoteContentStore starts on Dispatchers.Default) creates its state after the composition's snapshot
+    // was taken, and reading it there crashes: "Reading a state that was created after the snapshot was taken"
+    // (1.0.0 (36), SplashScreen -> stringResource -> LiveContent). initKoin runs on the main thread first everywhere.
+    LiveContent.current
+    MemberPhotos.urlFor("")
     startKoin {
         config?.invoke(this)
         modules(commonModule, platformModule)
