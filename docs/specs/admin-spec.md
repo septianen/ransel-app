@@ -122,6 +122,8 @@ As built (B9.6/B9.7, 29 Oct 2026): ranges are `AdminRange` constant names; `user
 
 ## Remote content (stage D: Karung and server only)
 
+> **Changed 3 Nov 2026 (owner):** screen texts are no longer remote content. The string editor ("Teks & wording") and `/admin/content/strings` are removed and the apps always show their bundled texts. Error messages stay in Karung and the server sends the published copy with each error response (`ApiError.text`, in the request's `Accept-Language`, details filled in). Categories and destination interests are unchanged. Why: reading remote strings on every screen caused a startup crash in release 1.0.0 (36), and wording changes go through a release anyway.
+
 - Tables: `content_strings` (key, locale `id`/`en`, value, status `DRAFT`/`PUBLISHED`, updated_by, updated_at), `content_errors` (code, locale, title, message, button, illustration, display `FULL_SCREEN`/`SNACKBAR`/`DIALOG`, status), `content_categories` (enum type + constant, locale label, icon name, color token, sort order), `destination_interests` (destination, month, chips, curated by).
 - Only keys and codes the app already knows can be edited: string keys from a list the frontend exports, codes from `ErrorCode`, categories from the enums. Karung cannot add a category, only change how it looks.
 - Placeholders (`{name}`, `{cost}`, `{available}`, `{resetsAt}`, ...) must match the default text; publishing with a missing or unknown placeholder is refused (422 `VALIDATION_FAILED`, `details: {"value": "PLACEHOLDER_MISMATCH"}`).

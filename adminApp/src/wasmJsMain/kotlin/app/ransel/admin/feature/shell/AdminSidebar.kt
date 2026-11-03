@@ -41,7 +41,6 @@ import app.ransel.admin.generated.resources.env_staging
 import app.ransel.admin.generated.resources.nav_content_categories
 import app.ransel.admin.generated.resources.nav_content_errors
 import app.ransel.admin.generated.resources.nav_content_interests
-import app.ransel.admin.generated.resources.nav_content_strings
 import app.ransel.admin.generated.resources.nav_explore_ai
 import app.ransel.admin.generated.resources.nav_overview
 import app.ransel.admin.generated.resources.nav_system
@@ -68,7 +67,6 @@ enum class AdminSection(val label: StringResource, val symbol: String, val avail
     VOUCHERS(Res.string.nav_vouchers, Symbols.sell, true),
     EXPLORE_AI(Res.string.nav_explore_ai, Symbols.autoAwesome, true),
     SYSTEM(Res.string.nav_system, Symbols.warning, true),
-    CONTENT_STRINGS(Res.string.nav_content_strings, Symbols.translate, true),
     CONTENT_ERRORS(Res.string.nav_content_errors, Symbols.error, true),
     CONTENT_CATEGORIES(Res.string.nav_content_categories, Symbols.category, true),
     CONTENT_INTERESTS(Res.string.nav_content_interests, Symbols.star, true),
@@ -76,7 +74,7 @@ enum class AdminSection(val label: StringResource, val symbol: String, val avail
 
 private val WatchSections = listOf(AdminSection.OVERVIEW, AdminSection.USERS, AdminSection.VOUCHERS, AdminSection.EXPLORE_AI, AdminSection.SYSTEM)
 private val ContentSections = listOf(
-    AdminSection.CONTENT_STRINGS, AdminSection.CONTENT_ERRORS, AdminSection.CONTENT_CATEGORIES, AdminSection.CONTENT_INTERESTS,
+    AdminSection.CONTENT_ERRORS, AdminSection.CONTENT_CATEGORIES, AdminSection.CONTENT_INTERESTS,
 )
 
 /** Design `Sidebar`: brand, navigation, the signed-in admin and the environment badge from `GET /admin/me` (also the server switch). */

@@ -49,7 +49,6 @@
     <string name="nav_users">Users</string>
     <string name="nav_explore_ai">Explore AI</string>
     <string name="nav_system">System &amp; errors</string>
-    <string name="nav_content_strings">Text &amp; wording</string>
     <string name="nav_content_errors">Error messages</string>
     <string name="nav_content_categories">Categories</string>
     <string name="nav_content_interests">Local interests</string>
@@ -418,19 +417,7 @@
     <string name="content_show_more">Show more</string>
     <string name="content_empty">Nothing matches</string>
     <string name="content_close">Close</string>
-    <string name="strings_title">Text &amp; wording</string>
-    <string name="strings_subtitle">Texts the server can change. Until they load, the apps use their own.</string>
-    <string name="strings_search">Search keys or text</string>
-    <string name="strings_filter_all">All</string>
-    <string name="strings_filter_drafts">Drafts</string>
-    <string name="strings_filter_changed">Changed</string>
-    <string name="strings_col_key">Key</string>
     <string name="strings_col_status">Status</string>
-    <string name="strings_edit_title">Edit text</string>
-    <string name="strings_bundled">App default: “%1$s”</string>
-    <string name="strings_rule_placeholders">At most %1$d characters · must contain %2$s</string>
-    <string name="strings_rule">At most %1$d characters</string>
-    <string name="strings_pick">Pick a text in the table to edit it.</string>
     <string name="errors_title">Error messages</string>
     <string name="errors_subtitle">The title, message and button people see for each error code. %1$d codes, the same list as the server.</string>
     <string name="errors_search">Search codes</string>
