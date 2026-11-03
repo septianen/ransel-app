@@ -2,6 +2,7 @@ package app.ransel.data.remote
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.setValue
 import app.ransel.shared.api.ApiRoutes
 import app.ransel.shared.dto.GuestMemberDto
@@ -26,6 +27,12 @@ object MemberPhotos {
 
     fun urlFor(key: String): String? = photos[key]
 
+    /**
+     * Callers run on any thread (session restore, network responses): a snapshot write outside a snapshot while the
+     * first frame composes can crash it, so every write goes through its own mutable snapshot, applied atomically.
+     */
+    private fun write(next: Map<String, String>) = Snapshot.withMutableSnapshot { photos = next }
+
     fun record(members: List<TripMemberDto>) {
         val next = photos.toMutableMap()
         members.forEach { m ->
@@ -33,13 +40,13 @@ object MemberPhotos {
             next.put(m.memberId, m.avatarUrl)
             m.userId?.let { next.put(it, m.avatarUrl) }
         }
-        photos = next
+        write(next)
     }
 
     fun recordGuestPage(members: List<GuestMemberDto>) {
         val next = photos.toMutableMap()
         members.forEach { next.put(it.memberId, it.avatarUrl) }
-        photos = next
+        write(next)
     }
 
     /** The signed-in user's own photo (sign-in, `/me`, after changing it): also on each of their memberships seen so far. */
@@ -47,7 +54,7 @@ object MemberPhotos {
         val next = photos.toMutableMap()
         next.put(userId, url)
         userOfMember.filterValues { it == userId }.keys.forEach { next.put(it, url) }
-        photos = next
+        write(next)
     }
 
     private fun MutableMap<String, String>.put(key: String, url: String?) {
