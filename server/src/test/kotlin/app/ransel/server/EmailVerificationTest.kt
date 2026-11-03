@@ -33,7 +33,7 @@ class EmailVerificationTest {
     fun signUpEmailsALinkAndTheAccountStartsUnverified() = apiTest {
         assertEquals(HttpStatusCode.Created, signUp("new@example.com", verified = false).status)
         val link = TestEmails.awaitLink("new@example.com", TestEmails.Kind.VERIFY)
-        assertTrue(link.startsWith("https://ransel.mietek.tech/verify-email?token="))
+        assertTrue(link.startsWith("https://ransel.app/verify-email?token="))
         assertEquals("false", emailVerified())
     }
 

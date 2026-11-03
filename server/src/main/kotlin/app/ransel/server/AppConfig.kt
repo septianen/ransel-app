@@ -25,7 +25,7 @@ data class AppConfig(
     /** GET /invites/{code} is public: requests per client address per minute. */
     val invitePreviewRateLimitPerMinute: Int = 30,
     /** Used to build links in emails (password reset). */
-    val appBaseUrl: String = "https://ransel.mietek.tech",
+    val appBaseUrl: String = "https://ransel.app",
     val isProduction: Boolean = false,
     val passwordResetTtl: Duration = 30.minutes,
     /** Link in the invite email when an admin creates an account (it sets the first password). */
@@ -224,7 +224,7 @@ data class AppConfig(
                     port = env["SMTP_PORT"]?.toIntOrNull() ?: 587,
                     username = env["SMTP_USERNAME"].orEmpty().trim(),
                     password = env["SMTP_PASSWORD"].orEmpty(),
-                    from = env["EMAIL_FROM"]?.takeIf { it.isNotBlank() } ?: "RANSEL <no-reply@mietek.tech>",
+                    from = env["EMAIL_FROM"]?.takeIf { it.isNotBlank() } ?: "RANSEL <no-reply@ransel.app>",
                 )
             }
             val photoSecret = env["PHOTO_SIGNING_SECRET"]?.takeIf { it.isNotBlank() }
@@ -241,7 +241,7 @@ data class AppConfig(
                     ) + env["ADMIN_APP_ORIGIN"].csv(),
                 jwtSecret = secret,
                 jwtIssuer = env["JWT_ISSUER"] ?: "ransel",
-                appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.mietek.tech").trimEnd('/'),
+                appBaseUrl = (env["APP_BASE_URL"] ?: "https://ransel.app").trimEnd('/'),
                 isProduction = production,
                 registrationEnabled = env["REGISTRATION_ENABLED"]?.lowercase() != "false",
                 llmApiKey = env["LLM_API_KEY"].orEmpty().trim(),
