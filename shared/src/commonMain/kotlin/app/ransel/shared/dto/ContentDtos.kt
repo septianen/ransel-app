@@ -7,21 +7,16 @@ import app.ransel.shared.model.InterestChipKind
 import app.ransel.shared.serialization.Timestamp
 import kotlinx.serialization.Serializable
 
-// Remote content (admin-spec stage D). Karung edits it; the apps read GET /content from stage E on, with their
-// bundled strings as the fallback. Rules: domain/RemoteContent.kt.
-
-/** One text in both languages; null = the app's own (bundled) text for that language. */
-@Serializable
-data class ContentTextDto(
-    val id: String? = null,
-    val en: String? = null,
-)
+// Remote content (admin-spec stage D). Karung edits it. Since 3 Nov 2026 the apps only read categories from
+// GET /content; error copy comes with each error response (ApiError.text), and screen texts are the apps' own.
+// Rules: domain/RemoteContent.kt.
 
 // ── For the apps ───────────────────────────────────────────────────────────
 
 /**
- * GET /content. Only what differs from the apps' bundled copy: [strings] per locale ("id", "en") and key, [errors]
- * per `ErrorCode`, [categories] that were restyled. [version] goes up with every publish.
+ * GET /content: [categories] that were restyled. [version] goes up with every change. [strings] and [errors] are
+ * always empty since 3 Nov 2026 (kept so older builds still parse it): screen texts are the apps' own, error copy
+ * comes in `ApiError.text`.
  */
 @Serializable
 data class ContentDto(
@@ -67,40 +62,6 @@ data class ContentCategoryDto(
     val color: String? = null,
     val sortOrder: Int,
     val hidden: Boolean = false,
-)
-
-// ── Karung: strings ────────────────────────────────────────────────────────
-
-/** One app string: its bundled text, the live override and a draft. [area] = the key's first word, for filters. */
-@Serializable
-data class AdminContentStringDto(
-    val key: String,
-    val area: String,
-    val defaults: ContentTextDto,
-    val published: ContentTextDto? = null,
-    val draft: ContentTextDto? = null,
-    val status: ContentStatus,
-    val updatedByEmail: String? = null,
-    val updatedAt: Timestamp? = null,
-)
-
-/** [drafts] = string and error drafts together, the number "Terbitkan" publishes. */
-@Serializable
-data class AdminContentStringsDto(
-    val version: Int,
-    val drafts: Int,
-    val strings: List<AdminContentStringDto>,
-)
-
-/**
- * PUT /admin/content/strings: save a draft of [key]. [text] null fields = back to the bundled text; [discard] = drop
- * the draft. 422 VALIDATION_FAILED: `key` UNKNOWN, `id`/`en` PLACEHOLDER_MISMATCH or TOO_LONG.
- */
-@Serializable
-data class UpdateContentStringRequest(
-    val key: String,
-    val text: ContentTextDto = ContentTextDto(),
-    val discard: Boolean = false,
 )
 
 // ── Karung: error messages ─────────────────────────────────────────────────

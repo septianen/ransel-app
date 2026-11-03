@@ -6,14 +6,23 @@ import app.ransel.shared.model.CategoryKind
 import app.ransel.shared.model.InterestChipKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlin.test.assertNull
 
 class RemoteContentTest {
-    @Test fun aStringKeepsThePlaceholdersOfItsBundledText() {
-        assertTrue(placeholdersMatch("Halo, %1\$s", "Hai %1\$s!"))
-        assertEquals(mapOf("id" to "PLACEHOLDER_MISMATCH"), validateContentString("Halo, %1\$s", "Hi, %1\$s", "Hai!", null))
-        assertEquals(mapOf("en" to "PLACEHOLDER_MISMATCH"), validateContentString("%1\$d kredit", "%1\$d credits", null, "%2\$d credits"))
-        assertEquals(emptyMap(), validateContentString("Belum ada trip", "No trips yet", "Ransel masih kosong", null))
+    @Test fun anErrorResponseCarriesTheCopyInItsLanguageWithTheDetailsFilledIn() {
+        val text = ErrorTextDto(
+            titleId = "Kredit belum cukup", titleEn = "Not enough credits",
+            messageId = "Butuh {cost} kredit, kamu punya {available}.", illustration = "ic_confuse",
+        )
+        val id = text.forLanguage("id", mapOf("cost" to "3", "available" to "1"))!!
+        assertEquals("Kredit belum cukup", id.title)
+        assertEquals("Butuh 3 kredit, kamu punya 1.", id.message)
+        assertEquals("ic_confuse", id.illustration)
+        val en = text.forLanguage("en", null)!!
+        assertEquals("Not enough credits", en.title)
+        assertNull(en.message)
+        assertNull(ErrorTextDto(titleId = "Hanya Indonesia").forLanguage("en", null))
+        assertEquals("Butuh kredit.", fillErrorDetails("Butuh {cost} kredit.", emptyMap()))
     }
 
     @Test fun errorMessagesUseOnlyTheDetailsTheServerSends() {
