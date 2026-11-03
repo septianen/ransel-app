@@ -51,7 +51,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.*
 
 /** Stays on the production host: there is one policy, whichever API the build talks to. */
-const val PRIVACY_POLICY_URL = "https://ransel.mietek.tech/privacy.html"
+const val PRIVACY_POLICY_URL = "https://ransel.app/privacy.html"
 
 enum class DeleteProblem { WRONG_PASSWORD, FAILED }
 

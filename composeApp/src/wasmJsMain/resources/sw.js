@@ -1,5 +1,5 @@
 // Service worker for the installable web app (PWA). It caches the app shell only: the web app stays online-only,
-// and API calls go to another host (ranselapi.mietek.tech), which this worker never touches.
+// and API calls go to another host (api.ransel.app), which this worker never touches.
 // __BUILD_ID__ is replaced at build time (composeApp/build.gradle.kts), so every deploy gets a fresh cache and the
 // changed bytes make the browser install the new worker.
 const CACHE = 'ransel-shell-__BUILD_ID__';

@@ -208,14 +208,14 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             // Analytics and Crashlytics collect from debug too; Firebase shows it as its own app (app.ransel.debug).
-            buildConfigField("String", "API_ORIGIN", "\"${apiOrigin("debug", "https://ranselapi-dev.mietek.tech")}\"")
+            buildConfigField("String", "API_ORIGIN", "\"${apiOrigin("debug", "https://api-staging.ransel.app")}\"")
         }
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfigs.findByName("release")?.let { signingConfig = it }
-            buildConfigField("String", "API_ORIGIN", "\"${apiOrigin("release", "https://ranselapi.mietek.tech")}\"")
+            buildConfigField("String", "API_ORIGIN", "\"${apiOrigin("release", "https://api.ransel.app")}\"")
         }
     }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }

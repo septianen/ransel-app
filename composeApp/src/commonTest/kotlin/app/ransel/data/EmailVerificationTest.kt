@@ -9,28 +9,29 @@ import kotlin.test.assertNull
 class EmailVerificationTest {
     @Test
     fun parsesTheVerificationUrlForms() {
-        assertEquals("aB3_-x", parseVerifyToken("https://ransel.mietek.tech/verify-email?token=aB3_-x"))
-        assertEquals("aB3_-x", parseVerifyToken("https://ransel.mietek.tech/verify-email/?token=aB3_-x"))
-        assertEquals("aB3_-x", parseVerifyToken("ransel.mietek.tech/verify-email?utm=mail&token=aB3_-x&x=1"))
-        assertEquals("aB3_-x", parseVerifyToken("  https://ransel.mietek.tech/verify-email?token=aB3_-x  "))
-        assertEquals("aB3_-x", parseVerifyToken("https://ransel-dev.mietek.tech/verify-email?token=aB3_-x")) // staging
+        assertEquals("aB3_-x", parseVerifyToken("https://ransel.app/verify-email?token=aB3_-x"))
+        assertEquals("aB3_-x", parseVerifyToken("https://ransel.app/verify-email/?token=aB3_-x"))
+        assertEquals("aB3_-x", parseVerifyToken("ransel.app/verify-email?utm=mail&token=aB3_-x&x=1"))
+        assertEquals("aB3_-x", parseVerifyToken("  https://ransel.app/verify-email?token=aB3_-x  "))
+        assertEquals("aB3_-x", parseVerifyToken("https://staging.ransel.app/verify-email?token=aB3_-x"))
     }
 
     @Test
     fun ignoresOtherUrls() {
-        assertNull(parseVerifyToken("https://ransel.mietek.tech/reset-password?token=abc"))
-        assertNull(parseVerifyToken("https://ransel.mietek.tech/verify-email"))
-        assertNull(parseVerifyToken("https://ransel.mietek.tech/j/BALI-7K2Q"))
+        assertNull(parseVerifyToken("https://ransel.app/reset-password?token=abc"))
+        assertNull(parseVerifyToken("https://ransel.app/verify-email"))
+        assertNull(parseVerifyToken("https://ransel.app/j/BALI-7K2Q"))
         assertNull(parseVerifyToken("https://evil.example/verify-email?token=abc"))
-        assertNull(parseVerifyToken("https://ransel.mietek.tech.evil.example/verify-email?token=abc"))
+        assertNull(parseVerifyToken("https://ransel.mietek.tech/verify-email?token=abc")) // dropped 3 Nov 2026
+        assertNull(parseVerifyToken("https://ransel.app.evil.example/verify-email?token=abc"))
     }
 
     @Test
     fun tokenAndPromptStayUntilCleared() {
         val verification = EmailVerification()
-        verification.offerUrl("https://ransel.mietek.tech/j/BALI-7K2Q")
+        verification.offerUrl("https://ransel.app/j/BALI-7K2Q")
         assertNull(verification.token.value)
-        verification.offerUrl("https://ransel.mietek.tech/verify-email?token=abc")
+        verification.offerUrl("https://ransel.app/verify-email?token=abc")
         assertEquals("abc", verification.token.value)
         verification.clearToken()
         assertNull(verification.token.value)

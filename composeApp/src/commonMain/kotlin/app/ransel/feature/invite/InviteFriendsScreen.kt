@@ -231,7 +231,7 @@ private fun LinkBox(link: String?, loading: Boolean, copied: Boolean, onCopy: ()
 @Preview
 @Composable
 private fun InviteFriendsPreview() = IrisPreview {
-    InviteFriendsContent("Bali 4 hari", "https://ransel.mietek.tech/j/BALI-7K2QM9XA", loading = false, {}, {}, {}, {}, {})
+    InviteFriendsContent("Bali 4 hari", "https://ransel.app/j/BALI-7K2QM9XA", loading = false, {}, {}, {}, {}, {})
 }
 
 @Preview

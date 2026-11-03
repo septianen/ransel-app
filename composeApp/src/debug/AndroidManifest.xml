@@ -5,13 +5,13 @@
     <application android:usesCleartextTraffic="true">
         <!-- The debug build uses the staging server, whose invite and verification links point at the staging web
              host (verified when the staging Environment's ANDROID_CERT_SHA256 holds the debug key). Merged into the
-             activity from androidMain; production links (ransel.mietek.tech) still open through the chooser. -->
+             activity from androidMain; production links (ransel.app) still open through the chooser. -->
         <activity android:name=".MainActivity">
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="ransel-dev.mietek.tech" android:pathPrefix="/j/" />
+                <data android:scheme="https" android:host="staging.ransel.app" android:pathPrefix="/j/" />
                 <data android:pathPrefix="/verify-email" />
             </intent-filter>
         </activity>

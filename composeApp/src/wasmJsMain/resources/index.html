@@ -15,7 +15,7 @@
     <meta property="og:site_name" content="RANSEL">
     <meta property="og:title" content="RANSEL">
     <meta property="og:description" content="Rencanakan trip bareng: itinerary, packing, dan patungan.">
-    <meta property="og:image" content="https://ransel.mietek.tech/og/invite.png">
+    <meta property="og:image" content="https://ransel.app/og/invite.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
@@ -45,8 +45,8 @@
         // The web app and the API live on different hosts when deployed (production and staging use the same build);
         // locally the app finds the API on its own.
         const deployedApi = {
-            'ransel.mietek.tech': 'https://ranselapi.mietek.tech',
-            'ransel-dev.mietek.tech': 'https://ranselapi-dev.mietek.tech',
+            'ransel.app': 'https://api.ransel.app',
+            'staging.ransel.app': 'https://api-staging.ransel.app',
         }[location.hostname];
         if (deployedApi) window.RANSEL_API_ORIGIN = deployedApi;
         // The service worker runs on the deployed hosts only, so the dev server (localhost:8081) is never cached.
@@ -66,7 +66,7 @@
             appId: '',
             measurementId: '',
         };
-        if (location.hostname === 'ransel.mietek.tech' && firebaseConfig.appId && firebaseConfig.measurementId) {
+        if (location.hostname === 'ransel.app' && firebaseConfig.appId && firebaseConfig.measurementId) {
             const { initializeApp } = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js');
             const { getAnalytics, logEvent, setUserId, setUserProperties } = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-analytics.js');
             const analytics = getAnalytics(initializeApp(firebaseConfig));
