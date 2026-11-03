@@ -101,6 +101,15 @@ class UndatedTripRulesTest {
         assertEquals("d", pickFeaturedTrip(listOf(undated, dated), today)?.id)
         assertEquals("u", pickFeaturedTrip(listOf(undated), today)?.id)
     }
+
+    @Test
+    fun aFinishedTripIsNeverFeatured() {
+        val today = LocalDate(2026, 11, 2)
+        val finished = trip("f", LocalDate(2026, 10, 20), LocalDate(2026, 10, 23))
+        val next = trip("n", LocalDate(2026, 12, 20), LocalDate(2026, 12, 23))
+        assertEquals(null, pickFeaturedTrip(listOf(finished), today))
+        assertEquals("n", pickFeaturedTrip(listOf(finished, next), today)?.id)
+    }
 }
 
 class UndatedTripListTest {

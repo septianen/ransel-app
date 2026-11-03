@@ -149,6 +149,17 @@ fun HomeContent(
                 illustration = painterResource(Res.drawable.ic_data_not_found),
             )
         }
+        HomeUiState.NothingAhead -> Column(
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            Header(title = stringResource(Res.string.home_title), bell = bell)
+            recap?.invoke()
+            onExplore?.let { ExploreCallout(onTry = it) }
+        }
         is HomeUiState.Content -> HomeTripContent(state, onOpenTrip, modifier, onExplore, bell, recap)
     }
 }
@@ -478,6 +489,13 @@ private fun HomeContentPreview() = IrisPreview {
         onOpenTrip = { _, _ -> },
         onCreateTrip = {},
     )
+}
+
+/** Only finished trips (the recap card is left out here: it needs its view model). */
+@Preview
+@Composable
+private fun HomeNothingAheadPreview() = IrisPreview {
+    HomeContent(state = HomeUiState.NothingAhead, onOpenTrip = { _, _ -> }, onCreateTrip = {}, onExplore = {})
 }
 
 /** The recap card's numbers come from the trip's own recap view model. "Bagikan rekap" picks a picture from here. */
