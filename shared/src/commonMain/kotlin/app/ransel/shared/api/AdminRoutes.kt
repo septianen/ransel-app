@@ -36,6 +36,10 @@ object AdminRoutes {
     // Stage D ─ remote content (the apps read it later, stage E; curated interests are used by the server at once)
     const val CONTENT_ERRORS = "/admin/content/errors"             // GET → AdminContentErrorsDto; PUT UpdateContentErrorRequest → AdminContentErrorDto (a draft)
     const val CONTENT_CATEGORIES = "/admin/content/categories"     // GET → AdminContentCategoriesDto; PUT UpdateContentCategoriesRequest → same (published at once, audited)
+    // Built-in packing templates (owner, 3 Nov 2026): only owner_id NULL ones; user templates are counted, never shown
+    const val PACKING_TEMPLATES = "/admin/packing-templates"       // GET → AdminPackingTemplatesDto; POST SaveBuiltinTemplateRequest (with id) → 201 AdminPackingTemplateDto (audited)
+    fun packingTemplate(id: String) = "/admin/packing-templates/$id" // PUT SaveBuiltinTemplateRequest → AdminPackingTemplateDto; DELETE → AdminPackingTemplateDto (soft, audited); 404 NOT_FOUND for a user template
+    fun packingTemplateRestore(id: String) = "/admin/packing-templates/$id/restore" // POST → AdminPackingTemplateDto (audited)
     const val CONTENT_INTERESTS = "/admin/content/interests"       // GET ?query= → List<AdminInterestSummaryDto>
     const val CONTENT_INTEREST = "/admin/content/interests/item"   // GET ?destination=&month=&language= → AdminInterestCurationDto;
                                                                    // PUT AdminInterestCurationDto → same (live at once, audited);

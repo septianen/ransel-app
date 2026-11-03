@@ -3,6 +3,7 @@ package app.ransel.shared.domain
 import app.ransel.shared.api.ApiErrorText
 import app.ransel.shared.dto.ErrorTextDto
 import app.ransel.shared.dto.InterestChipDto
+import app.ransel.shared.dto.TemplateItem
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.CategoryKind
 import app.ransel.shared.model.InterestChipKind
@@ -120,3 +121,31 @@ fun ErrorTextDto.forLanguage(language: String, details: Map<String, String>?): A
 /** `{cost}` and the other [ERROR_PLACEHOLDERS] from an error's details; unknown ones become empty. */
 fun fillErrorDetails(text: String, details: Map<String, String>): String =
     NAMED.replace(text) { m -> details[m.value.trim('{', '}')].orEmpty() }.replace(Regex(" {2,}"), " ").trim()
+
+
+const val MAX_TEMPLATE_NAME = 60
+const val MAX_TEMPLATE_ITEM_NAME = 80
+const val MAX_TEMPLATE_ITEMS = 200
+const val MAX_TEMPLATE_QUANTITY = 999
+
+/**
+ * Problems of a built-in packing template saved in Karung: `name` REQUIRED / TOO_LONG, `items` MUST_NOT_BE_EMPTY /
+ * TOO_MANY, `items.<index>` NAME_REQUIRED / TOO_LONG / QUANTITY_OUT_OF_RANGE (1..[MAX_TEMPLATE_QUANTITY]).
+ */
+fun validateBuiltinTemplate(name: String, items: List<TemplateItem>): Map<String, String> = buildMap {
+    when {
+        name.isBlank() -> put("name", "REQUIRED")
+        name.trim().length > MAX_TEMPLATE_NAME -> put("name", "TOO_LONG")
+    }
+    when {
+        items.isEmpty() -> put("items", "MUST_NOT_BE_EMPTY")
+        items.size > MAX_TEMPLATE_ITEMS -> put("items", "TOO_MANY")
+    }
+    items.forEachIndexed { i, item ->
+        when {
+            item.name.isBlank() -> put("items.$i", "NAME_REQUIRED")
+            item.name.trim().length > MAX_TEMPLATE_ITEM_NAME -> put("items.$i", "TOO_LONG")
+            item.quantity != null && item.quantity !in 1..MAX_TEMPLATE_QUANTITY -> put("items.$i", "QUANTITY_OUT_OF_RANGE")
+        }
+    }
+}

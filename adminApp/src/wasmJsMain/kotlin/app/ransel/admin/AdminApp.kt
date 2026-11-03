@@ -56,6 +56,7 @@ import app.ransel.admin.feature.shell.EnvironmentMenuBadge
 import app.ransel.admin.feature.shell.EnvironmentStrip
 import app.ransel.admin.feature.content.ContentCategoriesScreen
 import app.ransel.admin.feature.content.ContentErrorsScreen
+import app.ransel.admin.feature.content.ContentTemplatesScreen
 import app.ransel.admin.feature.content.ContentInterestsScreen
 import app.ransel.admin.feature.monitoring.ExploreAiScreen
 import app.ransel.admin.feature.monitoring.OverviewScreen
@@ -69,6 +70,7 @@ import app.ransel.admin.generated.resources.not_admin_switch
 import app.ransel.admin.generated.resources.not_admin_title
 import app.ransel.admin.generated.resources.open_menu
 import app.ransel.admin.platform.locationHash
+import app.ransel.admin.platform.randomUuid
 import app.ransel.admin.platform.onHashChange
 import app.ransel.admin.platform.setLocationHash
 import app.ransel.admin.ui.AdminCard
@@ -117,6 +119,7 @@ sealed interface AdminRoute {
     data class Content(val section: AdminSection) : AdminRoute {
         override val hash = "#/content/" + when (section) {
             AdminSection.CONTENT_CATEGORIES -> "categories"
+            AdminSection.CONTENT_TEMPLATES -> "templates"
             AdminSection.CONTENT_INTERESTS -> "interests"
             else -> "errors"
         }
@@ -134,6 +137,7 @@ sealed interface AdminRoute {
                 parts.firstOrNull() == "content" -> Content(
                     when (parts.getOrNull(1)) {
                         "categories" -> AdminSection.CONTENT_CATEGORIES
+                        "templates" -> AdminSection.CONTENT_TEMPLATES
                         "interests" -> AdminSection.CONTENT_INTERESTS
                         // "strings" (removed 3 Nov 2026) and anything else land on the error messages
                         else -> AdminSection.CONTENT_ERRORS
@@ -229,7 +233,7 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         AdminSection.EXPLORE_AI -> navigate(AdminRoute.ExploreAi)
                         AdminSection.SYSTEM -> navigate(AdminRoute.System)
                         AdminSection.CONTENT_ERRORS,
-                        AdminSection.CONTENT_CATEGORIES, AdminSection.CONTENT_INTERESTS -> navigate(AdminRoute.Content(section))
+                        AdminSection.CONTENT_CATEGORIES, AdminSection.CONTENT_TEMPLATES, AdminSection.CONTENT_INTERESTS -> navigate(AdminRoute.Content(section))
                     }
                     scope.launch { drawer.close() }
                 },
@@ -275,6 +279,7 @@ private fun AdminShell(api: AdminApi, session: AdminSession, me: AdminMeDto) {
                         AdminRoute.Vouchers -> VouchersScreen(api, snackbar, onAccessLost)
                         is AdminRoute.Content -> when (r.section) {
                             AdminSection.CONTENT_CATEGORIES -> ContentCategoriesScreen(api, onAccessLost)
+                            AdminSection.CONTENT_TEMPLATES -> ContentTemplatesScreen(api, ::randomUuid, onAccessLost)
                             AdminSection.CONTENT_INTERESTS -> ContentInterestsScreen(api, onAccessLost)
                             else -> ContentErrorsScreen(api, onAccessLost)
                         }

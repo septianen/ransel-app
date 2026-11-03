@@ -12,13 +12,13 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.jetbrains.exposed.v1.jdbc.update
 import java.util.UUID
 
 /**
- * Built-in packing templates (`owner_id` NULL): beach, city trip, mountain hike. Repeatable: each template has
- * a fixed id derived from its key, so running this on every start inserts what is missing and refreshes the
- * content of what exists. Names and items are user-facing copy, hence Indonesian (the app's default language).
+ * Built-in packing templates (`owner_id` NULL): beach, city trip, mountain hike. Each has a fixed id derived from its
+ * key, and a start only inserts the ones that were never there: since Karung edits them (owner, 3 Nov 2026), an
+ * existing row is never overwritten, and one an admin deleted (soft) stays deleted. Names and items are user-facing
+ * copy, hence Indonesian (the app's default language).
  */
 object TemplateSeed {
     private class Builtin(val key: String, val name: String, val items: List<TemplateItem>)
@@ -78,12 +78,6 @@ object TemplateSeed {
                     it[PackingTemplates.id] = id
                     it[name] = template.name
                     it[items] = template.items
-                }
-            } else {
-                PackingTemplates.update({ PackingTemplates.id eq id }) {
-                    it[name] = template.name
-                    it[items] = template.items
-                    it[deletedAt] = null
                 }
             }
         }

@@ -47,4 +47,16 @@ class RemoteContentTest {
         assertEquals("local_activity" to "blue", defaultCategoryStyle(CategoryKind.EXPENSE, "ATTRACTION"))
         assertEquals(6, categoryConstants(CategoryKind.PACKING).size)
     }
+
+    @Test fun aBuiltinTemplateNeedsANameAndSensibleItems() {
+        val ok = listOf(app.ransel.shared.dto.TemplateItem(app.ransel.shared.model.PackingCategory.CLOTHING, "Kaos", 3))
+        assertEquals(emptyMap(), validateBuiltinTemplate("Liburan pantai", ok))
+        assertEquals(mapOf("name" to "REQUIRED", "items" to "MUST_NOT_BE_EMPTY"), validateBuiltinTemplate(" ", emptyList()))
+        assertEquals(mapOf("name" to "TOO_LONG"), validateBuiltinTemplate("x".repeat(MAX_TEMPLATE_NAME + 1), ok))
+        val bad = listOf(
+            app.ransel.shared.dto.TemplateItem(app.ransel.shared.model.PackingCategory.OTHER, " "),
+            app.ransel.shared.dto.TemplateItem(app.ransel.shared.model.PackingCategory.OTHER, "Botol", 0),
+        )
+        assertEquals(mapOf("items.0" to "NAME_REQUIRED", "items.1" to "QUANTITY_OUT_OF_RANGE"), validateBuiltinTemplate("Gunung", bad))
+    }
 }
