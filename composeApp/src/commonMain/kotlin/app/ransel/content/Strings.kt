@@ -8,9 +8,10 @@ import org.jetbrains.compose.resources.getString as bundledString
 import org.jetbrains.compose.resources.stringResource as bundledStringResource
 
 /*
- * Drop-in replacements for Compose Resources' `stringResource` and `getString`: the text Karung published for the
- * key in the language the app shows, else the bundled one. Every file in composeApp imports these instead of the
- * library's (composeApp/CLAUDE.md "Remote content"). Plurals and string arrays are not remote content.
+ * Drop-in replacements for Compose Resources' `stringResource` and `getString`. Only category labels can come from
+ * Karung (`expense_category_food`, ...); every other key is the bundled text (screen texts stopped being remote
+ * content on 3 Nov 2026). Every file in composeApp imports these instead of the library's, so a relabelled category
+ * shows wherever its label is used (composeApp/CLAUDE.md "Remote content").
  */
 
 @Composable

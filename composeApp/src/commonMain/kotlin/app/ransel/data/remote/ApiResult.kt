@@ -12,6 +12,8 @@ data class ApiFailure(
     /** HTTP status when the server answered; null for client-side failures (timeout, offline). */
     val status: Int? = null,
     val details: Map<String, String>? = null,
+    /** Karung's copy for this error, as the server sent it (`ApiError.text`); null = the app's own. */
+    val text: app.ransel.shared.api.ApiErrorText? = null,
 ) {
     /** The request never got an answer: show the "connection" state, not the "server" one. */
     val isConnection: Boolean

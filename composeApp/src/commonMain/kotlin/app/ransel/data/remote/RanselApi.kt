@@ -1,5 +1,6 @@
 package app.ransel.data.remote
 
+import app.ransel.content.ServerErrorCopy
 import app.ransel.data.analytics.CrashReporter
 import app.ransel.data.analytics.NoCrashReporter
 import app.ransel.shared.api.ApiErrorResponse
@@ -177,6 +178,12 @@ fun createApiHttpClient(engine: HttpClientEngine? = null): HttpClient {
  * Typed access to the REST API (`ApiRoutes`). Every call returns an [ApiResult]; nothing throws except
  * coroutine cancellation. [origin] is scheme + host (+ port), without `/api/v1`.
  */
+/**
+ * The language the app shows, sent as Accept-Language: the same locale Compose Resources picks the strings by (a
+ * language chosen in Akun is applied to it, on the web by `index.html`). "id" or older Android's "in" = Indonesian.
+ */
+private fun appLanguage(): String = runCatching { androidx.compose.ui.text.intl.Locale.current.language }.getOrDefault("en")
+
 class RanselApi(
     private val client: HttpClient,
     private val origin: String,
@@ -665,9 +672,12 @@ class RanselApi(
         var renewed = false
         while (true) {
             val outcome: ApiResult<T> = try {
+                val language = appLanguage()
                 val response = client.request(url(path)) {
                     this.method = method
                     bodyOf()
+                    // the server answers errors with Karung's copy in this language (ApiError.text)
+                    if (!headers.contains(HttpHeaders.AcceptLanguage)) header(HttpHeaders.AcceptLanguage, language)
                     if (needsToken) auth?.accessToken()?.let { header(HttpHeaders.Authorization, "Bearer $it") }
                 }
                 when {
@@ -699,7 +709,10 @@ class RanselApi(
     private suspend fun HttpResponse.toFailure(): ApiFailure {
         val parsed = runCatching { body<ApiErrorResponse>().error }.getOrNull()
         val statusCode = status.value
-        if (parsed != null) return ApiFailure(parsed.code, parsed.message, statusCode, parsed.details)
+        if (parsed != null) {
+            ServerErrorCopy.record(parsed.code, parsed.text)
+            return ApiFailure(parsed.code, parsed.message, statusCode, parsed.details, parsed.text)
+        }
         return when {
             statusCode == 404 -> ApiFailure(ErrorCode.NOT_FOUND, "Not found", statusCode)
             statusCode == 401 -> ApiFailure(ErrorCode.UNAUTHORIZED, "Not signed in", statusCode)

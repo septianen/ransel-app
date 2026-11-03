@@ -39,7 +39,8 @@ class AppUpdateTest {
         assertNull(api(HttpStatusCode.OK, """{"data":{"status":"NONE"}}""").pendingUpdate(DevicePlatform.IOS, "0.3.0"))
         assertNull(api(HttpStatusCode.OK, required).pendingUpdate(null, null), "the web is never asked")
         assertNull(api(HttpStatusCode.OK, required).pendingUpdate(DevicePlatform.ANDROID, null))
-        assertEquals(emptyList(), queries)
+        // only the up-to-date iOS check asked the server
+        assertEquals(listOf("platform=IOS&version=0.3.0"), queries)
     }
 
     @Test

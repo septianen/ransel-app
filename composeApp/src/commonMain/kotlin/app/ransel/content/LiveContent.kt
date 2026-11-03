@@ -6,18 +6,18 @@ import androidx.compose.runtime.setValue
 import app.ransel.shared.domain.categoryLabelKey
 import app.ransel.shared.dto.ContentCategoryDto
 import app.ransel.shared.dto.ContentDto
-import app.ransel.shared.dto.ErrorTextDto
 import app.ransel.shared.model.CategoryKind
 
 /**
- * What Karung published (`GET /content`, admin-spec stage E), indexed for lookups. Everything here only replaces the
- * bundled copy; a key, code or category that is not in it keeps the app's own text and look.
+ * The categories Karung restyled (`GET /content`, admin-spec stage E), indexed for lookups. Only categories are remote
+ * content since 3 Nov 2026 (owner): screen texts are the app's own, and error copy comes with each error response
+ * ([ServerErrorCopy]). A copy saved by an older build may still hold `strings` and `errors`; both are ignored.
+ * A category that is not in it keeps the app's own label and look.
  */
 class RemoteContent(val dto: ContentDto) {
-    /** Locale ("id", "en") → string key → text. Category labels count as strings (`expense_category_food`). */
+    /** Locale ("id", "en") → category label key (`expense_category_food`) → label. */
     private val strings: Map<String, Map<String, String>> = run {
-        val out = dto.strings.mapValues { it.value.toMutableMap() }.toMutableMap()
-        // categories are saved live, so their labels win over a string of the same key
+        val out = mutableMapOf<String, MutableMap<String, String>>()
         dto.categories.forEach { c ->
             val key = categoryLabelKey(c.kind, c.constant)
             c.labelId?.takeIf { it.isNotBlank() }?.let { out.getOrPut("id", ::mutableMapOf)[key] = it }
@@ -25,16 +25,14 @@ class RemoteContent(val dto: ContentDto) {
         }
         out
     }
-    private val errors: Map<String, ErrorTextDto> = dto.errors.associate { it.code to it.text }
     private val categories: Map<CategoryKind, Map<String, ContentCategoryDto>> =
         dto.categories.groupBy { it.kind }.mapValues { (_, list) -> list.associateBy { it.constant } }
 
     val version: Int get() = dto.version
-    val isEmpty: Boolean get() = strings.isEmpty() && errors.isEmpty() && categories.isEmpty()
+    val isEmpty: Boolean get() = strings.isEmpty() && categories.isEmpty()
 
+    /** A category label Karung set for [key] in [locale]; any other key is never remote. */
     fun text(locale: String, key: String): String? = strings[locale]?.get(key)
-
-    fun error(code: String): ErrorTextDto? = errors[code]?.takeUnless { it.isEmpty }
 
     fun category(kind: CategoryKind, constant: String): ContentCategoryDto? = categories[kind]?.get(constant)
 
@@ -55,8 +53,9 @@ class RemoteContent(val dto: ContentDto) {
 }
 
 /**
- * The content in use. A snapshot state, so composables that read it (strings, categories, error screens) update when
- * a newer version arrives; plain functions (`getString`, category icons) read it too. Set by `RemoteContentStore`.
+ * The content in use. A snapshot state, so composables that read it (category labels, icons, colors, order) update
+ * when a newer version arrives; plain functions (`getString`, category icons) read it too. Set by
+ * `RemoteContentStore`; `initKoin` creates it on the main thread before the first composition.
  */
 object LiveContent {
     var current: RemoteContent by mutableStateOf(RemoteContent.EMPTY)
