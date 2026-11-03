@@ -4,8 +4,8 @@ name: Deploy server
 # Needs the repository secrets listed in deploy/README.md.
 #
 # Two targets on the same VPS (deploy/README.md "Staging"):
-#   production  push to main            -> ranselapi.mietek.tech      /opt/ransel      127.0.0.1:8080
-#   staging     push to develop, or     -> ranselapi-dev.mietek.tech  /opt/ransel-dev  127.0.0.1:8090
+#   production  push to main            -> api.ransel.app             /opt/ransel      127.0.0.1:8080
+#   staging     push to develop, or     -> api-staging.ransel.app     /opt/ransel-dev  127.0.0.1:8090
 #               Run workflow on any branch with target "staging"
 # The deploy job runs in the GitHub Environment of the target; staging's own secrets there override the repository ones.
 on:
@@ -90,8 +90,9 @@ jobs:
               echo "HOST_PORT=8080"
               echo "ANDROID_PACKAGE=app.ransel"
               echo "IMAGE_CHANNEL=latest"
-              echo "APP_BASE_URL=https://ransel.mietek.tech"
-              echo "CORS_ORIGINS=https://ransel.mietek.tech"
+              echo "APP_BASE_URL=https://ransel.app"
+              echo "CORS_ORIGINS=https://ransel.app"
+              echo "DEFAULT_EMAIL_FROM=RANSEL <no-reply@ransel.app>"
             } >> "$GITHUB_ENV"
           else
             # A secret missing in the staging Environment silently falls back to the production repository secret, and
@@ -109,8 +110,9 @@ jobs:
               echo "IMAGE_CHANNEL=staging"
               # The staging web app (Deploy web, target staging); APP_BASE_URL / CORS_ORIGINS in the staging
               # Environment override them.
-              echo "APP_BASE_URL=${APP_BASE_URL:-https://ransel-dev.mietek.tech}"
-              echo "CORS_ORIGINS=${CORS_ORIGINS:-https://ransel-dev.mietek.tech}"
+              echo "APP_BASE_URL=${APP_BASE_URL:-https://staging.ransel.app}"
+              echo "CORS_ORIGINS=${CORS_ORIGINS:-https://staging.ransel.app}"
+              echo "DEFAULT_EMAIL_FROM=RANSEL Staging <no-reply@ransel.app>"
             } >> "$GITHUB_ENV"
           fi
 
@@ -216,7 +218,7 @@ jobs:
             echo "SMTP_PORT=${SMTP_PORT:-587}"
             echo "SMTP_USERNAME=$SMTP_USERNAME"
             echo "SMTP_PASSWORD=$SMTP_PASSWORD"
-            echo "EMAIL_FROM=${EMAIL_FROM:-RANSEL <no-reply@mietek.tech>}"
+            echo "EMAIL_FROM=${EMAIL_FROM:-$DEFAULT_EMAIL_FROM}"
             echo "ANDROID_CERT_SHA256=$ANDROID_CERT_SHA256"
             echo "IOS_APP_IDS=$IOS_APP_IDS"
             echo "SEED_USER_EMAIL=$SEED_USER_EMAIL"
@@ -232,7 +234,7 @@ jobs:
             echo "LLM_FALLBACK_MODEL=${LLM_FALLBACK_MODEL:-gemini-3.5-flash}"
             echo "ADMIN_EMAILS=$ADMIN_EMAILS"
             echo "CREDIT_PURCHASE_ENABLED=${CREDIT_PURCHASE_ENABLED:-false}"
-            echo "ADMIN_APP_ORIGIN=https://karung.mietek.tech"
+            echo "ADMIN_APP_ORIGIN=https://karung.ransel.app"
             echo "ADMIN_PASSWORD_RESET_ENABLED=${ADMIN_PASSWORD_RESET_ENABLED:-false}"
             echo "SERVER_MONTHLY_COST_USD=$SERVER_MONTHLY_COST_USD"
             echo "AI_MONTHLY_BUDGET_USD=$AI_MONTHLY_BUDGET_USD"

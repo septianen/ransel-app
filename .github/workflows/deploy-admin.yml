@@ -1,6 +1,6 @@
 name: Deploy admin
 
-# Builds Karung, the admin web app (adminApp, wasmJs), and publishes it to the folder nginx serves karung.mietek.tech from.
+# Builds Karung, the admin web app (adminApp, wasmJs), and publishes it to the folder nginx serves karung.ransel.app from.
 # Uses the SSH secrets listed in deploy/README.md (same as Deploy server).
 on:
   push:
@@ -68,4 +68,4 @@ jobs:
           $SSH "mv '$WEB' '$WEB.old' && mv '$WEB.new' '$WEB' && rm -rf '$WEB.old'"
 
       - name: Check the site answers
-        run: curl -fsS -o /dev/null https://karung.mietek.tech/
+        run: curl -fsS -o /dev/null https://karung.ransel.app/

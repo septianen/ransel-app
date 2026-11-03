@@ -3,9 +3,9 @@ name: Distribute Android
 # Builds the Android APK and uploads it to Firebase App Distribution, so testers get it in the App Tester app.
 # Needs the secrets and variables in deploy/README.md "Android builds (Firebase App Distribution)".
 #
-#   staging     push to develop, or     -> debug build "RANSEL Dev" (app.ransel.debug) against ranselapi-dev.mietek.tech
+#   staging     push to develop, or     -> debug build "RANSEL Dev" (app.ransel.debug) against api-staging.ransel.app
 #               Run workflow with target "staging" on any branch
-#   production  push to main            -> release build (app.ransel, R8, signed) against ranselapi.mietek.tech
+#   production  push to main            -> release build (app.ransel, R8, signed) against api.ransel.app
 on:
   push:
     branches: [main, develop]
