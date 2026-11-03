@@ -772,17 +772,6 @@ object ContentMeta : Table("content_meta") {
     override val primaryKey = PrimaryKey(id)
 }
 
-/** [status] DRAFT or PUBLISHED; a null value = the app's bundled text. */
-object ContentStrings : Table("content_strings") {
-    val key = text("key")
-    val status = text("status")
-    val valueId = text("value_id").nullable()
-    val valueEn = text("value_en").nullable()
-    val updatedBy = javaUUID("updated_by").nullable()
-    val updatedAt = timestamp("updated_at")
-    override val primaryKey = PrimaryKey(key, status)
-}
-
 object ContentErrors : Table("content_errors") {
     val code = text("code")
     val status = text("status")
