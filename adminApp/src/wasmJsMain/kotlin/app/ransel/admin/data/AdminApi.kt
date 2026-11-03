@@ -2,6 +2,9 @@ package app.ransel.admin.data
 
 import app.ransel.shared.dto.AdminInterestCurationDto
 import app.ransel.shared.dto.AdminInterestSummaryDto
+import app.ransel.shared.dto.AdminPackingTemplateDto
+import app.ransel.shared.dto.AdminPackingTemplatesDto
+import app.ransel.shared.dto.SaveBuiltinTemplateRequest
 import app.ransel.shared.dto.UpdateContentCategoriesRequest
 import app.ransel.shared.dto.AdminContentCategoriesDto
 import app.ransel.shared.dto.ContentPublishResultDto
@@ -191,6 +194,20 @@ class AdminApi(
 
     suspend fun saveContentCategories(request: UpdateContentCategoriesRequest): ApiResult<AdminContentCategoriesDto> =
         send(HttpMethod.Put, AdminRoutes.CONTENT_CATEGORIES, request)
+
+    // Built-in packing templates
+    suspend fun packingTemplates(): ApiResult<AdminPackingTemplatesDto> = get(AdminRoutes.PACKING_TEMPLATES)
+
+    suspend fun createPackingTemplate(request: SaveBuiltinTemplateRequest): ApiResult<AdminPackingTemplateDto> =
+        send(HttpMethod.Post, AdminRoutes.PACKING_TEMPLATES, request)
+
+    suspend fun savePackingTemplate(id: String, request: SaveBuiltinTemplateRequest): ApiResult<AdminPackingTemplateDto> =
+        send(HttpMethod.Put, AdminRoutes.packingTemplate(id), request)
+
+    suspend fun deletePackingTemplate(id: String): ApiResult<AdminPackingTemplateDto> =
+        call(HttpMethod.Delete, AdminRoutes.packingTemplate(id)) { it.body<ApiResponse<AdminPackingTemplateDto>>().data }
+
+    suspend fun restorePackingTemplate(id: String): ApiResult<AdminPackingTemplateDto> = post(AdminRoutes.packingTemplateRestore(id))
 
     suspend fun contentInterests(query: String?): ApiResult<List<AdminInterestSummaryDto>> =
         call(HttpMethod.Get, AdminRoutes.CONTENT_INTERESTS, { query?.trim()?.takeIf { it.isNotEmpty() }?.let { parameter("query", it) } }) {

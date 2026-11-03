@@ -46,6 +46,7 @@ Code names follow `docs/design/README.md` (English names in code, design file na
 | `KontenTeks` | `ContentStringsScreen` | D | Server-delivered UI strings, ID and EN, draft/publish |
 | `KontenError` | `ContentErrorsScreen` | D | Title/message/button per `ErrorCode`, ID and EN, draft/publish, phone preview |
 | `KontenKategori` | `ContentCategoriesScreen` | D | Label, icon, color, order per `Category` / `PackingCategory` |
+| (not on the canvas yet) | `ContentTemplatesScreen` | D | Built-in packing templates: name and items per packing category; new, delete, restore; counts of user templates only (owner, 3 Nov 2026) |
 | `KontenMinatKhas` | `ContentInterestsScreen` | D | Curated "Khas <destination>" chips per destination and month |
 | `Sidebar` | `AdminSidebar` | A | Navigation, signed-in admin, environment badge |
 
@@ -122,6 +123,8 @@ As built (B9.6/B9.7, 29 Oct 2026): ranges are `AdminRange` constant names; `user
 
 ## Remote content (stage D: Karung and server only)
 
+> **Added 3 Nov 2026 (owner): built-in packing templates.** Karung edits the templates with `owner_id` NULL ("Template packing", next to Kategori): changes are live at once through `GET /packing-templates`, items already copied into a trip stay as they are, and a deleted one is hidden (soft) until restored. User templates are never shown, only counted (made, and shared with a trip). The server's seed now only inserts a built-in template that was never there, so edits and deletions survive a restart. Limits: name ≤ 60, ≤ 200 items, item name ≤ 80, quantity 1–999 (`validateBuiltinTemplate`).
+
 > **Changed 3 Nov 2026 (owner):** screen texts are no longer remote content. The string editor ("Teks & wording") and `/admin/content/strings` are removed and the apps always show their bundled texts. Error messages stay in Karung and the server sends the published copy with each error response (`ApiError.text`, in the request's `Accept-Language`, details filled in). Categories and destination interests are unchanged. Why: reading remote strings on every screen caused a startup crash in release 1.0.0 (36), and wording changes go through a release anyway.
 
 - Tables: `content_strings` (key, locale `id`/`en`, value, status `DRAFT`/`PUBLISHED`, updated_by, updated_at), `content_errors` (code, locale, title, message, button, illustration, display `FULL_SCREEN`/`SNACKBAR`/`DIALOG`, status), `content_categories` (enum type + constant, locale label, icon name, color token, sort order), `destination_interests` (destination, month, chips, curated by).
@@ -156,7 +159,10 @@ All under `/admin`, bearer token with the admin claim (403 `FORBIDDEN` otherwise
 | GET | /admin/explore/searches?userId=&page= | Recent searches (`AdminSearchDto`); `userId` for the user page's recent activity | B (built) |
 | GET | /admin/system?range=LAST\_24\_HOURS\|LAST\_7\_DAYS | Health + errors per code (`AdminSystemDto`) | B (built) |
 | GET · PUT | /admin/settings | Effective settings with their source (`ENV`/`OVERRIDE`); PUT sets or clears overrides | C |
-| GET · PUT | /admin/content/strings, /errors, /categories, /interests | Read and save drafts | D |
+| GET · PUT | /admin/content/errors, /categories, /interests | Read and save drafts (screen texts were dropped on 3 Nov 2026) | D |
+| GET · POST | /admin/packing-templates | Built-in templates (`AdminPackingTemplatesDto`, with `userTemplateCount` / `sharedTemplateCount` only); POST `SaveBuiltinTemplateRequest` with a client id → 201 (audited `TEMPLATE_CREATE`) | D |
+| PUT · DELETE | /admin/packing-templates/{id} | Save name and items (audited `TEMPLATE_UPDATE`); soft delete (`TEMPLATE_DELETE`). A user's template answers 404 | D |
+| POST | /admin/packing-templates/{id}/restore | Bring a deleted built-in template back (`TEMPLATE_RESTORE`) | D |
 | POST | /admin/content/publish | Publish all drafts | D |
 | GET | /content?version= | Published content for the apps (public, cached) | D (apps later) |
 
