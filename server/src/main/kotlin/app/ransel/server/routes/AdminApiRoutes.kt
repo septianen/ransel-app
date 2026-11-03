@@ -17,7 +17,6 @@ import app.ransel.shared.dto.CreateVoucherRequest
 import app.ransel.shared.dto.AdminInterestCurationDto
 import app.ransel.shared.dto.UpdateContentCategoriesRequest
 import app.ransel.shared.dto.UpdateContentErrorRequest
-import app.ransel.shared.dto.UpdateContentStringRequest
 import app.ransel.shared.dto.UpdateSettingsRequest
 import app.ransel.shared.model.AdminAction
 import app.ransel.shared.model.AdminRange
@@ -163,14 +162,6 @@ fun Route.adminRoutes(service: AdminService, monitoring: AdminMonitoringService,
         }
 
         // Stage D: remote content
-        get(AdminRoutes.CONTENT_STRINGS) {
-            call.admin()
-            call.respondData(HttpStatusCode.OK, content.strings())
-        }
-        put(AdminRoutes.CONTENT_STRINGS) {
-            val admin = call.admin()
-            call.respondData(HttpStatusCode.OK, content.saveString(admin, call.receive<UpdateContentStringRequest>()))
-        }
         get(AdminRoutes.CONTENT_ERRORS) {
             call.admin()
             call.respondData(HttpStatusCode.OK, content.errors())

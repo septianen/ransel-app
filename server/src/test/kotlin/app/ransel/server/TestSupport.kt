@@ -130,11 +130,14 @@ class Api(val client: HttpClient) {
     var token: String? = null
     var refreshToken: String? = null
     var userId: String = ""
+    /** Sent as Accept-Language; null = none. */
+    var language: String? = null
 
     suspend fun send(method: HttpMethod, path: String, body: String? = null): HttpResponse =
         client.request("/api/v1$path") {
             this.method = method
             token?.let { bearerAuth(it) }
+            language?.let { headers.append(io.ktor.http.HttpHeaders.AcceptLanguage, it) }
             if (body != null) {
                 contentType(ContentType.Application.Json)
                 setBody(body)
