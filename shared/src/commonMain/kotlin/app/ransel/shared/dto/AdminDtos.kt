@@ -386,3 +386,40 @@ data class AdminSettingsDto(
 data class UpdateSettingsRequest(
     val values: Map<SettingKey, String?>,
 )
+
+
+// ── Built-in packing templates (owner, 3 Nov 2026) ──────────────────────────
+
+/** A built-in template (`owner_id` NULL) as Karung edits it; [deletedAt] set = hidden from the apps, can be restored. */
+@Serializable
+data class AdminPackingTemplateDto(
+    val id: String,
+    val name: String,
+    val items: List<TemplateItem>,
+    val updatedAt: Timestamp,
+    val deletedAt: Timestamp? = null,
+)
+
+/**
+ * GET /admin/packing-templates: the built-in templates (live first, then deleted, each by name) and two counts of
+ * templates users made. Karung never sees a user template's name or items (admin-spec: no trip content).
+ */
+@Serializable
+data class AdminPackingTemplatesDto(
+    val templates: List<AdminPackingTemplateDto>,
+    /** Templates users made (not deleted). */
+    val userTemplateCount: Int,
+    /** Of those, shared with a trip. */
+    val sharedTemplateCount: Int,
+)
+
+/**
+ * POST (create, [id] = a new UUID from the client) or PUT (update; [id] ignored) a built-in template.
+ * 422 VALIDATION_FAILED per `validateBuiltinTemplate`.
+ */
+@Serializable
+data class SaveBuiltinTemplateRequest(
+    val id: String? = null,
+    val name: String,
+    val items: List<TemplateItem>,
+)
