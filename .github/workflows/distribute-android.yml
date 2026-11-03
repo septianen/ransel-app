@@ -117,7 +117,12 @@ jobs:
           TYPE="$(echo "${BUILD_TYPE:0:1}" | tr a-z A-Z)${BUILD_TYPE:1}"
           TASKS=":composeApp:assemble$TYPE"
           # Release also builds the App Bundle (AAB) for Google Play, signed with the same (upload) key.
-          if [ "$BUILD_TYPE" = release ]; then TASKS="$TASKS :composeApp:bundleRelease"; fi
+          # Crashlytics needs this build's R8 mapping to show readable stack traces. Named explicitly so the run fails
+          # (task not found, or the upload refused) instead of shipping a build whose crashes stay obfuscated.
+          if [ "$BUILD_TYPE" = release ]; then
+            if [ ! -f composeApp/google-services.json ]; then echo "::error::A release build needs GOOGLE_SERVICES_JSON (Crashlytics)"; exit 1; fi
+            TASKS="$TASKS :composeApp:bundleRelease :composeApp:uploadCrashlyticsMappingFileRelease"
+          fi
           ./gradlew $TASKS -Pransel.versionCode=${{ github.run_number }} --no-daemon
           test -f "$APK" || { echo "no APK at $APK" >&2; ls -R composeApp/build/outputs/apk >&2; exit 1; }
           if [ "$BUILD_TYPE" = release ]; then
