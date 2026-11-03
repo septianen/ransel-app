@@ -164,7 +164,7 @@ The first tab of every trip, so new group features do not pile up in Itinerary (
 
 Full rules: `docs/specs/admin-spec.md`.
 
-- A web app for admins only, at `karung.mietek.tech`. Admins are the accounts listed in the server's `ADMIN_EMAILS`; they sign in with their normal RANSEL account.
+- A web app for admins only, at `karung.ransel.app`. Admins are the accounts listed in the server's `ADMIN_EMAILS`; they sign in with their normal RANSEL account.
 - Users: search and filter users, see a profile with trip metadata (never trip content), credit history (receipt photos labelled "Foto struk"), devices and recent activity.
 - Adjust credits: add or subtract wallet credits for one user with a required reason; the balance never goes below 0 and the free daily allowance is not touched. The user sees the row as "Penyesuaian admin" in their credit history.
 - Other actions: sign a user out of every device, deactivate or reactivate an account, send a password reset email (once an email provider exists). Every admin action is written to an audit log.
@@ -197,7 +197,7 @@ These close the gaps found when RANSEL is used by a group where not everyone has
 
 ### P0 · Join without signing in (the guest page)
 
-- `ransel.mietek.tech/j/<code>` (invite) and `ransel.mietek.tech/p/<code>` (poll) open a web page on the phone browser that needs no account: trip name, dates, members, open polls, and "Gabung dengan akun" first for an invite. Other people's amounts, payment info and the itinerary details stay hidden.
+- `ransel.app/j/<code>` (invite) and `ransel.app/p/<code>` (poll) open a web page on the phone browser that needs no account: trip name, dates, members, open polls, and "Gabung dengan akun" first for an invite. Other people's amounts, payment info and the itinerary details stay hidden.
 - The visitor picks their name from the members without an account (taken ones greyed) or writes one ("Nama saya tidak ada" adds a member without an account; "Itu kamu?" when the name exists). They can then vote and tick the packing lines they received. One browser per name; the owner can release a name ("Lepas dari browser"). Abuse protection stays simple: an IP rate limit, no OTP or captcha (owner, 26 Oct 2026).
 - Once a name is picked, "Bagianmu" shows the guest's own share, what they paid and their balance in the trip's base currency, plus the "Supaya lunas" transfers that involve them ("Kamu perlu bayar Rp X ke Rina" / "Rina perlu bayar Rp X ke kamu"). Read-only: a member with an account or the owner marks it paid. Hidden when the guest has no part in any expense (owner, 28 Oct 2026).
 - Not built: "Pasang aplikasi" is "Buat akun untuk ikut merencanakan" until there are store links.
@@ -385,7 +385,7 @@ The trip owner builds a packing list once and sends it to every member. This hel
 | Delete the trip | yes | no | no |
 | Leave the trip | after transferring ownership | yes | yes |
 
-**Invites.** A code `NAME-XXXXXXXX` and a link `ransel.mietek.tech/j/<code>`, with a usage limit and an expiry date. An invite fails when it has expired, was revoked, or is full. Removing a member does not delete the expense records that involve them.
+**Invites.** A code `NAME-XXXXXXXX` and a link `ransel.app/j/<code>`, with a usage limit and an expiry date. An invite fails when it has expired, was revoked, or is full. Removing a member does not delete the expense records that involve them.
 
 **Currency.** The default currency only applies to new trips; existing trips keep their own currency. An overseas trip's expenses default to its local currency.
 

@@ -1,6 +1,6 @@
-# App links (invite links `https://ransel.mietek.tech/j/<code>`, email verification `/verify-email?token=`)
+# App links (invite links `https://ransel.app/j/<code>`, email verification `/verify-email?token=`)
 
-Values the backend agent needs for **B4.6** (`/.well-known/...` on `ransel.mietek.tech`). The frontend declares the
+Values the backend agent needs for **B4.6** (`/.well-known/...` on `ransel.app`). The frontend declares the
 link in the Android manifest (`autoVerify`) and handles it in `MainActivity` / `InviteLinks`.
 
 ## Android: `/.well-known/assetlinks.json`
@@ -34,7 +34,7 @@ Served as `application/json`, no extension, no redirect.
 
 `<TEAM_ID>` is the Apple developer team id (owner: needed). The bundle id is assumed to be `app.ransel`;
 confirm when the iOS project is opened on a Mac. The app also needs the Associated Domains capability
-`applinks:ransel.mietek.tech` and a call to `InviteLinkHook.INSTANCE.open(url.absoluteString)` from `.onOpenURL`.
+`applinks:ransel.app` and a call to `InviteLinkHook.INSTANCE.open(url.absoluteString)` from `.onOpenURL`.
 
 ## Web
 

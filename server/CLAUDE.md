@@ -33,7 +33,7 @@ server/src/test/kotlin/  testApplication + Postgres (Testcontainers or docker co
 - **`updated_at`** is set by the DB trigger (server clock). Pull cursors (`GET /sync?since=`) use server time. Last-write-wins on push compares the incoming `updatedAt` with the stored one.
 - **Transactions**: day reorder (`PUT .../days/{date}/order`), sync push batches, invite accept (`trip_members` insert + `used_count + 1`), expense + splits — each in one transaction.
 - **Money**: amounts stay in the currency they were recorded in; summaries/balances convert with `convertMinor` in `shared/src/commonMain/kotlin/app/ransel/shared/domain/Money.kt` and `fx_rate_to_base`.
-- **Secrets from env only**: `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `PHOTO_SIGNING_SECRET`, `JWT_ISSUER`, `LLM_API_KEY`, `PLACES_API_KEY`, `GOOGLE_DRIVE_API_KEY`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `APP_BASE_URL` (https://ransel.mietek.tech). Provide `.env.example`, never commit `.env`.
+- **Secrets from env only**: `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `JWT_SECRET`, `PHOTO_SIGNING_SECRET`, `JWT_ISSUER`, `LLM_API_KEY`, `PLACES_API_KEY`, `GOOGLE_DRIVE_API_KEY`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `APP_BASE_URL` (https://ransel.app). Provide `.env.example`, never commit `.env`.
 - **Logging**: structured, one line per request with method, path, status, duration and `error.code`. Never log passwords, tokens or full request bodies.
 
 ## Run / test
@@ -53,7 +53,7 @@ Config comes from env vars (defaults match the compose database); see `.env.exam
 
 ## Deploy
 
-Live at `https://ranselapi.mietek.tech` (VPS `sen@187.127.97.109`, SSH port 2212, folder `/opt/ransel`). Full runbook, secrets list and rollback: `deploy/README.md`.
+Live at `https://api.ransel.app` (VPS `sen@187.127.97.109`, SSH port 2212, folder `/opt/ransel`). Full runbook, secrets list and rollback: `deploy/README.md`.
 
 - The VPS already runs nginx for other sites, so nginx is the public entry (`deploy/nginx/`), not Caddy. `docker-compose.prod.yml` runs `server` (published on `127.0.0.1:8080` only) and `db` (Postgres 16, private volume).
 - `.github/workflows/deploy-server.yml`: on push to `main` touching server/shared/deploy it runs the tests, builds `:server:installDist`, pushes `ghcr.io/septianen/ransel-server:<sha>` and rolls it out over SSH. Gradle does not run inside Docker because `:shared` configures the Android plugin.

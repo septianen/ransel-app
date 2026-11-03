@@ -11,7 +11,7 @@ Decisions agreed on 21 Oct 2026:
 - Explore uses **credits** everywhere in Karung; there is no daily quota any more (TRD "Quota").
 - **Adjust credits** replaces "reset quota": an admin can add **or** subtract wallet credits for one user, with a required reason.
 - The error message list in Karung is the full `ErrorCode` list in `shared/` (no invented codes).
-- Password reset emails are sent from **`no-reply@mietek.tech`**.
+- Password reset emails are sent from **`no-reply@ransel.app`**.
 - **Credit settings**: `CREDIT_*` environment variables stay the defaults; values set in Karung are stored in the database and win over them.
 - **Remote content** (strings, error messages, categories, destination interests) is built in Karung and the server first; the apps start reading it in a later, separate frontend task.
 - Karung needs no new design tokens: it uses IRIS like the apps.
@@ -21,7 +21,7 @@ Also agreed on 21 Oct 2026 (the former open items):
 | Topic | Decision |
 | --- | --- |
 | Who is an admin | `ADMIN_EMAILS` env var (comma separated, case-insensitive) on the server. An admin signs in with their normal RANSEL account; every `/admin` request looks the account up and checks its email against the list (no token claim, so removing an email works at once). The account must be active. No UI grants admin, so a bug in Karung cannot create admins. |
-| Where Karung runs | Its own subdomain `karung.mietek.tech` behind the host's nginx, same Docker Compose. A separate origin from the traveller web app, so their sessions never mix. |
+| Where Karung runs | Its own subdomain `karung.ransel.app` behind the host's nginx, same Docker Compose. A separate origin from the traveller web app, so their sessions never mix. |
 | Code module and owner | New module `adminApp/` (Compose for Web, Wasm) with the IRIS theme, owned by the **frontend** agent. It reads `shared/` like `composeApp/`. |
 | Phase | "Phase 6 — Admin", after Phase 5, built in the stages under "Rollout". Stage A starts now. |
 | Design items with no backing feature | "masuk dengan Google" and "Antrean sinkron" were removed from the design (version 24). "Mode perawatan" stays in the design but is not built in this phase (the apps have no maintenance banner yet). |
@@ -92,7 +92,7 @@ App update dialog (1 Nov 2026): six more keys, per platform (`ANDROID_` / `IOS_`
 
 | Action | Effect | Needs |
 | --- | --- | --- |
-| Add user | Admin enters name + email (`POST /admin/users`). The account is created with the email already verified and a password nobody knows; the user gets an invite email from `no-reply@mietek.tech` with a 7-day link to set the password (the `/reset-password` flow). Works while public sign-up is closed. 409 `EMAIL_ALREADY_REGISTERED` for a taken email (case-insensitive). No credits beyond the signup grant: use "Adjust credits". Decided 22 Oct 2026. | Email set up (button hidden and 409 otherwise) |
+| Add user | Admin enters name + email (`POST /admin/users`). The account is created with the email already verified and a password nobody knows; the user gets an invite email from `no-reply@ransel.app` with a 7-day link to set the password (the `/reset-password` flow). Works while public sign-up is closed. 409 `EMAIL_ALREADY_REGISTERED` for a taken email (case-insensitive). No credits beyond the signup grant: use "Adjust credits". Decided 22 Oct 2026. | Email set up (button hidden and 409 otherwise) |
 | Sign out of all devices | Revokes all of the user's refresh tokens; their apps get `TOKEN_EXPIRED` at the next refresh | Nothing new |
 | Send password reset email | Same flow as `POST /auth/password/forgot`, started by an admin; rate limited to 3 per user per hour | Email provider (still open) |
 | Deactivate / reactivate account | New `users.disabled_at`. Deactivating revokes refresh tokens; sign-in (with the right password) and refresh then return 403 `ACCOUNT_DISABLED`; an access token already issued keeps working until it expires (15 minutes); data is kept. An admin cannot deactivate their own account. Reactivating clears the field. | New error code, app handling (show "Akun dinonaktifkan" on the sign-in screen) |
@@ -179,7 +179,7 @@ Admin endpoints are rate limited per admin (60 requests a minute) and never cach
 - CSV export contains name, email, joined, last active, platform, trips count, credits; every export is audited.
 - Admin JWTs live as long as normal access tokens; no "remember me" in Karung.
 - The environment badge ("Produksi"/"Staging") comes from the server, so an admin always sees which database they are changing.
-- One Karung manages both servers: on `karung.mietek.tech` the admin picks Production or Staging on the sign-in screen (or from the badge menu in the sidebar). The choice is per browser tab; switching **signs out** of the current server first and reloads on the other one, and refresh tokens are stored per server. While Staging is chosen an amber strip names the server; if the server reports a different `APP_ENV` than the one picked, the strip turns red.
+- One Karung manages both servers: on `karung.ransel.app` the admin picks Production or Staging on the sign-in screen (or from the badge menu in the sidebar). The choice is per browser tab; switching **signs out** of the current server first and reloads on the other one, and refresh tokens are stored per server. While Staging is chosen an amber strip names the server; if the server reports a different `APP_ENV` than the one picked, the strip turns red.
 
 ## Rollout
 
