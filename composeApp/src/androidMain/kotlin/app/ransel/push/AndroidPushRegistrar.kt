@@ -38,17 +38,24 @@ class AndroidPushRegistrar(private val context: Context) : PushRegistrar {
         Build.VERSION.SDK_INT < 33 ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-    /** Android 13+: the system dialog (the system stops showing it after repeated refusals). Older versions need none. */
+    /**
+     * Android 13+: the system dialog, or the app's notification settings once the system no longer shows it (after the
+     * second refusal; MainActivity decides). Older versions need none.
+     */
     override fun requestPermission() {
         if (hasPermission()) return
-        permissionRequest?.invoke() // no screen to show the dialog on right now: nothing happens
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val asked = prefs.getInt(KEY_REQUESTS, 0)
+        val request = permissionRequest ?: return // no screen to show the dialog on right now: nothing happens
+        if (!request(asked > 0)) openSystemSettings()
+        prefs.edit().putInt(KEY_REQUESTS, asked + 1).apply()
     }
 
-    override fun shouldExplainPermission(): Boolean =
-        !hasPermission() && !context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_EXPLAINED, false)
+    /** At every app start while the permission is missing (owner, 3 Nov 2026), once per launch. */
+    override fun shouldExplainPermission(): Boolean = !hasPermission() && !explainedThisLaunch
 
     override fun explanationDismissed() {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_EXPLAINED, true).apply()
+        explainedThisLaunch = true
     }
 
     override fun openSystemSettings() {
@@ -63,10 +70,18 @@ class AndroidPushRegistrar(private val context: Context) : PushRegistrar {
 
     companion object {
         private const val PREFS = "ransel_push"
-        private const val KEY_EXPLAINED = "permission_explained"
+        private const val KEY_REQUESTS = "permission_requests"
 
-        /** Set by MainActivity while it is on screen: shows the system permission dialog. */
+        /** The sheet was answered in this process: the next launch asks again. */
         @Volatile
-        var permissionRequest: (() -> Unit)? = null
+        private var explainedThisLaunch = false
+
+        /**
+         * Set by MainActivity while it is on screen: shows the system permission dialog and returns true, or returns
+         * false when the system would not show it any more (asked before and refused twice). The argument says
+         * whether it was asked before.
+         */
+        @Volatile
+        var permissionRequest: ((askedBefore: Boolean) -> Boolean)? = null
     }
 }
