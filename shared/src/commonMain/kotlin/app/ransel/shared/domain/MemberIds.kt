@@ -5,13 +5,12 @@ package app.ransel.shared.domain
  * trip_members.id, and a member does not need an account.
  *
  * The member row of an account is named by its trip and user, so the app can write `paidByMemberId` offline
- * without asking the server first, and the server and the V15 migration derive the same id.
+ * without asking the server first, and the server derives the same id.
  */
 
 /**
  * Stable id of [userId]'s own member row in [tripId]: the first 16 bytes of SHA-256("<tripId>:<userId>") in lower
  * case, shaped like a UUID (version 5, RFC 4122 variant). Members without an account get a random UUID instead.
- * The V15 migration has an SQL copy of this function; `MemberIdMigrationTest` keeps the two equal.
  */
 fun memberIdFor(tripId: String, userId: String): String {
     val hash = sha256("${tripId.lowercase()}:${userId.lowercase()}".encodeToByteArray())
