@@ -5,10 +5,11 @@ import androidx.navigation.NavHostController
 
 /**
  * Web: mirrors the back stack into the browser history, so the browser's back button and the PWA's swipe back walk
- * through screens instead of leaving the app. No-op on Android and iOS.
+ * through screens instead of leaving the app, with short addresses (`#/trips/<id>`, [urlFragmentFor]). With
+ * [restoreFromUrl] the screen in the address at load is opened again (a reload while signed in). No-op on Android and iOS.
  */
 @Composable
-expect fun BindBrowserHistory(navController: NavHostController)
+expect fun BindBrowserHistory(navController: NavHostController, restoreFromUrl: Boolean = false)
 
 /** System back press, for the "press again to exit" hint. Android only: iOS has no back button, the web leaves through the browser. */
 @Composable

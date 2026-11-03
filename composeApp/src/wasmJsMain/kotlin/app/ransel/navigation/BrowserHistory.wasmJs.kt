@@ -8,12 +8,37 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.navigation.NavHostController
 import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.bindToBrowserNavigation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(ExperimentalBrowserHistoryApi::class)
 @Composable
-actual fun BindBrowserHistory(navController: NavHostController) {
-    LaunchedEffect(navController) { navController.bindToBrowserNavigation() }
+actual fun BindBrowserHistory(navController: NavHostController, restoreFromUrl: Boolean) {
+    LaunchedEffect(navController) {
+        // Read the address before the binding does: it would try the fragment as a Navigation route (and warn).
+        val restored = routeForUrlFragment(currentHash())
+        clearHash()
+        // Bind first and wait until it has written Home's entry, so the restored screen gets an entry of its own on top
+        // and back leads Home instead of out of the app (navigating earlier puts both screens in one entry).
+        launch { navController.bindToBrowserNavigation(::urlFragmentFor) }
+        // Home is the start destination already; anything else opens on top of it
+        if (restoreFromUrl && restored != null && restored != HomeRoute) {
+            withTimeoutOrNull(2_000) { while (historyState() == null) delay(16) }
+            runCatching { navController.navigate(restored) { launchSingleTop = true } }
+        }
+    }
 }
+
+@JsFun("() => window.location.hash")
+private external fun currentHash(): String
+
+/**
+ * Drops the fragment and the state a reload kept, without a new history entry: the binding writes the current
+ * screen's next, which is how [BindBrowserHistory] knows it has started.
+ */
+@JsFun("() => window.history.replaceState(null, '', window.location.pathname + window.location.search)")
+private external fun clearHash()
 
 @Composable
 actual fun ExitBackHandler(enabled: Boolean, onBack: () -> Unit) = Unit

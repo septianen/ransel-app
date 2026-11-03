@@ -361,7 +361,7 @@ private fun WebAuthNavigation() {
 private fun RanselNavigation(openSignIn: Boolean = false) {
     val navController = rememberNavController()
     TrackScreens(navController)
-    BindBrowserHistory(navController)
+    BindBrowserHistory(navController, restoreFromUrl = true)
     val sessionManager: SessionManager = koinInject()
     val sessionState by sessionManager.state.collectAsState()
     LaunchedEffect(openSignIn) { if (openSignIn) navController.navigate(SignInRoute) }
