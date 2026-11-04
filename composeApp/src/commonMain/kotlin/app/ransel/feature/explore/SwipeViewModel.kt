@@ -33,7 +33,11 @@ import kotlinx.coroutines.launch
 sealed interface SwipeUiState {
     data object Loading : SwipeUiState
     data class Cards(val session: ExploreSession) : SwipeUiState
-    data class Finished(val session: ExploreSession) : SwipeUiState
+    /**
+     * Every card seen. Unless [ExploreSession.exhausted], "Lihat hingga 15 ide lagi" asks for the next batch on
+     * request only ([moreCost] credits; null = not known yet); there is no batch in the background (owner, 4 Nov 2026).
+     */
+    data class Finished(val session: ExploreSession, val loadingMore: Boolean = false, val moreCost: Int? = null) : SwipeUiState
     data class NoResults(val session: ExploreSession) : SwipeUiState
     data class Error(val failure: ApiFailure) : SwipeUiState
     /** [cost] and [available] are credits, null when the server did not say (an older server). */
@@ -47,9 +51,9 @@ sealed interface SwipeEvent {
     data class Saved(val title: String) : SwipeEvent
     /** The search became a voting round: the vote screen takes over (docs/specs/voting-spec.md). */
     data class OpenRound(val tripId: String, val roundId: String) : SwipeEvent
+    /** "Lihat hingga 15 ide lagi" failed (offline, the AI): a snackbar, the button stays. */
+    data object MoreFailed : SwipeEvent
 }
-
-private const val PREFETCH_AT = 3
 
 class SwipeViewModel(
     private val tripId: String,
@@ -66,7 +70,7 @@ class SwipeViewModel(
     val eventFlow = events.receiveAsFlow()
 
     private var session: ExploreSession? = null
-    private var prefetching = false
+    private var loadingMore = false
 
     init {
         val saved = store.session(tripId)
@@ -154,7 +158,6 @@ class SwipeViewModel(
                 ),
             )
         }
-        prefetchIfNeeded()
     }
 
     /** Takes back the last swipe: removes the item it saved and the stored feedback. */
@@ -170,11 +173,15 @@ class SwipeViewModel(
         }
     }
 
-    /** Asks for the next batch in the background when 3 cards are left (does not count against the quota). */
-    private fun prefetchIfNeeded() {
+    /**
+     * "Lihat hingga 15 ide lagi": the next batch of the same search (Finished only, never on its own). Charged by the
+     * server only when it brings cards; none = the search is used up.
+     */
+    fun loadMore() {
         val s = session ?: return
-        if (prefetching || s.exhausted || s.cards.size - s.position > PREFETCH_AT) return
-        prefetching = true
+        if (loadingMore || s.exhausted) return
+        loadingMore = true
+        publish()
         viewModelScope.launch {
             val exclude = (s.seenIds + s.cards.map { it.item.placeId }).distinct()
             when (val result = api.recommend(s.form.toRequest(newSearch = false, exclude = exclude))) {
@@ -187,26 +194,28 @@ class SwipeViewModel(
                     val current = session ?: s
                     session = current.copy(cards = current.cards + more, exhausted = more.isEmpty())
                     persist()
+                    loadingMore = false
                     publish()
                 }
-                // A failed background batch only means "no more cards"; the user keeps swiping what is there.
                 is ApiResult.Failure -> {
-                    val current = session ?: s
-                    session = current.copy(exhausted = true)
-                    publish()
+                    loadingMore = false
+                    if (result.error.isOutOfCredits) _state.value = result.error.toOutOfCredits()
+                    else {
+                        // offline or the AI failed: keep the button, the user can try again
+                        publish()
+                        events.send(SwipeEvent.MoreFailed)
+                    }
                 }
             }
-            prefetching = false
         }
     }
 
     private fun publish() {
         val s = session ?: return
         _state.update {
-            if (s.position >= s.cards.size && (s.exhausted || s.cards.isEmpty())) SwipeUiState.Finished(s)
+            if (s.position >= s.cards.size) SwipeUiState.Finished(s, loadingMore, credits.state.value?.costs?.nextBatch)
             else SwipeUiState.Cards(s)
         }
-        if (s.cards.size - s.position <= PREFETCH_AT) prefetchIfNeeded()
     }
 }
 

@@ -34,6 +34,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -132,21 +133,26 @@ class SwipeViewModelTest {
     }
 
     @Test
-    fun backgroundBatchIsRequestedWhenThreeCardsAreLeft() = runTest {
+    fun moreIdeasOnlyOnRequestAfterTheLastCard() = runTest {
         val vm = SwipeViewModel(
             "t1",
             store(ExploreSession(form)),
-            api(first = response("a", "b", "c", "d"), next = response("e", "f")),
+            api(first = response("a", "b"), next = response("e", "f")),
             InMemoryItineraryRepository(InMemoryStore()),
         )
         vm.loaded()
-        vm.skip() // 3 left
-        eventually { requests.count { it.first == "POST /api/v1/recommendations" } >= 2 }
-        eventually { (vm.state.value as? SwipeUiState.Cards)?.session?.cards?.size == 6 }
+        vm.skip()
+        vm.skip()
+        // no batch in the background (owner, 4 Nov 2026): the last card leads to the finished state
+        val finished = assertIs<SwipeUiState.Finished>(vm.state.value)
+        assertFalse(finished.session.exhausted)
+        assertEquals(1, requests.count { it.first == "POST /api/v1/recommendations" })
+
+        vm.loadMore()
+        eventually { (vm.state.value as? SwipeUiState.Cards)?.session?.cards?.size == 4 }
         val batch = requests.last { it.first == "POST /api/v1/recommendations" }
         assertTrue("\"newSearch\":false" in batch.second)
         assertTrue("\"excludePlaceIds\"" in batch.second && "\"a\"" in batch.second)
-        assertEquals(6, assertIs<SwipeUiState.Cards>(vm.state.value).session.cards.size)
     }
 
     @Test
