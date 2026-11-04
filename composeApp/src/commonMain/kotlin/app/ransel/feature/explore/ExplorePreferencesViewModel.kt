@@ -272,6 +272,9 @@ class ExplorePreferencesViewModel(
      * through the normal trip repository and must reach the server before the search. [defaultName] is the
      * localized "Trip ke <destination>".
      */
+    /** The trip this form made ("Trip baru"); a second start reuses it. */
+    private var createdTripId: String? = null
+
     fun start(defaultName: String, onReady: (tripId: String) -> Unit) {
         val s = _state.value
         if (s.starting) return
@@ -283,7 +286,12 @@ class ExplorePreferencesViewModel(
         viewModelScope.launch {
             val id: String
             val title: String
-            if (tripId == null) {
+            val made = createdTripId
+            if (tripId == null && made != null) {
+                // started before from this form: the trip exists, never make a second one
+                id = made
+                title = s.tripName?.trim()?.takeIf { it.isNotEmpty() } ?: defaultName
+            } else if (tripId == null) {
                 id = newId()
                 title = s.tripName?.trim()?.takeIf { it.isNotEmpty() } ?: defaultName
                 val created = runCatching {
@@ -301,6 +309,7 @@ class ExplorePreferencesViewModel(
                     events.send(ExplorePreferencesEvent.StartFailed)
                     return@launch
                 }
+                createdTripId = id
                 awaitOnServer(id)
             } else {
                 id = tripId

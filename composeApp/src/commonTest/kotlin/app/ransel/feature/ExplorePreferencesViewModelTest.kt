@@ -196,4 +196,21 @@ class ExplorePreferencesViewModelTest {
         assertEquals(created.id, form.tripId)
         assertEquals(listOf("Snorkeling"), form.extraInterests)
     }
+
+    @Test
+    fun startingTwiceFromTheSameFormMakesOneTrip() = runTest {
+        val vm = vm(null, api { suggestions("Snorkeling") })
+        vm.setDestination("Lombok")
+        vm.onDestinationBlur()
+        eventually { vm.state.value.suggestions is SuggestionsState.Loaded }
+        vm.toggleExtraInterest("Snorkeling")
+        val ready = mutableListOf<String>()
+        vm.start("Trip ke Lombok") { ready += it }
+        eventually { ready.size == 1 }
+        vm.start("Trip ke Lombok") { ready += it }
+        eventually { ready.size == 2 }
+
+        assertEquals(1, store.trips.value.size, "the second start reuses the trip")
+        assertEquals(ready[0], ready[1])
+    }
 }
