@@ -125,7 +125,10 @@ class GooglePlaceSearch(
             parameter("key", apiKey)
         }
         if (!response.status.isSuccess()) error("Geocoding HTTP ${response.status.value}")
-        return parseReverse(response.body<String>())
+        val body = response.body<String>()
+        // Google answers a refused key or a disabled Geocoding API with 200 and an empty list: say so instead
+        reverseRefusal(body)?.let { throw GeocodingRefused(it) }
+        return parseReverse(body)
     }
 
     companion object {
@@ -186,6 +189,14 @@ class GooglePlaceSearch(
          * Up to three levels: the neighbourhood or district ("Kemang"), its city or regency ("Jakarta Selatan"), and
          * the area around the city (`around`, shown as "Sekitar <city>"). "Kota"/"Kabupaten" prefixes are dropped from names.
          */
+        /** "REQUEST_DENIED: <Google's message>" when the Geocoding API refused the call, null for OK or ZERO_RESULTS. */
+        internal fun reverseRefusal(body: String): String? {
+            val root = runCatching { json.parseToJsonElement(body).jsonObject }.getOrNull() ?: return "UNREADABLE"
+            val status = root.str("status") ?: return null
+            if (status == "OK" || status == "ZERO_RESULTS") return null
+            return listOfNotNull(status, root.str("error_message")).joinToString(": ")
+        }
+
         internal fun parseReverse(body: String): List<NearbyAreaDto> {
             val root = json.parseToJsonElement(body).jsonObject
             val results = (root["results"] as? JsonArray).orEmpty().map { it.jsonObject }
@@ -217,3 +228,6 @@ class GooglePlaceSearch(
         private fun shortName(name: String): String = name.removePrefix("Kota ").removePrefix("Kabupaten ")
     }
 }
+
+/** The Geocoding API refused a call (key, billing or API not enabled); [reason] is Google's status and message, no key. */
+class GeocodingRefused(val reason: String) : IllegalStateException("Geocoding refused: $reason")
