@@ -110,7 +110,8 @@ class PlaceSearchService(
         return try {
             ReverseGeocodeDto((search ?: throw IllegalStateException("places not configured")).reverse(lat, lng))
         } catch (e: Exception) {
-            log.warn("places.reverse failed: {}", e.javaClass.simpleName)
+            if (e is app.ransel.server.ai.GeocodingRefused) log.error("places.reverse refused by Google: {}", e.reason)
+            else log.warn("places.reverse failed: {}", e.javaClass.simpleName)
             throw unavailable()
         }
     }

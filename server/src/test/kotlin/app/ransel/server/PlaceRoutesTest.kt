@@ -224,6 +224,14 @@ class PlaceRoutesTest {
         assertEquals(ViewportDto(-8.6, 119.8, -8.4, 120.0), place.viewport)
         assertNull(GooglePlaceSearch.parseDetails("x", """{"id":"x"}"""))
 
+        // a refused key or a disabled Geocoding API is a 200 with an empty list: it must not pass as "nothing here"
+        assertEquals(
+            "REQUEST_DENIED: This API project is not authorized to use this API.",
+            GooglePlaceSearch.reverseRefusal("""{"status":"REQUEST_DENIED","error_message":"This API project is not authorized to use this API.","results":[]}"""),
+        )
+        assertNull(GooglePlaceSearch.reverseRefusal("""{"status":"ZERO_RESULTS","results":[]}"""))
+        assertNull(GooglePlaceSearch.reverseRefusal("""{"status":"OK","results":[]}"""))
+
         val areas = GooglePlaceSearch.parseReverse(
             """{"status":"OK","results":[
             {"place_id":"a1","types":["sublocality","sublocality_level_1","political"],"address_components":[
