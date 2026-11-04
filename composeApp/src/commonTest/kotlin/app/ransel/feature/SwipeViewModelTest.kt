@@ -133,7 +133,7 @@ class SwipeViewModelTest {
     }
 
     @Test
-    fun moreIdeasOnlyOnRequestAfterTheLastCard() = runTest {
+    fun oneSearchIsOneBatchWithNothingFetchedInTheBackground() = runTest {
         val vm = SwipeViewModel(
             "t1",
             store(ExploreSession(form)),
@@ -143,16 +143,9 @@ class SwipeViewModelTest {
         vm.loaded()
         vm.skip()
         vm.skip()
-        // no batch in the background (owner, 4 Nov 2026): the last card leads to the finished state
-        val finished = assertIs<SwipeUiState.Finished>(vm.state.value)
-        assertFalse(finished.session.exhausted)
+        // no further batch, neither in the background nor on request (owner, 4 Nov 2026): the last card finishes
+        assertIs<SwipeUiState.Finished>(vm.state.value)
         assertEquals(1, requests.count { it.first == "POST /api/v1/recommendations" })
-
-        vm.loadMore()
-        eventually { (vm.state.value as? SwipeUiState.Cards)?.session?.cards?.size == 4 }
-        val batch = requests.last { it.first == "POST /api/v1/recommendations" }
-        assertTrue("\"newSearch\":false" in batch.second)
-        assertTrue("\"excludePlaceIds\"" in batch.second && "\"a\"" in batch.second)
     }
 
     @Test

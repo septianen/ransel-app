@@ -795,14 +795,6 @@
     <string name="swipe_done_body">%1$d places went to Unscheduled in %2$s. Plan the days whenever you like.</string>
     <string name="swipe_done_itinerary">See in itinerary</string>
     <string name="swipe_done_again">Search again with other preferences</string>
-    <string name="swipe_more">See up to 15 more ideas</string>
-    <string name="swipe_more_free">See up to 15 more ideas · free</string>
-    <plurals name="swipe_more_cost">
-        <item quantity="one">See up to 15 more ideas · %1$d credit</item>
-        <item quantity="other">See up to 15 more ideas · %1$d credits</item>
-    </plurals>
-    <string name="swipe_more_none">No more ideas for these preferences. Try other preferences.</string>
-    <string name="swipe_more_failed">Couldn't load more ideas. Try again in a moment.</string>
     <string name="swipe_error_title">The recommendations are out in the rain</string>
     <string name="swipe_error_body">Our AI is busy or having trouble. Your preferences are saved, so just try again.</string>
     <string name="ai_paused_title">Explore AI is taking a break</string>
@@ -836,7 +828,7 @@
     <string name="credits_balance_label">Your credits</string>
     <string name="credits_unit">credits</string>
     <string name="credits_free_today">Free today: %1$d of %2$d. Refills at 00:00 WIB.</string>
-    <string name="credits_costs">Cost in credits: new search %1$d, next batch %2$d</string>
+    <string name="credits_costs">Cost in credits: new search %1$d</string>
     <string name="credits_voucher_title">Have a voucher code?</string>
     <string name="credits_voucher_label">Voucher code</string>
     <string name="credits_voucher_placeholder">ABCD-EFGH-JKLM</string>
