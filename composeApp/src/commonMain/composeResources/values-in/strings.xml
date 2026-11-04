@@ -785,6 +785,13 @@
     <string name="swipe_done_body">%1$d tempat masuk ke Belum dijadwalkan di itinerary %2$s. Atur harinya kapan saja.</string>
     <string name="swipe_done_itinerary">Lihat di itinerary</string>
     <string name="swipe_done_again">Cari lagi dengan preferensi lain</string>
+    <string name="swipe_more">Lihat hingga 15 ide lagi</string>
+    <string name="swipe_more_free">Lihat hingga 15 ide lagi · gratis</string>
+    <plurals name="swipe_more_cost">
+        <item quantity="other">Lihat hingga 15 ide lagi · %1$d kredit</item>
+    </plurals>
+    <string name="swipe_more_none">Tidak ada ide lain untuk preferensi ini. Coba cari dengan preferensi lain.</string>
+    <string name="swipe_more_failed">Ide lain belum bisa dimuat. Coba lagi sebentar.</string>
     <string name="swipe_error_title">Rekomendasinya lagi kehujanan</string>
     <string name="swipe_error_body">AI kami sedang sibuk atau terganggu. Preferensimu sudah tersimpan, jadi tinggal coba lagi.</string>
     <string name="ai_paused_title">Jelajah AI sedang istirahat</string>

@@ -199,7 +199,8 @@ class RecommendationService(
             .take(MAX_CARDS)
         val items = withPhotoCredits(picked, trip.baseCurrency)
 
-        val state = try {
+        // Nothing to show = nothing charged (owner, 4 Nov 2026): an empty next batch only says the search is used up.
+        val state = if (items.isEmpty()) credits.credits(userId) else try {
             credits.charge(userId, action, tripId.toString())
         } catch (e: ApiException) {
             if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
@@ -207,7 +208,7 @@ class RecommendationService(
         }
         searchTrace()?.apply {
             placeIds = items.map { it.second.placeId }
-            creditsCharged = credits.cost(action)
+            creditsCharged = if (items.isEmpty()) 0 else credits.cost(action)
         }
         val roundId = when {
             !voting || rounds == null -> null
@@ -282,7 +283,7 @@ class RecommendationService(
                 priceMinor = minor, priceUnit = if (minor != null) unit else null,
             )
         }
-        val state = try {
+        val state = if (results.isEmpty()) credits.credits(userId) else try {
             credits.charge(userId, CreditAction.SEARCH, pollId.toString())
         } catch (e: ApiException) {
             if (e.code == ErrorCode.INSUFFICIENT_CREDITS) metrics.quotaRejections.incrementAndGet()
@@ -290,7 +291,7 @@ class RecommendationService(
         }
         searchTrace()?.apply {
             placeIds = results.map { it.placeId }
-            creditsCharged = credits.cost(CreditAction.SEARCH)
+            creditsCharged = if (results.isEmpty()) 0 else credits.cost(CreditAction.SEARCH)
         }
         log.info("ai.pollsearch kind={} found={} returned={}", polls.kind, found.size, results.size)
         return PollSearchResponse(results, state)

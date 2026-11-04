@@ -331,11 +331,16 @@ class RecommendationRoutesTest {
         val llm = FakeLlm(listOf(candidate("Tempat Karangan 1"), candidate("Tempat Karangan 2")))
         apiTest(ai = AiServices(llm, FakePlaces(BALI))) {
             val tripId = trip()
+            val before = get("/credits").data().jsonObject
             val response = post("/recommendations", request(tripId))
             assertEquals(HttpStatusCode.OK, response.status)
             assertEquals(0, response.data().jsonObject.getValue("groups").jsonArray.size)
             post("/recommendations", request(tripId))
             assertEquals(2, llm.calls.get(), "an empty result must not be cached")
+            // nothing to show, nothing charged (owner, 4 Nov 2026)
+            val after = get("/credits").data().jsonObject
+            assertEquals(before.getValue("balance"), after.getValue("balance"))
+            assertEquals(before.getValue("dailyFreeLeft"), after.getValue("dailyFreeLeft"))
         }
     }
 
