@@ -785,13 +785,6 @@
     <string name="swipe_done_body">%1$d tempat masuk ke Belum dijadwalkan di itinerary %2$s. Atur harinya kapan saja.</string>
     <string name="swipe_done_itinerary">Lihat di itinerary</string>
     <string name="swipe_done_again">Cari lagi dengan preferensi lain</string>
-    <string name="swipe_more">Lihat hingga 15 ide lagi</string>
-    <string name="swipe_more_free">Lihat hingga 15 ide lagi · gratis</string>
-    <plurals name="swipe_more_cost">
-        <item quantity="other">Lihat hingga 15 ide lagi · %1$d kredit</item>
-    </plurals>
-    <string name="swipe_more_none">Tidak ada ide lain untuk preferensi ini. Coba cari dengan preferensi lain.</string>
-    <string name="swipe_more_failed">Ide lain belum bisa dimuat. Coba lagi sebentar.</string>
     <string name="swipe_error_title">Rekomendasinya lagi kehujanan</string>
     <string name="swipe_error_body">AI kami sedang sibuk atau terganggu. Preferensimu sudah tersimpan, jadi tinggal coba lagi.</string>
     <string name="ai_paused_title">Jelajah AI sedang istirahat</string>
@@ -825,7 +818,7 @@
     <string name="credits_balance_label">Kreditmu</string>
     <string name="credits_unit">kredit</string>
     <string name="credits_free_today">Jatah gratis hari ini: %1$d dari %2$d. Terisi lagi 00.00 WIB.</string>
-    <string name="credits_costs">Biaya (kredit): pencarian baru %1$d, hasil berikutnya %2$d</string>
+    <string name="credits_costs">Biaya (kredit): pencarian baru %1$d</string>
     <string name="credits_voucher_title">Punya kode voucher?</string>
     <string name="credits_voucher_label">Kode voucher</string>
     <string name="credits_voucher_placeholder">ABCD-EFGH-JKLM</string>

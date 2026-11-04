@@ -377,7 +377,7 @@ The server receives the preferences, asks the LLM for candidate places as JSON, 
 4. Validate every name with Places Text Search (IDs Only, free); places that are not found are dropped. Details (photo, rating) are fetched lazily for the top 2–3 cards only.
 5. An empty result after validation → an empty response; the app shows the "No good match yet" state naming the preferences that caused it.
 6. Swipe right creates an `itinerary_items` row with `day_date = null`, `source = AI`, and `duration_min` from the AI; swipe left records SKIP in `recommendation_feedback` so the place does not come back for that trip.
-7. When every card is seen, the finished screen offers "Lihat hingga 15 ide lagi · 1 kredit": the next batch (`newSearch=false`, with the latest feedback) is only ever requested on that tap, never in the background (owner, 4 Nov 2026).
+7. One search is one batch of up to 15 cards: the app never asks for a next batch (owner, 4 Nov 2026). When every card is seen, the finished screen offers the itinerary or a new search with other preferences. The server still answers `newSearch=false` (older builds, voting rounds).
 
 The swipe session (remaining cards, position, number saved) is stored locally in the app for the Continue card; it is discarded when all cards are seen or the user searches again.
 

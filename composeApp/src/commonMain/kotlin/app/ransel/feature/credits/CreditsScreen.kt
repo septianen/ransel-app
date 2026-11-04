@@ -158,7 +158,7 @@ private fun BalanceCard(credits: CreditsDto) {
             color = scheme.onTertiaryContainer,
         )
         Text(
-            stringResource(Res.string.credits_costs, credits.costs.search, credits.costs.nextBatch) +
+            stringResource(Res.string.credits_costs, credits.costs.search) +
                 if (credits.costs.receipt > 0) " · " + stringResource(Res.string.credits_cost_receipt, credits.costs.receipt) else "",
             style = MaterialTheme.typography.bodySmall,
             color = scheme.onTertiaryContainer,

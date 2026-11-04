@@ -56,8 +56,6 @@ fun FullScreenState(
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
     inScrollingParent: Boolean = false,
-    /** A further full-width action between the primary and the secondary one (e.g. "Lihat hingga 15 ide lagi"). */
-    extraAction: (@Composable () -> Unit)? = null,
 ) {
     // Karung's copy for this error code wins over the screen's own (remote content, stage E)
     val remote = remoteErrorCopy(errorCode)
@@ -106,7 +104,6 @@ fun FullScreenState(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 12.dp),
             ) { Text(primaryLabel, style = MaterialTheme.typography.titleMedium) }
         }
-        extraAction?.invoke()
         if (secondaryLabel != null && onSecondary != null) {
             TextButton(
                 onClick = onSecondary,

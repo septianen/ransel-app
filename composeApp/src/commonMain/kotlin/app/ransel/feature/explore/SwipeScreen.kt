@@ -1,12 +1,5 @@
 package app.ransel.feature.explore
 
-import androidx.compose.material3.OutlinedButton
-import org.jetbrains.compose.resources.pluralStringResource
-import ransel.composeapp.generated.resources.swipe_more
-import ransel.composeapp.generated.resources.swipe_more_cost
-import ransel.composeapp.generated.resources.swipe_more_failed
-import ransel.composeapp.generated.resources.swipe_more_free
-import ransel.composeapp.generated.resources.swipe_more_none
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -121,7 +114,6 @@ fun SwipeScreen(
                 )
                 if (result == SnackbarResult.ActionPerformed) viewModel.undo()
             }
-            if (event is SwipeEvent.MoreFailed) snackbar.showSnackbar(getString(Res.string.swipe_more_failed))
         }
     }
     LaunchedEffect(state) { if (state is SwipeUiState.Empty) onClose() }
@@ -142,9 +134,8 @@ fun SwipeScreen(
             )
             is SwipeUiState.Finished -> StateWithClose(onClose) {
                 FinishedContent(
-                    s,
+                    s.session,
                     onItinerary = { onOpenItinerary(s.session.form.tripId) },
-                    onMore = viewModel::loadMore,
                     onAgain = { viewModel.discard(); onChangePreferences() },
                 )
             }
@@ -545,36 +536,14 @@ internal fun RecommendationCard(card: ExploreCard, drag: Float, onInfo: () -> Un
 }
 
 @Composable
-private fun FinishedContent(state: SwipeUiState.Finished, onItinerary: () -> Unit, onMore: () -> Unit, onAgain: () -> Unit) {
-    val session = state.session
+private fun FinishedContent(session: ExploreSession, onItinerary: () -> Unit, onAgain: () -> Unit) {
     FullScreenState(
         title = stringResource(Res.string.swipe_done_title),
-        body = stringResource(Res.string.swipe_done_body, session.saved, session.form.tripTitle) +
-            if (session.exhausted) "\n\n" + stringResource(Res.string.swipe_more_none) else "",
+        body = stringResource(Res.string.swipe_done_body, session.saved, session.form.tripTitle),
         illustration = painterResource(Res.drawable.ic_sun_bathing),
         illustrationSize = 160.dp,
         primaryLabel = stringResource(Res.string.swipe_done_itinerary),
         onPrimary = onItinerary,
-        // The next batch costs credits, so it is a button with its price, never a background request (owner, 4 Nov 2026).
-        extraAction = if (session.exhausted) null else {
-            {
-                OutlinedButton(
-                    onClick = onMore,
-                    enabled = !state.loadingMore,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                ) {
-                    if (state.loadingMore) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                    else Text(
-                        when (val cost = state.moreCost) {
-                            null -> stringResource(Res.string.swipe_more)
-                            0 -> stringResource(Res.string.swipe_more_free)
-                            else -> pluralStringResource(Res.plurals.swipe_more_cost, cost, cost)
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                }
-            }
-        },
         secondaryLabel = stringResource(Res.string.swipe_done_again),
         onSecondary = onAgain,
     )
