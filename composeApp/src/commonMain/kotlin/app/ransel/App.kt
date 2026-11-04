@@ -511,8 +511,10 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                         else slideOutHorizontally(tween(SLIDE_MILLIS, easing = FastOutSlowInEasing)) { it }
                     },
                 ) {
-                    tabs(navController)
-                    trips(navController)
+                    // Explore needs an account: a guest who taps "Coba" or a trip's Explore button signs in first
+                    val signedIn = { sessionState is SessionState.SignedIn }
+                    tabs(navController, signedIn)
+                    trips(navController, signedIn)
                     authGraph(navController, allowGuest = !requiresAccount, onFinished = {
                         // Signed in (or chose offline): back to the app's home, dropping the auth screens.
                         navController.navigate(HomeRoute) {
@@ -562,7 +564,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
     }
 }
 
-private fun NavGraphBuilder.tabs(navController: NavHostController) {
+private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () -> Boolean) {
     tabPage<HomeRoute>(MainTab.HOME, navController) {
         HomeScreen(
             modifier = Modifier.statusBarsPadding(),
@@ -579,7 +581,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
             onOpenNotifications = { navController.navigate(NotificationsRoute) },
             onOpenRecap = { navController.navigate(RecapRoute(it)) },
             // "Coba": the preferences step on a new trip ("Trip baru"), full screen over Home.
-            onExplore = { navController.navigate(ExplorePreferencesRoute(null)) },
+            onExplore = { navController.openExplore(null, signedIn()) },
         )
     }
     tabPage<TripListRoute>(MainTab.TRIPS, navController) {
@@ -758,7 +760,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController) {
     }
 }
 
-private fun NavGraphBuilder.trips(navController: NavHostController) {
+private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: () -> Boolean) {
     page<TripRoute>(maxContentWidth = null) { entry ->
         val route = entry.toRoute<TripRoute>()
         // set by "Semua transaksi" when a payment is tapped: show Saldo on the Biaya tab
@@ -771,7 +773,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController) {
             onBack = { navController.popBackStack() },
             onEditTrip = { navController.navigate(EditTripRoute(route.tripId)) },
             onMembers = { navController.navigate(MembersRoute(route.tripId)) },
-            onExplore = { navController.navigate(ExplorePreferencesRoute(route.tripId)) },
+            onExplore = { navController.openExplore(route.tripId, signedIn()) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
             onOpenPlaceDetail = { placeId, name, currency ->
@@ -1011,6 +1013,11 @@ private fun androidx.compose.animation.AnimatedContentTransitionScope<NavBackSta
     initialState.isTab() && targetState.isTab()
 
 /** Opens a bottom tab, keeping each tab's own back stack and scroll position. */
+/** Explore's preferences step, or sign-in for a guest (Explore needs an account; a guest's search only failed). */
+private fun NavHostController.openExplore(tripId: String?, signedIn: Boolean) {
+    if (signedIn) navigate(ExplorePreferencesRoute(tripId)) else navigate(SignInRoute) { launchSingleTop = true }
+}
+
 private fun NavHostController.openTab(tab: MainTab) {
     val route: Any = when (tab) {
         MainTab.HOME -> HomeRoute
