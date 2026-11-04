@@ -615,7 +615,9 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
                     }
                 }
             },
-            onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
+            // The form is done once the cards come: back from the swipe screen leads to where Explore was opened
+            // (Home, the Explore tab or the trip), so the form cannot run the search (and make the trip) again.
+            onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) { popUpTo<ExplorePreferencesRoute> { inclusive = true } } },
         )
     }
     page<SwipeRoute> { entry ->
