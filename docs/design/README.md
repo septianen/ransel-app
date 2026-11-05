@@ -587,16 +587,16 @@ Requested by the owner on 1 Nov 2026 and built straight away ("go ahead"); the b
 
 ### Masuk dengan Google (usulan)
 
-Requested by the owner through ransel-pm on 5 Nov 2026; canvas page "Masuk & Daftar", rows "Masuk dengan Google (usulan)". Not built yet: the boards are proposals until the owner answers the open questions below. Canvas boards only (no export in `screens/` yet).
+Requested by the owner through ransel-pm on 5 Nov 2026; open questions answered by the owner the same day. Canvas page "Masuk & Daftar", rows "Masuk dengan Google (usulan)". Not built yet. Canvas boards only (no export in `screens/` yet).
 
 - **One button, both screens.** "Lanjutkan dengan Google" / "Continue with Google" sits at the top of Sign in and Sign up, above a divider "atau pakai email" / "or use email". It signs in an existing Google user and creates the account for a new one, so it never says "Daftar".
-- **Google branding.** Standard four-colour G (20 dp, never recoloured or redrawn), Roboto Medium 16, pill, 48 dp (web 52). Light theme: fill `#FFFFFF`, 1 dp border `#747775`, text `#1F1F1F`. Dark theme: fill `#131314`, border `#8E918F`, text `#E3E3E3`. These are Google's colours, not IRIS tokens: the only hex values allowed outside `IrisTheme`, kept in one `GoogleSignInButton` composable. Web may use the Google Identity Services rendered button (`theme=outline`, `shape=pill`, `text=continue_with`, `locale=id`) instead of drawing it.
+- **Google branding.** Standard four-colour G (20 dp, never recoloured or redrawn), Roboto Medium 16, pill, 48 dp (web 52). Light theme: fill `#FFFFFF`, 1 dp border `#747775`, text `#1F1F1F`. Dark theme: fill `#131314`, border `#8E918F`, text `#E3E3E3`. These are Google's colours, not IRIS tokens: the only hex values allowed outside `IrisTheme`, kept in one `GoogleSignInButton` composable. Web draws the same button too (owner: no Google Identity Services rendered button).
 - **Native step.** Android: Credential Manager's Google bottom sheet. iOS: Google Sign-In SDK (system "wants to use google.com to sign in" alert, then the web sheet). Web: GIS popup. These are system UI and are not drawn.
 - **Loading** (after Google returns, while the server exchanges the token): the button shows "Menghubungkan…" / "Connecting…" with a spinner on the right (the G stays); the rest of the form is disabled at 38 %.
 - **Cancelled:** the user closes the Google sheet: nothing is shown, the form stays as it was.
 - **Failed:** inline error under the Google button, same style as `AuthProblemText`: "Gagal masuk dengan Google. Coba lagi." / "Couldn't sign in with Google. Try again." No connection reuses `auth_error_connection`; registration closed reuses `auth_error_registration_closed`; disabled account reuses `auth_error_account_disabled`.
-- **Email already registered with a password:** `LinkGoogleAccountScreen` asks for the RANSEL password once, then links Google and signs in; afterwards both ways work. "Batal" goes back to Sign in.
-- **Password typed for a Google-only account:** error under the form pointing to the Google button.
+- **Email already registered with a password (owner):** when Google says `email_verified`, the server links Google to that account and signs in, with no password prompt and no extra screen; afterwards both ways work. If the existing account's email was never verified, Google wins: the account is linked and its old password is dropped (guards against an account pre-registered with someone else's email).
+- **Password typed for a Google-only account (owner):** error under the form, "Email ini terdaftar lewat Google. Masuk dengan tombol Lanjutkan dengan Google di atas." / "This email is registered with Google. Sign in with the Continue with Google button above." It needs a new `ErrorCode` (added by ransel-dev).
 - **First-time Google user:** no extra step. Name and email come from Google (name editable later in Akun), the email counts as verified (no `VerifyEmailScreen`), the signup credit grant applies. A privacy line sits above the footer of Sign in because Google can create an account there.
 - **Guests (mobile):** every gate already opens Sign in, so the Google button covers the upgrade; local trips move to the account exactly as after an email sign-in. The Explore guest gate gets Google as its first action.
 
@@ -607,12 +607,12 @@ Requested by the owner through ransel-pm on 5 Nov 2026; canvas page "Masuk & Daf
 | `MasukGoogleMemuat` | `SignInScreen` (Google loading) | Masuk dengan Google: memuat | 390 |
 | `MasukGoogleGagal` | `SignInScreen` (Google failed) | Masuk dengan Google: gagal | 390 |
 | `MasukAkunGoogle` | `SignInScreen` (password on a Google-only account) | Masuk: email terdaftar lewat Google | 390 |
-| `HubungkanGoogle` | `LinkGoogleAccountScreen` | Hubungkan Google: email sudah terdaftar dengan kata sandi | 390 |
 | `JelajahTamuGoogle` | `ExploreTripPickerScreen` (guest, with Google) | Jelajah: belum masuk (tamu), dengan Google | 390 |
 | `TombolGoogle` | `GoogleSignInButton` (light, dark, loading, disabled) | Tombol Google: varian | 760 |
 | `WebMasukGoogle` | `SignInScreen` (web, with Google) | Web: Masuk dengan Google | 1280 |
 | `WebDaftarGoogle` | `SignUpScreen` (web, with Google) | Web: Daftar dengan Google | 1280 |
-| `WebHubungkanGoogle` | `LinkGoogleAccountScreen` (web) | Web: Hubungkan Google | 1280 |
+
+Not designed now (owner, 5 Nov 2026): the sign-in method and "Buat kata sandi" for Google-only users in Akun, "Masuk lagi" with Google on Sesi berakhir, Terms of Service (consent links the Privacy Policy only).
 
 ## Not designed yet
 
