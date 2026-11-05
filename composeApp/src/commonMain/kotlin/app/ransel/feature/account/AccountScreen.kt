@@ -51,10 +51,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -79,6 +83,8 @@ import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.paymethod_title
 import ransel.composeapp.generated.resources.account_about
 import ransel.composeapp.generated.resources.account_delete
+import ransel.composeapp.generated.resources.change_password_done
+import ransel.composeapp.generated.resources.change_password_title
 import ransel.composeapp.generated.resources.account_privacy
 import ransel.composeapp.generated.resources.account_confirm_reorder
 import ransel.composeapp.generated.resources.account_confirm_reorder_hint
@@ -144,6 +150,10 @@ fun AccountScreen(
     onSignIn: () -> Unit = {},
     onSignUp: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
+    onChangePassword: () -> Unit = {},
+    /** Set when this screen is shown again after a successful change, so the snackbar can run once. */
+    passwordChanged: Boolean = false,
+    onPasswordChangedShown: () -> Unit = {},
     /** "Ulangi panduan": the tour's flags are cleared, then the app goes to Beranda, which starts the tour. */
     onReplayTour: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
@@ -160,8 +170,16 @@ fun AccountScreen(
     var photoSheet by rememberSaveable { mutableStateOf(false) }
     var nameSheet by rememberSaveable { mutableStateOf(false) }
     val nameState by viewModel.name.collectAsState()
+    val snackbar = remember { SnackbarHostState() }
+    val changedText = stringResource(Res.string.change_password_done)
+    LaunchedEffect(passwordChanged) {
+        if (!passwordChanged) return@LaunchedEffect
+        snackbar.showSnackbar(changedText, duration = SnackbarDuration.Long)
+        onPasswordChangedShown()
+    }
 
-    Column(modifier.fillMaxSize()) {
+    Box(modifier) {
+    Column(Modifier.fillMaxSize()) {
         Text(
             stringResource(Res.string.account_title),
             style = MaterialTheme.typography.headlineMedium,
@@ -205,6 +223,7 @@ fun AccountScreen(
                             onDismiss = { photoSheet = false },
                         )
                     }
+                    SettingRow(Symbols.lock, stringResource(Res.string.change_password_title), null, onClick = onChangePassword)
                     if (!requiresAccount) {
                         val lastTime = lastSyncAt?.let { formatClock(it) }
                         val subtitle = when {
@@ -327,6 +346,11 @@ fun AccountScreen(
             onDismiss = { sheet = null },
         )
         null -> Unit
+    }
+        SnackbarHost(
+            snackbar,
+            Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        ) { data -> PasswordChangedSnackbar(data.visuals.message) }
     }
 }
 

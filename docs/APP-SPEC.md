@@ -126,6 +126,7 @@ The main endpoints are below; the full list (including edit/delete, logout, invi
 | GET | /trips/{id}/expenses/summary | Totals per category and per day | 2 |
 | POST | /auth/register, /auth/login, /auth/refresh | Sign up, get access + refresh tokens, refresh the access token | 3 |
 | POST | /auth/password/forgot, /auth/password/reset | Forgot password | 3 |
+| POST | /auth/password/change | Signed-in password change; other devices are signed out, this one stays | 3 |
 | GET, PATCH | /me | User profile and default currency | 3 |
 | GET | /sync?since={timestamp} | Fetch every change since a point in time | 3 |
 | POST | /sync | Send local changes (batch) | 3 |

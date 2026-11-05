@@ -44,6 +44,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object CreditsRoute
 /** Account → Info pembayaran. */
 @Serializable data object DeleteAccountRoute
+/** Account → Ubah password. Full screen; confirm is checked here, the server only sees current + new. */
+@Serializable data object ChangePasswordRoute
 @Serializable data object PaymentMethodsRoute
 
 /** Notification inbox (the Home bell) and its settings (Account). */

@@ -81,6 +81,7 @@ object ErrorCode {
     const val UNAUTHORIZED = "UNAUTHORIZED"                // 401, no/invalid access token
     const val TOKEN_EXPIRED = "TOKEN_EXPIRED"              // 401, refresh token expired/revoked → Session expired screen
     const val INVALID_CREDENTIALS = "INVALID_CREDENTIALS"  // 401 on /auth/login
+    const val CURRENT_PASSWORD_WRONG = "CURRENT_PASSWORD_WRONG" // 400 on /auth/password/change: the current password does not match; the hash is unchanged
     const val EMAIL_ALREADY_REGISTERED = "EMAIL_ALREADY_REGISTERED" // 409 on /auth/register
     const val RESET_TOKEN_INVALID = "RESET_TOKEN_INVALID"  // 400 on /auth/password/reset (expired, used, unknown)
     const val ACCOUNT_DISABLED = "ACCOUNT_DISABLED"        // 403 on /auth/login (right password) and /auth/refresh: an admin deactivated the account
@@ -161,6 +162,7 @@ object ErrorCode {
         UNAUTHORIZED,
         TOKEN_EXPIRED,
         INVALID_CREDENTIALS,
+        CURRENT_PASSWORD_WRONG,
         EMAIL_ALREADY_REGISTERED,
         RESET_TOKEN_INVALID,
         ACCOUNT_DISABLED,
