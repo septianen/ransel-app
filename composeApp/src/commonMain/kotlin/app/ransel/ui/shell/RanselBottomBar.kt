@@ -1,5 +1,6 @@
 package app.ransel.ui.shell
 
+import app.ransel.ui.tour.tourTarget
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -45,6 +46,14 @@ enum class MainTab(val label: StringResource, val symbol: String) {
     TRIPS(Res.string.tab_trips, Symbols.luggage),
     EXPLORE(Res.string.tab_explore, Symbols.autoAwesome),
     ACCOUNT(Res.string.tab_account, Symbols.person),
+}
+
+/** The new-user tour points at these tabs (Home itself is not a step). */
+internal fun MainTab.tourTarget(): app.ransel.ui.tour.TourTarget? = when (this) {
+    MainTab.HOME -> null
+    MainTab.TRIPS -> app.ransel.ui.tour.TourTarget.TAB_TRIPS
+    MainTab.EXPLORE -> app.ransel.ui.tour.TourTarget.TAB_EXPLORE
+    MainTab.ACCOUNT -> app.ransel.ui.tour.TourTarget.TAB_ACCOUNT
 }
 
 /**
@@ -114,7 +123,8 @@ fun RanselBottomBar(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                         )
                     },
-                    modifier = Modifier.height(64.dp),
+                    modifier = Modifier.height(64.dp)
+                        .then(tab.tourTarget()?.let { Modifier.tourTarget(it, cornerRadius = 16.dp, onClick = { onSelect(tab) }) } ?: Modifier),
                 )
             }
         }

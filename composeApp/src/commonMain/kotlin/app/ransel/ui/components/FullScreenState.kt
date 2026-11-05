@@ -53,6 +53,8 @@ fun FullScreenState(
     errorCode: String? = null,
     primaryLabel: String? = null,
     onPrimary: (() -> Unit)? = null,
+    /** Extra modifier for the primary button (e.g. a tour target). */
+    primaryModifier: Modifier = Modifier,
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
     inScrollingParent: Boolean = false,
@@ -101,7 +103,7 @@ fun FullScreenState(
         if (primaryLabel != null && onPrimary != null) {
             Button(
                 onClick = onPrimary,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 12.dp),
+                modifier = Modifier.padding(top = 12.dp).then(primaryModifier).fillMaxWidth().heightIn(min = 48.dp),
             ) { Text(primaryLabel, style = MaterialTheme.typography.titleMedium) }
         }
         if (secondaryLabel != null && onSecondary != null) {

@@ -1749,4 +1749,35 @@
     <string name="album_viewer_position_more">%1$d of %2$d+</string>
     <string name="album_viewer_previous">Previous photo</string>
     <string name="album_viewer_next">Next photo</string>
+    <!-- New-user tour (design "Panduan pengguna baru", 5 Nov 2026) -->
+    <string name="tour_pane">Tour</string>
+    <string name="tour_step">%1$d of %2$d</string>
+    <string name="tour_step_spoken">Tour, step %1$d of %2$d</string>
+    <string name="tour_next">Next</string>
+    <string name="tour_skip">Skip</string>
+    <string name="tour_done">Done</string>
+    <string name="tour_ok">Got it</string>
+    <string name="tour_replay">Replay tour</string>
+    <string name="tour_replay_hint">See the short RANSEL tour again</string>
+    <string name="tour_home_create_title">Start with one trip</string>
+    <string name="tour_home_create_body">Your itinerary, packing list and shared costs all live inside a trip.</string>
+    <string name="tour_home_trips_title">All your trips</string>
+    <string name="tour_home_trips_body">Ongoing, upcoming and finished. Trips friends invite you to show up here too.</string>
+    <string name="tour_home_explore_title">Find places by swiping</string>
+    <string name="tour_home_explore_body">Swipe right to save, left to skip. You get %1$d free credits a day; a new search uses %2$d.</string>
+    <string name="tour_home_explore_body_plain">Swipe right to save, left to skip. You get free credits every day.</string>
+    <string name="tour_home_account_title">Credits, language and payment info</string>
+    <string name="tour_home_account_body">It's all in Account. Want this tour again? Tap Replay tour there.</string>
+    <string name="tour_trip_tabs_title">Everything about the trip is in these tabs</string>
+    <string name="tour_trip_tabs_body">Itinerary for plans, Packing for what to bring, Costs for splitting. Members are in Overview.</string>
+    <string name="tour_trip_add_title">Add anything with +</string>
+    <string name="tour_trip_add_body">Create a poll, invite members, upload documents or add an album. On other tabs, + adds to that tab.</string>
+    <string name="tour_itinerary_title">Pick a day first</string>
+    <string name="tour_itinerary_body">Then add activities with +. Places you saved in Explore wait under Unscheduled.</string>
+    <string name="tour_packing_title">Personal or Shared</string>
+    <string name="tour_packing_body">Only you see Personal. Shared is for group gear, with who brings what.</string>
+    <string name="tour_expenses_title">Log it, then check Balances</string>
+    <string name="tour_expenses_body">Add expenses with +. Balances works out who pays whom in the fewest transfers.</string>
+    <string name="tour_swipe_title">Swipe the card</string>
+    <string name="tour_swipe_body">Right saves it to Unscheduled, left skips it.</string>
 </resources>

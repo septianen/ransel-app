@@ -1,5 +1,6 @@
 package app.ransel.feature.expenses
 
+import app.ransel.ui.tour.tourTarget
 import app.ransel.content.stringResource
 import app.ransel.shared.model.CategoryKind
 import app.ransel.ui.RefreshOnReturn
@@ -158,7 +159,7 @@ fun ExpensesTab(
                         .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp),
                 ) {
-                    if (shared) SharedTabSwitch(sharedTab, onSelect = { sharedTab = it })
+                    if (shared) SharedTabSwitch(sharedTab, onSelect = { sharedTab = it }, modifier = Modifier.tourTarget(app.ransel.ui.tour.TourTarget.EXPENSES_SWITCH, cornerRadius = 20.dp))
                     if (shared && sharedTab == SharedTab.BALANCES) {
                         LaunchedEffect(Unit) { viewModel.loadMyMethods() }
                         SaldoContent(

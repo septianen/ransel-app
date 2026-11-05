@@ -1,5 +1,6 @@
 package app.ransel.feature.itinerary
 
+import app.ransel.ui.tour.tourTarget
 import app.ransel.ui.RefreshOnReturn
 import app.ransel.content.getString
 import app.ransel.content.stringResource
@@ -441,6 +442,7 @@ private fun DayChips(
     Row(
         Modifier
             .fillMaxWidth()
+            .tourTarget(app.ransel.ui.tour.TourTarget.ITINERARY_DAYS, cornerRadius = 0.dp)
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),

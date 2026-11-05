@@ -1,5 +1,6 @@
 package app.ransel.feature.packing
 
+import app.ransel.ui.tour.tourTarget
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -149,7 +150,7 @@ fun PackingTab(
             selected = section,
             label = { stringResource(if (it == PackingSection.PERSONAL) Res.string.packing_tab_personal else Res.string.packing_tab_shared) },
             onSelect = { section = it },
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp).tourTarget(app.ransel.ui.tour.TourTarget.PACKING_SWITCH, cornerRadius = 20.dp),
         )
         when (section) {
             PackingSection.PERSONAL -> PersonalPackingTab(trip, group, Modifier.weight(1f))

@@ -1732,4 +1732,35 @@
     <string name="album_viewer_position_more">%1$d dari %2$d+</string>
     <string name="album_viewer_previous">Foto sebelumnya</string>
     <string name="album_viewer_next">Foto berikutnya</string>
+    <!-- New-user tour (design "Panduan pengguna baru", 5 Nov 2026) -->
+    <string name="tour_pane">Panduan</string>
+    <string name="tour_step">%1$d dari %2$d</string>
+    <string name="tour_step_spoken">Panduan, langkah %1$d dari %2$d</string>
+    <string name="tour_next">Lanjut</string>
+    <string name="tour_skip">Lewati</string>
+    <string name="tour_done">Selesai</string>
+    <string name="tour_ok">Oke</string>
+    <string name="tour_replay">Ulangi panduan</string>
+    <string name="tour_replay_hint">Lihat lagi tur singkat RANSEL</string>
+    <string name="tour_home_create_title">Mulai dari satu trip</string>
+    <string name="tour_home_create_body">Itinerary, barang bawaan, dan patungan nanti ada di dalam trip ini.</string>
+    <string name="tour_home_trips_title">Semua trip ada di sini</string>
+    <string name="tour_home_trips_body">Yang sedang berjalan, mendatang, dan sudah selesai. Trip dari undangan teman juga muncul di sini.</string>
+    <string name="tour_home_explore_title">Cari ide tempat dengan swipe</string>
+    <string name="tour_home_explore_body">Geser kanan untuk simpan, kiri untuk lewati. Jatah gratis %1$d kredit tiap hari, satu pencarian baru pakai %2$d kredit.</string>
+    <string name="tour_home_explore_body_plain">Geser kanan untuk simpan, kiri untuk lewati. Tiap hari ada jatah kredit gratis.</string>
+    <string name="tour_home_account_title">Kredit, bahasa, dan info pembayaran</string>
+    <string name="tour_home_account_body">Semuanya ada di Akun. Mau lihat panduan ini lagi? Ketuk Ulangi panduan di sana.</string>
+    <string name="tour_trip_tabs_title">Semua isi trip ada di tab ini</string>
+    <string name="tour_trip_tabs_body">Itinerary untuk jadwal, Packing untuk barang bawaan, Biaya untuk patungan. Anggota ada di Ringkasan.</string>
+    <string name="tour_trip_add_title">Tambah apa pun lewat +</string>
+    <string name="tour_trip_add_body">Buat polling, ajak anggota, unggah dokumen, atau tambah album. Di tab lain, + menambah isi tab itu.</string>
+    <string name="tour_itinerary_title">Pilih hari dulu</string>
+    <string name="tour_itinerary_body">Lalu tambah aktivitas lewat +. Tempat yang kamu simpan dari Jelajah menunggu di Belum dijadwalkan.</string>
+    <string name="tour_packing_title">Pribadi atau Bersama</string>
+    <string name="tour_packing_body">Pribadi cuma kamu yang lihat. Bersama untuk barang yang dipakai ramai-ramai, lengkap dengan siapa yang bawa.</string>
+    <string name="tour_expenses_title">Catat, lalu lihat Saldo</string>
+    <string name="tour_expenses_body">Catat pengeluaran lewat +. Di Saldo, RANSEL menghitung siapa bayar ke siapa dengan transfer paling sedikit.</string>
+    <string name="tour_swipe_title">Geser kartunya</string>
+    <string name="tour_swipe_body">Kanan untuk simpan ke Belum dijadwalkan, kiri untuk lewati.</string>
 </resources>
