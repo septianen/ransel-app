@@ -110,8 +110,6 @@
     <string name="trips_create">Buat trip</string>
     <string name="trips_empty_title">Petanya masih kosong</string>
     <string name="trips_empty_body">Trip yang kamu buat akan muncul di sini, dikelompokkan jadi sedang berjalan, mendatang, dan selesai.</string>
-    <string name="trips_no_upcoming_title">Belum ada trip mendatang</string>
-    <string name="trips_no_upcoming_body">Terakhir jalan ke %1$s. Ke mana selanjutnya?</string>
 
     <!-- Trip form -->
     <string name="trip_form_create_title">Buat trip</string>
