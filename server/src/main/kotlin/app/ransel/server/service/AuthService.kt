@@ -6,12 +6,16 @@ import app.ransel.server.db.Users
 import app.ransel.server.db.toTimestamp
 import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.requireValid
+import app.ransel.server.security.GoogleIdentity
+import app.ransel.server.security.GoogleVerifier
 import app.ransel.server.security.PasswordHasher
 import app.ransel.server.security.TokenService
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.domain.checkPassword
 import app.ransel.shared.domain.isValidEmail
 import app.ransel.shared.dto.AuthSessionDto
+import app.ransel.shared.dto.GoogleSignInConfigDto
+import app.ransel.shared.dto.GoogleSignInRequest
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.MeDto
 import app.ransel.shared.dto.RegisterRequest
@@ -34,6 +38,8 @@ class AuthService(
     private val hasher: PasswordHasher,
     private val tokens: TokenService,
     private val verification: EmailVerificationService,
+    private val credits: CreditService,
+    private val google: GoogleVerifier,
 ) {
     fun register(body: RegisterRequest): AuthSessionDto {
         if (!config.registrationEnabled) {
@@ -100,8 +106,90 @@ class AuthService(
         val stored = row?.get(Users.passwordHash)
         // Always spend one bcrypt verification so response time does not reveal whether the email exists.
         val ok = hasher.verify(body.password, stored ?: hasher.decoy) && stored != null
+        // A Google-only account has no password: say so, so the person uses the Google button (owner decision 5 Nov 2026).
+        if (stored == null && row != null && row[Users.googleSub] != null) {
+            throw ApiException(HttpStatusCode.Unauthorized, ErrorCode.GOOGLE_ACCOUNT_ONLY, "This account signs in with Google")
+        }
         if (!ok || row == null) throw invalidCredentials()
         return transaction { startSession(row[Users.id], body.deviceName) }
+    }
+
+    /**
+     * "Lanjutkan dengan Google" (owner decisions 5 Nov 2026). The proof is verified first; an email Google does not
+     * vouch for is refused. Then: a known Google id signs in; a registered email is linked (when it was never verified,
+     * Google wins: the password and every other session go, so nobody who pre-registered the address keeps access);
+     * an unknown email creates a verified account with the Google name. Signup credits are granted once, as after a
+     * verification link.
+     */
+    suspend fun signInWithGoogle(body: GoogleSignInRequest): AuthSessionDto {
+        if (config.googleWebClientId.isBlank()) {
+            throw ApiException(HttpStatusCode.ServiceUnavailable, ErrorCode.INTERNAL_ERROR, "Google sign-in is not set up")
+        }
+        val identity = when {
+            body.idToken != null -> google.verifyIdToken(body.idToken!!)
+            body.authCode != null -> google.verifyAuthCode(body.authCode!!)
+            else -> null
+        }
+        if (identity == null || !identity.emailVerified) {
+            throw ApiException(HttpStatusCode.Unauthorized, ErrorCode.GOOGLE_TOKEN_INVALID, "Google sign-in could not be verified")
+        }
+        val outcome = try {
+            transaction { upsertGoogleUser(identity, body.deviceName) }
+        } catch (e: SQLException) {
+            // Two first sign-ins racing hit a unique index (email or google_sub): the second finds the first's account.
+            if (e.sqlState == UNIQUE_VIOLATION || (e.cause as? SQLException)?.sqlState == UNIQUE_VIOLATION) {
+                transaction { upsertGoogleUser(identity, body.deviceName) }
+            } else {
+                throw e
+            }
+        }
+        // Idempotent: 0 when the grant already exists. Also covers a linked account that was never verified.
+        if (outcome.grantCredits) credits.grantSignup(UUID.fromString(outcome.session.user.id))
+        return outcome.session
+    }
+
+    fun googleConfig() = GoogleSignInConfigDto(
+        webClientId = config.googleWebClientId.takeIf { it.isNotBlank() },
+        iosClientId = config.googleIosClientId.takeIf { it.isNotBlank() },
+    )
+
+    private class GoogleOutcome(val session: AuthSessionDto, val grantCredits: Boolean)
+
+    private fun upsertGoogleUser(identity: GoogleIdentity, deviceName: String?): GoogleOutcome {
+        val bySub = Users.selectAll().where { (Users.googleSub eq identity.subject) and Users.deletedAt.isNull() }.singleOrNull()
+        if (bySub != null) return GoogleOutcome(startSession(bySub[Users.id], deviceName), grantCredits = false)
+
+        val byEmail = findByEmail(identity.email)
+        if (byEmail != null) {
+            val userId = byEmail[Users.id]
+            val wasVerified = byEmail[Users.emailVerifiedAt] != null
+            if (byEmail[Users.disabledAt] != null) throw accountDisabled()
+            if (wasVerified) {
+                Users.update({ Users.id eq userId }) { it[googleSub] = identity.subject }
+            } else {
+                val now = Instant.now()
+                Users.update({ Users.id eq userId }) {
+                    it[googleSub] = identity.subject
+                    it[emailVerifiedAt] = now
+                    it[passwordHash] = null
+                }
+                RefreshTokens.update({ (RefreshTokens.userId eq userId) and RefreshTokens.revokedAt.isNull() }) { it[revokedAt] = now }
+            }
+            return GoogleOutcome(startSession(userId, deviceName), grantCredits = !wasVerified)
+        }
+
+        if (!config.registrationEnabled) {
+            throw ApiException(HttpStatusCode.Forbidden, ErrorCode.FORBIDDEN, "Registration is closed")
+        }
+        val userId = UUID.randomUUID()
+        Users.insert {
+            it[id] = userId
+            it[displayName] = identity.name ?: identity.email.substringBefore('@')
+            it[email] = identity.email
+            it[googleSub] = identity.subject
+            it[emailVerifiedAt] = Instant.now()
+        }
+        return GoogleOutcome(startSession(userId, deviceName).copy(newAccount = true), grantCredits = true)
     }
 
     /** Rotates: the presented token is revoked and a new pair is issued, in one transaction. */

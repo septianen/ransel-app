@@ -97,6 +97,7 @@ class AccountDeletionService(private val hasher: PasswordHasher) {
                 it[displayName] = DELETED_MEMBER_NAME
                 it[email] = null
                 it[passwordHash] = null
+                it[googleSub] = null
                 it[avatarUrl] = null
                 it[emailVerifiedAt] = null
                 it[lastSeenAt] = null

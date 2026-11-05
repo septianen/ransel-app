@@ -64,6 +64,8 @@ object Users : Table("users") {
     val avatarUrl = text("avatar_url").nullable()
     /** V27: the latest authenticated request, written at most once an hour (`LastSeen`). */
     val lastSeenAt = timestamp("last_seen_at").nullable()
+    /** V3: the Google account's stable `sub`, set when the user signs in with Google (or the email was linked); unique. */
+    val googleSub = text("google_sub").nullable()
     override val primaryKey = PrimaryKey(id)
 }
 

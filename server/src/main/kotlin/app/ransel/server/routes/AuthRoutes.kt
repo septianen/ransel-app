@@ -11,6 +11,7 @@ import app.ransel.server.service.userId
 import app.ransel.shared.api.ApiRoutes
 import app.ransel.shared.dto.DeleteAccountRequest
 import app.ransel.shared.dto.ForgotPasswordRequest
+import app.ransel.shared.dto.GoogleSignInRequest
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.RefreshRequest
 import app.ransel.shared.dto.RegisterRequest
@@ -34,10 +35,17 @@ fun Route.authRoutes(auth: AuthService, passwordReset: PasswordResetService, ver
         post(ApiRoutes.AUTH_LOGIN) {
             call.respondData(HttpStatusCode.OK, auth.login(call.receive<LoginRequest>()))
         }
+        post(ApiRoutes.AUTH_GOOGLE) {
+            call.respondData(HttpStatusCode.OK, auth.signInWithGoogle(call.receive<GoogleSignInRequest>()))
+        }
         post(ApiRoutes.AUTH_PASSWORD_FORGOT) {
             passwordReset.forgot(call.receive<ForgotPasswordRequest>().email)
             call.respondNoContent() // always, whether or not the email has an account
         }
+    }
+    // The ids are public (they are in every Google sign-in request); the apps ask instead of bundling them.
+    get(ApiRoutes.AUTH_GOOGLE_CONFIG) {
+        call.respondData(HttpStatusCode.OK, auth.googleConfig())
     }
     post(ApiRoutes.AUTH_REFRESH) {
         call.respondData(HttpStatusCode.OK, auth.refresh(call.receive<RefreshRequest>().refreshToken))
