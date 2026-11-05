@@ -77,7 +77,7 @@ fun ExploreTripPickerScreen(
         )
         when {
             state.loading -> Box(Modifier.fillMaxSize())
-            !state.signedIn -> GuestState(onSignIn, onSignUp)
+            !state.signedIn -> GuestState(onSignIn, onSignUp, viewModel)
             !state.emailVerified -> VerifyEmailGate(state.email, state.gate, viewModel::resendVerification, viewModel::checkVerified)
             else -> TripPicker(state, onPickTrip, onNewTrip, onOpenSwipe)
         }
@@ -207,7 +207,9 @@ private fun IntroBlock(symbol: String, title: String, body: String) {
 }
 
 @Composable
-private fun GuestState(onSignIn: () -> Unit, onSignUp: () -> Unit) {
+private fun GuestState(onSignIn: () -> Unit, onSignUp: () -> Unit, viewModel: ExploreTripPickerViewModel) {
+    val google by viewModel.google.state.collectAsState()
+    val googleLauncher = app.ransel.platform.rememberGoogleSignInLauncher()
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -228,7 +230,18 @@ private fun GuestState(onSignIn: () -> Unit, onSignUp: () -> Unit) {
                 }
             }
         }
-        Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        // Google first (design `JelajahTamuGoogle`); the email buttons stay below it
+        if (google.available) {
+            app.ransel.ui.components.GoogleSignInButton(onClick = { viewModel.google.start(googleLauncher) }, loading = google.loading)
+            if (google.problem != null) app.ransel.feature.auth.AuthProblemText(google.problem)
+        }
+        if (google.available) {
+            OutlinedButton(onClick = onSignIn, enabled = !google.loading, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Symbol(Symbols.mail, size = 20.dp)
+                androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                Text(stringResource(Res.string.explore_guest_sign_in_email), style = MaterialTheme.typography.titleMedium)
+            }
+        } else Button(onClick = onSignIn, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(stringResource(Res.string.explore_guest_sign_in), style = MaterialTheme.typography.titleMedium)
         }
         OutlinedButton(onClick = onSignUp, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {

@@ -11,6 +11,8 @@ sealed class AnalyticsEvent(val name: String, val params: Map<String, Any> = emp
     // Firebase's recommended names, so the console's built-in reports pick them up.
     data object SignUp : AnalyticsEvent("sign_up", mapOf("method" to "email"))
     data object Login : AnalyticsEvent("login", mapOf("method" to "email"))
+    data object SignUpGoogle : AnalyticsEvent("sign_up", mapOf("method" to "google"))
+    data object LoginGoogle : AnalyticsEvent("login", mapOf("method" to "google"))
 
     // Trips are actually planned.
     data object TripCreated : AnalyticsEvent("trip_created")

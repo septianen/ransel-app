@@ -33,6 +33,8 @@ import app.ransel.shared.dto.UpdateCommentRequest
 import app.ransel.shared.model.CommentTarget
 import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.ForgotPasswordRequest
+import app.ransel.shared.dto.GoogleSignInConfigDto
+import app.ransel.shared.dto.GoogleSignInRequest
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.MeDto
 import app.ransel.shared.dto.VerifyEmailRequest
@@ -199,6 +201,9 @@ class RanselApi(
         send(HttpMethod.Post, ApiRoutes.AUTH_REGISTER, request)
     suspend fun login(request: LoginRequest): ApiResult<AuthSessionDto> =
         send(HttpMethod.Post, ApiRoutes.AUTH_LOGIN, request)
+    suspend fun googleSignIn(request: GoogleSignInRequest): ApiResult<AuthSessionDto> =
+        send(HttpMethod.Post, ApiRoutes.AUTH_GOOGLE, request)
+    suspend fun googleConfig(): ApiResult<GoogleSignInConfigDto> = get(ApiRoutes.AUTH_GOOGLE_CONFIG)
     suspend fun refresh(refreshToken: String): ApiResult<AuthSessionDto> =
         send(HttpMethod.Post, ApiRoutes.AUTH_REFRESH, RefreshRequest(refreshToken))
     suspend fun logout(refreshToken: String): ApiResult<Unit> =
