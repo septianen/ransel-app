@@ -585,6 +585,35 @@ Requested by the owner on 1 Nov 2026 and built straight away ("go ahead"); the b
 | `screens/ShimmerAnggota.html` | `SkeletonList` | Memuat: shimmer daftar | 390 |
 | `screens/ShimmerRingkasan.html` | `SkeletonCards` (`SkeletonGrid` for photos) | Memuat: shimmer kartu | 390 |
 
+### Masuk dengan Google (usulan)
+
+Requested by the owner through ransel-pm on 5 Nov 2026; canvas page "Masuk & Daftar", rows "Masuk dengan Google (usulan)". Not built yet: the boards are proposals until the owner answers the open questions below. Canvas boards only (no export in `screens/` yet).
+
+- **One button, both screens.** "Lanjutkan dengan Google" / "Continue with Google" sits at the top of Sign in and Sign up, above a divider "atau pakai email" / "or use email". It signs in an existing Google user and creates the account for a new one, so it never says "Daftar".
+- **Google branding.** Standard four-colour G (20 dp, never recoloured or redrawn), Roboto Medium 16, pill, 48 dp (web 52). Light theme: fill `#FFFFFF`, 1 dp border `#747775`, text `#1F1F1F`. Dark theme: fill `#131314`, border `#8E918F`, text `#E3E3E3`. These are Google's colours, not IRIS tokens: the only hex values allowed outside `IrisTheme`, kept in one `GoogleSignInButton` composable. Web may use the Google Identity Services rendered button (`theme=outline`, `shape=pill`, `text=continue_with`, `locale=id`) instead of drawing it.
+- **Native step.** Android: Credential Manager's Google bottom sheet. iOS: Google Sign-In SDK (system "wants to use google.com to sign in" alert, then the web sheet). Web: GIS popup. These are system UI and are not drawn.
+- **Loading** (after Google returns, while the server exchanges the token): the button shows "Menghubungkan…" / "Connecting…" with a spinner on the right (the G stays); the rest of the form is disabled at 38 %.
+- **Cancelled:** the user closes the Google sheet: nothing is shown, the form stays as it was.
+- **Failed:** inline error under the Google button, same style as `AuthProblemText`: "Gagal masuk dengan Google. Coba lagi." / "Couldn't sign in with Google. Try again." No connection reuses `auth_error_connection`; registration closed reuses `auth_error_registration_closed`; disabled account reuses `auth_error_account_disabled`.
+- **Email already registered with a password:** `LinkGoogleAccountScreen` asks for the RANSEL password once, then links Google and signs in; afterwards both ways work. "Batal" goes back to Sign in.
+- **Password typed for a Google-only account:** error under the form pointing to the Google button.
+- **First-time Google user:** no extra step. Name and email come from Google (name editable later in Akun), the email counts as verified (no `VerifyEmailScreen`), the signup credit grant applies. A privacy line sits above the footer of Sign in because Google can create an account there.
+- **Guests (mobile):** every gate already opens Sign in, so the Google button covers the upgrade; local trips move to the account exactly as after an email sign-in. The Explore guest gate gets Google as its first action.
+
+| Canvas board | Code name | Board title | Width |
+| --- | --- | --- | --- |
+| `MasukGoogle` | `SignInScreen` (with Google) | Masuk dengan Google | 390 |
+| `DaftarGoogle` | `SignUpScreen` (with Google) | Daftar dengan Google | 390 |
+| `MasukGoogleMemuat` | `SignInScreen` (Google loading) | Masuk dengan Google: memuat | 390 |
+| `MasukGoogleGagal` | `SignInScreen` (Google failed) | Masuk dengan Google: gagal | 390 |
+| `MasukAkunGoogle` | `SignInScreen` (password on a Google-only account) | Masuk: email terdaftar lewat Google | 390 |
+| `HubungkanGoogle` | `LinkGoogleAccountScreen` | Hubungkan Google: email sudah terdaftar dengan kata sandi | 390 |
+| `JelajahTamuGoogle` | `ExploreTripPickerScreen` (guest, with Google) | Jelajah: belum masuk (tamu), dengan Google | 390 |
+| `TombolGoogle` | `GoogleSignInButton` (light, dark, loading, disabled) | Tombol Google: varian | 760 |
+| `WebMasukGoogle` | `SignInScreen` (web, with Google) | Web: Masuk dengan Google | 1280 |
+| `WebDaftarGoogle` | `SignUpScreen` (web, with Google) | Web: Daftar dengan Google | 1280 |
+| `WebHubungkanGoogle` | `LinkGoogleAccountScreen` (web) | Web: Hubungkan Google | 1280 |
+
 ## Not designed yet
 
 Build these from existing patterns; ask the product owner before inventing new layouts: enter invite code, activity detail/edit (reuse *Tambah aktivitas* form), notifications, edit profile (the profile photo was added on 31 Oct 2026 as a button on the Account avatar, F22.1: needs review; trip cover buttons on Edit trip, same date), language sheet (reuse *Sheet tema* pattern), search trips (built 28 Oct 2026 from the currency sheet's search field, F19.2), the owner's "Pilih pemilik baru dulu" dialog before leaving (built 28 Oct 2026, F19.1), all transactions list (built 28 Oct 2026 without a design, F18.2: needs review), Explore credits (Credits screen with balance, voucher field, packs and history; the out-of-credits state of `SwipeScreen`), dark theme for Itinerary/Packing/Explore/sheets/dialogs (apply the IRIS dark tokens; see *GelapBeranda*, *GelapPengeluaran*, *GelapSwipe* for the pattern).
