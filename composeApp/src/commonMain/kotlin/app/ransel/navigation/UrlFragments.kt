@@ -41,6 +41,7 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     is PlaceDetailRoute -> "place"
     CreditsRoute -> "account/credits"
     DeleteAccountRoute -> "account/delete"
+    ChangePasswordRoute -> "account/password"
     PaymentMethodsRoute -> "account/payment-methods"
     NotificationsRoute -> "notifications"
     NotificationSettingsRoute -> "notifications/settings"
@@ -70,6 +71,7 @@ fun routeForUrlFragment(fragment: String): Any? {
         parts == listOf("account") -> AccountRoute
         parts == listOf("account", "credits") -> CreditsRoute
         parts == listOf("account", "payment-methods") -> PaymentMethodsRoute
+        parts == listOf("account", "password") -> ChangePasswordRoute
         parts == listOf("notifications") -> NotificationsRoute
         parts == listOf("notifications", "settings") -> NotificationSettingsRoute
         parts.size >= 2 && parts[0] == "trips" && parts[1] != "new" -> tripRoute(parts[1], parts.drop(2))
@@ -134,6 +136,7 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(PlaceDetailRoute::class) -> PlaceDetailRoute("")
         d.hasRoute(CreditsRoute::class) -> CreditsRoute
         d.hasRoute(DeleteAccountRoute::class) -> DeleteAccountRoute
+        d.hasRoute(ChangePasswordRoute::class) -> ChangePasswordRoute
         d.hasRoute(PaymentMethodsRoute::class) -> PaymentMethodsRoute
         d.hasRoute(NotificationsRoute::class) -> NotificationsRoute
         d.hasRoute(NotificationSettingsRoute::class) -> NotificationSettingsRoute

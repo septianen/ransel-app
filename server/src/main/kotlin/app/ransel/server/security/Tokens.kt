@@ -17,7 +17,11 @@ class TokenService(private val config: AppConfig) {
 
     val verifier = JWT.require(algorithm).withIssuer(config.jwtIssuer).build()
 
-    fun issueAccessToken(userId: UUID): IssuedAccessToken {
+    /**
+     * [sessionId] is the `refresh_tokens.id` issued with this access token, stored as [SESSION_ID_CLAIM].
+     * Change-password uses it to revoke every other device and keep this one.
+     */
+    fun issueAccessToken(userId: UUID, sessionId: UUID): IssuedAccessToken {
         val now = Instant.now()
         val expiresAt = now.plus(config.accessTokenTtl.toJavaDuration())
         val token = JWT.create()
@@ -26,6 +30,7 @@ class TokenService(private val config: AppConfig) {
             .withIssuedAt(Date.from(now))
             .withExpiresAt(Date.from(expiresAt))
             .withJWTId(UUID.randomUUID().toString())
+            .withClaim(SESSION_ID_CLAIM, sessionId.toString())
             .sign(algorithm)
         return IssuedAccessToken(token, expiresAt)
     }
@@ -37,6 +42,9 @@ class TokenService(private val config: AppConfig) {
     }
 
     companion object {
+        /** Access-token claim: id of the refresh-token row that belongs to this sign-in. */
+        const val SESSION_ID_CLAIM = "sid"
+
         fun sha256(value: String): String =
             MessageDigest.getInstance("SHA-256").digest(value.toByteArray(Charsets.UTF_8))
                 .joinToString("") { "%02x".format(it) }

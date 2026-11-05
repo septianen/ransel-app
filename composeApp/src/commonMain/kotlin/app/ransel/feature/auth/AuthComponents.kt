@@ -128,6 +128,8 @@ fun PasswordField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
     label: String = stringResource(Res.string.field_password),
+    placeholder: String? = null,
+    leadingSymbol: String? = Symbols.lock,
     error: String? = null,
 ) {
     var visible by remember { mutableStateOf(false) }
@@ -136,7 +138,8 @@ fun PasswordField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,
-        leadingSymbol = Symbols.lock,
+        leadingSymbol = leadingSymbol,
+        placeholder = placeholder,
         error = error,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),

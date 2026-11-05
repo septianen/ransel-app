@@ -1,6 +1,7 @@
 package app.ransel.di
 
 import app.ransel.feature.account.AccountViewModel
+import app.ransel.feature.account.ChangePasswordViewModel
 import app.ransel.feature.expenses.ExpensesViewModel
 import app.ransel.feature.home.HomeViewModel
 import app.ransel.feature.itinerary.ActivityFormViewModel
@@ -88,6 +89,7 @@ val commonModule: Module = module {
     single { app.ransel.feature.guest.PendingPollLink() }
     single { app.ransel.platform.deviceFiles() }
     viewModel { app.ransel.feature.account.DeleteAccountViewModel(get(), get(), get(), get(), get()) }
+    viewModelOf(::ChangePasswordViewModel)
     viewModel { params -> app.ransel.feature.recap.RecapViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.documents.DocumentsViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.albums.AlbumsViewModel(params.get(), get(), get(), get()) }

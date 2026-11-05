@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import app.ransel.ui.preview.IrisPreview
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -34,6 +35,7 @@ fun LoadingButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     colors: ButtonColors = ButtonDefaults.buttonColors(),
+    shape: Shape = ButtonDefaults.shape,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -43,6 +45,7 @@ fun LoadingButton(
         // Disabled while loading, so the click never reaches onClick; the colours below hide the disabled look.
         enabled = enabled && !loading,
         modifier = modifier,
+        shape = shape,
         colors = if (loading) {
             ButtonDefaults.buttonColors(
                 containerColor = colors.containerColor,

@@ -158,6 +158,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST | /auth/register, /auth/login, /auth/refresh | Account and tokens | 3 |
 | POST ★ | /auth/logout | Sign out this device (revokes its refresh token) | 3 |
 | POST ★ | /auth/password/forgot, /auth/password/reset | Forgot password | 3 |
+| POST ★ | /auth/password/change | Signed-in password change (`currentPassword`, `newPassword`). 400 `CURRENT_PASSWORD_WRONG` or 422 `newPassword` = `WEAK_PASSWORD` / `TOO_LONG` / `SAME_AS_CURRENT` leaves the hash as it is. Success revokes other refresh tokens and keeps this device | 3 |
 | POST ★ | /auth/email/verify (public), /auth/email/resend (bearer) | Verify the email after sign-up; send a new link | 3 |
 | GET, PATCH ★ | /me | Profile, default currency | 3 |
 | GET, POST | /sync | Pull changes since a timestamp (optionally a few trips per page: `tripLimit`, `afterTripId`, `nextTripId`) / push a local batch | 3 |
@@ -360,6 +361,7 @@ An event writes the inbox row **inside the transaction that caused it** (invite 
 - **Tokens.** A short-lived JWT access token; a random refresh token stored as a hash in `refresh_tokens` and rotated on every use. Sign out revokes that device's refresh token.
 - **Client storage.** Tokens are kept in the platform's secure storage (Keystore/Keychain); on web, an httpOnly cookie or storage with accepted risk.
 - **Forgot password.** `forgot` always answers 204 (it never reveals whether the email exists) and sends a link with a single-use token valid for 30 minutes. `reset` replaces the hash, marks the token used, and revokes every refresh token of the user so other devices are signed out.
+- **Change password (signed in).** `POST /auth/password/change` takes `currentPassword` and `newPassword` (the repeat field stays on the client) and uses the same rule as register and reset. A wrong current password is 400 `CURRENT_PASSWORD_WRONG`; a weak, too-long, or unchanged new password is 422 and the hash is not written. On success every other refresh token is revoked. The access token carries `sid`, the id of the refresh-token row issued with it, and that row is the one kept, so this device stays signed in. Tokens issued before `sid` existed keep the refresh token created in the same moment when that match is unique.
 - **Email verification.** Register answers 201 with a session as before and emails a link (`APP_BASE_URL/verify-email?token=`, single use, 24 hours; a resend voids older links). Until the link is opened the account works except Explore and vouchers (403 `EMAIL_NOT_VERIFIED`) and the wallet gets no signup grant; verifying grants it (idempotent, ledger key `signup:<userId>`). Accounts that existed before V13 and seed accounts count as verified.
 - **Session expired.** When refresh fails (`TOKEN_EXPIRED`), the app shows the Session expired screen; local data stays.
 - **Authorization** is always checked on the server per trip (`requireRole`), never only in the UI.

@@ -6,20 +6,25 @@ import app.ransel.server.db.Users
 import app.ransel.server.db.toTimestamp
 import app.ransel.server.plugins.ApiException
 import app.ransel.server.plugins.requireValid
+import app.ransel.server.plugins.validationFailed
 import app.ransel.server.security.PasswordHasher
 import app.ransel.server.security.TokenService
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.domain.checkPassword
 import app.ransel.shared.domain.isValidEmail
 import app.ransel.shared.dto.AuthSessionDto
+import app.ransel.shared.dto.ChangePasswordRequest
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.MeDto
 import app.ransel.shared.dto.RegisterRequest
 import io.ktor.http.HttpStatusCode
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.lessEq
 import org.jetbrains.exposed.v1.core.lowerCase
+import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
@@ -116,6 +121,36 @@ class AuthService(
         startSession(row[RefreshTokens.userId], row[RefreshTokens.deviceName])
     }
 
+    /**
+     * Signed-in password change. Checks the new password with the same rule as register and reset, then the current
+     * password, and only then writes the hash. Other refresh tokens are revoked; [sessionId] (the access token's `sid`)
+     * is kept. [issuedAt] is only a fallback for access tokens minted before `sid` existed.
+     */
+    fun changePassword(userId: UUID, sessionId: UUID?, issuedAt: Instant?, body: ChangePasswordRequest) {
+        requireValid(
+            buildMap {
+                if (!checkPassword(body.newPassword).isValid) put("newPassword", "WEAK_PASSWORD")
+                else if (PasswordHasher.isTooLong(body.newPassword)) put("newPassword", "TOO_LONG")
+            },
+        )
+        transaction {
+            val user = Users.selectAll()
+                .where { (Users.id eq userId) and Users.deletedAt.isNull() }
+                .forUpdate()
+                .singleOrNull()
+            val stored = user?.get(Users.passwordHash)
+            if (user == null || stored == null || !hasher.verify(body.currentPassword, stored)) throw wrongCurrentPassword()
+            if (body.newPassword == body.currentPassword) throw validationFailed(mapOf("newPassword" to "SAME_AS_CURRENT"))
+            val now = Instant.now()
+            Users.update({ Users.id eq userId }) { it[passwordHash] = hasher.hash(body.newPassword) }
+            val keep = sessionToKeep(userId, sessionId, issuedAt)
+            RefreshTokens.update({
+                val others = (RefreshTokens.userId eq userId) and RefreshTokens.revokedAt.isNull()
+                if (keep == null) others else others and (RefreshTokens.id neq keep)
+            }) { it[revokedAt] = now }
+        }
+    }
+
     /** Idempotent: an unknown or already revoked token is not an error. */
     fun logout(refreshToken: String) {
         transaction {
@@ -133,14 +168,16 @@ class AuthService(
         val user = Users.selectAll().where { (Users.id eq userId) and Users.deletedAt.isNull() }.singleOrNull()
             ?: throw tokenExpired()
         if (user[Users.disabledAt] != null) throw accountDisabled()
+        val sessionId = UUID.randomUUID()
         val refresh = tokens.newOpaqueToken()
         RefreshTokens.insert {
+            it[id] = sessionId
             it[tokenHash] = TokenService.sha256(refresh)
             it[RefreshTokens.userId] = userId
             it[RefreshTokens.deviceName] = deviceName?.take(120)
             it[expiresAt] = Instant.now().plus(config.refreshTokenTtl.toJavaDuration())
         }
-        val access = tokens.issueAccessToken(userId)
+        val access = tokens.issueAccessToken(userId, sessionId)
         return AuthSessionDto(
             accessToken = access.token,
             accessTokenExpiresAt = access.expiresAt.toTimestamp(),
@@ -155,8 +192,34 @@ class AuthService(
     private fun emailTaken() =
         ApiException(HttpStatusCode.Conflict, ErrorCode.EMAIL_ALREADY_REGISTERED, "Email is already registered")
 
+    /** Active refresh row to leave in place: the token's session, or the one created with a pre-`sid` access token. */
+    private fun sessionToKeep(userId: UUID, sessionId: UUID?, issuedAt: Instant?): UUID? {
+        if (sessionId != null) {
+            val row = RefreshTokens.selectAll().where {
+                (RefreshTokens.id eq sessionId) and (RefreshTokens.userId eq userId) and RefreshTokens.revokedAt.isNull()
+            }.singleOrNull()
+            if (row != null) return row[RefreshTokens.id]
+        }
+        if (issuedAt == null) return null
+        val from = issuedAt.minusSeconds(2)
+        val to = issuedAt.plusSeconds(2)
+        val matches = RefreshTokens.selectAll().where {
+            (RefreshTokens.userId eq userId) and RefreshTokens.revokedAt.isNull() and
+                (RefreshTokens.createdAt greaterEq from) and (RefreshTokens.createdAt lessEq to)
+        }.toList()
+        return matches.singleOrNull()?.get(RefreshTokens.id)
+    }
+
     private fun invalidCredentials() =
         ApiException(HttpStatusCode.Unauthorized, ErrorCode.INVALID_CREDENTIALS, "Wrong email or password")
+
+    private fun wrongCurrentPassword() =
+        ApiException(
+            HttpStatusCode.BadRequest,
+            ErrorCode.CURRENT_PASSWORD_WRONG,
+            "Current password is wrong",
+            mapOf("currentPassword" to "WRONG"),
+        )
 
     private fun accountDisabled() =
         ApiException(HttpStatusCode.Forbidden, ErrorCode.ACCOUNT_DISABLED, "This account has been deactivated")

@@ -69,6 +69,13 @@ class AuthRepository(
     suspend fun resetPassword(token: String, newPassword: String): ApiResult<Unit> =
         api.resetPassword(token, newPassword)
 
+    /**
+     * Replaces the password and signs out every other device. This device's session is left as it is:
+     * the server keeps the refresh token that belongs to the access token we send.
+     */
+    suspend fun changePassword(currentPassword: String, newPassword: String): ApiResult<Unit> =
+        api.changePassword(currentPassword, newPassword)
+
     /** True once after [SessionManager] ended the session because the account was deactivated (403 ACCOUNT_DISABLED). */
     fun takeAccountDisabled(): Boolean = session.takeAccountDisabled()
 

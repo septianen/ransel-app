@@ -113,6 +113,7 @@ import app.ransel.feature.tripform.TripFormScreen
 import app.ransel.feature.trips.TripListScreen
 import app.ransel.navigation.AccountRoute
 import app.ransel.navigation.CreditsRoute
+import app.ransel.navigation.ChangePasswordRoute
 import app.ransel.navigation.DeleteAccountRoute
 import app.ransel.navigation.PaymentMethodsRoute
 import app.ransel.navigation.NotificationSettingsRoute
@@ -713,6 +714,15 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
     page<DeleteAccountRoute> {
         app.ransel.feature.account.DeleteAccountScreen(onBack = { navController.popBackStack() })
     }
+    page<ChangePasswordRoute> {
+        app.ransel.feature.account.ChangePasswordScreen(
+            onBack = { navController.popBackStack() },
+            onChanged = {
+                navController.getBackStackEntry<AccountRoute>().savedStateHandle["passwordChanged"] = true
+                navController.popBackStack()
+            },
+        )
+    }
     page<PaymentMethodsRoute> {
         app.ransel.feature.account.PaymentMethodsScreen(onBack = { navController.popBackStack() })
     }
@@ -733,12 +743,17 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
         NotificationSettingsScreen(onBack = { navController.popBackStack() })
     }
     tabPage<AccountRoute>(MainTab.ACCOUNT, navController) {
+        val accountEntry = navController.getBackStackEntry<AccountRoute>()
+        val passwordChanged by accountEntry.savedStateHandle.getStateFlow("passwordChanged", false).collectAsState()
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenCredits = { navController.navigate(CreditsRoute) },
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenNotifications = { navController.navigate(NotificationSettingsRoute) },
             onDeleteAccount = { navController.navigate(DeleteAccountRoute) },
+            onChangePassword = { navController.navigate(ChangePasswordRoute) },
+            passwordChanged = passwordChanged,
+            onPasswordChangedShown = { accountEntry.savedStateHandle["passwordChanged"] = false },
             onReplayTour = { navController.openTab(MainTab.HOME) },
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },

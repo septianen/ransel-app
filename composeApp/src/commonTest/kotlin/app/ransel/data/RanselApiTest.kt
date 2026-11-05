@@ -1,5 +1,6 @@
 package app.ransel.data
 
+import app.ransel.data.auth.ApiAuth
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.remote.createApiHttpClient
@@ -152,4 +153,58 @@ class RanselApiTest {
         }
         assertEquals(ErrorCode.OWNER_CANNOT_LEAVE, (api.leaveTrip("t1") as ApiResult.Failure).error.code)
     }
+
+    @Test
+    fun changePasswordSendsTheBearerAndOnlyTheTwoFields() = runTest {
+        var authorization: String? = null
+        var body = ""
+        val api = RanselApi(
+            createApiHttpClient(MockEngine { request ->
+                authorization = request.headers[HttpHeaders.Authorization]
+                assertEquals("/api/v1/auth/password/change", request.url.encodedPath)
+                assertEquals(HttpMethod.Post, request.method)
+                body = request.body.toByteArray().decodeToString()
+                respond("", HttpStatusCode.NoContent)
+            }),
+            origin = "http://api.test",
+            auth = fixedAuth("access-1"),
+        )
+        assertEquals(ApiResult.Success(Unit), api.changePassword("OldPassw0rd", "NewPassw0rd"))
+        assertEquals("Bearer access-1", authorization)
+        assertTrue("\"currentPassword\":\"OldPassw0rd\"" in body, body)
+        assertTrue("\"newPassword\":\"NewPassw0rd\"" in body, body)
+        assertTrue("confirm" !in body, body)
+    }
+
+    @Test
+    fun wrongCurrentPasswordIsTheMachineCodeAndDoesNotRefresh() = runTest {
+        var refreshes = 0
+        val api = RanselApi(
+            createApiHttpClient(MockEngine {
+                respond(
+                    """{"error":{"code":"CURRENT_PASSWORD_WRONG","message":"Current password is wrong","details":{"currentPassword":"WRONG"}}}""",
+                    HttpStatusCode.BadRequest,
+                    json,
+                )
+            }),
+            origin = "http://api.test",
+            auth = object : ApiAuth {
+                override fun accessToken() = "access-1"
+                override suspend fun refreshAccessToken(): Boolean {
+                    refreshes += 1
+                    return false
+                }
+            },
+        )
+        val failure = (api.changePassword("nope", "NewPassw0rd") as ApiResult.Failure).error
+        assertEquals(ErrorCode.CURRENT_PASSWORD_WRONG, failure.code)
+        assertEquals(400, failure.status)
+        assertEquals("WRONG", failure.details?.get("currentPassword"))
+        assertEquals(0, refreshes)
+    }
+}
+
+private fun fixedAuth(token: String) = object : ApiAuth {
+    override fun accessToken() = token
+    override suspend fun refreshAccessToken() = false
 }
