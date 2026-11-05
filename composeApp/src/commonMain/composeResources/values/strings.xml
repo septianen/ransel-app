@@ -110,8 +110,6 @@
     <string name="trips_create">Create trip</string>
     <string name="trips_empty_title">The map is still empty</string>
     <string name="trips_empty_body">Trips you create will show up here, grouped into in progress, upcoming and finished.</string>
-    <string name="trips_no_upcoming_title">No upcoming trips</string>
-    <string name="trips_no_upcoming_body">Your last trip was %1$s. Where to next?</string>
 
     <!-- Trip form -->
     <string name="trip_form_create_title">Create trip</string>
