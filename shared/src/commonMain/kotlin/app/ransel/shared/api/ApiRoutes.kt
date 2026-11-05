@@ -56,6 +56,8 @@ object ApiRoutes {
     const val AUTH_PASSWORD_RESET = "/auth/password/reset"         // POST ResetPasswordRequest → 204, revokes all refresh tokens
     const val AUTH_EMAIL_VERIFY = "/auth/email/verify"             // POST VerifyEmailRequest → VerifyEmailResponse (no token needed; the link is the proof)
     const val AUTH_EMAIL_RESEND = "/auth/email/resend"             // POST (bearer) → 204, sends a new link and voids older ones; 204 too when already verified
+    const val AUTH_GOOGLE = "/auth/google"                         // POST GoogleSignInRequest → AuthSessionDto (signs in, links or creates the account); 401 GOOGLE_TOKEN_INVALID, 403 FORBIDDEN = sign-up closed
+    const val AUTH_GOOGLE_CONFIG = "/auth/google/config"           // GET → GoogleSignInConfigDto (public; null client ids = Google sign-in is off)
     const val ME = "/me"                                           // GET MeDto, PATCH UpdateMeRequest
     const val ME_DELETION = "/me/deletion"                         // GET → AccountDeletionPreviewDto; POST DeleteAccountRequest → 204; 422 VALIDATION_FAILED `password` = WRONG
     const val ME_AVATAR = "/me/avatar"                             // PUT image/jpeg body (≤ PHOTO_MAX_BYTES) → MeDto, DELETE → MeDto; 413 FILE_TOO_LARGE, 415 UNSUPPORTED_FILE

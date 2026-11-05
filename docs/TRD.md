@@ -159,6 +159,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST ★ | /auth/logout | Sign out this device (revokes its refresh token) | 3 |
 | POST ★ | /auth/password/forgot, /auth/password/reset | Forgot password | 3 |
 | POST ★ | /auth/email/verify (public), /auth/email/resend (bearer) | Verify the email after sign-up; send a new link | 3 |
+| POST ★, GET ★ | /auth/google, /auth/google/config (public) | "Lanjutkan dengan Google": verify the Google ID token (or exchange the web auth code) with our client ids as audience, then sign in, link a registered email or create a verified account (5 Nov 2026); the client ids for the apps | 3 |
 | GET, PATCH ★ | /me | Profile, default currency | 3 |
 | GET, POST | /sync | Pull changes since a timestamp (optionally a few trips per page: `tripLimit`, `afterTripId`, `nextTripId`) / push a local batch | 3 |
 | POST | /trips/{id}/invites | Create an invite code (role, maxUses, expiresAt) | 4 |
