@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** What can be wrong on an auth form; the screen maps it to copy (the app switches on codes, not messages). */
-enum class AuthProblem { INVALID_CREDENTIALS, ACCOUNT_DISABLED, EMAIL_TAKEN, RATE_LIMITED, CONNECTION, RESET_TOKEN_INVALID, REGISTRATION_CLOSED, GENERIC }
+enum class AuthProblem { INVALID_CREDENTIALS, ACCOUNT_DISABLED, EMAIL_TAKEN, RATE_LIMITED, CONNECTION, RESET_TOKEN_INVALID, REGISTRATION_CLOSED, GOOGLE_FAILED, GOOGLE_ACCOUNT_ONLY, GENERIC }
 
 private fun problemOf(code: String): AuthProblem = when (code) {
     ErrorCode.INVALID_CREDENTIALS -> AuthProblem.INVALID_CREDENTIALS
@@ -29,7 +29,20 @@ private fun problemOf(code: String): AuthProblem = when (code) {
     ErrorCode.RATE_LIMITED -> AuthProblem.RATE_LIMITED
     ErrorCode.NETWORK_TIMEOUT, ErrorCode.NETWORK_UNAVAILABLE -> AuthProblem.CONNECTION
     ErrorCode.RESET_TOKEN_INVALID -> AuthProblem.RESET_TOKEN_INVALID
+    ErrorCode.GOOGLE_ACCOUNT_ONLY -> AuthProblem.GOOGLE_ACCOUNT_ONLY
     else -> AuthProblem.GENERIC
+}
+
+/**
+ * Failures of the Google button: connection, closed sign-up (403 FORBIDDEN) and a deactivated account reuse their
+ * copy; anything else (bad or unverified token, server off) is "Gagal masuk dengan Google".
+ */
+internal fun googleProblemOf(code: String): AuthProblem = when (code) {
+    ErrorCode.NETWORK_TIMEOUT, ErrorCode.NETWORK_UNAVAILABLE -> AuthProblem.CONNECTION
+    ErrorCode.FORBIDDEN -> AuthProblem.REGISTRATION_CLOSED
+    ErrorCode.ACCOUNT_DISABLED -> AuthProblem.ACCOUNT_DISABLED
+    ErrorCode.RATE_LIMITED -> AuthProblem.RATE_LIMITED
+    else -> AuthProblem.GOOGLE_FAILED
 }
 
 /** The server answers 403 FORBIDDEN on register while sign-up is closed (`REGISTRATION_ENABLED=false`). */
@@ -51,6 +64,8 @@ class SignInViewModel(
     private val auth: AuthRepository,
     private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
+    val google = GoogleSignInFlow(auth, viewModelScope, analytics)
+
     // Arrived here because an admin deactivated the account while it was signed in: say so once.
     private val _state = MutableStateFlow(
         SignInUiState(problem = if (auth.takeAccountDisabled()) AuthProblem.ACCOUNT_DISABLED else null),
@@ -102,6 +117,8 @@ class SignUpViewModel(
     private val auth: AuthRepository,
     private val analytics: Analytics = NoAnalytics,
 ) : ViewModel() {
+    val google = GoogleSignInFlow(auth, viewModelScope, analytics)
+
     private val _state = MutableStateFlow(SignUpUiState())
     val state: StateFlow<SignUpUiState> = _state.asStateFlow()
 

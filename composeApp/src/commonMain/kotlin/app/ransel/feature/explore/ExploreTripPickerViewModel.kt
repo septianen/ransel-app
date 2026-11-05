@@ -60,7 +60,10 @@ class ExploreTripPickerViewModel(
     private val sessionManager: SessionManager,
     store: ExploreSessionStore,
     private val auth: AuthRepository,
+    analytics: app.ransel.data.analytics.Analytics = app.ransel.data.analytics.NoAnalytics,
 ) : ViewModel() {
+    /** The guest gate's "Lanjutkan dengan Google". */
+    val google = app.ransel.feature.auth.GoogleSignInFlow(auth, viewModelScope, analytics)
     private val gate = MutableStateFlow(VerifyGateState())
 
     @OptIn(ExperimentalCoroutinesApi::class)

@@ -446,6 +446,14 @@
     <string name="auth_error_generic">Ada yang salah. Coba lagi.</string>
     <string name="auth_error_account_disabled">Akun dinonaktifkan. Data di perangkat ini tetap aman.</string>
     <string name="auth_error_connection">Tidak bisa terhubung ke server. Periksa koneksimu.</string>
+    <string name="google_continue">Lanjutkan dengan Google</string>
+    <string name="google_connecting">Menghubungkan…</string>
+    <string name="auth_or_use_email">atau pakai email</string>
+    <string name="auth_error_google">Gagal masuk dengan Google. Coba lagi.</string>
+    <string name="auth_error_google_only">Email ini terdaftar lewat Google. Masuk dengan tombol Lanjutkan dengan Google di atas.</string>
+    <string name="auth_consent_prefix">Dengan melanjutkan, kamu setuju dengan </string>
+    <string name="auth_consent_link">Kebijakan Privasi</string>
+    <string name="auth_consent_suffix"> RANSEL.</string>
     <string name="auth_error_registration_closed">Pendaftaran akun belum dibuka. Coba lagi nanti, ya.</string>
     <string name="verify_email_title">Satu langkah lagi</string>
     <string name="verify_email_body">Akunmu sudah jadi. Buka link yang kami kirim ke %1$s untuk verifikasi email. Link berlaku 24 jam.</string>
@@ -759,6 +767,7 @@
     <string name="explore_guest_point3_title">Trip yang sudah ada ikut tersimpan</string>
     <string name="explore_guest_point3_body">Trip, packing, dan pengeluaran di perangkat ini dipindah ke akunmu.</string>
     <string name="explore_guest_sign_in">Masuk</string>
+    <string name="explore_guest_sign_in_email">Masuk dengan email</string>
     <string name="explore_guest_sign_up">Daftar akun baru</string>
     <string name="explore_guest_note">Fitur lain tetap bisa dipakai tanpa akun.</string>
     <string name="swipe_ai_title">Jelajah AI</string>

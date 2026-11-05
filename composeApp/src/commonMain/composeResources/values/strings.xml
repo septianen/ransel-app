@@ -446,6 +446,14 @@
     <string name="auth_error_generic">Something went wrong. Try again.</string>
     <string name="auth_error_account_disabled">Account deactivated. Data on this device stays safe.</string>
     <string name="auth_error_connection">Cannot reach the server. Check your connection.</string>
+    <string name="google_continue">Continue with Google</string>
+    <string name="google_connecting">Connecting…</string>
+    <string name="auth_or_use_email">or use email</string>
+    <string name="auth_error_google">Couldn't sign in with Google. Try again.</string>
+    <string name="auth_error_google_only">This email is registered with Google. Sign in with the Continue with Google button above.</string>
+    <string name="auth_consent_prefix">By continuing, you agree to RANSEL's </string>
+    <string name="auth_consent_link">Privacy Policy</string>
+    <string name="auth_consent_suffix">.</string>
     <string name="auth_error_registration_closed">Sign-up isn't open yet. Please try again later.</string>
     <string name="verify_email_title">One more step</string>
     <string name="verify_email_body">Your account is ready. Open the link we sent to %1$s to verify your email. The link works for 24 hours.</string>
@@ -769,6 +777,7 @@
     <string name="explore_guest_point3_title">Your existing trips come along</string>
     <string name="explore_guest_point3_body">Trips, packing and expenses on this device move to your account.</string>
     <string name="explore_guest_sign_in">Sign in</string>
+    <string name="explore_guest_sign_in_email">Sign in with email</string>
     <string name="explore_guest_sign_up">Create an account</string>
     <string name="explore_guest_note">Everything else keeps working without an account.</string>
     <string name="swipe_ai_title">Explore AI</string>
