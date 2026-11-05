@@ -2,9 +2,7 @@ package app.ransel.feature.trips
 
 import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -86,8 +83,6 @@ import ransel.composeapp.generated.resources.trips_empty_body
 import ransel.composeapp.generated.resources.trips_empty_title
 import ransel.composeapp.generated.resources.trips_finished
 import ransel.composeapp.generated.resources.trips_itinerary_empty
-import ransel.composeapp.generated.resources.trips_no_upcoming_body
-import ransel.composeapp.generated.resources.trips_no_upcoming_title
 import ransel.composeapp.generated.resources.trips_ongoing
 import ransel.composeapp.generated.resources.trips_packing_progress
 import ransel.composeapp.generated.resources.trips_remaining
@@ -192,7 +187,7 @@ fun TripListContent(
                             modifier = Modifier.verticalScroll(rememberScrollState()),
                         )
                     } else {
-                        TripGroups(state, onOpenTrip, onCreateTrip)
+                        TripGroups(state, onOpenTrip)
                     }
                 }
                 IconFab(
@@ -223,7 +218,7 @@ private fun PullToRefresh(
 }
 
 @Composable
-private fun TripGroups(state: TripListUiState.Content, onOpenTrip: (String) -> Unit, onCreateTrip: () -> Unit) {
+private fun TripGroups(state: TripListUiState.Content, onOpenTrip: (String) -> Unit) {
     val dates = rememberDateFormatter()
     var showAllFinished by rememberSaveable { mutableStateOf(false) }
     Column(
@@ -242,8 +237,6 @@ private fun TripGroups(state: TripListUiState.Content, onOpenTrip: (String) -> U
             Group(stringResource(Res.string.trips_upcoming)) {
                 state.upcoming.forEach { UpcomingCard(it, state, dates) { onOpenTrip(it.trip.id) } }
             }
-        } else if (!state.isSearching && state.ongoing.isEmpty() && state.finished.isNotEmpty()) {
-            NoUpcomingCard(state.finished.first(), onCreateTrip)
         }
         if (state.finished.isNotEmpty()) {
             // A search shows every match: hiding results behind "Lihat semua" would look like nothing was found.
@@ -464,38 +457,6 @@ private fun FinishedRow(card: TripCardData, dates: DateFormatter, onClick: () ->
     }
 }
 
-/** Shown above "Selesai" when every trip is finished (design: dashed card). */
-@Composable
-private fun NoUpcomingCard(last: TripCardData, onCreateTrip: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .clip(IrisShape.lg)
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .border(BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), IrisShape.lg)
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Box(
-            Modifier.size(48.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) { Symbol(Symbols.flightTakeoff, filled = true, tint = MaterialTheme.colorScheme.onPrimaryContainer) }
-        Text(
-            stringResource(Res.string.trips_no_upcoming_title),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        Text(
-            stringResource(Res.string.trips_no_upcoming_body, last.trip.destination),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Button(onClick = onCreateTrip, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text(stringResource(Res.string.trips_create), style = MaterialTheme.typography.titleMedium)
-        }
-    }
-}
-
 /** Search field under the title (same look as the currency sheet's search): filters by title and destination. */
 @Composable
 private fun TripSearchField(query: String, onQuery: (String) -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
@@ -601,6 +562,12 @@ private val previewContent = TripListUiState.Content(
     finished = listOf(previewCard("t3", "Liburan Bogotá", "Bogotá, Kolombia", LocalDate(2026, 6, 1), LocalDate(2026, 6, 7))),
     today = LocalDate(2026, 10, 28),
 )
+
+@Preview
+@Composable
+private fun TripListFinishedOnlyPreview() = IrisPreview {
+    TripListContent(previewContent.copy(upcoming = emptyList()), {}, {})
+}
 
 @Preview
 @Composable

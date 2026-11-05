@@ -110,8 +110,6 @@
     <string name="trips_create">Buat trip</string>
     <string name="trips_empty_title">Petanya masih kosong</string>
     <string name="trips_empty_body">Trip yang kamu buat akan muncul di sini, dikelompokkan jadi sedang berjalan, mendatang, dan selesai.</string>
-    <string name="trips_no_upcoming_title">Belum ada trip mendatang</string>
-    <string name="trips_no_upcoming_body">Terakhir jalan ke %1$s. Ke mana selanjutnya?</string>
 
     <!-- Trip form -->
     <string name="trip_form_create_title">Buat trip</string>
@@ -495,6 +493,20 @@
     <string name="account_sync_now">Sinkronkan</string>
     <string name="account_sync_running">Menyinkronkan…</string>
     <string name="account_delete">Hapus akun</string>
+    <string name="change_password_title">Ubah password</string>
+    <string name="change_password_lead">Masukkan kata sandi saat ini, lalu buat yang baru.</string>
+    <string name="change_password_current">Kata sandi saat ini</string>
+    <string name="change_password_new">Kata sandi baru</string>
+    <string name="change_password_confirm">Konfirmasi kata sandi baru</string>
+    <string name="change_password_placeholder">••••••••</string>
+    <string name="change_password_action">Ubah password</string>
+    <string name="change_password_current_empty">Isi kata sandi saat ini.</string>
+    <string name="change_password_new_empty">Isi kata sandi baru.</string>
+    <string name="change_password_confirm_empty">Konfirmasi kata sandi baru.</string>
+    <string name="change_password_mismatch">Konfirmasi tidak cocok. Samakan dengan kata sandi baru.</string>
+    <string name="change_password_wrong">Kata sandi saat ini salah. Coba lagi.</string>
+    <string name="change_password_same">Kata sandi baru sama dengan yang sekarang. Buat yang berbeda.</string>
+    <string name="change_password_done">Password diubah. Perangkat lain perlu masuk lagi.</string>
     <string name="account_privacy">Kebijakan privasi</string>
     <string name="delete_account_title">Hapus akun</string>
     <string name="delete_account_lead">Akunmu dihapus saat itu juga dan tidak bisa dikembalikan.</string>

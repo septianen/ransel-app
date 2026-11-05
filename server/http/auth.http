@@ -45,6 +45,14 @@ Content-Type: application/json
 
 { "token": "paste token", "newPassword": "NewPassw0rd" }
 
+### Change password while signed in -> 204. Other devices are signed out; this access token keeps working.
+### 400 CURRENT_PASSWORD_WRONG, or 422 newPassword = WEAK_PASSWORD | TOO_LONG | SAME_AS_CURRENT (hash unchanged).
+POST {{host}}/auth/password/change
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "currentPassword": "Passw0rdOk", "newPassword": "NewPassw0rd" }
+
 ### Verify the email with the token from the sign-up link (public) -> { email, creditsGranted }
 POST {{host}}/auth/email/verify
 Content-Type: application/json

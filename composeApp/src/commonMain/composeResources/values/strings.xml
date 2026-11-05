@@ -110,8 +110,6 @@
     <string name="trips_create">Create trip</string>
     <string name="trips_empty_title">The map is still empty</string>
     <string name="trips_empty_body">Trips you create will show up here, grouped into in progress, upcoming and finished.</string>
-    <string name="trips_no_upcoming_title">No upcoming trips</string>
-    <string name="trips_no_upcoming_body">Your last trip was %1$s. Where to next?</string>
 
     <!-- Trip form -->
     <string name="trip_form_create_title">Create trip</string>
@@ -495,6 +493,20 @@
     <string name="account_sync_now">Sync now</string>
     <string name="account_sync_running">Syncing…</string>
     <string name="account_delete">Delete account</string>
+    <string name="change_password_title">Change password</string>
+    <string name="change_password_lead">Enter your current password, then choose a new one.</string>
+    <string name="change_password_current">Current password</string>
+    <string name="change_password_new">New password</string>
+    <string name="change_password_confirm">Confirm new password</string>
+    <string name="change_password_placeholder">••••••••</string>
+    <string name="change_password_action">Change password</string>
+    <string name="change_password_current_empty">Enter your current password.</string>
+    <string name="change_password_new_empty">Enter a new password.</string>
+    <string name="change_password_confirm_empty">Confirm your new password.</string>
+    <string name="change_password_mismatch">Passwords don't match. Use the same new password.</string>
+    <string name="change_password_wrong">Current password is wrong. Try again.</string>
+    <string name="change_password_same">New password is the same as the current one. Choose a different one.</string>
+    <string name="change_password_done">Password changed. Other devices need to sign in again.</string>
     <string name="account_privacy">Privacy policy</string>
     <string name="delete_account_title">Delete account</string>
     <string name="delete_account_lead">Your account is deleted straight away and cannot be restored.</string>

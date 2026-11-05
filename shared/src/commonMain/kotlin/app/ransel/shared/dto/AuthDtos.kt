@@ -76,6 +76,19 @@ data class ResetPasswordRequest(
     val newPassword: String,
 )
 
+/**
+ * POST /auth/password/change — signed in. [newPassword] uses the same rule as register and reset
+ * (`checkPassword`, plus the server's 72-byte bcrypt limit). Repeating it is checked only on the client.
+ * Wrong [currentPassword] is 400 [app.ransel.shared.api.ErrorCode.CURRENT_PASSWORD_WRONG]. A weak new password,
+ * one that is too long, or one equal to the current password is 422 `newPassword` = WEAK_PASSWORD, TOO_LONG or
+ * SAME_AS_CURRENT. Nothing is written on those paths. Success revokes every other refresh token and keeps this one.
+ */
+@Serializable
+data class ChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String,
+)
+
 /** POST /auth/email/verify — token from the link sent after sign-up (valid 24 h, the newest link only). */
 @Serializable
 data class VerifyEmailRequest(

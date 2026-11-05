@@ -8647,18 +8647,6 @@
    "en": "Itinerary not filled yet"
   },
   {
-   "key": "trips_no_upcoming_body",
-   "area": "trips",
-   "id": "Terakhir jalan ke %1$s. Ke mana selanjutnya?",
-   "en": "Your last trip was %1$s. Where to next?"
-  },
-  {
-   "key": "trips_no_upcoming_title",
-   "area": "trips",
-   "id": "Belum ada trip mendatang",
-   "en": "No upcoming trips"
-  },
-  {
    "key": "trips_ongoing",
    "area": "trips",
    "id": "Sedang berjalan",

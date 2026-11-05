@@ -213,3 +213,68 @@ class PasswordResetTest {
         assertEquals("RESET_TOKEN_INVALID", post("/auth/password/reset", """{"token":"$token","newPassword":"NewPassw0rd"}""").errorCode())
     }
 }
+
+class ChangePasswordTest {
+    private fun hashOf(email: String) =
+        TestDb.column("SELECT password_hash FROM users WHERE lower(email) = lower('$email')").single()
+
+    private fun activeSessions(user: String) =
+        TestDb.column("SELECT count(*)::text FROM refresh_tokens WHERE user_id = '$user' AND revoked_at IS NULL").single()
+
+    @Test
+    fun changeKeepsThisSessionSignsOutTheOtherAndReplacesThePassword() = apiTest {
+        signUp("change@example.com", password = "OldPassw0rd")
+        val currentRefresh = refreshToken!!
+        val other = post("/auth/login", """{"email":"change@example.com","password":"OldPassw0rd","deviceName":"Other phone"}""")
+        val otherRefresh = other.data().jsonObject.getValue("refreshToken").jsonPrimitive.content
+        assertEquals("2", activeSessions(userId))
+
+        val changed = post("/auth/password/change", """{"currentPassword":"OldPassw0rd","newPassword":"NewPassw0rd"}""")
+        assertEquals(HttpStatusCode.NoContent, changed.status)
+
+        assertEquals(HttpStatusCode.OK, get("/me").status, "this access token still works")
+        assertEquals("TOKEN_EXPIRED", post("/auth/refresh", """{"refreshToken":"$otherRefresh"}""").errorCode())
+        assertEquals(HttpStatusCode.OK, post("/auth/refresh", """{"refreshToken":"$currentRefresh"}""").status)
+        assertEquals("1", activeSessions(userId), "rotation replaced this device's token; the other stays revoked")
+
+        assertEquals("INVALID_CREDENTIALS", post("/auth/login", """{"email":"change@example.com","password":"OldPassw0rd"}""").errorCode())
+        assertEquals(HttpStatusCode.OK, post("/auth/login", """{"email":"change@example.com","password":"NewPassw0rd"}""").status)
+    }
+
+    @Test
+    fun wrongWeakAndUnchangedPasswordsDoNotWriteTheHash() = apiTest {
+        signUp("safe@example.com", password = "OldPassw0rd")
+        val before = hashOf("safe@example.com")
+        val refresh = refreshToken!!
+
+        val wrong = post("/auth/password/change", """{"currentPassword":"NotTheOne1","newPassword":"NewPassw0rd"}""")
+        assertEquals(HttpStatusCode.BadRequest, wrong.status)
+        assertEquals("CURRENT_PASSWORD_WRONG", wrong.errorCode())
+        assertEquals("WRONG", wrong.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.getValue("currentPassword").jsonPrimitive.content)
+
+        val weak = post("/auth/password/change", """{"currentPassword":"OldPassw0rd","newPassword":"short"}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, weak.status)
+        assertEquals("WEAK_PASSWORD", weak.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.getValue("newPassword").jsonPrimitive.content)
+
+        val same = post("/auth/password/change", """{"currentPassword":"OldPassw0rd","newPassword":"OldPassw0rd"}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, same.status)
+        assertEquals("SAME_AS_CURRENT", same.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.getValue("newPassword").jsonPrimitive.content)
+
+        val tooLong = post("/auth/password/change", """{"currentPassword":"OldPassw0rd","newPassword":"${"a1" + "x".repeat(80)}"}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, tooLong.status)
+        assertEquals("TOO_LONG", tooLong.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.getValue("newPassword").jsonPrimitive.content)
+
+        assertEquals(before, hashOf("safe@example.com"))
+        assertEquals(HttpStatusCode.OK, post("/auth/refresh", """{"refreshToken":"$refresh"}""").status, "a failed change signs nobody out")
+        assertEquals("INVALID_CREDENTIALS", post("/auth/login", """{"email":"safe@example.com","password":"NewPassw0rd"}""").errorCode())
+        assertEquals(HttpStatusCode.OK, post("/auth/login", """{"email":"safe@example.com","password":"OldPassw0rd"}""").status)
+    }
+
+    @Test
+    fun changeRequiresASession() = apiTest {
+        token = null
+        val response = post("/auth/password/change", """{"currentPassword":"OldPassw0rd","newPassword":"NewPassw0rd"}""")
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+        assertEquals("UNAUTHORIZED", response.errorCode())
+    }
+}

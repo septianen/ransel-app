@@ -10,6 +10,7 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.data.auth.ApiAuth
 import app.ransel.shared.model.DevicePlatform
 import app.ransel.shared.dto.AccountDeletionPreviewDto
+import app.ransel.shared.dto.ChangePasswordRequest
 import app.ransel.shared.dto.DeleteAccountRequest
 import app.ransel.shared.dto.AddMemberRequest
 import app.ransel.shared.dto.AppUpdateDto
@@ -212,6 +213,12 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.AUTH_PASSWORD_FORGOT, bodyOf = { contentType(ContentType.Application.Json); setBody(ForgotPasswordRequest(email)) }) { }
     suspend fun resetPassword(token: String, newPassword: String): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.AUTH_PASSWORD_RESET, bodyOf = { contentType(ContentType.Application.Json); setBody(ResetPasswordRequest(token, newPassword)) }) { }
+    /** Signed in. Confirming the new password is the screen's job; this sends only the two fields the server checks. */
+    suspend fun changePassword(currentPassword: String, newPassword: String): ApiResult<Unit> =
+        call(HttpMethod.Post, ApiRoutes.AUTH_PASSWORD_CHANGE, bodyOf = {
+            contentType(ContentType.Application.Json)
+            setBody(ChangePasswordRequest(currentPassword, newPassword))
+        }) { }
     suspend fun verifyEmail(token: String): ApiResult<VerifyEmailResponse> =
         send(HttpMethod.Post, ApiRoutes.AUTH_EMAIL_VERIFY, VerifyEmailRequest(token))
     suspend fun resendVerificationEmail(): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.AUTH_EMAIL_RESEND) { }
@@ -673,7 +680,8 @@ class RanselApi(
         noinline bodyOf: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {},
         crossinline parse: suspend (HttpResponse) -> T,
     ): ApiResult<T> {
-        val needsToken = auth != null && !path.startsWith("/auth/")
+        // /auth/* is public, except change-password, which needs the bearer of the device we keep signed in.
+        val needsToken = auth != null && (path == ApiRoutes.AUTH_PASSWORD_CHANGE || !path.startsWith("/auth/"))
         var renewed = false
         while (true) {
             val outcome: ApiResult<T> = try {

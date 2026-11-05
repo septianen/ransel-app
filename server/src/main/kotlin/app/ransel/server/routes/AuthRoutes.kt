@@ -7,8 +7,11 @@ import app.ransel.server.service.AuthService
 import app.ransel.server.service.EmailVerificationService
 import app.ransel.server.service.MeService
 import app.ransel.server.service.PasswordResetService
+import app.ransel.server.service.accessIssuedAt
+import app.ransel.server.service.sessionId
 import app.ransel.server.service.userId
 import app.ransel.shared.api.ApiRoutes
+import app.ransel.shared.dto.ChangePasswordRequest
 import app.ransel.shared.dto.DeleteAccountRequest
 import app.ransel.shared.dto.ForgotPasswordRequest
 import app.ransel.shared.dto.GoogleSignInRequest
@@ -66,12 +69,16 @@ fun Route.authRoutes(auth: AuthService, passwordReset: PasswordResetService, ver
 }
 
 /** Needs a token. */
-fun Route.meRoutes(verification: EmailVerificationService, deletion: AccountDeletionService) {
+fun Route.meRoutes(auth: AuthService, verification: EmailVerificationService, deletion: AccountDeletionService) {
     get(ApiRoutes.ME_DELETION) {
         call.respondData(HttpStatusCode.OK, deletion.preview(call.userId()))
     }
     // the password is checked here too, so it gets the same limit as signing in
     rateLimit(AuthRateLimit) {
+        post(ApiRoutes.AUTH_PASSWORD_CHANGE) {
+            auth.changePassword(call.userId(), call.sessionId(), call.accessIssuedAt(), call.receive<ChangePasswordRequest>())
+            call.respondNoContent()
+        }
         post(ApiRoutes.ME_DELETION) {
             deletion.delete(call.userId(), call.receive<DeleteAccountRequest>())
             call.respondNoContent()

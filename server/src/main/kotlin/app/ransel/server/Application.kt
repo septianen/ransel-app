@@ -304,7 +304,7 @@ fun Application.module(
             imageFileRoutes(photos)
             ogRoutes(invites, config.appBaseUrl)
             authenticate(JWT_AUTH) {
-                meRoutes(verification, app.ransel.server.service.AccountDeletionService(hasher))
+                meRoutes(auth, verification, app.ransel.server.service.AccountDeletionService(hasher))
                 tripRoutes()
                 itineraryRoutes()
                 packingRoutes()
