@@ -35,12 +35,13 @@ data class TourRun(val id: TourId, val userId: String, val steps: List<TourStep>
 
 /**
  * The new-user tour (design "Panduan pengguna baru", owner, 5 Nov 2026): a coach-mark layer over the real screens.
- * Signed-in users only; once per account and device; at most [MAX_STEPS_PER_SESSION] steps per app launch (the rest
- * waits for the next one); a flag is written however the tour is closed. No server call: works offline.
+ * Guests too (owner, 5 Nov 2026); once per account and device; at most [MAX_STEPS_PER_SESSION] steps per app launch
+ * (the rest waits for the next one); a flag is written however the tour is closed. No server call: works offline.
+ * A guest's flags move to the first account that signs in on the device, like the guest's trips do.
  */
 class TourController(
     private val preferences: PreferencesRepository,
-    /** The signed-in user's id, null for a guest (guests never see a tour). */
+    /** The signed-in user's id, null for a guest (flags under [GUEST]). */
     private val currentUser: () -> String?,
     private val credits: CreditsStore,
     /** Waits are shortened in tests. */
@@ -61,7 +62,17 @@ class TourController(
 
     private var shownThisSession = 0
 
-    fun userId(): String? = currentUser()
+    /** The key the flags are kept under; a guest's flags are handed to the account on its first look. */
+    private suspend fun owner(): String {
+        val user = currentUser() ?: return GUEST
+        TourId.entries.forEach { id ->
+            if (preferences.getString(flagKey(GUEST, id)) != null) {
+                preferences.putString(flagKey(user, id), "1")
+                preferences.putString(flagKey(GUEST, id), null)
+            }
+        }
+        return user
+    }
 
     /** "Jatah gratis %1$d kredit tiap hari, satu pencarian baru pakai %2$d kredit": the live numbers, else the last ones seen. */
     suspend fun creditNumbers(): Pair<Int, Int>? {
@@ -75,7 +86,7 @@ class TourController(
     }
 
     suspend fun isDone(id: TourId): Boolean {
-        val user = userId() ?: return true
+        val user = owner()
         return preferences.getString(flagKey(user, id)) != null
     }
 
@@ -84,7 +95,7 @@ class TourController(
      * tour is on screen, the screen is blocked, or this launch has no room left. No step left = not shown, not recorded.
      */
     suspend fun start(id: TourId, steps: List<TourStep>, force: Boolean = false) {
-        val user = userId() ?: return
+        val user = owner()
         if (run != null || steps.isEmpty()) return
         if (!force && preferences.getString(flagKey(user, id)) != null) return
         delay(startDelayMillis)
@@ -129,7 +140,7 @@ class TourController(
 
     /** "Ulangi panduan": forget this user's tours on this device, then Home starts its tour. */
     suspend fun replay() {
-        val user = userId() ?: return
+        val user = owner()
         run = null
         TourId.entries.forEach { preferences.putString(flagKey(user, it), null) }
         shownThisSession = 0
@@ -147,6 +158,8 @@ class TourController(
         const val START_DELAY_MILLIS = 600L
         const val TARGET_WAIT_MILLIS = 3_000L
         private const val POLL_MILLIS = 100L
+        /** Flags of someone not signed in (mobile only: the web always has an account). */
+        const val GUEST = "guest"
         private const val CREDITS_KEY = "tour.credits"
     }
 }

@@ -120,11 +120,11 @@ fun HomeScreen(
     val inbox by koinInject<NotificationsStore>().inbox.collectAsState()
     val recapTrip by viewModel.recapTrip.collectAsState()
     val recap: (@Composable () -> Unit)? = recapTrip?.let { trip -> { RecapCardOnHome(trip.id, onOpen = { onOpenRecap(trip.id) }, onSettle = { onOpenTrip(trip.id, TripSection.EXPENSES) }) } }
-    // New-user tour: a signed-in user without any trip (invited ones count), once; "Ulangi panduan" whatever the trips
+    // New-user tour: anyone (guests too) without any trip (invited ones count), once; "Ulangi panduan" whatever the trips
     val tour: app.ransel.ui.tour.TourController = koinInject()
     val replay = tour.replayHome
     LaunchedEffect(state is HomeUiState.Empty, state is HomeUiState.Loading, replay, signedIn) {
-        if (!signedIn || state is HomeUiState.Loading) return@LaunchedEffect
+        if (state is HomeUiState.Loading) return@LaunchedEffect
         if (replay) tour.replayConsumed()
         if (replay || state is HomeUiState.Empty) {
             tour.start(app.ransel.ui.tour.TourId.HOME, app.ransel.ui.tour.homeTour(tour.creditNumbers()), force = replay)

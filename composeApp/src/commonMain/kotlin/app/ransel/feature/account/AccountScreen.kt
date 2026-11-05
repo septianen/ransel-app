@@ -271,7 +271,7 @@ fun AccountScreen(
             }
             Section(stringResource(Res.string.account_section_other)) {
                 val links = androidx.compose.ui.platform.LocalUriHandler.current
-                if (session is app.ransel.data.auth.SessionState.SignedIn) {
+                run {
                     val tour: app.ransel.ui.tour.TourController = org.koin.compose.koinInject()
                     val scope = androidx.compose.runtime.rememberCoroutineScope()
                     // the subset has no "tour" symbol: help stands in
