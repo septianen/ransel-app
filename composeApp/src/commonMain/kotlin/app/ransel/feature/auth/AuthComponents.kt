@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.withStyle
+import app.ransel.ui.components.GoogleSignInButton
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -47,10 +51,16 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back
+import ransel.composeapp.generated.resources.auth_consent_link
+import ransel.composeapp.generated.resources.auth_consent_prefix
+import ransel.composeapp.generated.resources.auth_consent_suffix
+import ransel.composeapp.generated.resources.auth_or_use_email
 import ransel.composeapp.generated.resources.auth_error_account_disabled
 import ransel.composeapp.generated.resources.auth_error_connection
 import ransel.composeapp.generated.resources.auth_error_email_taken
 import ransel.composeapp.generated.resources.auth_error_generic
+import ransel.composeapp.generated.resources.auth_error_google
+import ransel.composeapp.generated.resources.auth_error_google_only
 import ransel.composeapp.generated.resources.auth_error_invalid_credentials
 import ransel.composeapp.generated.resources.auth_error_rate_limited
 import ransel.composeapp.generated.resources.auth_error_registration_closed
@@ -227,5 +237,71 @@ fun problemText(problem: AuthProblem): String =
         AuthProblem.CONNECTION -> stringResource(Res.string.auth_error_connection)
         AuthProblem.RESET_TOKEN_INVALID -> stringResource(Res.string.reset_token_invalid_body)
         AuthProblem.REGISTRATION_CLOSED -> stringResource(Res.string.auth_error_registration_closed)
+        AuthProblem.GOOGLE_FAILED -> stringResource(Res.string.auth_error_google)
+        AuthProblem.GOOGLE_ACCOUNT_ONLY -> stringResource(Res.string.auth_error_google_only)
         AuthProblem.GENERIC -> stringResource(Res.string.auth_error_generic)
     }
+
+/**
+ * Google button, its inline problem and the "atau pakai email" divider (design `MasukGoogle`). Nothing shows while the
+ * server has Google sign-in off. [content] is the email form below it, which is dimmed and blocked while Google works.
+ */
+@Composable
+fun GoogleAuthSection(
+    state: GoogleUiState,
+    onGoogle: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    if (state.available) {
+        GoogleSignInButton(onClick = onGoogle, loading = state.loading)
+        // the message under the button; email-form problems stay under their own form
+        if (state.problem != null) AuthProblemText(state.problem)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.HorizontalDivider(Modifier.weight(1f))
+            Text(stringResource(Res.string.auth_or_use_email), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            androidx.compose.material3.HorizontalDivider(Modifier.weight(1f))
+        }
+    }
+    Box {
+        Column(
+            Modifier.alpha(if (state.loading) 0.38f else 1f),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            content = content,
+        )
+        if (state.loading) {
+            // swallow touches: the form is off while the server exchanges Google's token
+            Box(
+                Modifier.matchParentSize().pointerInput(Unit) {
+                    awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } }
+                },
+            )
+        }
+    }
+}
+
+/** "Dengan melanjutkan, kamu setuju dengan Kebijakan Privasi RANSEL." Terms are not written yet, so only the policy links. */
+@Composable
+fun AuthConsentLine(modifier: Modifier = Modifier) {
+    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+    val link = MaterialTheme.colorScheme.primary
+    val text = androidx.compose.ui.text.buildAnnotatedString {
+        append(stringResource(Res.string.auth_consent_prefix))
+        pushLink(
+            androidx.compose.ui.text.LinkAnnotation.Clickable("privacy") {
+                runCatching { uriHandler.openUri(app.ransel.feature.account.PRIVACY_POLICY_URL) }
+            },
+        )
+        withStyle(androidx.compose.ui.text.SpanStyle(color = link, fontWeight = FontWeight.Bold)) {
+            append(stringResource(Res.string.auth_consent_link))
+        }
+        pop()
+        append(stringResource(Res.string.auth_consent_suffix))
+    }
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth(),
+    )
+}

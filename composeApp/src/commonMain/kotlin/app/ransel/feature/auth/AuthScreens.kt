@@ -27,6 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
+import app.ransel.platform.rememberGoogleSignInLauncher
 import app.ransel.ui.components.FullScreenState
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.symbols.Symbol
@@ -94,38 +95,48 @@ fun SignInScreen(
     viewModel: SignInViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val googleState by viewModel.google.state.collectAsState()
+    val googleLauncher = rememberGoogleSignInLauncher()
     AuthScaffold(
         title = stringResource(Res.string.sign_in_title),
         subtitle = stringResource(Res.string.sign_in_subtitle),
         modifier = modifier,
         onBack = onBack,
-        footer = { AuthFooter(stringResource(Res.string.no_account_yet), stringResource(Res.string.sign_up_link), onSignUp) },
-    ) {
-        IrisTextField(
-            label = stringResource(Res.string.field_email),
-            value = state.email,
-            onValueChange = viewModel::setEmail,
-            leadingSymbol = Symbols.mail,
-            error = if (state.emailError) stringResource(Res.string.field_error_email) else null,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-        )
-        PasswordField(
-            value = state.password,
-            onValueChange = viewModel::setPassword,
-            error = if (state.passwordError) stringResource(Res.string.field_error_password) else null,
-        )
-        TextButton(onClick = onForgotPassword, modifier = Modifier.align(Alignment.End)) {
-            Text(stringResource(Res.string.forgot_password_link), style = MaterialTheme.typography.labelLarge)
-        }
-        AuthProblemText(state.problem)
-        AuthPrimaryButton(stringResource(Res.string.sign_in_action), viewModel::submit, loading = state.loading)
-        if (onContinueWithoutAccount != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                HorizontalDivider(Modifier.weight(1f))
-                Text(stringResource(Res.string.or_divider), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                HorizontalDivider(Modifier.weight(1f))
+        footer = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Google can create an account here, so the consent line sits above the footer (design `MasukGoogle`)
+                if (googleState.available) AuthConsentLine(Modifier.padding(bottom = 8.dp))
+                AuthFooter(stringResource(Res.string.no_account_yet), stringResource(Res.string.sign_up_link), onSignUp)
             }
-            AuthSecondaryButton(stringResource(Res.string.use_without_account), onContinueWithoutAccount, symbol = Symbols.noAccounts)
+        },
+    ) {
+        GoogleAuthSection(googleState, onGoogle = { viewModel.google.start(googleLauncher) }) {
+            IrisTextField(
+                label = stringResource(Res.string.field_email),
+                value = state.email,
+                onValueChange = viewModel::setEmail,
+                leadingSymbol = Symbols.mail,
+                error = if (state.emailError) stringResource(Res.string.field_error_email) else null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            )
+            PasswordField(
+                value = state.password,
+                onValueChange = viewModel::setPassword,
+                error = if (state.passwordError) stringResource(Res.string.field_error_password) else null,
+            )
+            TextButton(onClick = onForgotPassword, modifier = Modifier.align(Alignment.End)) {
+                Text(stringResource(Res.string.forgot_password_link), style = MaterialTheme.typography.labelLarge)
+            }
+            AuthProblemText(state.problem)
+            AuthPrimaryButton(stringResource(Res.string.sign_in_action), viewModel::submit, loading = state.loading)
+            if (onContinueWithoutAccount != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    HorizontalDivider(Modifier.weight(1f))
+                    Text(stringResource(Res.string.or_divider), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    HorizontalDivider(Modifier.weight(1f))
+                }
+                AuthSecondaryButton(stringResource(Res.string.use_without_account), onContinueWithoutAccount, symbol = Symbols.noAccounts)
+            }
         }
     }
 }
@@ -138,6 +149,8 @@ fun SignUpScreen(
     viewModel: SignUpViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
+    val googleState by viewModel.google.state.collectAsState()
+    val googleLauncher = rememberGoogleSignInLauncher()
     AuthScaffold(
         title = stringResource(Res.string.sign_up_title),
         subtitle = stringResource(Res.string.sign_up_subtitle),
@@ -145,29 +158,31 @@ fun SignUpScreen(
         onBack = onBack,
         footer = { AuthFooter(stringResource(Res.string.have_account), stringResource(Res.string.sign_in_action), onSignIn) },
     ) {
-        IrisTextField(
-            label = stringResource(Res.string.field_name),
-            value = state.name,
-            onValueChange = viewModel::setName,
-            leadingSymbol = Symbols.person,
-            error = if (state.nameError) stringResource(Res.string.field_error_name) else null,
-        )
-        IrisTextField(
-            label = stringResource(Res.string.field_email),
-            value = state.email,
-            onValueChange = viewModel::setEmail,
-            leadingSymbol = Symbols.mail,
-            error = if (state.emailError) stringResource(Res.string.field_error_email) else null,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-        )
-        PasswordField(
-            value = state.password,
-            onValueChange = viewModel::setPassword,
-            error = if (state.passwordError) stringResource(Res.string.field_error_password) else null,
-        )
-        PasswordRules(state.passwordCheck)
-        AuthProblemText(state.problem)
-        AuthPrimaryButton(stringResource(Res.string.sign_up_action), viewModel::submit, loading = state.loading)
+        GoogleAuthSection(googleState, onGoogle = { viewModel.google.start(googleLauncher) }) {
+            IrisTextField(
+                label = stringResource(Res.string.field_name),
+                value = state.name,
+                onValueChange = viewModel::setName,
+                leadingSymbol = Symbols.person,
+                error = if (state.nameError) stringResource(Res.string.field_error_name) else null,
+            )
+            IrisTextField(
+                label = stringResource(Res.string.field_email),
+                value = state.email,
+                onValueChange = viewModel::setEmail,
+                leadingSymbol = Symbols.mail,
+                error = if (state.emailError) stringResource(Res.string.field_error_email) else null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            )
+            PasswordField(
+                value = state.password,
+                onValueChange = viewModel::setPassword,
+                error = if (state.passwordError) stringResource(Res.string.field_error_password) else null,
+            )
+            PasswordRules(state.passwordCheck)
+            AuthProblemText(state.problem)
+            AuthPrimaryButton(stringResource(Res.string.sign_up_action), viewModel::submit, loading = state.loading)
+        }
         val links = androidx.compose.ui.platform.LocalUriHandler.current
         androidx.compose.material3.TextButton(
             onClick = { runCatching { links.openUri(app.ransel.feature.account.PRIVACY_POLICY_URL) } },

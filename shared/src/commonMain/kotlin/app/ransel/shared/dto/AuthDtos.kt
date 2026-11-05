@@ -34,6 +34,33 @@ data class AuthSessionDto(
     val accessTokenExpiresAt: Timestamp,
     val refreshToken: String,
     val user: MeDto,
+    /** True when this call created the account (POST /auth/google for a new Google user; register). */
+    val newAccount: Boolean = false,
+)
+
+/**
+ * POST /auth/google. Exactly one of [idToken] (Android Credential Manager, iOS Google Sign-In SDK) or [authCode]
+ * (web: Google Identity Services code client in popup mode, exchanged by the server with redirect_uri "postmessage").
+ * The server verifies the token against Google's keys with our client ids as audience and needs `email_verified`.
+ * A known Google account signs in; an email already registered is linked (a never-verified one loses its password
+ * and its other sessions); a new email creates a verified account with the Google name and the signup credits.
+ */
+@Serializable
+data class GoogleSignInRequest(
+    val idToken: String? = null,
+    val authCode: String? = null,
+    val deviceName: String? = null,
+)
+
+/**
+ * GET /auth/google/config: the OAuth client ids the apps start Google sign-in with (public values, kept in the
+ * server environment so they never live in the apps). [webClientId] null = Google sign-in is off: hide the button.
+ * Android passes [webClientId] as the server client id; iOS needs [iosClientId] too.
+ */
+@Serializable
+data class GoogleSignInConfigDto(
+    val webClientId: String? = null,
+    val iosClientId: String? = null,
 )
 
 /** POST /auth/password/forgot — always 204, never reveals whether the email exists. */

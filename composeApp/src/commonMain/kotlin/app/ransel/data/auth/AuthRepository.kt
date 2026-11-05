@@ -4,6 +4,8 @@ import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.remote.deviceName
 import app.ransel.shared.dto.AuthSessionDto
+import app.ransel.shared.dto.GoogleSignInConfigDto
+import app.ransel.shared.dto.GoogleSignInRequest
 import app.ransel.shared.dto.LoginRequest
 import app.ransel.shared.dto.RegisterRequest
 import app.ransel.shared.dto.VerifyEmailResponse
@@ -38,6 +40,32 @@ class AuthRepository(
 ) {
     suspend fun signIn(email: String, password: String): ApiResult<Unit> =
         started(api.login(LoginRequest(email.trim(), password, deviceName())))
+
+    private var googleConfig: GoogleSignInConfigDto? = null
+
+    /** The client ids Google sign-in starts with; null while the server has it off or cannot be reached. Cached once found. */
+    suspend fun googleConfig(): GoogleSignInConfigDto? {
+        googleConfig?.let { return it }
+        val found = (api.googleConfig() as? ApiResult.Success)?.value?.takeIf { it.webClientId != null }
+        googleConfig = found
+        return found
+    }
+
+    /** Sends Google's proof; the server signs in, links or creates the account. Success carries `newAccount`. */
+    suspend fun signInWithGoogle(proof: GoogleProof): ApiResult<Boolean> {
+        val request = when (proof) {
+            is GoogleProof.IdToken -> GoogleSignInRequest(idToken = proof.value, deviceName = deviceName())
+            is GoogleProof.AuthCode -> GoogleSignInRequest(authCode = proof.value, deviceName = deviceName())
+        }
+        return when (val result = api.googleSignIn(request)) {
+            is ApiResult.Failure -> result
+            is ApiResult.Success -> {
+                // A Google account's email is verified: no "Satu langkah lagi" prompt.
+                started(result)
+                ApiResult.Success(result.value.newAccount)
+            }
+        }
+    }
 
     /** A new account starts unverified: the navigation then shows "Satu langkah lagi" ([EmailVerification.prompt]). */
     suspend fun signUp(displayName: String, email: String, password: String): ApiResult<Unit> {

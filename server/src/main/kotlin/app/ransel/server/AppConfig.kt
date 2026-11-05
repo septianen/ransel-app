@@ -54,6 +54,14 @@ data class AppConfig(
     val placesApiKey: String = "",
     /** Trip albums: Drive API v3 key that lists public folders. Blank = albums still save, the gallery answers 503 ALBUM_UNAVAILABLE. */
     val googleDriveApiKey: String = "",
+    /**
+     * "Lanjutkan dengan Google". `GOOGLE_WEB_CLIENT_ID` is the audience of Android and web tokens (and the id the web
+     * button starts with); `GOOGLE_IOS_CLIENT_ID` the iOS one; `GOOGLE_WEB_CLIENT_SECRET` exchanges the web auth code.
+     * Blank web id = Google sign-in is off (`GET /auth/google/config` has no ids, `POST /auth/google` answers 503).
+     */
+    val googleWebClientId: String = "",
+    val googleIosClientId: String = "",
+    val googleWebClientSecret: String = "",
     /** HMAC key for the signed place-photo links. Required in production, separate from [jwtSecret]. */
     val photoSigningSecret: String = DEV_PHOTO_SIGNING_SECRET,
     /** Where trip document files live (a Docker volume in production). */
@@ -255,6 +263,9 @@ data class AppConfig(
                 },
                 placesApiKey = env["PLACES_API_KEY"].orEmpty().trim(),
                 googleDriveApiKey = env["GOOGLE_DRIVE_API_KEY"].orEmpty().trim(),
+                googleWebClientId = env["GOOGLE_WEB_CLIENT_ID"].orEmpty().trim(),
+                googleIosClientId = env["GOOGLE_IOS_CLIENT_ID"].orEmpty().trim(),
+                googleWebClientSecret = env["GOOGLE_WEB_CLIENT_SECRET"].orEmpty().trim(),
                 photoSigningSecret = photoSecret,
                 documentsDir = env["DOCUMENTS_DIR"]?.takeIf { it.isNotBlank() } ?: "./data/documents",
                 imagesDir = env["IMAGES_DIR"]?.takeIf { it.isNotBlank() }

@@ -40,6 +40,9 @@ import app.ransel.server.routes.adminRoutes
 import app.ransel.server.routes.imageFileRoutes
 import app.ransel.server.routes.photoRoutes
 import app.ransel.server.routes.authRoutes
+import app.ransel.server.security.GoogleTokenVerifier
+import app.ransel.server.security.GoogleVerifier
+import app.ransel.server.security.NoGoogleVerifier
 import app.ransel.server.routes.creditRoutes
 import app.ransel.server.routes.balanceRoutes
 import app.ransel.server.routes.paymentMethodRoutes
@@ -145,6 +148,7 @@ fun Application.module(
     linkFetcher: LinkFetcher? = null,
     /** Null = Drive API v3 with `GOOGLE_DRIVE_API_KEY` (none without a key); tests pass a fake. */
     drive: DriveFolders? = null,
+    googleVerifier: GoogleVerifier? = null,
 ) {
     val pool = DatabaseFactory.connect(config)
     TemplateSeed.run()
@@ -260,7 +264,12 @@ fun Application.module(
     val tokens = TokenService(config)
     val hasher = PasswordHasher(config.bcryptCost)
     val verification = EmailVerificationService(config, tokens, emailSender, credits, this)
-    val auth = AuthService(config, hasher, tokens, verification)
+    val googleHttp = if (googleVerifier == null && config.googleWebClientId.isNotBlank()) HttpClient(OkHttp) else null
+    monitor.subscribe(ApplicationStopped) { googleHttp?.close() }
+    val auth = AuthService(
+        config, hasher, tokens, verification, credits,
+        googleVerifier ?: googleHttp?.let { GoogleTokenVerifier(config, it) } ?: NoGoogleVerifier,
+    )
     config.seedUsers.forEach(auth::seed)
     val passwordReset = PasswordResetService(config, hasher, tokens, emailSender, this)
     val admin = AdminService(config, credits, passwordReset, hasher, tokens)

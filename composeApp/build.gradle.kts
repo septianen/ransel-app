@@ -119,6 +119,10 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             // one coarse fix for "Gunakan lokasi saat ini"
             implementation(libs.play.services.location)
+            // "Lanjutkan dengan Google": Credential Manager's Google sheet
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services.auth)
+            implementation(libs.googleid)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.coroutines.android)

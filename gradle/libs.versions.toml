@@ -10,6 +10,8 @@ ktor = "3.5.2"
 coil = "3.4.0"
 filekit = "0.15.0"
 play-services-location = "21.3.0"
+androidx-credentials = "1.5.0"
+googleid = "1.1.1"
 chucker = "4.3.1"
 firebase-bom = "33.7.0"
 google-services = "4.4.2"
@@ -30,6 +32,9 @@ testcontainers = "2.0.5"
 bcrypt = "0.10.2"
 
 [libraries]
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "androidx-credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "play-services-location" }
 filekit-dialogs-compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }

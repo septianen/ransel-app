@@ -86,6 +86,8 @@ object ErrorCode {
     const val ACCOUNT_DISABLED = "ACCOUNT_DISABLED"        // 403 on /auth/login (right password) and /auth/refresh: an admin deactivated the account
     const val VERIFY_TOKEN_INVALID = "VERIFY_TOKEN_INVALID" // 400 on /auth/email/verify (expired, replaced by a newer link, unknown)
     const val EMAIL_NOT_VERIFIED = "EMAIL_NOT_VERIFIED"    // 403 on Explore and voucher routes until the account's email is verified
+    const val GOOGLE_ACCOUNT_ONLY = "GOOGLE_ACCOUNT_ONLY"  // 401 on /auth/login: the account has no password, it signs in with Google
+    const val GOOGLE_TOKEN_INVALID = "GOOGLE_TOKEN_INVALID" // 401 on /auth/google: the Google token or code is invalid, expired, for another app, or its email is not verified by Google
 
     // trips & members
     const val TRIP_NOT_FOUND = "TRIP_NOT_FOUND"            // 404 (also when the user is not a member, to avoid leaking existence)
@@ -166,6 +168,8 @@ object ErrorCode {
         ACCOUNT_DISABLED,
         VERIFY_TOKEN_INVALID,
         EMAIL_NOT_VERIFIED,
+        GOOGLE_ACCOUNT_ONLY,
+        GOOGLE_TOKEN_INVALID,
         TRIP_NOT_FOUND,
         INVITE_EXPIRED,
         INVITE_REVOKED,
