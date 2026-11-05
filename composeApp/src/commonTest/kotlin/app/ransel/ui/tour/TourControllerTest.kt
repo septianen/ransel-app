@@ -78,11 +78,18 @@ class TourControllerTest {
     }
 
     @Test
-    fun guestsNeverSeeATour() = runTest {
+    fun guestsSeeTheTourAndTheirFlagsMoveToTheAccountThatSignsIn() = runTest {
         user = null
         show(TourTarget.TRIP_TABS)
         tour.start(TourId.TRIP, tripTour)
-        assertNull(tour.run)
+        assertNotNull(tour.run, "guests get the tour too (owner, 5 Nov 2026)")
+        tour.finish()
+        tour.persistFlags()
+        assertTrue(tour.isDone(TourId.TRIP))
+        user = "u1" // signs in on this device: seen already
+        assertTrue(tour.isDone(TourId.TRIP))
+        user = "u2" // a second account still gets it
+        assertFalse(tour.isDone(TourId.TRIP))
     }
 
     @Test
