@@ -1,5 +1,6 @@
 package app.ransel.ui.shell
 
+import app.ransel.ui.tour.tourTarget
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +63,7 @@ fun RanselNavigationRail(
             Column(
                 Modifier
                     .width(80.dp)
+                    .then(tab.tourTarget()?.let { Modifier.tourTarget(it, cornerRadius = 16.dp, onClick = { onSelect(tab) }) } ?: Modifier)
                     .clip(IrisShape.md)
                     .clickable(role = Role.Tab) { onSelect(tab) }
                     .padding(vertical = 4.dp),

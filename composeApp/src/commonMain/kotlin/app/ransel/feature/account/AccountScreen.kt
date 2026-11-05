@@ -1,5 +1,8 @@
 package app.ransel.feature.account
 
+import kotlinx.coroutines.launch
+import ransel.composeapp.generated.resources.tour_replay_hint
+import ransel.composeapp.generated.resources.tour_replay
 import ransel.composeapp.generated.resources.account_photo_sheet_title
 import ransel.composeapp.generated.resources.action_save
 import ransel.composeapp.generated.resources.account_name_failed
@@ -141,6 +144,8 @@ fun AccountScreen(
     onSignIn: () -> Unit = {},
     onSignUp: () -> Unit = {},
     onDeleteAccount: () -> Unit = {},
+    /** "Ulangi panduan": the tour's flags are cleared, then the app goes to Beranda, which starts the tour. */
+    onReplayTour: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
 ) {
     val prefs by viewModel.state.collectAsState()
@@ -266,6 +271,14 @@ fun AccountScreen(
             }
             Section(stringResource(Res.string.account_section_other)) {
                 val links = androidx.compose.ui.platform.LocalUriHandler.current
+                if (session is app.ransel.data.auth.SessionState.SignedIn) {
+                    val tour: app.ransel.ui.tour.TourController = org.koin.compose.koinInject()
+                    val scope = androidx.compose.runtime.rememberCoroutineScope()
+                    // the subset has no "tour" symbol: help stands in
+                    HintRow(Symbols.help, stringResource(Res.string.tour_replay), stringResource(Res.string.tour_replay_hint)) {
+                        scope.launch { tour.replay(); onReplayTour() }
+                    }
+                }
                 SettingRow(Symbols.lock, stringResource(Res.string.account_privacy), null, onClick = { runCatching { links.openUri(PRIVACY_POLICY_URL) } })
                 SettingRow(Symbols.info, stringResource(Res.string.account_about), installedAppVersion?.let { "v$it" }.orEmpty(), onClick = null)
             }
@@ -355,6 +368,25 @@ private fun SettingRow(symbol: String, title: String, value: String?, onClick: (
             Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (onClick != null) Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun HintRow(symbol: String, title: String, hint: String, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        LeadingTile(symbol)
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+            Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

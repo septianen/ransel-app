@@ -1,5 +1,6 @@
 package app.ransel.feature.trip
 
+import app.ransel.ui.tour.tourTarget
 import app.ransel.ui.RefreshOnReturn
 import app.ransel.shared.dto.TripDto
 import ransel.composeapp.generated.resources.trip_gone_body
@@ -104,6 +105,8 @@ fun TripScreen(
     val answer by remember(tripId) { trips.observeTrip(tripId).map { TripAnswer(it) } }.collectAsState(initial = null)
     val trip = answer?.trip
     var tab by rememberSaveable { mutableStateOf(initialTab) }
+    // New-user tour: the first trip ever opened (tabs, then +), and a tip the first time each tab opens
+    val tour: app.ransel.ui.tour.TourController = koinInject()
     val dates = rememberDateFormatter()
     val current = trip
 
@@ -147,6 +150,17 @@ fun TripScreen(
             } finally {
                 refreshing = false
             }
+        }
+    }
+
+    val loaded = current != null
+    LaunchedEffect(loaded, tab) {
+        if (!loaded) return@LaunchedEffect
+        when (tab) {
+            TripTab.OVERVIEW -> tour.start(app.ransel.ui.tour.TourId.TRIP, app.ransel.ui.tour.tripTour)
+            TripTab.ITINERARY -> tour.start(app.ransel.ui.tour.TourId.ITINERARY, app.ransel.ui.tour.itineraryTip)
+            TripTab.PACKING -> tour.start(app.ransel.ui.tour.TourId.PACKING, app.ransel.ui.tour.packingTip)
+            TripTab.EXPENSES -> tour.start(app.ransel.ui.tour.TourId.EXPENSES, app.ransel.ui.tour.expensesTip)
         }
     }
 
@@ -238,7 +252,8 @@ fun TripScreen(
                     Symbols.add,
                     label = stringResource(Res.string.group_fab_description),
                     onClick = { actionSheetOpen = true },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
+                        .tourTarget(app.ransel.ui.tour.TourTarget.TRIP_ADD, cornerRadius = 16.dp, onClick = { actionSheetOpen = true }),
                 )
             }
             }

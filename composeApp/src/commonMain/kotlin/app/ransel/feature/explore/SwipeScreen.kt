@@ -1,5 +1,6 @@
 package app.ransel.feature.explore
 
+import app.ransel.ui.tour.tourTarget
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -288,9 +289,12 @@ private fun CardsContent(
             onSkip = onSkip,
             onUndo = onUndo,
             onOpenDetail = onOpenDetail,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).tourTarget(app.ransel.ui.tour.TourTarget.SWIPE_CARDS, cornerRadius = 24.dp),
         )
     }
+    // the first swipe screen ever: how the cards work
+    val tour: app.ransel.ui.tour.TourController = org.koin.compose.koinInject()
+    androidx.compose.runtime.LaunchedEffect(Unit) { tour.start(app.ransel.ui.tour.TourId.SWIPE, app.ransel.ui.tour.swipeTip) }
 }
 
 /**

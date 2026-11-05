@@ -1,5 +1,7 @@
 package app.ransel.feature.home
 
+import androidx.compose.runtime.LaunchedEffect
+import app.ransel.ui.tour.tourTarget
 import app.ransel.feature.recap.storyText
 import app.ransel.ui.RefreshOnReturn
 import androidx.compose.foundation.background
@@ -118,6 +120,16 @@ fun HomeScreen(
     val inbox by koinInject<NotificationsStore>().inbox.collectAsState()
     val recapTrip by viewModel.recapTrip.collectAsState()
     val recap: (@Composable () -> Unit)? = recapTrip?.let { trip -> { RecapCardOnHome(trip.id, onOpen = { onOpenRecap(trip.id) }, onSettle = { onOpenTrip(trip.id, TripSection.EXPENSES) }) } }
+    // New-user tour: a signed-in user without any trip (invited ones count), once; "Ulangi panduan" whatever the trips
+    val tour: app.ransel.ui.tour.TourController = koinInject()
+    val replay = tour.replayHome
+    LaunchedEffect(state is HomeUiState.Empty, state is HomeUiState.Loading, replay, signedIn) {
+        if (!signedIn || state is HomeUiState.Loading) return@LaunchedEffect
+        if (replay) tour.replayConsumed()
+        if (replay || state is HomeUiState.Empty) {
+            tour.start(app.ransel.ui.tour.TourId.HOME, app.ransel.ui.tour.homeTour(tour.creditNumbers()), force = replay)
+        }
+    }
     HomeContent(state, onOpenTrip, onCreateTrip, modifier, onExplore, unreadCount = if (signedIn) (inbox?.unreadCount ?: 0) else null, onOpenNotifications = onOpenNotifications, recap = recap)
 }
 
@@ -146,6 +158,7 @@ fun HomeContent(
                 body = stringResource(Res.string.home_empty_body),
                 primaryLabel = stringResource(Res.string.home_empty_action),
                 onPrimary = onCreateTrip,
+                primaryModifier = Modifier.tourTarget(app.ransel.ui.tour.TourTarget.HOME_CREATE, cornerRadius = 24.dp, onClick = onCreateTrip),
                 illustration = painterResource(Res.drawable.ic_data_not_found),
             )
         }

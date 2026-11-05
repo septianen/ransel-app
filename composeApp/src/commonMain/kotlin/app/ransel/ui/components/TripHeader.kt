@@ -1,5 +1,6 @@
 package app.ransel.ui.components
 
+import app.ransel.ui.tour.tourTarget
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -94,6 +95,7 @@ fun TripHeader(
         }
         PrimaryTabRow(
             selectedTabIndex = selectedTab.ordinal,
+            modifier = Modifier.tourTarget(app.ransel.ui.tour.TourTarget.TRIP_TABS, cornerRadius = 0.dp),
             containerColor = MaterialTheme.colorScheme.surface,
             divider = { HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant) },
         ) {

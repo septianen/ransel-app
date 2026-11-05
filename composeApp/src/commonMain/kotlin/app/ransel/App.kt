@@ -329,6 +329,9 @@ private fun SessionGate(openSignIn: Boolean) {
     }
     // Below the minimum Karung sets for this platform: an update dialog over whatever is showing (mobile only).
     app.ransel.feature.update.AppUpdatePrompt(ready = state !is SessionState.Loading)
+    // the tour waits while the permission sheet is open
+    val tour: app.ransel.ui.tour.TourController = koinInject()
+    LaunchedEffect(explainPermission) { tour.blocked = explainPermission }
     if (explainPermission) {
         NotificationPermissionSheet(
             onAllow = { explainPermission = false; registrar.explanationDismissed(); registrar.requestPermission() },
@@ -560,6 +563,8 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                 }
             }
         }
+        // the new-user tour: over every screen and the rail
+        app.ransel.ui.tour.TourOverlay()
     }
     }
 }
@@ -734,6 +739,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenNotifications = { navController.navigate(NotificationSettingsRoute) },
             onDeleteAccount = { navController.navigate(DeleteAccountRoute) },
+            onReplayTour = { navController.openTab(MainTab.HOME) },
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
             debugContent = if (!isDebugBuild) null else ({

@@ -102,6 +102,10 @@ val commonModule: Module = module {
     viewModelOf(::NotificationSettingsViewModel)
     single { ExploreSessionStore(get(), get()) }
     single { app.ransel.content.RemoteContentStore(get(), get(), get()) }
+    single {
+        val session = get<SessionManager>()
+        app.ransel.ui.tour.TourController(get(), { (session.state.value as? app.ransel.data.auth.SessionState.SignedIn)?.user?.id }, get())
+    }
     viewModelOf(::ExploreTripPickerViewModel)
     viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
     viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get(), get()) }
