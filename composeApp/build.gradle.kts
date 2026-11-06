@@ -177,7 +177,7 @@ android {
         targetSdk = 36
         // CI passes -Pransel.versionCode=<run number> so each distributed build installs over the previous one.
         versionCode = (project.findProperty("ransel.versionCode") as String?)?.toInt() ?: 1
-        versionName = "1.0.0"
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { buildConfig = true }
