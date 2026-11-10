@@ -1301,6 +1301,9 @@
     <string name="receipt_mismatch">Item belum cocok dengan total, selisih %1$s. Bagi rata saja, atau catat manual.</string>
     <string name="receipt_add_item">Tambah item</string>
     <string name="receipt_item_name">Nama item</string>
+    <string name="receipt_item_amount">Jumlah</string>
+    <string name="receipt_edit_line">Ubah</string>
+    <string name="receipt_delete_item">Hapus item</string>
     <string name="receipt_item_name_error">Isi nama item.</string>
     <string name="receipt_item_deleted">%1$s dihapus.</string>
     <string name="receipt_item_deleted_generic">Item dihapus.</string>

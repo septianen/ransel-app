@@ -25,6 +25,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -533,7 +534,7 @@ fun ExpenseSheet(
             )
             ItemSplitLines(itemSplit, currency, members, picking = perItem && split != null) { message, undoDelete ->
                 scope.launch {
-                    val result = snackbar.showSnackbar(message, actionLabel = undo)
+                    val result = snackbar.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Long)
                     if (result == SnackbarResult.ActionPerformed) undoDelete()
                 }
             }

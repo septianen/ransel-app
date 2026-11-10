@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -357,14 +358,14 @@ private fun ReceiptResult(
             form.itemSplit, currency, members, picking = shared && form.perItem,
             onDeleted = { message, undoDelete ->
                 scope.launch {
-                    val result = snackbar.showSnackbar(message, actionLabel = undo)
+                    val result = snackbar.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Long)
                     if (result == SnackbarResult.ActionPerformed) undoDelete()
                 }
             },
         )
         if (form.includedExtrasMinor > 0) {
             Text(
-                stringResource(Res.string.receipt_incl_pb1, formatMoney(form.includedExtrasMinor, currency)),
+                stringResource(Res.string.receipt_incl_pb1, form.includedTaxPhrase),
                 style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
             )
         }

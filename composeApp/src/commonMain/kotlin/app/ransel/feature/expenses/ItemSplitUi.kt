@@ -56,8 +56,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.receipt_add_item
+import ransel.composeapp.generated.resources.receipt_delete_item
 import ransel.composeapp.generated.resources.receipt_delete_item_cd
+import ransel.composeapp.generated.resources.receipt_edit_line
 import ransel.composeapp.generated.resources.receipt_extras_spread
+import ransel.composeapp.generated.resources.receipt_item_amount
 import ransel.composeapp.generated.resources.receipt_item_deleted
 import ransel.composeapp.generated.resources.receipt_item_deleted_generic
 import ransel.composeapp.generated.resources.receipt_item_name
@@ -81,12 +84,10 @@ fun ItemSplitLines(
     onDeleted: (message: String, undo: () -> Unit) -> Unit = { _, _ -> },
 ) {
     val scope = rememberCoroutineScope()
-    val deletedNamed = stringResource(Res.string.receipt_item_deleted)
-    val deletedGeneric = stringResource(Res.string.receipt_item_deleted_generic)
     val itemIndexes = split.lines.indices.filter { it != split.extrasIndex }
     val taxIndex = split.extrasIndex.takeIf { it >= 0 }
     itemIndexes.forEach { index ->
-        LineCard(split, index, currency, members, picking, scope, deletedNamed, deletedGeneric, onDeleted)
+        LineCard(split, index, currency, members, picking, scope, onDeleted)
     }
     TextButton(
         onClick = { split.addOrFocusBlank() },
@@ -102,7 +103,7 @@ fun ItemSplitLines(
         )
     }
     if (taxIndex != null) {
-        LineCard(split, taxIndex, currency, members, picking = false, scope, deletedNamed, deletedGeneric, onDeleted)
+        LineCard(split, taxIndex, currency, members, picking = false, scope, onDeleted)
     }
 }
 
@@ -114,12 +115,15 @@ private fun LineCard(
     members: List<TripMemberDto>,
     picking: Boolean,
     scope: CoroutineScope,
-    deletedNamed: String,
-    deletedGeneric: String,
     onDeleted: (message: String, undo: () -> Unit) -> Unit,
 ) {
     val line = split.lines[index]
     val extras = index == split.extrasIndex
+    val deletedMessage = if (line.name.isBlank()) {
+        stringResource(Res.string.receipt_item_deleted_generic)
+    } else {
+        stringResource(Res.string.receipt_item_deleted, line.name)
+    }
     androidx.compose.runtime.key(split.keyAt(index)) {
         Column(
             Modifier.fillMaxWidth().clip(IrisShape.md).border(1.dp, MaterialTheme.colorScheme.outlineVariant, IrisShape.md).padding(12.dp),
@@ -130,8 +134,7 @@ private fun LineCard(
             } else {
                 LineView(split, index, line.name, line.amountMinor, currency) {
                     val removed = split.delete(index) ?: return@LineView
-                    val message = if (removed.name.isBlank()) deletedGeneric else deletedNamed.replace("%1\$s", removed.name)
-                    onDeleted(message) { split.restore(removed) }
+                    onDeleted(deletedMessage) { split.restore(removed) }
                 }
             }
             if (extras) {
@@ -157,20 +160,23 @@ private fun LineView(
     onDelete: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val editLabel = stringResource(Res.string.receipt_edit_line)
     val cd = if (name.isBlank()) {
-        stringResource(Res.string.receipt_item_deleted_generic)
+        stringResource(Res.string.receipt_delete_item)
     } else {
         stringResource(Res.string.receipt_delete_item_cd, name)
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
-            Modifier.weight(1f).heightIn(min = 48.dp).clickable { split.beginEdit(index, ItemSplit.FOCUS_NAME) },
+            Modifier.weight(1f).heightIn(min = 48.dp)
+                .clickable(role = Role.Button, onClickLabel = editLabel) { split.beginEdit(index, ItemSplit.FOCUS_NAME) },
             contentAlignment = Alignment.CenterStart,
         ) {
             Text(name, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         Box(
-            Modifier.heightIn(min = 48.dp).clickable { split.beginEdit(index, ItemSplit.FOCUS_AMOUNT) },
+            Modifier.heightIn(min = 48.dp)
+                .clickable(role = Role.Button, onClickLabel = editLabel) { split.beginEdit(index, ItemSplit.FOCUS_AMOUNT) },
             contentAlignment = Alignment.CenterEnd,
         ) {
             Text(
@@ -220,7 +226,7 @@ private fun LineEditor(split: ItemSplit, index: Int, currency: String, scope: Co
                 focusRequester = nameFocus,
             )
             IrisTextField(
-                label = "",
+                label = stringResource(Res.string.receipt_item_amount),
                 value = amountText,
                 onValueChange = {
                     val cleaned = sanitizeAmountInput(it, currencyDecimals(currency))

@@ -57,6 +57,7 @@ object LlmOutput {
     fun parseReceipt(content: String): LlmReceipt {
         val root = lenient.parseToJsonElement(extractJsonObject(content)) as? JsonObject ?: error("unexpected JSON")
         var tax = root.amount("tax")?.takeIf { it >= 0 } ?: 0.0
+        var taxRate: String? = null
         var service = root.amount("service")?.takeIf { it >= 0 } ?: 0.0
         var discount = root.amount("discount")?.takeIf { it >= 0 } ?: 0.0
         val items = mutableListOf<LlmReceiptLine>()
@@ -68,7 +69,10 @@ object LlmOutput {
             val amount = obj.amount("amount") ?: continue
             val quantity = obj.amount("quantity")?.toInt()?.takeIf { it in 1..999 }
             when (classifyReceiptLine(name)) {
-                ReceiptLineKind.TAX -> if (tax == 0.0 && amount > 0) tax = amount
+                ReceiptLineKind.TAX -> {
+                    if (taxRate == null) taxRate = taxRatePhrase(name)
+                    if (tax == 0.0 && amount > 0) tax = amount
+                }
                 ReceiptLineKind.SERVICE -> if (service == 0.0 && amount > 0) service = amount
                 ReceiptLineKind.DISCOUNT -> if (discount == 0.0 && amount != 0.0) discount = kotlin.math.abs(amount)
                 ReceiptLineKind.SKIP -> Unit
@@ -81,6 +85,7 @@ object LlmOutput {
             currency = root.text("currency")?.trim()?.uppercase()?.takeIf { it.length == 3 },
             items = items,
             tax = tax,
+            taxRate = taxRate,
             service = service,
             discount = discount,
             total = root.amount("total")?.takeIf { it > 0 },
@@ -156,6 +161,14 @@ object LlmOutput {
         require(low > 0 && mid > low) { "bad price guide" }
         return InterestSuggestions(interests, low, mid)
     }
+
+    /** "PB1 10%" and "Incl. Pb1 10%" yield "10%". A line with no percent yields null. */
+    internal fun taxRatePhrase(name: String): String? {
+        val match = TAX_RATE.find(name) ?: return null
+        return match.groupValues[1].replace(" ", "") + "%"
+    }
+
+    private val TAX_RATE = Regex("""(\d{1,2}(?:[.,]\d+)?)\s*%""")
 
     private enum class ReceiptLineKind { ITEM, TAX, SERVICE, DISCOUNT, SKIP }
 

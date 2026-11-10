@@ -52,6 +52,9 @@ class ReceiptFormState(
     val includedExtrasMinor: Long =
         if (extras > 0 && draft.items.sumOf { it.amountMinor } == draft.totalMinor) extras else 0
 
+    /** The rate in the Pb1 note: the phrase the receipt printed, or "10%" when it did not. Never an amount. */
+    val includedTaxPhrase: String = includedPb1Phrase(draft.includedTaxRate)
+
     /** What the receipt printed. Not the amount that is saved. */
     val scannedTotal: Long = draft.totalMinor
 
@@ -146,4 +149,15 @@ class ReceiptFormState(
         if (!perItem || s == null) return emptyList()
         return itemSplit.perPerson(s.paidBy, total, memberIds)
     }
+}
+
+private val PB1_RATE = Regex("""\d{1,2}(?:[.,]\d+)?%""")
+
+/**
+ * The "%1$s" of "Incl. Pb1 %1$s". A stored phrase that contains a rate ("10%", "Incl. Pb1 10%") wins.
+ * Anything else, including a rupiah amount, becomes "10%".
+ */
+fun includedPb1Phrase(stored: String?): String {
+    val phrase = stored?.trim().orEmpty()
+    return PB1_RATE.find(phrase)?.value?.replace(" ", "") ?: "10%"
 }

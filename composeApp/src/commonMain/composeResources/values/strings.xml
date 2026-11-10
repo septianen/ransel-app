@@ -1313,6 +1313,9 @@
     <string name="receipt_mismatch">Items do not match the total, %1$s apart. Split equally instead, or type it in.</string>
     <string name="receipt_add_item">Add item</string>
     <string name="receipt_item_name">Item name</string>
+    <string name="receipt_item_amount">Amount</string>
+    <string name="receipt_edit_line">Edit</string>
+    <string name="receipt_delete_item">Delete item</string>
     <string name="receipt_item_name_error">Enter the item name.</string>
     <string name="receipt_item_deleted">%1$s deleted.</string>
     <string name="receipt_item_deleted_generic">Item deleted.</string>

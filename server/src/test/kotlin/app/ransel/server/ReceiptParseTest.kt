@@ -64,6 +64,7 @@ class ReceiptParseTest {
         assertEquals(listOf(130_000.0, 15_000.0, 15_000.0), read.items.map { it.amount })
         assertEquals(2, read.items.first().quantity)
         assertEquals(16_000.0, read.tax)
+        assertEquals("10%", read.taxRate, "the printed rate, not the rupiah amount")
         assertEquals(8_000.0, read.service)
         assertEquals(10_000.0, read.discount)
         assertEquals(189_000.0, read.total)
@@ -71,6 +72,7 @@ class ReceiptParseTest {
         // 130.000 + 15.000 + 15.000 + 16.000 tax + 8.000 service - 10.000 discount = 174.000, not 189.000,
         // so the discount is left out of the lines and the app can show the gap.
         assertEquals(16_000L, draft.taxMinor)
+        assertEquals("10%", draft.includedTaxRate)
         assertEquals(8_000L, draft.serviceMinor)
         assertEquals(189_000L, draft.totalMinor)
         assertEquals(3, draft.items.size)
@@ -107,6 +109,7 @@ class ReceiptParseTest {
         val included = ReceiptService.toDraft(pb1, "IDR", wallet)
         assertEquals(75_000L, included.items.sumOf { it.amountMinor })
         assertEquals(6_818L, included.taxMinor, "Incl. Pb1 is not subtracted and not turned into a new line")
+        assertEquals(null, included.includedTaxRate)
         assertEquals(75_000L, included.totalMinor)
         assertEquals(2, included.items.size)
 

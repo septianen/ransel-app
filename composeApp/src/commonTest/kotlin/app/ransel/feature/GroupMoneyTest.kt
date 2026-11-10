@@ -15,6 +15,7 @@ import app.ransel.feature.expenses.PersonShare
 import app.ransel.shared.dto.ExpenseItemDto
 import app.ransel.feature.expenses.ItemSplit
 import app.ransel.feature.expenses.receipt.ReceiptFormState
+import app.ransel.feature.expenses.receipt.includedPb1Phrase
 import app.ransel.feature.expenses.receipt.ReceiptImage
 import app.ransel.feature.expenses.receipt.ReceiptStep
 import app.ransel.feature.expenses.receipt.ReceiptViewModel
@@ -445,6 +446,30 @@ class ReceiptTest {
         assertEquals(2, withTax.extrasIndex)
         assertEquals(setOf("a", "b"), withTax.sharersOf(0))
         assertTrue(withTax.sharersOf(2).isEmpty())
+    }
+
+    @Test
+    fun includedPb1NoteUsesTheRateNotTheAmount() {
+        assertEquals("10%", includedPb1Phrase(null))
+        assertEquals("10%", includedPb1Phrase(""))
+        assertEquals("10%", includedPb1Phrase("Rp6.818"))
+        assertEquals("10%", includedPb1Phrase("6818"))
+        assertEquals("10%", includedPb1Phrase("Incl. Pb1 10%"))
+        assertEquals("11%", includedPb1Phrase("11%"))
+        val included = ReceiptDraftDto(
+            spentOn = LocalDate(2017, 12, 3), currency = "IDR",
+            items = listOf(ReceiptLineDto("Cafe latte", 1, 35_000), ReceiptLineDto("Bread", 1, 40_000)),
+            taxMinor = 6_818, totalMinor = 75_000, credits = wallet,
+        )
+        assertEquals("10%", ReceiptFormState(included, receiptMembers, "a", "Pajak").includedTaxPhrase)
+        assertEquals(
+            "11%",
+            ReceiptFormState(included.copy(includedTaxRate = "11%"), receiptMembers, "a", "Pajak").includedTaxPhrase,
+        )
+        assertEquals(
+            "10%",
+            ReceiptFormState(included.copy(includedTaxRate = "Rp6.818"), receiptMembers, "a", "Pajak").includedTaxPhrase,
+        )
     }
 
     @Test

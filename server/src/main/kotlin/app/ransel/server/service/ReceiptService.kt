@@ -110,6 +110,7 @@ class ReceiptService(private val ai: AiServices, private val credits: CreditServ
                 serviceMinor = service,
                 totalMinor = total,
                 credits = wallet,
+                includedTaxRate = read.taxRate,
             )
         }
     }
