@@ -108,6 +108,8 @@ data class LlmReceipt(
     val items: List<LlmReceiptLine> = emptyList(),
     val tax: Double? = null,
     val service: Double? = null,
+    /** Money taken off, as a positive number. Not an item line. */
+    val discount: Double? = null,
     val total: Double? = null,
 )
 

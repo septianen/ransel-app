@@ -1276,6 +1276,7 @@
     <string name="payto_claim">I've paid</string>
     <string name="expense_estimate_banner">This is an estimate from a poll. Save it once paid to record the real payment.</string>
     <string name="expense_estimate_save">Save as payment</string>
+    <string name="expense_save_changes">Save changes</string>
     <string name="expense_amount_per_item">The amount follows the receipt items. Choose Split equally or Set amounts to change it.</string>
     <string name="expense_receipt_items">Receipt items</string>
     <string name="expense_estimate_chip">Estimate</string>
@@ -1310,6 +1311,16 @@
     <string name="receipt_extras">Tax and service</string>
     <string name="receipt_match">Items match the total</string>
     <string name="receipt_mismatch">Items do not match the total, %1$s apart. Split equally instead, or type it in.</string>
+    <string name="receipt_add_item">Add item</string>
+    <string name="receipt_item_name">Item name</string>
+    <string name="receipt_item_name_error">Enter the item name.</string>
+    <string name="receipt_item_deleted">%1$s deleted.</string>
+    <string name="receipt_item_deleted_generic">Item deleted.</string>
+    <string name="receipt_delete_item_cd">Delete %1$s</string>
+    <string name="receipt_total">Total</string>
+    <string name="receipt_total_mismatch_warning">Receipt total %1$s · difference %2$s</string>
+    <string name="receipt_edit_hint">These are the receipt items. Edit them if something looks wrong.</string>
+    <string name="receipt_incl_pb1">Incl. Pb1 %1$s — already included in the item prices.</string>
     <string name="paymethod_title">Payment info</string>
     <string name="paymethod_intro">Shown to trip members who need to pay you, and can be added to WhatsApp reminders.</string>
     <string name="paymethod_add">Add a bank account or e-wallet</string>

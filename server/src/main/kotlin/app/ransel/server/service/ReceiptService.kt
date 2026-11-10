@@ -27,6 +27,7 @@ import kotlin.math.roundToLong
 /**
  * Receipt photos (PRD "Receipt photo"): Gemini reads the photo, nothing is stored, the app fills the expense form.
  * Credits are checked before the call and charged only when a total was read, like an Explore search.
+ * One credit per photo. Editing the expense afterwards is a normal save and does not call this again.
  */
 class ReceiptService(private val ai: AiServices, private val credits: CreditService) {
     private val log = LoggerFactory.getLogger(ReceiptService::class.java)
@@ -75,19 +76,39 @@ class ReceiptService(private val ai: AiServices, private val credits: CreditServ
         const val MAX_BYTES = 5 * 1024 * 1024
         private val IMAGE_TYPES = setOf("image/jpeg", "image/png", "image/webp")
 
-        /** Amounts move to minor units of the receipt's currency (the base when it is unknown). */
+        /**
+         * Amounts move to minor units of the receipt's currency (the base when it is unknown).
+         * A receipt-level discount is taken off tax, then service, only when that makes the lines meet the printed
+         * total. Item prices are left as read. Included tax (items already equal the total) is not reduced and is
+         * not turned into an extra line — the app keeps it as a note.
+         */
         internal fun toDraft(read: LlmReceipt, baseCurrency: String, wallet: CreditsDto): ReceiptDraftDto {
             val currency = read.currency?.takeIf { isValidCurrency(it) } ?: baseCurrency
             val factor = 10.0.pow(currencyDecimals(currency))
             fun minor(major: Double?) = ((major ?: 0.0) * factor).roundToLong()
+            val items = read.items.map { ReceiptLineDto(it.name, it.quantity, minor(it.amount)) }
+                .filter { it.name.isNotBlank() && it.amountMinor >= 0 }
+            val itemsSum = items.sumOf { it.amountMinor }
+            var tax = minor(read.tax).coerceAtLeast(0)
+            var service = minor(read.service).coerceAtLeast(0)
+            val discount = minor(read.discount).coerceAtLeast(0)
+            val total = minor(read.total)
+            // Pb1: items already are the total, so the tax stays beside them and is not added on top.
+            if (discount > 0 && itemsSum != total && itemsSum + tax + service - discount == total) {
+                var left = discount
+                val fromService = minOf(service, left)
+                service -= fromService
+                left -= fromService
+                tax -= minOf(tax, left)
+            }
             return ReceiptDraftDto(
                 placeName = read.placeName,
                 spentOn = read.date?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
                 currency = currency,
-                items = read.items.map { ReceiptLineDto(it.name, it.quantity, minor(it.amount)) },
-                taxMinor = minor(read.tax),
-                serviceMinor = minor(read.service),
-                totalMinor = minor(read.total),
+                items = items,
+                taxMinor = tax,
+                serviceMinor = service,
+                totalMinor = total,
                 credits = wallet,
             )
         }
