@@ -66,6 +66,11 @@ data class ReceiptDraftDto(
     val totalMinor: Long,
     /** The wallet after the charge. */
     val credits: CreditsDto,
+    /**
+     * Printed included-tax rate, such as "10%", when the receipt said one. Null when it did not.
+     * Not an amount. The app shows "10%" when this is null.
+     */
+    val includedTaxRate: String? = null,
 )
 
 @Serializable
