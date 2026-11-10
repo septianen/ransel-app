@@ -47,9 +47,12 @@ data class PayInfoDto(
 )
 
 /**
- * POST /receipts/parse: what Gemini read from the photo. Nothing is stored; the app fills the expense form and the user
- * checks it before saving. Amounts are in [currency] minor units. [items] + [taxMinor] + [serviceMinor] may differ from
- * [totalMinor] when the receipt has discounts or reading errors: the app shows the difference and Save waits for a match.
+ * POST /receipts/parse: what Gemini read from the photo. Nothing here is stored on the expense; the app fills the form
+ * and the user checks it before saving. Amounts are in [currency] minor units. [items] + [taxMinor] + [serviceMinor]
+ * may differ from [totalMinor] (the printed total) when the receipt has a discount or a reading error. The app saves
+ * the sum of the lines the user keeps and does not store [totalMinor]. On the scan screen a difference is only a
+ * warning and never blocks Save; it is not shown when the expense is opened again. One credit per photo that returned
+ * a total. Editing the expense later does not call this endpoint and does not spend a credit.
  */
 @Serializable
 data class ReceiptDraftDto(
