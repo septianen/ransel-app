@@ -2,6 +2,7 @@ package app.ransel.feature.update
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +43,12 @@ suspend fun RanselApi.checkForUpdate(version: String): UpdateCheck =
  * What to put on screen. NONE, a missing store link, and an OPTIONAL snoozed for this [snoozedLatest] show nothing.
  * REQUIRED is never snoozed. [snoozedLatest] lives in memory: a new process, or a new latest, asks again.
  */
+/**
+ * The notification explainer is a dialog window, so it paints over the full-screen gate. It stays down while the
+ * update is [AppUpdateStatus.REQUIRED]. A soft offer and no update leave it free to show.
+ */
+fun notificationSheetAllowed(update: AppUpdateStatus?): Boolean = update != AppUpdateStatus.REQUIRED
+
 fun visibleUpdate(update: AppUpdateDto?, snoozedLatest: String?): AppUpdateStatus? {
     if (update == null || update.storeUrl.isNullOrBlank()) return null
     val status = promptedUpdate(update.status, update.latestVersion, snoozedLatest)
@@ -54,7 +61,7 @@ fun visibleUpdate(update: AppUpdateDto?, snoozedLatest: String?): AppUpdateStatu
  * from the store re-checks; a failure then keeps the gate that is already up.
  */
 @Composable
-fun AppUpdatePrompt(ready: Boolean) {
+fun AppUpdatePrompt(ready: Boolean, onStatus: (AppUpdateStatus?) -> Unit = {}) {
     val api: RanselApi = koinInject()
     val openStore = rememberPlayStoreOpener()
     val scope = rememberCoroutineScope()
@@ -77,6 +84,7 @@ fun AppUpdatePrompt(ready: Boolean) {
 
     val update = held
     val status = visibleUpdate(update, snoozedLatest)
+    SideEffect { onStatus(status) }
     if (update == null || status == null) return
     val versionName = update.latestVersion.orEmpty()
     val current = installedAppVersion.orEmpty()

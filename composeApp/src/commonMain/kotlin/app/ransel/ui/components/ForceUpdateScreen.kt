@@ -29,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +44,8 @@ import app.ransel.ui.symbols.RanselMark
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
+import app.ransel.ui.theme.irisElevation3
+import app.ransel.ui.theme.irisElevation4
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.update_action
@@ -113,11 +114,11 @@ fun ForceUpdateScreen(
                 color = scheme.onSurface,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.size(8.dp))
+            Spacer(Modifier.size(12.dp))
             Text(
                 message?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.update_body_required, versionName),
                 style = MaterialTheme.typography.bodyLarge,
-                color = scheme.onSurface,
+                color = scheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 maxLines = 8,
                 overflow = TextOverflow.Ellipsis,
@@ -133,7 +134,7 @@ fun ForceUpdateScreen(
         Column(
             Modifier
                 .fillMaxWidth()
-                .shadow(8.dp)
+                .irisElevation4()
                 .background(scheme.surface)
                 .navigationBarsPadding()
                 .padding(16.dp),
@@ -194,10 +195,11 @@ fun SoftUpdateDialog(
             Modifier
                 .widthIn(max = 320.dp)
                 .fillMaxWidth()
-                .shadow(8.dp, IrisShape.xl)
+                .irisElevation3(IrisShape.xl)
                 .clip(IrisShape.xl)
                 .background(scheme.surface)
                 .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             UpdateMark(40.dp)
@@ -205,13 +207,17 @@ fun SoftUpdateDialog(
                 stringResource(Res.string.update_title_optional),
                 style = MaterialTheme.typography.headlineSmall,
                 color = scheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
             Text(
                 message?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.update_body_optional, versionName, currentVersion),
                 style = MaterialTheme.typography.bodyMedium,
-                color = scheme.onSurface,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
                 maxLines = 5,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth(),
             )
             if (storeError) StoreError()
             Row(

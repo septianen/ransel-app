@@ -386,7 +386,7 @@
     <string name="settings_android_latest_version">Latest version</string>
     <string name="settings_android_message">Update message</string>
     <string name="settings_android_store_url">Play Store link</string>
-    <string name="settings_message_hint">Blank = the app's default text.</string>
+    <string name="settings_message_hint">Blank = the app's default text. Shown on the update screen.</string>
     <string name="settings_message_count">%1$d/%2$d</string>
     <string name="settings_problem_version">Use the form 1.2.3</string>
     <string name="settings_problem_url">Use an https:// link</string>

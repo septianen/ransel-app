@@ -4,6 +4,7 @@ import app.ransel.data.remote.RanselApi
 import app.ransel.data.remote.createApiHttpClient
 import app.ransel.feature.update.UpdateCheck
 import app.ransel.feature.update.checkForUpdate
+import app.ransel.feature.update.notificationSheetAllowed
 import app.ransel.feature.update.shouldAskForUpdate
 import app.ransel.feature.update.visibleUpdate
 import app.ransel.shared.dto.AppUpdateDto
@@ -17,6 +18,7 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -70,6 +72,14 @@ class AppUpdateTest {
     fun aLinkLessAnswerIsIgnored() = runTest {
         val check = api(HttpStatusCode.OK, """{"data":{"status":"REQUIRED","latestVersion":"1.2.0"}}""").checkForUpdate("1.0.0")
         assertNull(visibleUpdate(assertIs<UpdateCheck.Ready>(check).update, snoozedLatest = null))
+    }
+
+    @Test
+    fun theNotificationSheetStaysDownWhileTheUpdateIsRequired() {
+        assertFalse(notificationSheetAllowed(AppUpdateStatus.REQUIRED))
+        assertTrue(notificationSheetAllowed(AppUpdateStatus.OPTIONAL))
+        assertTrue(notificationSheetAllowed(AppUpdateStatus.NONE))
+        assertTrue(notificationSheetAllowed(null))
     }
 
     @Test
