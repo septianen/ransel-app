@@ -1,0 +1,207 @@
+name: Release
+
+# The only way to production.
+#
+# workflow_dispatch input RELEASE_TYPE:
+#   none (default)  -> staging only. No version bump, no commit, no tag, no Android release build.
+#   MAJOR           -> versionName X+1.0.0, versionCode +1, tag vX.Y.Z, then production
+#   MINOR           -> versionName X.Y+1.0, versionCode +1, tag vX.Y.Z, then production
+#   PATCH           -> versionName X.Y.Z+1 (1.0.1 -> 1.0.2), versionCode +1, tag vX.Y.Z, then production
+#
+# GitHub's choice input cannot be an empty string, so the menu value is "none".
+# prepare writes that as an empty release_type. Prod jobs run only when it is not empty.
+# A push does not start this workflow. Push deploys (Deploy server / Deploy web / Distribute Android)
+# follow the same rule as none: staging only, current version, no release AAB.
+#
+# Two releases share the group ransel-release and wait in line (cancel-in-progress: false).
+# The bump reads origin/main after the wait, so they cannot both add 1 to the same versionCode.
+on:
+  workflow_dispatch:
+    inputs:
+      RELEASE_TYPE:
+        description: "none = staging only, no version bump. MAJOR / MINOR / PATCH = production release from main."
+        type: choice
+        required: true
+        default: none
+        options:
+          - none
+          - MAJOR
+          - MINOR
+          - PATCH
+      release_notes:
+        description: "Notes for Firebase testers (default: the commit message)"
+        type: string
+        required: false
+
+# Releases queue. A staging run (none) does not take the release lock.
+concurrency:
+  group: ${{ (inputs.RELEASE_TYPE == 'MAJOR' || inputs.RELEASE_TYPE == 'MINOR' || inputs.RELEASE_TYPE == 'PATCH') && 'ransel-release' || format('ransel-staging-{0}', github.ref) }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      # Empty unless this run is a real release. Prod jobs check `!= ''`.
+      release_type: ${{ steps.norm.outputs.release_type }}
+      sha: ${{ steps.meta.outputs.sha }}
+      version_name: ${{ steps.meta.outputs.version_name }}
+      version_code: ${{ steps.meta.outputs.version_code }}
+    steps:
+      - id: norm
+        env:
+          RAW: ${{ inputs.RELEASE_TYPE }}
+        run: |
+          set -euo pipefail
+          # Push is not a trigger. Any value other than MAJOR / MINOR / PATCH becomes ''.
+          case "$RAW" in
+            MAJOR|MINOR|PATCH)
+              echo "release_type=$RAW" >> "$GITHUB_OUTPUT"
+              ;;
+            ""|none|NONE)
+              echo "release_type=" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::RELEASE_TYPE must be none, MAJOR, MINOR or PATCH (got '$RAW')"
+              exit 1
+              ;;
+          esac
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PUSH_TOKEN || github.token }}
+
+      - name: Version bump tests
+        run: python3 -m unittest discover -s scripts -p 'test_bump_version.py' -v
+
+      - id: meta
+        env:
+          RELEASE_TYPE: ${{ steps.norm.outputs.release_type }}
+        run: |
+          set -euo pipefail
+          record() {
+            sha="$1"
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+            while IFS= read -r line; do
+              key=${line%%=*}
+              value=${line#*=}
+              case "$key" in
+                APP_VERSION_NAME) echo "version_name=$value" >> "$GITHUB_OUTPUT" ;;
+                APP_VERSION_CODE) echo "version_code=$value" >> "$GITHUB_OUTPUT" ;;
+              esac
+            done < "$RUNNER_TEMP/version.env"
+          }
+
+          if [ -z "$RELEASE_TYPE" ]; then
+            python3 scripts/bump_version.py none --github-env | tee "$RUNNER_TEMP/version.env"
+            record "$GITHUB_SHA"
+            echo "No release: version.properties stays as it is. Deploying staging only."
+            exit 0
+          fi
+
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Production releases run from main only. Merge to main, then run Release there."
+            exit 1
+          fi
+
+          # A queued release must bump the version the previous release already pushed,
+          # not the SHA this run was dispatched on.
+          git fetch origin main
+          git checkout -B main origin/main
+
+          python3 scripts/bump_version.py "$RELEASE_TYPE" --github-env | tee "$RUNNER_TEMP/version.env"
+          set -a
+          # shellcheck disable=SC1091
+          . "$RUNNER_TEMP/version.env"
+          set +a
+          if [ "$APP_VERSION_BUMPED" != true ]; then
+            echo "::error::$RELEASE_TYPE did not change version.properties"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.properties
+          git commit -m "Release ${APP_VERSION_NAME} (${APP_VERSION_CODE})" \
+            -m "${RELEASE_TYPE}: versionName ${APP_VERSION_PREVIOUS_NAME} -> ${APP_VERSION_NAME}, versionCode ${APP_VERSION_PREVIOUS_CODE} -> ${APP_VERSION_CODE}."
+          git tag -a "v${APP_VERSION_NAME}" -m "Release ${APP_VERSION_NAME} (${APP_VERSION_CODE})"
+          if ! git push origin HEAD:main; then
+            echo "::error::Could not push the version bump to main. Allow GitHub Actions to push to main (workflow permission contents: write, and branch protection must allow the Actions bot), or set the RELEASE_PUSH_TOKEN secret to a token with contents write. The default GITHUB_TOKEN push does not start other workflows."
+            exit 1
+          fi
+          if ! git push origin "v${APP_VERSION_NAME}"; then
+            echo "::error::The version commit is on main but tag v${APP_VERSION_NAME} was not pushed."
+            exit 1
+          fi
+          record "$(git rev-parse HEAD)"
+          echo "Released ${APP_VERSION_NAME} (${APP_VERSION_CODE}), tag v${APP_VERSION_NAME}."
+
+  deploy-server-staging:
+    needs: prepare
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type == ''
+    uses: ./.github/workflows/deploy-server.yml
+    with:
+      release_type: ""
+      ref: ${{ needs.prepare.outputs.sha }}
+    secrets: inherit
+
+  deploy-web-staging:
+    needs: prepare
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type == ''
+    uses: ./.github/workflows/deploy-web.yml
+    with:
+      release_type: ""
+      ref: ${{ needs.prepare.outputs.sha }}
+    secrets: inherit
+
+  distribute-android-staging:
+    needs: prepare
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type == ''
+    uses: ./.github/workflows/distribute-android.yml
+    with:
+      release_type: ""
+      ref: ${{ needs.prepare.outputs.sha }}
+      release_notes: ${{ inputs.release_notes }}
+    secrets: inherit
+
+  deploy-server-production:
+    needs: prepare
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type != ''
+    uses: ./.github/workflows/deploy-server.yml
+    with:
+      release_type: ${{ needs.prepare.outputs.release_type }}
+      ref: ${{ needs.prepare.outputs.sha }}
+    secrets: inherit
+
+  deploy-web-production:
+    needs: prepare
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type != ''
+    uses: ./.github/workflows/deploy-web.yml
+    with:
+      release_type: ${{ needs.prepare.outputs.release_type }}
+      ref: ${{ needs.prepare.outputs.sha }}
+    secrets: inherit
+
+  distribute-android-production:
+    needs: prepare
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type != ''
+    uses: ./.github/workflows/distribute-android.yml
+    with:
+      release_type: ${{ needs.prepare.outputs.release_type }}
+      ref: ${{ needs.prepare.outputs.sha }}
+      release_notes: ${{ inputs.release_notes }}
+    secrets: inherit
+
+  deploy-admin-production:
+    needs: prepare
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type != ''
+    uses: ./.github/workflows/deploy-admin.yml
+    with:
+      release_type: ${{ needs.prepare.outputs.release_type }}
+      ref: ${{ needs.prepare.outputs.sha }}
+    secrets: inherit

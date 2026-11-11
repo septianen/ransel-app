@@ -2,10 +2,12 @@ name: Deploy web
 
 # Builds the Compose web (wasmJs) app and publishes it to the folder nginx serves it from.
 # Uses the SSH secrets listed in deploy/README.md (same as Deploy server).
-#   production  push to main            -> ransel.app              /opt/ransel/web
-#   staging     push to develop, or     -> staging.ransel.app      /opt/ransel-dev/web
-#               Run workflow on any branch with target "staging"
-# The build is the same; index.html picks the API from the hostname.
+# Production only when the Release workflow calls this with release_type MAJOR, MINOR or PATCH.
+# A push, including to main, and Run workflow deploy staging. The build is the same; index.html
+# picks the API from the hostname.
+#   production  Release workflow (RELEASE_TYPE set)  -> ransel.app          /opt/ransel/web
+#   staging     push to main or develop, or          -> staging.ransel.app  /opt/ransel-dev/web
+#               Run workflow, or Release with none
 on:
   push:
     branches: [main, develop]
@@ -17,15 +19,21 @@ on:
       - "gradle.properties"
       - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
+  workflow_call:
     inputs:
-      target:
-        description: "Where to deploy (production only from main)"
-        type: choice
-        options: [staging, production]
-        default: staging
+      release_type:
+        description: "MAJOR, MINOR or PATCH deploys production. Empty deploys staging."
+        type: string
+        required: false
+        default: ""
+      ref:
+        description: "Commit to build. Empty uses the event SHA."
+        type: string
+        required: false
+        default: ""
 
 concurrency:
-  group: deploy-web-${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+  group: deploy-web-${{ (github.event_name == 'workflow_call' && (inputs.release_type == 'MAJOR' || inputs.release_type == 'MINOR' || inputs.release_type == 'PATCH')) && 'production' || 'staging' }}
   cancel-in-progress: false
 
 permissions:
@@ -34,15 +42,25 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+    environment: ${{ (github.event_name == 'workflow_call' && (inputs.release_type == 'MAJOR' || inputs.release_type == 'MINOR' || inputs.release_type == 'PATCH')) && 'production' || 'staging' }}
     steps:
       - name: Target settings
         env:
-          TARGET: ${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          DEPLOY_REF: ${{ inputs.ref }}
           # Staging has its own variable name, so a missing one never falls back to the production folder.
           PROD_DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
           STAGING_DEPLOY_PATH: ${{ vars.STAGING_DEPLOY_PATH }}
         run: |
+          # Production only when Release calls this workflow. Push and Run workflow stay on staging.
+          if [ "$GITHUB_EVENT_NAME" = workflow_call ] && { [ "$RELEASE_TYPE" = MAJOR ] || [ "$RELEASE_TYPE" = MINOR ] || [ "$RELEASE_TYPE" = PATCH ]; }; then
+            TARGET=production
+          else
+            TARGET=staging
+          fi
+          REF="$DEPLOY_REF"
+          if [ -z "$REF" ]; then REF="$GITHUB_SHA"; fi
+          echo "DEPLOY_SHA=$REF" >> "$GITHUB_ENV"
           if [ "$TARGET" = production ]; then
             if [ "$GITHUB_REF" != refs/heads/main ]; then echo "production deploys only from main" >&2; exit 1; fi
             echo "DEPLOY_PATH=${PROD_DEPLOY_PATH:-/opt/ransel}" >> "$GITHUB_ENV"
@@ -52,6 +70,8 @@ jobs:
             echo "SITE=https://staging.ransel.app/" >> "$GITHUB_ENV"
           fi
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

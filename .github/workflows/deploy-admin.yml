@@ -2,18 +2,22 @@ name: Deploy admin
 
 # Builds Karung, the admin web app (adminApp, wasmJs), and publishes it to the folder nginx serves karung.ransel.app from.
 # Uses the SSH secrets listed in deploy/README.md (same as Deploy server).
+# Karung is production. It deploys only when the Release workflow calls this with release_type set.
+# A push does not publish it, and Run workflow refuses rather than deploying.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "adminApp/**"
-      - "iris/**"
-      - "shared/**"
-      - "gradle/**"
-      - "*.gradle.kts"
-      - "gradle.properties"
-      - ".github/workflows/deploy-admin.yml"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      release_type:
+        description: "MAJOR, MINOR or PATCH. Empty does not deploy."
+        type: string
+        required: false
+        default: ""
+      ref:
+        description: "Commit to build. Empty uses the event SHA."
+        type: string
+        required: false
+        default: ""
 
 concurrency:
   group: deploy-admin
@@ -23,10 +27,22 @@ permissions:
   contents: read
 
 jobs:
+  refuse-manual:
+    if: github.event_name != 'workflow_call'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Production only from Release
+        run: |
+          echo "::error::Karung deploys with a production release. Actions -> Release -> Run workflow on main, RELEASE_TYPE MAJOR, MINOR or PATCH."
+          exit 1
+
   deploy:
+    if: github.event_name == 'workflow_call' && (inputs.release_type == 'MAJOR' || inputs.release_type == 'MINOR' || inputs.release_type == 'PATCH')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
