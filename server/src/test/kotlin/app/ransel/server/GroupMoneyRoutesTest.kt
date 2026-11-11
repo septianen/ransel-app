@@ -195,6 +195,43 @@ class GroupMoneyRoutesTest {
     }
 
     @Test
+    fun editingReceiptLinesComesBackTheSame() = apiTest {
+        val g = group()
+        val id = UUID.randomUUID().toString()
+        val first = """[{"name":"Nasi campur","amountMinor":100000,"memberIds":["${g.ma}"]},{"name":"Pajak","amountMinor":10000}]"""
+        val created = post("/trips/${g.tripId}/expenses", expenseJson(110_000, id = id, extra = ""","items":$first"""))
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        val edited = """[{"name":"Nasi goreng","amountMinor":144000,"memberIds":["${g.ma}","${g.mc}"]},""" +
+            """{"name":"Sate lilit","amountMinor":130000,"memberIds":["${g.mb}"]},{"name":"Pajak","amountMinor":26000}]"""
+        val updated = put("/trips/${g.tripId}/expenses/$id", expenseJson(300_000, id = id, extra = ""","items":$edited"""))
+        assertEquals(HttpStatusCode.OK, updated.status, updated.bodyAsText())
+        val listed = get("/trips/${g.tripId}/expenses").data().jsonArray.single().jsonObject
+        val lines = listed.getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("Nasi goreng", "Sate lilit", "Pajak"), lines.map { it.str("name") })
+        assertEquals(listOf(144_000L, 130_000L, 26_000L), lines.map { it.long("amountMinor") })
+        assertEquals(listOf(g.ma, g.mc), lines[0].getValue("memberIds").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(listOf(g.mb), lines[1].getValue("memberIds").jsonArray.map { it.jsonPrimitive.content })
+        assertTrue(lines[2].getValue("memberIds").jsonArray.isEmpty())
+    }
+
+    @Test
+    fun editingAnExpenseDoesNotSpendACredit() = apiTest {
+        val g = group()
+        val id = UUID.randomUUID().toString()
+        val items = """[{"name":"Nasi campur","amountMinor":50000,"memberIds":["${g.ma}","${g.mb}"]}]"""
+        val created = post("/trips/${g.tripId}/expenses", expenseJson(50_000, id = id, extra = ""","items":$items"""))
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        val before = get("/credits").data().jsonObject
+        val edited = """[{"name":"Nasi goreng","amountMinor":60000,"memberIds":["${g.ma}"]}]"""
+        val updated = put("/trips/${g.tripId}/expenses/$id", expenseJson(60_000, id = id, extra = ""","items":$edited"""))
+        assertEquals(HttpStatusCode.OK, updated.status, updated.bodyAsText())
+        val after = get("/credits").data().jsonObject
+        assertEquals(before.long("balance"), after.long("balance"))
+        assertEquals(before.long("dailyFreeLeft"), after.long("dailyFreeLeft"))
+        assertEquals(before.getValue("costs").jsonObject.long("receipt"), after.getValue("costs").jsonObject.long("receipt"))
+    }
+
+    @Test
     fun receiptLinesWithoutAPerItemSplitAreKeptAndTheSplitsStay() = apiTest {
         val g = group()
         // "Bagi rata" on a scanned receipt: the lines are only shown, they need not add up and carry no members

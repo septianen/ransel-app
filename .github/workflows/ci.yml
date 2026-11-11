@@ -7,6 +7,7 @@ on:
     paths:
       - "server/**"
       - "shared/**"
+      - "composeApp/**"
       - "gradle/**"
       - "gradlew"
       - "gradlew.bat"
@@ -34,14 +35,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Accept Android licenses (the :shared module configures the Android plugin)
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-      - name: Shared and server tests (Testcontainers uses the runner's Docker)
-        run: ./gradlew :shared:jvmTest :server:test --no-daemon
+      - name: Shared, server, and receipt form tests (Testcontainers uses the runner's Docker)
+        run: |
+          ./gradlew :shared:jvmTest :server:test --no-daemon
+          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --no-daemon
       - name: Failed tests as annotations
         if: failure()
         run: |
           python3 - <<'PY'
           import glob, xml.etree.ElementTree as ET
-          for f in glob.glob('server/build/test-results/test/*.xml') + glob.glob('shared/build/test-results/jvmTest/*.xml'):
+          for f in glob.glob('server/build/test-results/test/*.xml') + glob.glob('shared/build/test-results/jvmTest/*.xml') + glob.glob('composeApp/build/test-results/testDebugUnitTest/*.xml'):
               suite = ET.parse(f).getroot()
               for case in suite.iter('testcase'):
                   for kind in ('failure', 'error'):

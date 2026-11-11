@@ -107,7 +107,11 @@ data class LlmReceipt(
     val currency: String? = null,
     val items: List<LlmReceiptLine> = emptyList(),
     val tax: Double? = null,
+    /** Printed rate on a tax line, such as "10%". Not an amount. */
+    val taxRate: String? = null,
     val service: Double? = null,
+    /** Money taken off, as a positive number. Not an item line. */
+    val discount: Double? = null,
     val total: Double? = null,
 )
 

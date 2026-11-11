@@ -1,55 +1,241 @@
 package app.ransel.feature.expenses
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import app.ransel.shared.domain.itemsTotal
 import app.ransel.shared.domain.splitByItems
 import app.ransel.shared.dto.ExpenseItemDto
+import app.ransel.util.newId
 
 /**
  * "Per item": who shares each receipt line. Used after a scan (`ReceiptFormState`) and when editing an expense that
- * was split per item (`ExpenseSheet`), so both look and count the same.
+ * has receipt lines (`ExpenseSheet`), so both look and count the same.
+ *
+ * Lines are editable: name, amount, delete, and a new line (shared by everyone still on the trip). Who shares a line
+ * is stored by a client-only key, so a rename, a new amount, or deleting another line does not move the ticks.
+ * One line is open for editing at a time ([beginEdit] / [commitEdit]). A new line that is still empty is dropped
+ * on commit and is not part of the amount.
  *
  * [extrasIndex] is the tax-and-service line (no members, spread in proportion by domain.splitByItems), or -1.
  * [locked] are people who left the trip but are on a line: they stay on the lines they had, cannot be taken off
  * (what they had stays their debt) and cannot be put on other lines (owner, 30 Oct 2026).
  */
 class ItemSplit(
-    val lines: List<ExpenseItemDto>,
-    val extrasIndex: Int,
+    lines: List<ExpenseItemDto>,
+    extrasIndex: Int,
     /** Current members, in the order their avatars show. */
     val memberIds: List<String>,
-    /** Who shares each line at first, by index; null = everyone. */
+    /** Who shares each line at first, by index; null = everyone. An empty set is everyone too (a "Bagi rata" line). */
     initial: Map<Int, Set<String>>? = null,
     val locked: Set<String> = emptySet(),
 ) {
-    private val sharers = mutableStateMapOf<Int, Set<String>>().apply {
-        lines.indices.filter { it != extrasIndex }.forEach { put(it, initial?.get(it) ?: memberIds.toSet()) }
+    private data class Row(
+        val key: String,
+        val name: String,
+        val amountMinor: Long,
+        val extras: Boolean,
+        /** Added with "Tambah item" and not committed yet. An empty one is dropped, not saved. */
+        val fresh: Boolean = false,
+    )
+
+    private val rows = mutableStateListOf<Row>()
+    private val sharers = mutableStateMapOf<String, Set<String>>()
+
+    /** The line open in the editor, or null when every line is showing. */
+    var editingKey by mutableStateOf<String?>(null)
+        private set
+
+    /** [FOCUS_NAME] or [FOCUS_AMOUNT] for [editingKey]. */
+    var focusPart by mutableStateOf(FOCUS_NAME)
+        private set
+
+    /** Bumped when the open line should take the keyboard again (a failed commit, or a tap on the other part). */
+    var focusNonce by mutableIntStateOf(0)
+        private set
+
+    /** The open line was committed with no name. */
+    var nameError by mutableStateOf(false)
+        private set
+
+    init {
+        lines.forEachIndexed { index, line ->
+            val key = newId()
+            val extras = index == extrasIndex
+            rows.add(Row(key, line.name, line.amountMinor, extras))
+            if (!extras) sharers[key] = initial?.get(index)?.takeIf { it.isNotEmpty() } ?: memberIds.toSet()
+        }
     }
 
-    fun sharersOf(index: Int): Set<String> = sharers[index].orEmpty()
+    val lines: List<ExpenseItemDto> get() = rows.map { ExpenseItemDto(it.name, it.amountMinor) }
+
+    /** Index of the tax-and-service line, or -1. */
+    val extrasIndex: Int get() = rows.indexOfFirst { it.extras }
+
+    /** Stable id for Compose, so a field keeps its text when another line is deleted. */
+    fun keyAt(index: Int): String = rows[index].key
+
+    fun setName(index: Int, name: String) {
+        val row = rows.getOrNull(index) ?: return
+        val next = name.take(MAX_NAME)
+        rows[index] = row.copy(name = next)
+        if (row.key == editingKey && next.isNotBlank()) nameError = false
+    }
+
+    fun setAmount(index: Int, amountMinor: Long) {
+        val row = rows.getOrNull(index) ?: return
+        rows[index] = row.copy(amountMinor = amountMinor.coerceAtLeast(0))
+    }
+
+    /** Removes the line and returns it so the snackbar can put it back. */
+    fun delete(index: Int): DeletedLine? {
+        val row = rows.getOrNull(index) ?: return null
+        val saved = DeletedLine(index, row.key, row.name, row.amountMinor, row.extras, sharers[row.key].orEmpty(), row.fresh)
+        if (row.key == editingKey) {
+            editingKey = null
+            nameError = false
+        }
+        rows.removeAt(index)
+        sharers.remove(row.key)
+        return saved
+    }
+
+    /** Puts a deleted line back at the index it had, with the same amount and the same people. */
+    fun restore(line: DeletedLine) {
+        val at = line.index.coerceIn(0, rows.size)
+        rows.add(at, Row(line.key, line.name, line.amountMinor, line.extras, line.fresh))
+        if (!line.extras) sharers[line.key] = line.sharers
+    }
+
+    /** A new item line, before the tax line when there is one. Shared by every current member. Not opened for editing. */
+    fun addLine(): Boolean {
+        if (rows.size >= MAX_LINES) return false
+        val key = newId()
+        val at = extrasIndex.let { if (it < 0) rows.size else it }
+        rows.add(at, Row(key, "", 0, extras = false, fresh = true))
+        sharers[key] = memberIds.toSet()
+        return true
+    }
+
+    /**
+     * "Tambah item": if a new line is still empty, focus that one; otherwise commit the open line and add one,
+     * focused on its name. Does nothing when the open line has no name.
+     */
+    fun addOrFocusBlank(): Boolean {
+        val blank = rows.indexOfFirst { ignored(it) }
+        if (blank >= 0) {
+            beginEdit(blank, FOCUS_NAME)
+            return true
+        }
+        if (!commitEdit()) return false
+        if (!addLine()) return false
+        val at = extrasIndex.let { if (it < 0) rows.lastIndex else it - 1 }
+        beginEdit(at, FOCUS_NAME)
+        return true
+    }
+
+    fun canAddLine(): Boolean = rows.size < MAX_LINES || rows.any { ignored(it) }
+
+    /** True when this line is the one open in the editor. */
+    fun isEditing(index: Int): Boolean = rows.getOrNull(index)?.key == editingKey
+
+    /**
+     * Opens [index] on [part]. The line that was open is committed first; if that commit fails, it stays open.
+     */
+    fun beginEdit(index: Int, part: Int) {
+        val targetKey = rows.getOrNull(index)?.key ?: return
+        if (editingKey == targetKey) {
+            focusPart = part
+            if (part == FOCUS_NAME && rows[index].name.isNotBlank()) nameError = false
+            focusNonce++
+            return
+        }
+        if (editingKey != null && !commitEdit()) return
+        if (rows.none { it.key == targetKey }) return
+        editingKey = targetKey
+        focusPart = part
+        nameError = false
+        focusNonce++
+    }
+
+    /**
+     * Closes the open line. An empty new line is removed. A line with no name stays open and [nameError] is set.
+     * Returns false when the open line cannot be left.
+     */
+    fun commitEdit(): Boolean {
+        val key = editingKey ?: return true
+        val index = rows.indexOfFirst { it.key == key }
+        if (index < 0) {
+            editingKey = null
+            nameError = false
+            return true
+        }
+        val trimmed = rows[index].copy(name = rows[index].name.trim())
+        rows[index] = trimmed
+        if (ignored(trimmed)) {
+            delete(index)
+            editingKey = null
+            nameError = false
+            return true
+        }
+        if (trimmed.name.isBlank()) {
+            nameError = true
+            focusPart = FOCUS_NAME
+            focusNonce++
+            return false
+        }
+        rows[index] = trimmed.copy(fresh = false)
+        editingKey = null
+        nameError = false
+        return true
+    }
+
+    fun sharersOf(index: Int): Set<String> = rows.getOrNull(index)?.let { sharers[it.key] }.orEmpty()
 
     /** The avatars of a line: the current members, then anyone who left but is on it. */
     fun peopleOf(index: Int): List<String> = memberIds + sharersOf(index).filter { it in locked && it !in memberIds }
 
     fun toggle(index: Int, memberId: String) {
-        if (memberId in locked) return
+        val row = rows.getOrNull(index) ?: return
+        if (row.extras || memberId in locked) return
         val now = sharersOf(index)
-        sharers[index] = if (memberId in now) now - memberId else now + memberId
+        sharers[row.key] = if (memberId in now) now - memberId else now + memberId
     }
 
-    /** Who shares what, to tell whether the person changed anything ("Buang perubahan?"). */
-    fun snapshot(): Map<Int, Set<String>> = sharers.toMap()
+    /** Names, amounts and who shares what, to tell whether the person changed anything ("Buang perubahan?"). */
+    fun snapshot(): List<Any?> = rows.map { listOf(it.name, it.amountMinor, it.extras, it.fresh, sharers[it.key]?.sorted()) }
 
-    /** Lines minus [total]: 0 when they match, as "Per item" needs. */
+    /** Lines minus [total]: 0 when they match, as "Per item" needs before the server's SPLIT_TOTAL_MISMATCH. */
     fun difference(total: Long): Long = itemsTotal(lines) - total
 
-    /** The lines to send, each with who shares it (the tax-and-service line stays without members). */
-    fun items(): List<ExpenseItemDto> =
-        lines.mapIndexed { i, line -> if (i == extrasIndex) line else line.copy(memberIds = peopleOf(i).filter { it in sharersOf(i) }) }
+    /** A line that is not the tax line. */
+    fun hasItemLine(): Boolean = rows.any { !it.extras }
 
-    /** Every line with an amount has someone on it, and the lines add up to [total]. */
-    fun isValid(total: Long): Boolean =
-        difference(total) == 0L && lines.indices.filter { it != extrasIndex }.all { sharersOf(it).isNotEmpty() || lines[it].amountMinor == 0L }
+    /**
+     * Ready to save: at least one non-tax line above 0, and every line that counts has a name.
+     * An empty new line does not count and does not block.
+     */
+    fun linesReady(): Boolean = hasChargeableItem() && rows.none { !ignored(it) && it.name.isBlank() }
+
+    /** The lines to send. An empty new line is left out; the tax line stays without members. */
+    fun items(): List<ExpenseItemDto> = rows.mapIndexedNotNull { i, row ->
+        if (ignored(row)) null
+        else if (row.extras) ExpenseItemDto(row.name.trim(), row.amountMinor)
+        else ExpenseItemDto(row.name.trim(), row.amountMinor, peopleOf(i).filter { it in sharersOf(i) })
+    }
+
+    /**
+     * Every priced line has someone on it, every line that counts has a name, and the lines add up to [total].
+     * Tax alone cannot be split (there is then no proportion to spread it by).
+     */
+    fun isValid(total: Long): Boolean {
+        if (!linesReady() || difference(total) != 0L) return false
+        val priced = rows.indices.filter { !rows[it].extras && !ignored(rows[it]) && rows[it].amountMinor > 0 }
+        return priced.all { sharersOf(it).isNotEmpty() }
+    }
 
     fun shares(payerId: String): Map<String, Long> = splitByItems(items(), payerId)
 
@@ -58,10 +244,12 @@ class ItemSplit(
      * up to [total]; [people] = whose rows to show, in order.
      */
     fun perPerson(payerId: String, total: Long, people: List<String>): List<PersonShare> {
-        if (difference(total) != 0L || items().none { it.memberIds.isNotEmpty() }) return emptyList()
+        val sent = items()
+        if (difference(total) != 0L || sent.none { it.memberIds.isNotEmpty() }) return emptyList()
+        val extrasAt = rows.filter { !ignored(it) }.indexOfFirst { it.extras }
         val withExtras = shares(payerId)
-        val itemsOnly = if (extrasIndex < 0) withExtras else {
-            val own = items().filterIndexed { i, _ -> i != extrasIndex }
+        val itemsOnly = if (extrasAt < 0) withExtras else {
+            val own = sent.filterIndexed { i, _ -> i != extrasAt }
             if (own.none { it.memberIds.isNotEmpty() }) emptyMap() else splitByItems(own, payerId)
         }
         return (people + withExtras.keys).distinct().mapNotNull { id ->
@@ -70,20 +258,48 @@ class ItemSplit(
         }
     }
 
+    private fun ignored(row: Row): Boolean = row.fresh && row.name.isBlank() && row.amountMinor == 0L
+
+    private fun hasChargeableItem(): Boolean =
+        rows.any { !it.extras && !ignored(it) && it.amountMinor > 0 && it.name.isNotBlank() }
+
     companion object {
+        const val MAX_NAME = 120
+        const val MAX_LINES = 100
+        const val FOCUS_NAME = 0
+        const val FOCUS_AMOUNT = 1
+
         /**
-         * The split of a saved "Per item" expense: its lines and who shares each; people on a line who are no longer
-         * members are [locked].
+         * The lines of a saved expense. The tax line is the last one without members when some other line has
+         * members ("Per item"), or the line named [taxName] when none of them do ("Bagi rata"). People on a line
+         * who are no longer members are [locked]. A line with nobody on it starts as everyone still on the trip.
          */
-        fun of(items: List<ExpenseItemDto>, memberIds: List<String>): ItemSplit {
-            // the tax-and-service line comes last, without members (a free line elsewhere may have none too)
-            val extras = if (items.lastOrNull()?.memberIds?.isEmpty() == true) items.lastIndex else -1
-            val initial = items.withIndex().filter { it.index != extras }.associate { it.index to it.value.memberIds.toSet() }
+        fun of(items: List<ExpenseItemDto>, memberIds: List<String>, taxName: String? = null): ItemSplit {
+            val last = items.lastIndex
+            val extras = when {
+                last >= 0 && items.any { it.memberIds.isNotEmpty() } && items[last].memberIds.isEmpty() -> last
+                taxName != null -> items.indexOfLast { it.memberIds.isEmpty() && it.name == taxName }
+                else -> -1
+            }
+            val initial = items.withIndex()
+                .filter { it.index != extras && it.value.memberIds.isNotEmpty() }
+                .associate { it.index to it.value.memberIds.toSet() }
             val gone = items.flatMap { it.memberIds }.filter { it !in memberIds }.toSet()
             return ItemSplit(items.map { it.copy(memberIds = emptyList()) }, extras, memberIds, initial, gone)
         }
     }
 }
+
+/** A line [ItemSplit.delete] removed, so it can be put back with the same people. */
+data class DeletedLine(
+    val index: Int,
+    val key: String,
+    val name: String,
+    val amountMinor: Long,
+    val extras: Boolean,
+    val sharers: Set<String>,
+    val fresh: Boolean,
+)
 
 /** One member's part of a split per item; [extrasMinor] is the tax and service inside [totalMinor]. */
 data class PersonShare(val memberId: String, val totalMinor: Long, val extrasMinor: Long)
