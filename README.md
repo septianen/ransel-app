@@ -26,6 +26,6 @@ composeApp/src/commonMain/kotlin/app/ransel/ui/theme/   IrisTheme (colors, type,
 
 ## Releases
 
-Production ships only from Actions → **Release**, on `main`, with `RELEASE_TYPE` set to `MAJOR`, `MINOR`, or `PATCH`. That bumps `version.properties` (`versionName` / `versionCode`), pushes the commit and the tag `vX.Y.Z`, then deploys the server, the web app, the Android release (APK and AAB) and Karung.
+Production ships only from Actions → **Release**, on `main`, with `RELEASE_TYPE` set to `MAJOR`, `MINOR`, or `PATCH`. That bumps `version.properties` (`versionName` / `versionCode`), tests that commit, pushes it and the tag `vX.Y.Z`, then deploys the server, the web app, the Android release (APK and AAB) and Karung from that commit.
 
 `none` (the default) and every push deploy staging only. They keep the current version and do not build a release AAB. How to run it, and the `RELEASE_PUSH_TOKEN` secret if `main` rejects the Actions bot: `deploy/README.md` (Releases).

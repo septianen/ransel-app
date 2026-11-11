@@ -4,8 +4,10 @@ name: Distribute Android
 # Needs the secrets and variables in deploy/README.md "Android builds (Firebase App Distribution)".
 #
 # versionName and versionCode come from version.properties. This workflow never bumps them.
-# A release AAB is built only when the Release workflow calls this with release_type set.
+# A release AAB is built only when Release calls this with production: true.
+# github.event_name inside this file is the caller's event, so it is not a workflow_call signal.
 # Push (including to main) and Run workflow build the debug APK only.
+# The release build has its own concurrency group and is not cancelled by a staging build.
 #
 #   staging     push, Run workflow, or Release with none  -> debug "RANSEL Dev" (app.ransel.debug) -> api-staging
 #   production  Release workflow, RELEASE_TYPE set        -> release (app.ransel, R8, signed AAB) -> api.ransel.app
@@ -28,13 +30,13 @@ on:
         required: false
   workflow_call:
     inputs:
-      release_type:
-        description: "MAJOR, MINOR or PATCH builds the release AAB. Empty builds the debug APK."
-        type: string
+      production:
+        description: "true builds the release AAB from ref. false builds the debug APK."
+        type: boolean
         required: false
-        default: ""
+        default: false
       ref:
-        description: "Commit to build. Empty uses the event SHA."
+        description: "Commit to build. Required when production is true (the bumped SHA)."
         type: string
         required: false
         default: ""
@@ -45,9 +47,9 @@ on:
         default: ""
 
 concurrency:
-  group: distribute-android-${{ (github.event_name == 'workflow_call' && (inputs.release_type == 'MAJOR' || inputs.release_type == 'MINOR' || inputs.release_type == 'PATCH')) && 'production' || 'staging' }}
-  # A new staging build replaces the one in progress. A release build is left to finish.
-  cancel-in-progress: ${{ !(github.event_name == 'workflow_call' && (inputs.release_type == 'MAJOR' || inputs.release_type == 'MINOR' || inputs.release_type == 'PATCH')) }}
+  # Release does not share the staging group, and a staging run must not cancel it.
+  group: ${{ inputs.production && 'distribute-android-release' || 'distribute-android-staging' }}
+  cancel-in-progress: ${{ !inputs.production }}
 
 permissions:
   contents: read
@@ -58,25 +60,27 @@ jobs:
     steps:
       - name: Target settings
         env:
-          RELEASE_TYPE: ${{ inputs.release_type }}
+          PRODUCTION: ${{ inputs.production }}
           DEPLOY_REF: ${{ inputs.ref }}
           APP_ID_RELEASE: ${{ vars.FIREBASE_APP_ID_RELEASE }}
           APP_ID_DEBUG: ${{ vars.FIREBASE_APP_ID_DEBUG }}
         run: |
-          # Release AAB only when Release calls this workflow. Push and Run workflow stay on the debug APK.
-          if [ "$GITHUB_EVENT_NAME" = workflow_call ] && { [ "$RELEASE_TYPE" = MAJOR ] || [ "$RELEASE_TYPE" = MINOR ] || [ "$RELEASE_TYPE" = PATCH ]; }; then
-            if [ "$GITHUB_REF" != refs/heads/main ]; then echo "production builds only from main" >&2; exit 1; fi
+          # Release AAB only when production is true. Push and Run workflow stay on the debug APK.
+          if [ "$PRODUCTION" = true ]; then
+            if [ -z "$DEPLOY_REF" ]; then
+              echo "::error::production build requires the bumped commit SHA from prepare" >&2
+              exit 1
+            fi
             echo "BUILD_TYPE=release" >> "$GITHUB_ENV"
             echo "APK=composeApp/build/outputs/apk/release/composeApp-release.apk" >> "$GITHUB_ENV"
             echo "FIREBASE_APP_ID=$APP_ID_RELEASE" >> "$GITHUB_ENV"
+            echo "DEPLOY_SHA=$DEPLOY_REF" >> "$GITHUB_ENV"
           else
             echo "BUILD_TYPE=debug" >> "$GITHUB_ENV"
             echo "APK=composeApp/build/outputs/apk/debug/composeApp-debug.apk" >> "$GITHUB_ENV"
             echo "FIREBASE_APP_ID=$APP_ID_DEBUG" >> "$GITHUB_ENV"
+            echo "DEPLOY_SHA=${DEPLOY_REF:-$GITHUB_SHA}" >> "$GITHUB_ENV"
           fi
-          REF="$DEPLOY_REF"
-          if [ -z "$REF" ]; then REF="$GITHUB_SHA"; fi
-          echo "DEPLOY_SHA=$REF" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.DEPLOY_SHA }}

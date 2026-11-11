@@ -87,11 +87,13 @@ Actions -> **Release** -> Run workflow:
 
 A push (to `develop` or `main`) behaves like `none` for the workflow it starts: staging, current version, no release AAB. Push to `main` does **not** update `api.ransel.app` or `ransel.app`. Karung is not on the push path; it ships with a release.
 
-The menu value is `none` rather than a blank line because a GitHub choice input cannot be empty. The workflow treats `none` as no release. Production jobs run only when the release type is not empty.
+The menu value is `none` rather than a blank line because a GitHub choice input cannot be empty. The workflow treats `none` as no release. Release passes `production: true` to the deploy workflows only for `MAJOR`, `MINOR` or `PATCH` run from `main`. Those workflows gate every production step on that flag. `github.event_name` inside a called workflow is the caller's event, so it is not used as the gate.
 
-Two releases use the concurrency group `ransel-release` and wait in line, so they cannot both add 1 to the same `versionCode`. If a release already pushed the version bump and a later deploy job failed, re-run the failed jobs. Re-running the whole workflow bumps the version again.
+A release commits the bump on the runner, then runs `:shared:jvmTest`, `:server:test`, `:composeApp:testDebugUnitTest` and `:adminApp:wasmJsBrowserTest` (Karung) on that commit. The commit and the `vX.Y.Z` tag are pushed only after those tests pass. Server, web, the Android release build and Karung then check out that SHA.
 
-The bump is committed as `github-actions[bot]` with the workflow's `contents: write` permission, then tagged `vX.Y.Z`. That push uses `GITHUB_TOKEN`, which does not start other workflows, so the bump commit does not deploy on its own. The same run deploys production from the new commit.
+Two releases use the concurrency group `ransel-release` and wait in line, so they cannot both add 1 to the same `versionCode`. The release Android build uses the group `distribute-android-release` and is not cancelled by a staging build. Re-running the workflow reuses the bump when this run's commit is already on `main`, or when the `vX.Y.Z` tag points at that commit, so a second attempt does not bump again.
+
+The bump is committed as `github-actions[bot]` with the workflow's `contents: write` permission, then tagged `vX.Y.Z`. That push uses `GITHUB_TOKEN`, which does not start other workflows. The same run deploys production from the bumped SHA.
 
 If branch protection rejects the Actions bot, set the secret `RELEASE_PUSH_TOKEN` to a fine-grained token or a classic PAT with contents write on this repo. The Release workflow uses it for the checkout and the push when it is set. Do not put the token on the command line.
 

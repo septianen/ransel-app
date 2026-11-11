@@ -9,12 +9,18 @@ name: Release
 #   PATCH           -> versionName X.Y.Z+1 (1.0.1 -> 1.0.2), versionCode +1, tag vX.Y.Z, then production
 #
 # GitHub's choice input cannot be an empty string, so the menu value is "none".
-# prepare writes that as an empty release_type. Prod jobs run only when it is not empty.
-# A push does not start this workflow. Push deploys (Deploy server / Deploy web / Distribute Android)
-# follow the same rule as none: staging only, current version, no release AAB.
+# prepare stores that as production=false. Prod jobs run only when production=true, which prepare
+# sets only for MAJOR / MINOR / PATCH dispatched from main.
+#
+# Called workflows do not look at github.event_name. Inside a called workflow that context is the
+# caller's event (workflow_dispatch), so Release passes an explicit production boolean and the
+# bumped commit SHA.
+#
+# A real release commits the bump locally, runs the full test gate on that commit, then pushes
+# the commit and the tag. Deploy jobs check out that SHA. Re-running the workflow reuses the
+# commit when this run already tagged it, so a second attempt does not bump again.
 #
 # Two releases share the group ransel-release and wait in line (cancel-in-progress: false).
-# The bump reads origin/main after the wait, so they cannot both add 1 to the same versionCode.
 on:
   workflow_dispatch:
     inputs:
@@ -46,9 +52,11 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      # Empty unless this run is a real release. Prod jobs check `!= ''`.
       release_type: ${{ steps.norm.outputs.release_type }}
-      sha: ${{ steps.meta.outputs.sha }}
+      # "true" only after MAJOR/MINOR/PATCH on main. Prod jobs require this.
+      production: ${{ steps.meta.outputs.production }}
+      # Bumped commit after a successful push, or the dispatch SHA when production is false.
+      sha: ${{ steps.push.outputs.sha || steps.meta.outputs.sha }}
       version_name: ${{ steps.meta.outputs.version_name }}
       version_code: ${{ steps.meta.outputs.version_code }}
     steps:
@@ -57,7 +65,6 @@ jobs:
           RAW: ${{ inputs.RELEASE_TYPE }}
         run: |
           set -euo pipefail
-          # Push is not a trigger. Any value other than MAJOR / MINOR / PATCH becomes ''.
           case "$RAW" in
             MAJOR|MINOR|PATCH)
               echo "release_type=$RAW" >> "$GITHUB_OUTPUT"
@@ -84,9 +91,9 @@ jobs:
           RELEASE_TYPE: ${{ steps.norm.outputs.release_type }}
         run: |
           set -euo pipefail
-          record() {
-            sha="$1"
-            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          MARKER="workflow-run: ${GITHUB_RUN_ID}"
+
+          publish_version() {
             while IFS= read -r line; do
               key=${line%%=*}
               value=${line#*=}
@@ -95,12 +102,16 @@ jobs:
                 APP_VERSION_CODE) echo "version_code=$value" >> "$GITHUB_OUTPUT" ;;
               esac
             done < "$RUNNER_TEMP/version.env"
+            cat "$RUNNER_TEMP/version.env" >> "$GITHUB_ENV"
           }
 
           if [ -z "$RELEASE_TYPE" ]; then
             python3 scripts/bump_version.py none --github-env | tee "$RUNNER_TEMP/version.env"
-            record "$GITHUB_SHA"
-            echo "No release: version.properties stays as it is. Deploying staging only."
+            publish_version
+            echo "production=false" >> "$GITHUB_OUTPUT"
+            echo "needs_tests=false" >> "$GITHUB_OUTPUT"
+            echo "sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo "No release: version.properties stays as it is. Deploying staging of $GITHUB_SHA."
             exit 0
           fi
 
@@ -109,99 +120,200 @@ jobs:
             exit 1
           fi
 
-          # A queued release must bump the version the previous release already pushed,
-          # not the SHA this run was dispatched on.
-          git fetch origin main
+          git fetch origin main --tags --force
           git checkout -B main origin/main
 
+          # Re-run of this workflow run: the bump commit or its vX.Y.Z tag is already on main.
+          REUSE=""
+          if git log -1 --format=%B | grep -F "$MARKER" >/dev/null; then
+            REUSE=$(git rev-parse HEAD)
+          else
+            for tag in $(git tag -l 'v*'); do
+              if git cat-file -p "$tag" | grep -F "$MARKER" >/dev/null; then
+                REUSE=$(git rev-parse "${tag}^{}")
+                break
+              fi
+            done
+          fi
+
+          if [ -n "$REUSE" ]; then
+            git checkout --detach "$REUSE"
+            python3 scripts/bump_version.py none --github-env | tee "$RUNNER_TEMP/version.env"
+            publish_version
+            # shellcheck disable=SC1091
+            set -a
+            . "$RUNNER_TEMP/version.env"
+            set +a
+            TAG="v${APP_VERSION_NAME}"
+            if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+              TAG_AT=$(git rev-parse "${TAG}^{}")
+              if [ "$TAG_AT" != "$REUSE" ]; then
+                echo "::error::$TAG points at $TAG_AT, not this run's commit $REUSE"
+                exit 1
+              fi
+              echo "Reusing $TAG at $REUSE (this run already bumped)."
+            else
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git tag -a "$TAG" "$REUSE" -m "Release ${APP_VERSION_NAME} (${APP_VERSION_CODE})" -m "$MARKER"
+              git push origin "$TAG"
+              echo "Reusing commit $REUSE and pushed missing $TAG."
+            fi
+            echo "production=true" >> "$GITHUB_OUTPUT"
+            echo "needs_tests=false" >> "$GITHUB_OUTPUT"
+            echo "sha=$REUSE" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           python3 scripts/bump_version.py "$RELEASE_TYPE" --github-env | tee "$RUNNER_TEMP/version.env"
-          set -a
+          publish_version
           # shellcheck disable=SC1091
+          set -a
           . "$RUNNER_TEMP/version.env"
           set +a
           if [ "$APP_VERSION_BUMPED" != true ]; then
             echo "::error::$RELEASE_TYPE did not change version.properties"
             exit 1
           fi
+          TAG="v${APP_VERSION_NAME}"
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::$TAG already exists and was not created by this run"
+            exit 1
+          fi
 
+          # Commit and tag locally. Tests run on this commit. Nothing is pushed until they pass.
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add version.properties
           git commit -m "Release ${APP_VERSION_NAME} (${APP_VERSION_CODE})" \
-            -m "${RELEASE_TYPE}: versionName ${APP_VERSION_PREVIOUS_NAME} -> ${APP_VERSION_NAME}, versionCode ${APP_VERSION_PREVIOUS_CODE} -> ${APP_VERSION_CODE}."
-          git tag -a "v${APP_VERSION_NAME}" -m "Release ${APP_VERSION_NAME} (${APP_VERSION_CODE})"
-          if ! git push origin HEAD:main; then
+            -m "${RELEASE_TYPE}: versionName ${APP_VERSION_PREVIOUS_NAME} -> ${APP_VERSION_NAME}, versionCode ${APP_VERSION_PREVIOUS_CODE} -> ${APP_VERSION_CODE}." \
+            -m "$MARKER"
+          git tag -a "$TAG" -m "Release ${APP_VERSION_NAME} (${APP_VERSION_CODE})" -m "$MARKER"
+          echo "production=true" >> "$GITHUB_OUTPUT"
+          echo "needs_tests=true" >> "$GITHUB_OUTPUT"
+          echo "Local release commit $(git rev-parse HEAD) ($TAG). Tests run before the push."
+
+      - name: Set up Java
+        if: steps.meta.outputs.needs_tests == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        if: steps.meta.outputs.needs_tests == 'true'
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Accept Android licenses
+        if: steps.meta.outputs.needs_tests == 'true'
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Server, shared, app, and Karung tests
+        if: steps.meta.outputs.needs_tests == 'true'
+        run: |
+          set -euo pipefail
+          ./gradlew :shared:jvmTest :server:test :composeApp:testDebugUnitTest :adminApp:wasmJsBrowserTest --no-daemon
+
+      - name: Failed tests as annotations
+        if: failure() && steps.meta.outputs.needs_tests == 'true'
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          files = glob.glob('server/build/test-results/test/*.xml')
+          files += glob.glob('shared/build/test-results/jvmTest/*.xml')
+          files += glob.glob('composeApp/build/test-results/testDebugUnitTest/*.xml')
+          files += glob.glob('adminApp/build/test-results/**/*.xml', recursive=True)
+          for f in files:
+              suite = ET.parse(f).getroot()
+              for case in suite.iter('testcase'):
+                  for kind in ('failure', 'error'):
+                      e = case.find(kind)
+                      if e is None: continue
+                      text = ((e.get('message') or '') + '\n' + (e.text or ''))[:1500]
+                      text = text.replace('%', '%25').replace('\r', '').replace('\n', '%0A')
+                      print(f"::error title={suite.get('name').split('.')[-1]} > {case.get('name')}::{text}")
+          PY
+
+      - id: push
+        name: Push the version bump and tag
+        if: steps.meta.outputs.needs_tests == 'true' && success()
+        run: |
+          set -euo pipefail
+          # The commit and tag exist only on this runner until the tests above pass.
+          SHA=$(git rev-parse HEAD)
+          TAG="v${APP_VERSION_NAME}"
+          if ! git push origin "$SHA:main"; then
             echo "::error::Could not push the version bump to main. Allow GitHub Actions to push to main (workflow permission contents: write, and branch protection must allow the Actions bot), or set the RELEASE_PUSH_TOKEN secret to a token with contents write. The default GITHUB_TOKEN push does not start other workflows."
             exit 1
           fi
-          if ! git push origin "v${APP_VERSION_NAME}"; then
-            echo "::error::The version commit is on main but tag v${APP_VERSION_NAME} was not pushed."
+          if ! git push origin "$TAG"; then
+            echo "::error::The version commit is on main but tag $TAG was not pushed."
             exit 1
           fi
-          record "$(git rev-parse HEAD)"
-          echo "Released ${APP_VERSION_NAME} (${APP_VERSION_CODE}), tag v${APP_VERSION_NAME}."
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "Pushed $TAG at $SHA. Deploy jobs check out this SHA."
 
   deploy-server-staging:
     needs: prepare
-    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type == ''
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.production != 'true'
     uses: ./.github/workflows/deploy-server.yml
     with:
-      release_type: ""
+      production: false
       ref: ${{ needs.prepare.outputs.sha }}
     secrets: inherit
 
   deploy-web-staging:
     needs: prepare
-    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type == ''
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.production != 'true'
     uses: ./.github/workflows/deploy-web.yml
     with:
-      release_type: ""
+      production: false
       ref: ${{ needs.prepare.outputs.sha }}
     secrets: inherit
 
   distribute-android-staging:
     needs: prepare
-    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type == ''
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.production != 'true'
     uses: ./.github/workflows/distribute-android.yml
     with:
-      release_type: ""
+      production: false
       ref: ${{ needs.prepare.outputs.sha }}
       release_notes: ${{ inputs.release_notes }}
     secrets: inherit
 
   deploy-server-production:
     needs: prepare
-    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type != ''
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.production == 'true' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy-server.yml
     with:
-      release_type: ${{ needs.prepare.outputs.release_type }}
+      production: true
       ref: ${{ needs.prepare.outputs.sha }}
     secrets: inherit
 
   deploy-web-production:
     needs: prepare
-    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type != ''
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.production == 'true' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy-web.yml
     with:
-      release_type: ${{ needs.prepare.outputs.release_type }}
+      production: true
       ref: ${{ needs.prepare.outputs.sha }}
     secrets: inherit
 
   distribute-android-production:
     needs: prepare
-    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type != ''
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.production == 'true' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/distribute-android.yml
     with:
-      release_type: ${{ needs.prepare.outputs.release_type }}
+      production: true
       ref: ${{ needs.prepare.outputs.sha }}
       release_notes: ${{ inputs.release_notes }}
     secrets: inherit
 
   deploy-admin-production:
     needs: prepare
-    if: needs.prepare.result == 'success' && needs.prepare.outputs.release_type != ''
+    if: needs.prepare.result == 'success' && needs.prepare.outputs.production == 'true' && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy-admin.yml
     with:
-      release_type: ${{ needs.prepare.outputs.release_type }}
+      production: true
       ref: ${{ needs.prepare.outputs.sha }}
     secrets: inherit

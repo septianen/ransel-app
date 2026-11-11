@@ -3,8 +3,9 @@ name: Deploy server
 # Builds the server distribution, pushes the image to GHCR and rolls it out on the VPS over SSH.
 # Needs the repository secrets listed in deploy/README.md.
 #
-# Production only when the Release workflow calls this with release_type MAJOR, MINOR or PATCH
-# (from main). A push, including to main, and Run workflow deploy staging and do not bump the app version.
+# Production only when Release calls this with production: true (MAJOR / MINOR / PATCH from main).
+# github.event_name inside this file is the caller's event, so it is not a workflow_call signal.
+# A push, including to main, and Run workflow deploy staging and do not bump the app version.
 #   production  Release workflow (RELEASE_TYPE set)  -> api.ransel.app          /opt/ransel      127.0.0.1:8080
 #   staging     push to main or develop, or          -> api-staging.ransel.app  /opt/ransel-dev  127.0.0.1:8090
 #               Run workflow, or Release with none
@@ -21,20 +22,19 @@ on:
   workflow_dispatch:
   workflow_call:
     inputs:
-      release_type:
-        description: "MAJOR, MINOR or PATCH deploys production. Empty deploys staging."
-        type: string
+      production:
+        description: "true deploys production from ref. false deploys staging."
+        type: boolean
         required: false
-        default: ""
+        default: false
       ref:
-        description: "Commit to build. Empty uses the event SHA."
+        description: "Commit to build. Required when production is true (the bumped SHA)."
         type: string
         required: false
         default: ""
 
 concurrency:
-  # Production is only a workflow_call with a real release type. Everything else shares the staging lock.
-  group: deploy-server-${{ (github.event_name == 'workflow_call' && (inputs.release_type == 'MAJOR' || inputs.release_type == 'MINOR' || inputs.release_type == 'PATCH')) && 'production' || 'staging' }}
+  group: ${{ inputs.production && 'deploy-server-production' || 'deploy-server-staging' }}
   cancel-in-progress: false
 
 permissions:
@@ -49,6 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -77,11 +79,11 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    environment: ${{ (github.event_name == 'workflow_call' && (inputs.release_type == 'MAJOR' || inputs.release_type == 'MINOR' || inputs.release_type == 'PATCH')) && 'production' || 'staging' }}
+    environment: ${{ inputs.production && 'production' || 'staging' }}
     steps:
       - name: Target settings
         env:
-          RELEASE_TYPE: ${{ inputs.release_type }}
+          PRODUCTION: ${{ inputs.production }}
           DEPLOY_REF: ${{ inputs.ref }}
           # Staging uses its own variable names: a variable missing in the staging Environment would otherwise fall
           # back to the repository (production) value and deploy over production.
@@ -91,18 +93,20 @@ jobs:
           APP_BASE_URL: ${{ vars.APP_BASE_URL }}
           CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
         run: |
-          # Production only when Release calls this workflow. Push and Run workflow stay on staging,
-          # including a push to main, so they never touch api.ransel.app.
-          if [ "$GITHUB_EVENT_NAME" = workflow_call ] && { [ "$RELEASE_TYPE" = MAJOR ] || [ "$RELEASE_TYPE" = MINOR ] || [ "$RELEASE_TYPE" = PATCH ]; }; then
+          # production is the boolean Release passes. A push leaves it false, so this stays on staging.
+          if [ "$PRODUCTION" = true ]; then
+            if [ -z "$DEPLOY_REF" ]; then
+              echo "::error::production deploy requires the bumped commit SHA from prepare" >&2
+              exit 1
+            fi
             TARGET=production
+            REF="$DEPLOY_REF"
           else
             TARGET=staging
+            REF="${DEPLOY_REF:-$GITHUB_SHA}"
           fi
-          REF="$DEPLOY_REF"
-          if [ -z "$REF" ]; then REF="$GITHUB_SHA"; fi
           echo "IMAGE_SHA=$REF" >> "$GITHUB_ENV"
           if [ "$TARGET" = production ]; then
-            if [ "$GITHUB_REF" != refs/heads/main ]; then echo "production deploys only from main" >&2; exit 1; fi
             {
               echo "APP_ENV=production"
               echo "DEPLOY_PATH=${PROD_DEPLOY_PATH:-/opt/ransel}"

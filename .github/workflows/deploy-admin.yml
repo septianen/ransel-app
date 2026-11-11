@@ -2,19 +2,20 @@ name: Deploy admin
 
 # Builds Karung, the admin web app (adminApp, wasmJs), and publishes it to the folder nginx serves karung.ransel.app from.
 # Uses the SSH secrets listed in deploy/README.md (same as Deploy server).
-# Karung is production. It deploys only when the Release workflow calls this with release_type set.
-# A push does not publish it, and Run workflow refuses rather than deploying.
+# Karung is production. It deploys only when Release calls this with production: true.
+# github.event_name inside this file is the caller's event, so it is not a workflow_call signal.
+# Run workflow without that flag refuses rather than deploying.
 on:
   workflow_dispatch:
   workflow_call:
     inputs:
-      release_type:
-        description: "MAJOR, MINOR or PATCH. Empty does not deploy."
-        type: string
+      production:
+        description: "true deploys Karung from ref."
+        type: boolean
         required: false
-        default: ""
+        default: false
       ref:
-        description: "Commit to build. Empty uses the event SHA."
+        description: "Bumped commit to build. Required when production is true."
         type: string
         required: false
         default: ""
@@ -28,7 +29,7 @@ permissions:
 
 jobs:
   refuse-manual:
-    if: github.event_name != 'workflow_call'
+    if: inputs.production != true
     runs-on: ubuntu-latest
     steps:
       - name: Production only from Release
@@ -37,12 +38,20 @@ jobs:
           exit 1
 
   deploy:
-    if: github.event_name == 'workflow_call' && (inputs.release_type == 'MAJOR' || inputs.release_type == 'MINOR' || inputs.release_type == 'PATCH')
+    if: inputs.production == true
     runs-on: ubuntu-latest
     steps:
+      - name: Require the release commit
+        env:
+          DEPLOY_REF: ${{ inputs.ref }}
+        run: |
+          if [ -z "$DEPLOY_REF" ]; then
+            echo "::error::Karung production deploy requires the bumped commit SHA from prepare" >&2
+            exit 1
+          fi
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || github.sha }}
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

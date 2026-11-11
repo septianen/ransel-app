@@ -16,7 +16,7 @@ on:
       - "gradle.properties"
       - "version.properties"
       - "scripts/**"
-      - ".github/workflows/ci.yml"
+      - ".github/workflows/**"
 
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
