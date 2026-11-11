@@ -131,6 +131,9 @@
     <string name="error_required">Required</string>
     <string name="date_range_title">Select trip dates</string>
     <string name="date_range_confirm">Done</string>
+    <string name="calendar_date_title">Select date</string>
+    <string name="calendar_legend_holiday">Public holiday</string>
+    <string name="calendar_legend_collective_leave">Collective leave</string>
 
     <!-- Delete trip dialog -->
     <string name="delete_trip_title">Delete %1$s?</string>

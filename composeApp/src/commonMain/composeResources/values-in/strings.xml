@@ -131,6 +131,9 @@
     <string name="error_required">Wajib diisi</string>
     <string name="date_range_title">Pilih tanggal trip</string>
     <string name="date_range_confirm">Selesai</string>
+    <string name="calendar_date_title">Pilih tanggal</string>
+    <string name="calendar_legend_holiday">Tanggal merah</string>
+    <string name="calendar_legend_collective_leave">Cuti bersama</string>
 
     <!-- Delete trip dialog -->
     <string name="delete_trip_title">Hapus %1$s?</string>

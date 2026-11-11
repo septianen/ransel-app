@@ -12,16 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,8 +45,6 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
-import app.ransel.util.fromPickerMillis
-import app.ransel.util.toPickerMillis
 import app.ransel.util.today
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -89,6 +83,7 @@ import ransel.composeapp.generated.resources.poll_options_empty
 import ransel.composeapp.generated.resources.poll_options_title
 import ransel.composeapp.generated.resources.poll_question_error
 import ransel.composeapp.generated.resources.poll_question_label
+import app.ransel.ui.components.calendar.RanselDatePickerDialog
 
 /** The form of a new poll (opened from the Group tab). Closes by itself once the poll exists and opens it. */
 @Composable
@@ -273,26 +268,13 @@ private fun FoodWhen(day: LocalDate?, time: LocalTime?, tripStart: LocalDate?, t
     if (pickDay) {
         // the winner becomes an activity of that day: only days of the trip that are not over (owner, 27 Oct 2026)
         val earliest = maxOf(today(), tripStart ?: today())
-        val selectable = remember(earliest, tripEnd) {
-            object : SelectableDates {
-                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                    val date = utcTimeMillis.fromPickerMillis()
-                    return date >= earliest && (tripEnd == null || date <= tripEnd)
-                }
-                override fun isSelectableYear(year: Int) = year >= earliest.year && (tripEnd == null || year <= tripEnd.year)
-            }
-        }
-        val state = rememberDatePickerState(
-            initialSelectedDateMillis = (day ?: earliest.takeIf { tripEnd == null || it <= tripEnd } ?: tripStart ?: today()).toPickerMillis(),
-            selectableDates = selectable,
+        RanselDatePickerDialog(
+            initial = day ?: earliest.takeIf { tripEnd == null || it <= tripEnd } ?: tripStart ?: today(),
+            onConfirm = { onDay(it); pickDay = false },
+            onDismiss = { pickDay = false },
+            earliest = earliest,
+            latest = tripEnd,
         )
-        DatePickerDialog(
-            onDismissRequest = { pickDay = false },
-            confirmButton = {
-                TextButton(onClick = { state.selectedDateMillis?.let { onDay(it.fromPickerMillis()) }; pickDay = false }) { Text(stringResource(Res.string.action_ok)) }
-            },
-            dismissButton = { TextButton(onClick = { pickDay = false }) { Text(stringResource(Res.string.action_cancel)) } },
-        ) { DatePicker(state = state) }
     }
     if (pickTime) {
         IrisTimePickerDialog(initial = time ?: LocalTime(19, 0), onConfirm = { onTime(it); pickTime = false }, onDismiss = { pickTime = false })
