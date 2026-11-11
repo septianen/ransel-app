@@ -40,11 +40,11 @@ suspend fun RanselApi.checkForUpdate(version: String): UpdateCheck =
     }
 
 /**
- * The latest version hidden by Nanti. This is process memory, not Compose state: rotation and a language change
- * rebuild the screen (`key(language)` drops `remember`) and must not ask again. A new process starts empty.
+ * The latest version hidden by Nanti. Snapshot state for this process, not `remember`: writing it recomposes and
+ * closes the dialog, and a rebuilt screen (rotation, `key(language)`) still sees the snooze. A new process starts empty.
  */
 internal object UpdateSnooze {
-    var latestVersion: String? = null
+    var latestVersion by mutableStateOf<String?>(null)
 }
 
 /**

@@ -45,10 +45,11 @@ jobs:
       - name: App update and Karung tests
         run: |
           export CHROME_BIN="$(which google-chrome)"
-          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --tests app.ransel.feature.AppUpdateTest :adminApp:wasmJsBrowserTest --no-daemon
+          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --tests app.ransel.feature.AppUpdateTest --tests app.ransel.feature.SoftUpdateDialogTest :adminApp:wasmJsBrowserTest --no-daemon
           python3 - <<'PY'
           import glob, xml.etree.ElementTree as ET
           files = glob.glob('composeApp/build/test-results/testDebugUnitTest/TEST-app.ransel.feature.AppUpdateTest.xml')
+          files += glob.glob('composeApp/build/test-results/testDebugUnitTest/TEST-app.ransel.feature.SoftUpdateDialogTest.xml')
           files += glob.glob('adminApp/build/test-results/**/TEST-*.xml', recursive=True)
           if not files:
               raise SystemExit('App update or Karung tests did not produce results')
