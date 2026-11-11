@@ -33,13 +33,23 @@ class AdminSettingsTest {
         assertEquals("170", microToUsdText(170_000_000))
     }
 
-    @Test fun appUpdateSettingsAreCheckedByShape() {
-        assertNull(validateSetting(SettingKey.ANDROID_MIN_VERSION, "0.3.0", models))
-        assertEquals("NOT_A_VERSION", validateSetting(SettingKey.IOS_MIN_VERSION, "0.3", models))
-        assertEquals("NOT_A_VERSION", validateSetting(SettingKey.ANDROID_MIN_VERSION, "v1.0.0", models))
-        assertNull(validateSetting(SettingKey.ANDROID_FORCE_UPDATE, "true", models))
-        assertEquals("NOT_ALLOWED", validateSetting(SettingKey.IOS_FORCE_UPDATE, "yes", models))
-        assertNull(validateSetting(SettingKey.ANDROID_STORE_URL, "https://play.google.com/store/apps/details?id=app.ransel", models))
-        assertEquals("NOT_A_URL", validateSetting(SettingKey.IOS_STORE_URL, "http://apps.apple.com/app/id1", models))
+    @Test fun androidUpdateSettingsAreCheckedByShape() {
+        assertNull(validateSetting(SettingKey.ANDROID_MIN_VERSION, "", models))
+        assertNull(validateSetting(SettingKey.ANDROID_MIN_VERSION, "1.2.3", models))
+        assertEquals("NOT_A_VERSION", validateSetting(SettingKey.ANDROID_LATEST_VERSION, "1.2", models))
+        assertNull(validateSetting(SettingKey.ANDROID_UPDATE_MESSAGE, "", models))
+        assertEquals("TOO_LONG", validateSetting(SettingKey.ANDROID_UPDATE_MESSAGE, "x".repeat(MAX_UPDATE_MESSAGE + 1), models))
+        assertNull(validateSetting(SettingKey.ANDROID_STORE_URL, "", models))
+        assertEquals("NOT_A_URL", validateSetting(SettingKey.ANDROID_STORE_URL, "http://play.google.com/store/apps/details?id=app.ransel", models))
+    }
+
+    @Test fun theMinimumCannotPassTheLatestAndAVersionNeedsAStoreLink() {
+        val play = "https://play.google.com/store/apps/details?id=app.ransel"
+        assertEquals(emptyMap(), androidUpdateProblems("1.1.0", "1.2.0", play))
+        assertEquals(emptyMap(), androidUpdateProblems("", "", ""))
+        assertEquals(mapOf(SettingKey.ANDROID_MIN_VERSION to "MIN_AFTER_LATEST"), androidUpdateProblems("1.3.0", "1.2.0", play))
+        assertEquals(mapOf(SettingKey.ANDROID_STORE_URL to "STORE_URL_REQUIRED"), androidUpdateProblems("1.2.0", "", ""))
+        assertEquals(mapOf(SettingKey.ANDROID_STORE_URL to "NOT_A_URL"), androidUpdateProblems("", "1.2.0", "play.google.com/store"))
+        assertEquals(mapOf(SettingKey.ANDROID_MIN_VERSION to "NOT_A_VERSION"), androidUpdateProblems("1.2", "1.3.0", play))
     }
 }
