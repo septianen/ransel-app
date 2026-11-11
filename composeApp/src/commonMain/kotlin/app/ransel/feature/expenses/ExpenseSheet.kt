@@ -19,8 +19,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,7 +29,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,10 +84,8 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.feature.tripform.ThousandsVisualTransformation
-import app.ransel.util.fromPickerMillis
 import app.ransel.util.newId
 import app.ransel.util.now
-import app.ransel.util.toPickerMillis
 import app.ransel.util.today
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -132,6 +127,7 @@ import ransel.composeapp.generated.resources.activity_category
 import ransel.composeapp.generated.resources.expenses_record
 import ransel.composeapp.generated.resources.itinerary_close
 import ransel.composeapp.generated.resources.itinerary_day_chip
+import app.ransel.ui.components.calendar.RanselDatePickerDialog
 
 /** Record (existing == null) or edit an expense (design "Catat pengeluaran"). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -567,21 +563,11 @@ fun ExpenseSheet(
         )
     }
     if (pickDate) {
-        val state = rememberDatePickerState(initialSelectedDateMillis = date.toPickerMillis())
-        DatePickerDialog(
-            onDismissRequest = { pickDate = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        state.selectedDateMillis?.let { date = it.fromPickerMillis() }
-                        pickDate = false
-                    },
-                ) { Text(stringResource(Res.string.action_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pickDate = false }) { Text(stringResource(Res.string.action_cancel)) }
-            },
-        ) { DatePicker(state = state) }
+        RanselDatePickerDialog(
+            initial = date,
+            onConfirm = { date = it; pickDate = false },
+            onDismiss = { pickDate = false },
+        )
     }
 }
 

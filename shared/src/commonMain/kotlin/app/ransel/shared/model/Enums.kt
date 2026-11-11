@@ -256,3 +256,7 @@ enum class FxSource { DAILY, MANUAL }
 /** Account → Info pembayaran: a bank account or an e-wallet. */
 @Serializable
 enum class PaymentMethodKind { BANK, EWALLET }
+
+/** Kind of a day off in Indonesia: a national holiday (tanggal merah) or a cuti bersama (collective leave day). */
+@Serializable
+enum class HolidayType { NATIONAL, CUTI_BERSAMA }

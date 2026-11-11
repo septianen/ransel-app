@@ -64,8 +64,6 @@ import ransel.composeapp.generated.resources.action_undo
 import ransel.composeapp.generated.resources.receipt_incl_pb1
 import ransel.composeapp.generated.resources.receipt_total
 import ransel.composeapp.generated.resources.receipt_total_mismatch_warning
-import app.ransel.util.toPickerMillis
-import app.ransel.util.fromPickerMillis
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
@@ -397,21 +395,11 @@ private fun ReceiptResult(
         }
     }
     if (pickDate) {
-        val state = androidx.compose.material3.rememberDatePickerState(initialSelectedDateMillis = (form.date ?: today()).toPickerMillis())
-        androidx.compose.material3.DatePickerDialog(
-            onDismissRequest = { pickDate = false },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        state.selectedDateMillis?.let { form.date = it.fromPickerMillis() }
-                        pickDate = false
-                    },
-                ) { Text(stringResource(Res.string.action_ok)) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { pickDate = false }) { Text(stringResource(Res.string.action_cancel)) }
-            },
-        ) { androidx.compose.material3.DatePicker(state = state) }
+        app.ransel.ui.components.calendar.RanselDatePickerDialog(
+            initial = form.date ?: today(),
+            onConfirm = { form.date = it; pickDate = false },
+            onDismiss = { pickDate = false },
+        )
     }
 }
 
