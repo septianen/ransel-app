@@ -33,18 +33,18 @@ import androidx.compose.ui.unit.dp
 import app.ransel.admin.generated.resources.Res
 import app.ransel.admin.generated.resources.settings_app_title
 import app.ransel.admin.generated.resources.settings_app_subtitle
-import app.ransel.admin.generated.resources.settings_app_note
+import app.ransel.admin.generated.resources.settings_android_heading
+import app.ransel.admin.generated.resources.settings_android_latest_version
+import app.ransel.admin.generated.resources.settings_android_message
 import app.ransel.admin.generated.resources.settings_android_min_version
-import app.ransel.admin.generated.resources.settings_android_force
 import app.ransel.admin.generated.resources.settings_android_store_url
-import app.ransel.admin.generated.resources.settings_ios_min_version
-import app.ransel.admin.generated.resources.settings_ios_force
-import app.ransel.admin.generated.resources.settings_ios_store_url
-import app.ransel.admin.generated.resources.settings_force_yes
-import app.ransel.admin.generated.resources.settings_force_no
-import app.ransel.admin.generated.resources.settings_problem_version
+import app.ransel.admin.generated.resources.settings_message_count
+import app.ransel.admin.generated.resources.settings_message_hint
+import app.ransel.admin.generated.resources.settings_problem_min_after_latest
+import app.ransel.admin.generated.resources.settings_problem_store_required
 import app.ransel.admin.generated.resources.settings_problem_url
-import app.ransel.admin.generated.resources.settings_confirm_force_warning
+import app.ransel.admin.generated.resources.settings_problem_version
+import app.ransel.admin.generated.resources.settings_confirm_min_warning
 import app.ransel.admin.generated.resources.settings_alert
 import app.ransel.admin.generated.resources.settings_budget
 import app.ransel.admin.generated.resources.settings_cancel
@@ -85,9 +85,11 @@ import app.ransel.admin.ui.TileGrid
 import app.ransel.admin.ui.failureText
 import app.ransel.shared.domain.AI_BUDGET_ALERT_PERCENTS
 import app.ransel.shared.domain.MAX_AI_MONTHLY_BUDGET_USD
+import app.ransel.shared.domain.MAX_UPDATE_MESSAGE
 import app.ransel.shared.domain.SETTING_RANGES
 import app.ransel.shared.model.AiBudgetMode
 import app.ransel.shared.model.SettingKey
+import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import org.jetbrains.compose.resources.StringResource
@@ -102,20 +104,11 @@ private val CREDITS = listOf(
     SettingKey.COST_PLACE_DETAIL, SettingKey.COST_RECEIPT,
 )
 
-private val FORCE_KEYS = setOf(SettingKey.ANDROID_FORCE_UPDATE, SettingKey.IOS_FORCE_UPDATE)
-
-private val APP_VERSION_KEYS = listOf(
-    SettingKey.ANDROID_MIN_VERSION, SettingKey.ANDROID_FORCE_UPDATE, SettingKey.ANDROID_STORE_URL,
-    SettingKey.IOS_MIN_VERSION, SettingKey.IOS_FORCE_UPDATE, SettingKey.IOS_STORE_URL,
-)
-
 private fun SettingKey.label(): StringResource = when (this) {
     SettingKey.ANDROID_MIN_VERSION -> Res.string.settings_android_min_version
-    SettingKey.ANDROID_FORCE_UPDATE -> Res.string.settings_android_force
+    SettingKey.ANDROID_LATEST_VERSION -> Res.string.settings_android_latest_version
+    SettingKey.ANDROID_UPDATE_MESSAGE -> Res.string.settings_android_message
     SettingKey.ANDROID_STORE_URL -> Res.string.settings_android_store_url
-    SettingKey.IOS_MIN_VERSION -> Res.string.settings_ios_min_version
-    SettingKey.IOS_FORCE_UPDATE -> Res.string.settings_ios_force
-    SettingKey.IOS_STORE_URL -> Res.string.settings_ios_store_url
     SettingKey.SIGNUP_GRANT -> Res.string.settings_signup_grant
     SettingKey.DAILY_FREE -> Res.string.settings_daily_free
     SettingKey.COST_SEARCH -> Res.string.settings_cost_search
@@ -137,9 +130,7 @@ private fun shown(key: SettingKey, value: String): String = when (key) {
         else -> stringResource(Res.string.settings_mode_keep_going)
     }
     SettingKey.AI_BUDGET_ALERT_PERCENT -> "$value%"
-    SettingKey.ANDROID_FORCE_UPDATE, SettingKey.IOS_FORCE_UPDATE ->
-        stringResource(if (value == "true") Res.string.settings_force_yes else Res.string.settings_force_no)
-    SettingKey.ANDROID_MIN_VERSION, SettingKey.IOS_MIN_VERSION, SettingKey.ANDROID_STORE_URL, SettingKey.IOS_STORE_URL ->
+    SettingKey.ANDROID_MIN_VERSION, SettingKey.ANDROID_LATEST_VERSION, SettingKey.ANDROID_UPDATE_MESSAGE, SettingKey.ANDROID_STORE_URL ->
         value.ifBlank { "—" }
     else -> value
 }
@@ -167,7 +158,11 @@ fun SettingsCard(presenter: SettingsPresenter) {
         ConfirmDialog(
             title = stringResource(Res.string.settings_confirm_title),
             body = stringResource(Res.string.settings_confirm_body, lines.joinToString("\n")) +
-                if (form.changes.any { (key, value) -> value == "true" && key in FORCE_KEYS }) "\n\n" + stringResource(Res.string.settings_confirm_force_warning) else "",
+                if (form.changes[SettingKey.ANDROID_MIN_VERSION]?.isNotBlank() == true) {
+                    "\n\n" + stringResource(Res.string.settings_confirm_min_warning)
+                } else {
+                    ""
+                },
             confirmLabel = stringResource(Res.string.settings_save),
             destructive = false,
             busy = state.saving,
@@ -207,27 +202,113 @@ private fun SettingsBody(form: SettingsForm, state: SettingsUiState, presenter: 
         Text(stringResource(Res.string.settings_credits_note), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
 
         HorizontalDivider(color = scheme.outlineVariant)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(stringResource(Res.string.settings_app_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                stringResource(Res.string.settings_app_subtitle), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterVertically),
-            )
-        }
-        TileGrid(minWidth = 220.dp, gap = 16.dp, tiles = APP_VERSION_KEYS.map { key -> { m -> SettingField(form, key, presenter, m) } })
-        Text(stringResource(Res.string.settings_app_note), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        Text(stringResource(Res.string.settings_app_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(stringResource(Res.string.settings_app_subtitle), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        AndroidVersionSection(form, presenter)
 
         HorizontalDivider(color = scheme.outlineVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.weight(1f)) {
                 if (state.saved) Text(stringResource(Res.string.settings_saved), style = MaterialTheme.typography.bodyMedium, color = scheme.primary)
             }
-            TextButton(onClick = presenter::cancel, enabled = form.changes.isNotEmpty(), modifier = Modifier.heightIn(min = 44.dp)) {
+            TextButton(onClick = presenter::cancel, enabled = form.changes.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(stringResource(Res.string.settings_cancel))
             }
-            Button(onClick = presenter::askToSave, enabled = form.canSave, modifier = Modifier.heightIn(min = 44.dp)) {
+            Button(onClick = presenter::askToSave, enabled = form.canSave, modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(stringResource(Res.string.settings_save))
             }
+        }
+    }
+}
+
+/** Android min, latest, one shared message, and the Play link. iOS is not edited here. */
+@Composable
+private fun AndroidVersionSection(form: SettingsForm, presenter: SettingsPresenter) {
+    val scheme = MaterialTheme.colorScheme
+    Text(
+        stringResource(Res.string.settings_android_heading),
+        style = MaterialTheme.typography.titleSmall,
+        fontWeight = FontWeight.Bold,
+        color = scheme.onSurface,
+    )
+    TileGrid(
+        minWidth = 220.dp,
+        gap = 16.dp,
+        tiles = listOf(SettingKey.ANDROID_MIN_VERSION, SettingKey.ANDROID_LATEST_VERSION).map { key ->
+            { modifier ->
+                VersionField(form, key, presenter, modifier) { text ->
+                    presenter.edit(key, text.filter { it.isDigit() || it == '.' }.take(14))
+                }
+            }
+        },
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        val messageKey = SettingKey.ANDROID_UPDATE_MESSAGE
+        val message = form.text(messageKey)
+        VersionField(form, messageKey, presenter, Modifier.fillMaxWidth(), singleLine = false, minLines = 4) { text ->
+            presenter.edit(messageKey, text.take(MAX_UPDATE_MESSAGE))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
+            Text(
+                stringResource(Res.string.settings_message_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).padding(end = 12.dp),
+            )
+            Text(
+                stringResource(Res.string.settings_message_count, message.length, MAX_UPDATE_MESSAGE),
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.onSurfaceVariant,
+            )
+        }
+    }
+    VersionField(form, SettingKey.ANDROID_STORE_URL, presenter, Modifier.fillMaxWidth()) { text ->
+        presenter.edit(SettingKey.ANDROID_STORE_URL, text.filter { !it.isWhitespace() }.take(300))
+    }
+}
+
+@Composable
+private fun VersionField(
+    form: SettingsForm,
+    key: SettingKey,
+    presenter: SettingsPresenter,
+    modifier: Modifier,
+    singleLine: Boolean = true,
+    minLines: Int = 1,
+    onValueChange: (String) -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val setting = form.setting(key)
+    val problem = form.problems[key]
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        IrisTextField(
+            value = form.text(key),
+            onValueChange = onValueChange,
+            label = stringResource(key.label()),
+            placeholder = if (key == SettingKey.ANDROID_MIN_VERSION || key == SettingKey.ANDROID_LATEST_VERSION) "1.2.3" else null,
+            error = problem?.let { problemText(key, it) },
+            singleLine = singleLine,
+            minLines = minLines,
+        )
+        when {
+            problem != null -> Unit
+            form.isOverride(key) -> Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(Res.string.settings_source_override, shown(key, setting.envValue)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.primary,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                TextButton(onClick = { presenter.reset(key) }, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                    Text(stringResource(Res.string.settings_reset), style = MaterialTheme.typography.labelMedium)
+                }
+            }
+            else -> Text(
+                stringResource(Res.string.settings_source_env),
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 4.dp),
+            )
         }
     }
 }
@@ -241,26 +322,6 @@ private fun SettingField(form: SettingsForm, key: SettingKey, presenter: Setting
         val label = stringResource(key.label())
         when (key) {
             SettingKey.LLM_MODEL -> SettingSelect(label, form.text(key), form.saved.llmModels.map { it to it }) { presenter.edit(key, it) }
-            SettingKey.ANDROID_FORCE_UPDATE, SettingKey.IOS_FORCE_UPDATE -> SettingSelect(
-                label, form.text(key),
-                listOf("false" to stringResource(Res.string.settings_force_no), "true" to stringResource(Res.string.settings_force_yes)),
-            ) { presenter.edit(key, it) }
-            SettingKey.ANDROID_MIN_VERSION, SettingKey.IOS_MIN_VERSION -> OutlinedTextField(
-                value = form.text(key),
-                onValueChange = { text -> presenter.edit(key, text.filter { it.isDigit() || it == '.' }.take(14)) },
-                label = { Text(label) },
-                singleLine = true,
-                isError = problem != null,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            SettingKey.ANDROID_STORE_URL, SettingKey.IOS_STORE_URL -> OutlinedTextField(
-                value = form.text(key),
-                onValueChange = { text -> presenter.edit(key, text.filter { !it.isWhitespace() }.take(300)) },
-                label = { Text(label) },
-                singleLine = true,
-                isError = problem != null,
-                modifier = Modifier.fillMaxWidth(),
-            )
             SettingKey.AI_BUDGET_ALERT_PERCENT ->
                 SettingSelect(label, form.text(key), AI_BUDGET_ALERT_PERCENTS.map { "$it" to "$it%" }) { presenter.edit(key, it) }
             SettingKey.AI_BUDGET_MODE -> SettingSelect(
@@ -304,6 +365,8 @@ private fun problemText(key: SettingKey, code: String): String = when (code) {
     "NOT_A_NUMBER" -> stringResource(Res.string.settings_problem_number)
     "NOT_A_VERSION" -> stringResource(Res.string.settings_problem_version)
     "NOT_A_URL" -> stringResource(Res.string.settings_problem_url)
+    "MIN_AFTER_LATEST" -> stringResource(Res.string.settings_problem_min_after_latest)
+    "STORE_URL_REQUIRED" -> stringResource(Res.string.settings_problem_store_required)
     "OUT_OF_RANGE" -> {
         val range = SETTING_RANGES[key]
         if (range != null) stringResource(Res.string.settings_problem_range, "${range.first}", "${range.last}")

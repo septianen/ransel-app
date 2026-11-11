@@ -3,6 +3,7 @@ package app.ransel.admin.feature.monitoring
 import app.ransel.admin.data.AdminApi
 import app.ransel.admin.data.ApiFailure
 import app.ransel.admin.data.ApiResult
+import app.ransel.shared.domain.androidUpdateProblems
 import app.ransel.shared.domain.validateSetting
 import app.ransel.shared.dto.AdminSettingDto
 import app.ransel.shared.dto.AdminSettingsDto
@@ -53,9 +54,22 @@ data class SettingsForm(
             }
         }.toMap()
 
-    /** Problems per field, as `validateSetting` codes. */
+    /**
+     * Problems per field. Each changed value goes through [validateSetting]; the three Android version fields are
+     * also checked together, so a minimum above the latest or a version with no store link fails even when only
+     * one of them changed.
+     */
     val problems: Map<SettingKey, String>
-        get() = changes.mapNotNull { (key, value) -> value?.let { v -> validateSetting(key, v, saved.llmModels)?.let { key to it } } }.toMap()
+        get() {
+            val field = changes.mapNotNull { (key, value) ->
+                value?.let { v -> validateSetting(key, v, saved.llmModels)?.let { key to it } }
+            }.toMap()
+            return field + androidUpdateProblems(
+                text(SettingKey.ANDROID_MIN_VERSION),
+                text(SettingKey.ANDROID_LATEST_VERSION),
+                text(SettingKey.ANDROID_STORE_URL),
+            )
+        }
 
     val canSave: Boolean get() = changes.isNotEmpty() && problems.isEmpty()
 }

@@ -380,19 +380,19 @@
     <string name="settings_problem_range">Must be between %1$s and %2$s</string>
     <string name="settings_problem_list">Pick from the list</string>
     <string name="settings_app_title">App version</string>
-    <string name="settings_app_subtitle">The update dialog when the app opens. The web app is always the latest.</string>
-    <string name="settings_app_note">A platform without a store link shows no dialog. Add the link before you raise the version.</string>
-    <string name="settings_android_min_version">Android: lowest version</string>
-    <string name="settings_android_force">Android: update</string>
-    <string name="settings_android_store_url">Android: Play Store link</string>
-    <string name="settings_ios_min_version">iOS: lowest version</string>
-    <string name="settings_ios_force">iOS: update</string>
-    <string name="settings_ios_store_url">iOS: App Store link</string>
-    <string name="settings_force_yes">Required (cannot be closed)</string>
-    <string name="settings_force_no">Can be dismissed</string>
+    <string name="settings_app_subtitle">Below the minimum version the app cannot be used until it is updated (a required screen). Between the minimum and the latest, a dialog appears that can be closed. The same message shows on both; blank = the app's default text. Add the store link before you raise a version. The web app is always the latest and is not prompted.</string>
+    <string name="settings_android_heading">Android</string>
+    <string name="settings_android_min_version">Minimum version</string>
+    <string name="settings_android_latest_version">Latest version</string>
+    <string name="settings_android_message">Update message</string>
+    <string name="settings_android_store_url">Play Store link</string>
+    <string name="settings_message_hint">Blank = the app's default text.</string>
+    <string name="settings_message_count">%1$d/%2$d</string>
     <string name="settings_problem_version">Use the form 1.2.3</string>
-    <string name="settings_problem_url">Must be an https:// link</string>
-    <string name="settings_confirm_force_warning">Apps below that version cannot be used until they update. Make sure the version is already in the store.</string>
+    <string name="settings_problem_url">Use an https:// link</string>
+    <string name="settings_problem_min_after_latest">The minimum version can't be newer than the latest version.</string>
+    <string name="settings_problem_store_required">Add the Play Store link first, so people can update.</string>
+    <string name="settings_confirm_min_warning">People below the minimum version cannot use the app until they update. Make sure that version is already on the Play Store.</string>
     <string name="content_status_published">Published</string>
     <string name="content_status_draft">Draft</string>
     <string name="content_status_default">Default</string>

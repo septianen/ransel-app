@@ -70,6 +70,9 @@ actual fun initialInviteCode(): String? = null
 actual fun initialGuestPollCode(): String? = null
 
 @androidx.compose.runtime.Composable
+actual fun rememberPlayStoreOpener(): (httpsUrl: String?) -> Boolean = { false }
+
+@androidx.compose.runtime.Composable
 actual fun rememberShareText(): (String) -> Unit = { text ->
     // Not verified on a device (no macOS host): presents the system share sheet from the top view controller.
     val controller = platform.UIKit.UIActivityViewController(listOf(text), null)

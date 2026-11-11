@@ -328,7 +328,7 @@ private fun SessionGate(openSignIn: Boolean) {
         requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
         else -> RanselNavigation(openSignIn = openSignIn)
     }
-    // Below the minimum Karung sets for this platform: an update dialog over whatever is showing (mobile only).
+    // Android release only: full-screen gate below the minimum, or "Update tersedia" once per latest. Debug, iOS and web are not asked.
     app.ransel.feature.update.AppUpdatePrompt(ready = state !is SessionState.Loading)
     // the tour waits while the permission sheet is open
     val tour: app.ransel.ui.tour.TourController = koinInject()

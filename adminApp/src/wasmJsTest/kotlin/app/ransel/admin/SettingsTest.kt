@@ -19,6 +19,14 @@ class SettingsTest {
                 SettingKey.LLM_MODEL -> AdminSettingDto(key, "gemini-3.1-flash-lite", "gemini-3.1-flash-lite", SettingSource.ENV)
                 SettingKey.AI_BUDGET_MODE -> AdminSettingDto(key, "KEEP_GOING", "KEEP_GOING", SettingSource.ENV)
                 SettingKey.AI_BUDGET_ALERT_PERCENT -> AdminSettingDto(key, "80", "80", SettingSource.ENV)
+                SettingKey.ANDROID_MIN_VERSION, SettingKey.ANDROID_LATEST_VERSION, SettingKey.ANDROID_UPDATE_MESSAGE ->
+                    AdminSettingDto(key, "", "", SettingSource.ENV)
+                SettingKey.ANDROID_STORE_URL -> AdminSettingDto(
+                    key,
+                    "https://play.google.com/store/apps/details?id=app.ransel",
+                    "https://play.google.com/store/apps/details?id=app.ransel",
+                    SettingSource.ENV,
+                )
                 else -> AdminSettingDto(key, "3", "3", SettingSource.ENV)
             }
         },
@@ -51,12 +59,29 @@ class SettingsTest {
 
     @Test
     fun theUpdateSettingsAreCheckedLikeTheServerDoes() {
-        val form = SettingsForm(saved)
-            .edit(SettingKey.ANDROID_MIN_VERSION, "0.3")
-            .edit(SettingKey.IOS_STORE_URL, "apps.apple.com/app/id1")
-            .edit(SettingKey.ANDROID_FORCE_UPDATE, "true")
-        assertEquals(mapOf(SettingKey.ANDROID_MIN_VERSION to "NOT_A_VERSION", SettingKey.IOS_STORE_URL to "NOT_A_URL"), form.problems)
-        assertFalse(form.canSave)
-        assertTrue(form.edit(SettingKey.ANDROID_MIN_VERSION, "0.3.0").edit(SettingKey.IOS_STORE_URL, "https://apps.apple.com/app/id1").canSave)
+        val above = SettingsForm(saved)
+            .edit(SettingKey.ANDROID_MIN_VERSION, "2.0.0")
+            .edit(SettingKey.ANDROID_LATEST_VERSION, "1.0.0")
+        assertEquals("MIN_AFTER_LATEST", above.problems[SettingKey.ANDROID_MIN_VERSION])
+        assertFalse(above.canSave)
+
+        assertEquals(
+            "NOT_A_VERSION",
+            SettingsForm(saved).edit(SettingKey.ANDROID_MIN_VERSION, "0.3").problems[SettingKey.ANDROID_MIN_VERSION],
+        )
+        assertEquals(
+            "STORE_URL_REQUIRED",
+            SettingsForm(saved).edit(SettingKey.ANDROID_MIN_VERSION, "1.2.3").edit(SettingKey.ANDROID_STORE_URL, "").problems[SettingKey.ANDROID_STORE_URL],
+        )
+        assertEquals(
+            "NOT_A_URL",
+            SettingsForm(saved).edit(SettingKey.ANDROID_STORE_URL, "play.google.com").problems[SettingKey.ANDROID_STORE_URL],
+        )
+        assertTrue(
+            SettingsForm(saved)
+                .edit(SettingKey.ANDROID_MIN_VERSION, "1.0.0")
+                .edit(SettingKey.ANDROID_LATEST_VERSION, "1.2.3")
+                .canSave,
+        )
     }
 }
