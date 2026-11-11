@@ -4,6 +4,7 @@ import app.ransel.data.remote.RanselApi
 import app.ransel.data.remote.createApiHttpClient
 import app.ransel.feature.update.UpdateCheck
 import app.ransel.feature.update.checkForUpdate
+import app.ransel.feature.update.UpdateSnooze
 import app.ransel.feature.update.notificationSheetAllowed
 import app.ransel.feature.update.shouldAskForUpdate
 import app.ransel.feature.update.visibleUpdate
@@ -72,6 +73,20 @@ class AppUpdateTest {
     fun aLinkLessAnswerIsIgnored() = runTest {
         val check = api(HttpStatusCode.OK, """{"data":{"status":"REQUIRED","latestVersion":"1.2.0"}}""").checkForUpdate("1.0.0")
         assertNull(visibleUpdate(assertIs<UpdateCheck.Ready>(check).update, snoozedLatest = null))
+    }
+
+    @Test
+    fun nantiIsRememberedForTheProcessNotTheScreen() {
+        UpdateSnooze.latestVersion = null
+        try {
+            assertEquals(AppUpdateStatus.OPTIONAL, visibleUpdate(offer, UpdateSnooze.latestVersion))
+            UpdateSnooze.latestVersion = "1.2.0"
+            // A new composition (rotation, or key(language)) reads the same process memory.
+            assertNull(visibleUpdate(offer, UpdateSnooze.latestVersion))
+            assertEquals(AppUpdateStatus.OPTIONAL, visibleUpdate(offer.copy(latestVersion = "1.3.0"), UpdateSnooze.latestVersion))
+        } finally {
+            UpdateSnooze.latestVersion = null
+        }
     }
 
     @Test

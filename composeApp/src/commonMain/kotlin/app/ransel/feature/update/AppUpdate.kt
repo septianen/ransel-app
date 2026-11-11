@@ -40,15 +40,23 @@ suspend fun RanselApi.checkForUpdate(version: String): UpdateCheck =
     }
 
 /**
- * What to put on screen. NONE, a missing store link, and an OPTIONAL snoozed for this [snoozedLatest] show nothing.
- * REQUIRED is never snoozed. [snoozedLatest] lives in memory: a new process, or a new latest, asks again.
+ * The latest version hidden by Nanti. This is process memory, not Compose state: rotation and a language change
+ * rebuild the screen (`key(language)` drops `remember`) and must not ask again. A new process starts empty.
  */
+internal object UpdateSnooze {
+    var latestVersion: String? = null
+}
+
 /**
  * The notification explainer is a dialog window, so it paints over the full-screen gate. It stays down while the
  * update is [AppUpdateStatus.REQUIRED]. A soft offer and no update leave it free to show.
  */
 fun notificationSheetAllowed(update: AppUpdateStatus?): Boolean = update != AppUpdateStatus.REQUIRED
 
+/**
+ * What to put on screen. NONE, a missing store link, and an OPTIONAL snoozed for this [snoozedLatest] show nothing.
+ * REQUIRED is never snoozed. Pass [UpdateSnooze.latestVersion]: a new process, or a new latest, asks again.
+ */
 fun visibleUpdate(update: AppUpdateDto?, snoozedLatest: String?): AppUpdateStatus? {
     if (update == null || update.storeUrl.isNullOrBlank()) return null
     val status = promptedUpdate(update.status, update.latestVersion, snoozedLatest)
@@ -66,7 +74,6 @@ fun AppUpdatePrompt(ready: Boolean, onStatus: (AppUpdateStatus?) -> Unit = {}) {
     val openStore = rememberPlayStoreOpener()
     val scope = rememberCoroutineScope()
     var held by remember { mutableStateOf<AppUpdateDto?>(null) }
-    var snoozedLatest by remember { mutableStateOf<String?>(null) }
     var opening by remember { mutableStateOf(false) }
     var storeError by remember { mutableStateOf(false) }
     var started by remember { mutableStateOf(false) }
@@ -83,7 +90,7 @@ fun AppUpdatePrompt(ready: Boolean, onStatus: (AppUpdateStatus?) -> Unit = {}) {
     }
 
     val update = held
-    val status = visibleUpdate(update, snoozedLatest)
+    val status = visibleUpdate(update, UpdateSnooze.latestVersion)
     SideEffect { onStatus(status) }
     if (update == null || status == null) return
     val versionName = update.latestVersion.orEmpty()
@@ -109,7 +116,7 @@ fun AppUpdatePrompt(ready: Boolean, onStatus: (AppUpdateStatus?) -> Unit = {}) {
     }
 
     fun later() {
-        snoozedLatest = versionName
+        UpdateSnooze.latestVersion = versionName
         opening = false
         storeError = false
     }

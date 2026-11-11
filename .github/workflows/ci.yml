@@ -8,6 +8,8 @@ on:
       - "server/**"
       - "shared/**"
       - "composeApp/**"
+      - "adminApp/**"
+      - "iris/**"
       - "gradle/**"
       - "gradlew"
       - "gradlew.bat"
@@ -35,16 +37,33 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Accept Android licenses (the :shared module configures the Android plugin)
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
       - name: Shared, server, and receipt form tests (Testcontainers uses the runner's Docker)
+        run: ./gradlew :shared:jvmTest :server:test --no-daemon
+      - name: App update and Karung tests
         run: |
-          ./gradlew :shared:jvmTest :server:test --no-daemon
-          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --no-daemon
+          export CHROME_BIN="$(which google-chrome)"
+          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --tests app.ransel.feature.AppUpdateTest :adminApp:wasmJsBrowserTest --no-daemon
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          files = glob.glob('composeApp/build/test-results/testDebugUnitTest/TEST-app.ransel.feature.AppUpdateTest.xml')
+          files += glob.glob('adminApp/build/test-results/**/TEST-*.xml', recursive=True)
+          if not files:
+              raise SystemExit('App update or Karung tests did not produce results')
+          for f in sorted(files):
+              suite = ET.parse(f).getroot()
+              print(f"RAN {suite.get('name')} tests={suite.get('tests')} failures={suite.get('failures')}")
+              for case in suite.iter('testcase'):
+                  print(f"  {case.get('classname')} > {case.get('name')}")
+          PY
       - name: Failed tests as annotations
         if: failure()
         run: |
           python3 - <<'PY'
           import glob, xml.etree.ElementTree as ET
-          for f in glob.glob('server/build/test-results/test/*.xml') + glob.glob('shared/build/test-results/jvmTest/*.xml') + glob.glob('composeApp/build/test-results/testDebugUnitTest/*.xml'):
+          for f in glob.glob('server/build/test-results/test/*.xml') + glob.glob('shared/build/test-results/jvmTest/*.xml') + glob.glob('composeApp/build/test-results/testDebugUnitTest/*.xml') + glob.glob('adminApp/build/test-results/**/*.xml', recursive=True):
               suite = ET.parse(f).getroot()
               for case in suite.iter('testcase'):
                   for kind in ('failure', 'error'):
