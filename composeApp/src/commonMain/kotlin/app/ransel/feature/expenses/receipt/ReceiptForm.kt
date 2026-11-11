@@ -89,6 +89,12 @@ class ReceiptFormState(
     /** The day read from the receipt; editable, since the reading can be wrong (and a ticket may be bought earlier). */
     var date by mutableStateOf(draft.spentOn)
 
+    /**
+     * Web loads the tax label after the first frame. [ReceiptFormState] is remembered on the draft, so a blank
+     * label would stick and block Save. Fill the tax line once it arrives, unless the user already named it.
+     */
+    fun applyExtrasLabelIfBlank(label: String) = itemSplit.applyExtrasLabelIfBlank(label)
+
     fun sharersOf(index: Int): Set<String> = itemSplit.sharersOf(index)
 
     fun toggle(index: Int, memberId: String) = itemSplit.toggle(index, memberId)

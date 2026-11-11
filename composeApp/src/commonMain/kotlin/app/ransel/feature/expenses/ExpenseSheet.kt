@@ -103,7 +103,6 @@ import ransel.composeapp.generated.resources.expense_amount_per_item
 import ransel.composeapp.generated.resources.expense_receipt_items
 import ransel.composeapp.generated.resources.expense_save_changes
 import ransel.composeapp.generated.resources.receipt_edit_hint
-import ransel.composeapp.generated.resources.receipt_extras
 import ransel.composeapp.generated.resources.shared_you
 import ransel.composeapp.generated.resources.receipt_per_item
 import ransel.composeapp.generated.resources.action_cancel
@@ -176,16 +175,15 @@ fun ExpenseSheet(
     val split = remember(members) { if (shared) SplitState(members, myMemberId, existing, currency) else null }
     // Receipt lines can be edited when the member list is here, or when the expense was never shared (a solo trip).
     // Members not loaded (offline) keep the old read-only lines, so a save cannot drop who shared them.
-    val taxName = stringResource(Res.string.receipt_extras)
     val linesEditable = existing != null && existing.items.isNotEmpty() && (
         members.size > 1 || (existing.splits.isEmpty() && !existing.itemsSplit)
         )
-    val itemSplit = remember(members, taxName, linesEditable) {
+    val itemSplit = remember(members, linesEditable) {
         val items = existing?.items
         if (!linesEditable || items.isNullOrEmpty()) null
-        else ItemSplit.of(items, members.map { it.memberId }, taxName)
+        else ItemSplit.of(items, members.map { it.memberId })
     }
-    // while "Per item" is on the amount is the lines' sum and cannot be typed; "Bagi rata" / "Atur nominal" unlock it
+    // Receipt lines decide the amount in every split mode. The field cannot be typed apart from them.
     var perItem by remember(itemSplit) { mutableStateOf(existing?.itemsSplit == true && itemSplit != null && members.size > 1) }
     if (itemSplit != null && perItem && !itemSplit.hasItemLine()) perItem = false
 
@@ -203,9 +201,14 @@ fun ExpenseSheet(
             is ApiResult.Failure -> if (rateText.isBlank()) showRateField = true
         }
     }
-    // "Per item": the amount is the lines, including a line the user just fixed. No second scan, no credit.
+    // The amount is the lines in every split mode, including a line the user just fixed. No second scan, no credit.
     val lineSum = itemSplit?.let { itemsTotal(it.lines) }
-    val amountMinor = if (perItem && lineSum != null) lineSum else parseAmountMinor(amountText, currency)
+    val typedAmount = parseAmountMinor(amountText, currency)
+    val amountMinor = if (itemSplit != null && lineSum != null) {
+        amountSavedWithReceiptLines(lineSum, typedAmount, perItem)
+    } else {
+        typedAmount
+    }
     // "," starts the decimals, as in the amount field; the field shows the thousands, so "16.250" is never typed
     val storedRate = fxRateFromInput(rateText)
     val rate = storedRate?.toDouble()
@@ -221,7 +224,11 @@ fun ExpenseSheet(
 
     fun save() {
         if (itemSplit != null && !itemSplit.commitEdit()) return
-        val amount = if (perItem && itemSplit != null) itemsTotal(itemSplit.lines) else amountMinor
+        val amount = if (itemSplit != null) {
+            amountSavedWithReceiptLines(itemsTotal(itemSplit.lines), amountMinor, perItem)
+        } else {
+            amountMinor
+        }
         if (amount == null || amount <= 0 || (foreign && rate == null)) {
             showErrors = true
             return
@@ -340,8 +347,8 @@ fun ExpenseSheet(
     ) {
         IrisTextField(
             label = stringResource(Res.string.expense_amount),
-            value = if (perItem && lineSum != null) amountToInput(lineSum, currency) else amountText,
-            onValueChange = { if (!perItem) amountText = sanitizeAmountInput(it, currencyDecimals(currency)) },
+            value = if (itemSplit != null && amountMinor != null) amountToInput(amountMinor, currency) else amountText,
+            onValueChange = { if (itemSplit == null) amountText = sanitizeAmountInput(it, currencyDecimals(currency)) },
             visualTransformation = ThousandsVisualTransformation,
             prefix = currencySymbol(currency),
             placeholder = "0",
@@ -349,7 +356,7 @@ fun ExpenseSheet(
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (currencyDecimals(currency) == 0) KeyboardType.Number else KeyboardType.Decimal,
             ),
-            readOnly = perItem,
+            readOnly = itemSplit != null,
             trailing = {
                 Row(
                     Modifier
@@ -368,7 +375,7 @@ fun ExpenseSheet(
                 }
             },
         )
-        if (perItem) {
+        if (itemSplit != null) {
             Text(stringResource(Res.string.expense_amount_per_item), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (foreign && rate != null && amountMinor != null) {

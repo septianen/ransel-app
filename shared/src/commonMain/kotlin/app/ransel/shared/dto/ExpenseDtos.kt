@@ -65,14 +65,19 @@ data class ExpenseSplitDto(
 )
 
 /**
- * One line of a receipt, in the expense's currency. [memberIds] = who shares it; empty = tax, service or another
- * extra that is spread over everyone in proportion to their items (domain.splitByItems).
+ * One line of a receipt, in the expense's currency. [memberIds] = who shares it when the expense is split per item.
+ * [isTax] is the tax-and-service line: it is spread in proportion to the other lines (domain.splitByItems) and is
+ * not itself an item that can be saved alone. The name is only a label — renaming it, or showing it in another
+ * language, does not change [isTax]. Empty [memberIds] on a line that is not tax means no members were stored
+ * (an equal split clears every line); it is not how tax is recognised.
  */
 @Serializable
 data class ExpenseItemDto(
     val name: String,
     val amountMinor: Long,
     val memberIds: List<String> = emptyList(),
+    /** Tax and service added on top of the items. Default false, so older rows stay ordinary lines. */
+    val isTax: Boolean = false,
 )
 
 /**
@@ -81,9 +86,11 @@ data class ExpenseItemDto(
  * splits empty or sum(shareMinor) == amountMinor (else 422 SPLIT_TOTAL_MISMATCH).
  * paidByMemberId null = the caller's own member (domain.memberIdFor). payers empty = paidByMemberId paid all; otherwise at least two different
  * members with amount > 0 summing to amountMinor (else 422 PAYER_TOTAL_MISMATCH), and paidByMemberId becomes the first.
- * items with itemsSplit = true: they must add up to amountMinor (else 422 SPLIT_TOTAL_MISMATCH) and the
- * server replaces the splits with domain.splitByItems. itemsSplit = false: the items are stored as they are (names
- * and amounts checked, no members, no total check) and the splits stay as sent. Saving an estimate with isEstimate = false turns it into the real payment.
+ * items, in either split mode: they must add up to amountMinor (else 422 SPLIT_TOTAL_MISMATCH) and include at least
+ * one non-tax line above 0 (else 422 `items` = TAX_ONLY). A tax or service line has [ExpenseItemDto.isTax]; the name
+ * is not how it is recognised. itemsSplit = true: the server replaces the splits with domain.splitByItems.
+ * itemsSplit = false: the lines are stored without members and the splits stay as sent.
+ * Saving an estimate with isEstimate = false turns it into the real payment.
  */
 @Serializable
 data class ExpenseInput(

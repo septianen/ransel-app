@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.ransel.shared.domain.hasChargeableReceiptItem
 import app.ransel.shared.domain.itemsTotal
 import app.ransel.shared.domain.splitByItems
 import app.ransel.shared.dto.ExpenseItemDto
@@ -216,15 +217,27 @@ class ItemSplit(
 
     /**
      * Ready to save: at least one non-tax line above 0, and every line that counts has a name.
-     * An empty new line does not count and does not block.
+     * An empty new line does not count and does not block. Tax is [Row.extras], never the label.
      */
-    fun linesReady(): Boolean = hasChargeableItem() && rows.none { !ignored(it) && it.name.isBlank() }
+    fun linesReady(): Boolean =
+        hasChargeableReceiptItem(items()) && rows.none { !ignored(it) && it.name.isBlank() }
 
-    /** The lines to send. An empty new line is left out; the tax line stays without members. */
+    /** The lines to send. An empty new line is left out; the tax line stays without members and keeps [ExpenseItemDto.isTax]. */
     fun items(): List<ExpenseItemDto> = rows.mapIndexedNotNull { i, row ->
         if (ignored(row)) null
-        else if (row.extras) ExpenseItemDto(row.name.trim(), row.amountMinor)
+        else if (row.extras) ExpenseItemDto(row.name.trim(), row.amountMinor, isTax = true)
         else ExpenseItemDto(row.name.trim(), row.amountMinor, peopleOf(i).filter { it in sharersOf(i) })
+    }
+
+    /**
+     * The tax line was created before its label loaded (web strings start empty). Fill it once, and only while it
+     * is still blank, so a name the user already typed is left alone.
+     */
+    fun applyExtrasLabelIfBlank(label: String) {
+        if (label.isBlank()) return
+        val index = extrasIndex
+        if (index < 0) return
+        if (rows[index].name.isBlank()) setName(index, label)
     }
 
     /**
@@ -260,9 +273,6 @@ class ItemSplit(
 
     private fun ignored(row: Row): Boolean = row.fresh && row.name.isBlank() && row.amountMinor == 0L
 
-    private fun hasChargeableItem(): Boolean =
-        rows.any { !it.extras && !ignored(it) && it.amountMinor > 0 && it.name.isNotBlank() }
-
     companion object {
         const val MAX_NAME = 120
         const val MAX_LINES = 100
@@ -270,17 +280,19 @@ class ItemSplit(
         const val FOCUS_AMOUNT = 1
 
         /**
-         * The lines of a saved expense. The tax line is the last one without members when some other line has
-         * members ("Per item"), or the line named [taxName] when none of them do ("Bagi rata"). People on a line
-         * who are no longer members are [locked]. A line with nobody on it starts as everyone still on the trip.
+         * The open line commits only once focus has left both of its fields. Moving from the name to the amount
+         * keeps one of them focused, so the row stays open and the amount is not dropped.
          */
-        fun of(items: List<ExpenseItemDto>, memberIds: List<String>, taxName: String? = null): ItemSplit {
-            val last = items.lastIndex
-            val extras = when {
-                last >= 0 && items.any { it.memberIds.isNotEmpty() } && items[last].memberIds.isEmpty() -> last
-                taxName != null -> items.indexOfLast { it.memberIds.isEmpty() && it.name == taxName }
-                else -> -1
-            }
+        fun shouldCommitLineEdit(armed: Boolean, nameFocused: Boolean, amountFocused: Boolean): Boolean =
+            armed && !nameFocused && !amountFocused
+
+        /**
+         * The lines of a saved expense. The tax line is the one with [ExpenseItemDto.isTax], not a matching name
+         * and not "the last line nobody was on". A line with nobody on it starts as everyone still on the trip.
+         * People on a line who are no longer members are [locked].
+         */
+        fun of(items: List<ExpenseItemDto>, memberIds: List<String>): ItemSplit {
+            val extras = items.indexOfLast { it.isTax }
             val initial = items.withIndex()
                 .filter { it.index != extras && it.value.memberIds.isNotEmpty() }
                 .associate { it.index to it.value.memberIds.toSet() }
@@ -289,6 +301,17 @@ class ItemSplit(
         }
     }
 }
+
+/**
+ * Amount stored with receipt lines. [typedAmount] is what the amount field held; [perItem] is the split mode.
+ * Neither changes the result: "Bagi rata" and "Atur nominal" save the line sum too, so a price edit cannot be
+ * stored as a different total.
+ */
+fun amountSavedWithReceiptLines(
+    lineSum: Long,
+    @Suppress("UNUSED_PARAMETER") typedAmount: Long?,
+    @Suppress("UNUSED_PARAMETER") perItem: Boolean,
+): Long = lineSum
 
 /** A line [ItemSplit.delete] removed, so it can be put back with the same people. */
 data class DeletedLine(

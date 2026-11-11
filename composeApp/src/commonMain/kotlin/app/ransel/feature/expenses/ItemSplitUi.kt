@@ -25,8 +25,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -52,8 +52,6 @@ import app.ransel.ui.format.sanitizeAmountInput
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.receipt_add_item
 import ransel.composeapp.generated.resources.receipt_delete_item
@@ -83,11 +81,10 @@ fun ItemSplitLines(
     picking: Boolean,
     onDeleted: (message: String, undo: () -> Unit) -> Unit = { _, _ -> },
 ) {
-    val scope = rememberCoroutineScope()
     val itemIndexes = split.lines.indices.filter { it != split.extrasIndex }
     val taxIndex = split.extrasIndex.takeIf { it >= 0 }
     itemIndexes.forEach { index ->
-        LineCard(split, index, currency, members, picking, scope, onDeleted)
+        LineCard(split, index, currency, members, picking, onDeleted)
     }
     TextButton(
         onClick = { split.addOrFocusBlank() },
@@ -103,7 +100,7 @@ fun ItemSplitLines(
         )
     }
     if (taxIndex != null) {
-        LineCard(split, taxIndex, currency, members, picking = false, scope, onDeleted)
+        LineCard(split, taxIndex, currency, members, picking = false, onDeleted)
     }
 }
 
@@ -114,7 +111,6 @@ private fun LineCard(
     currency: String,
     members: List<TripMemberDto>,
     picking: Boolean,
-    scope: CoroutineScope,
     onDeleted: (message: String, undo: () -> Unit) -> Unit,
 ) {
     val line = split.lines[index]
@@ -130,7 +126,7 @@ private fun LineCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (split.isEditing(index)) {
-                LineEditor(split, index, currency, scope)
+                LineEditor(split, index, currency)
             } else {
                 LineView(split, index, line.name, line.amountMinor, currency) {
                     val removed = split.delete(index) ?: return@LineView
@@ -191,35 +187,44 @@ private fun LineView(
 }
 
 @Composable
-private fun LineEditor(split: ItemSplit, index: Int, currency: String, scope: CoroutineScope) {
+private fun LineEditor(split: ItemSplit, index: Int, currency: String) {
     val line = split.lines[index]
     val nameFocus = remember { FocusRequester() }
     val amountFocus = remember { FocusRequester() }
     var amountText by remember {
         mutableStateOf(if (line.amountMinor == 0L) "" else amountToInput(line.amountMinor, currency))
     }
+    var nameFocused by remember { mutableStateOf(false) }
+    var amountFocused by remember { mutableStateOf(false) }
+    // Armed only after a field has actually taken focus, so the editor does not commit before it opens.
     var armed by remember { mutableStateOf(false) }
-    val openKey = split.editingKey
+    val lineKey = split.keyAt(index)
     LaunchedEffect(split.focusNonce, split.focusPart) {
         val target = if (split.focusPart == ItemSplit.FOCUS_AMOUNT) amountFocus else nameFocus
         runCatching { target.requestFocus() }
     }
-    Column(
-        Modifier.onFocusChanged { state ->
-            if (state.hasFocus) armed = true
-            else if (armed) {
-                armed = false
-                val key = openKey
-                scope.launch { if (split.editingKey == key) split.commitEdit() }
-            }
-        },
-    ) {
+    // Moving between the name and the amount reports a gap where neither is focused. Wait a frame, then
+    // commit only if focus really left the row. Committing in that gap closed the line and dropped the amount.
+    LaunchedEffect(nameFocused, amountFocused) {
+        if (nameFocused || amountFocused) {
+            armed = true
+            return@LaunchedEffect
+        }
+        if (!armed) return@LaunchedEffect
+        // Two frames: on web the amount field can take focus a frame after the name field loses it.
+        withFrameNanos { }
+        withFrameNanos { }
+        if (ItemSplit.shouldCommitLineEdit(armed, nameFocused, amountFocused) && split.editingKey == lineKey) {
+            split.commitEdit()
+        }
+    }
+    Column {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             IrisTextField(
                 label = stringResource(Res.string.receipt_item_name),
                 value = line.name,
                 onValueChange = { split.setName(index, it) },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).onFocusChanged { nameFocused = it.hasFocus },
                 error = if (split.nameError) stringResource(Res.string.receipt_item_name_error) else null,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { runCatching { amountFocus.requestFocus() } }),
@@ -233,7 +238,7 @@ private fun LineEditor(split: ItemSplit, index: Int, currency: String, scope: Co
                     amountText = cleaned
                     split.setAmount(index, parseAmountMinor(cleaned, currency) ?: 0L)
                 },
-                modifier = Modifier.width(140.dp),
+                modifier = Modifier.width(140.dp).onFocusChanged { amountFocused = it.hasFocus },
                 prefix = currencySymbol(currency),
                 placeholder = "0",
                 keyboardOptions = KeyboardOptions(

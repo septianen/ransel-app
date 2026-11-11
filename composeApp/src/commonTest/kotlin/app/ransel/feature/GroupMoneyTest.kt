@@ -14,6 +14,7 @@ import app.ransel.feature.expenses.MoneyEvent
 import app.ransel.feature.expenses.PersonShare
 import app.ransel.shared.dto.ExpenseItemDto
 import app.ransel.feature.expenses.ItemSplit
+import app.ransel.feature.expenses.amountSavedWithReceiptLines
 import app.ransel.feature.expenses.receipt.ReceiptFormState
 import app.ransel.feature.expenses.receipt.includedPb1Phrase
 import app.ransel.feature.expenses.receipt.ReceiptImage
@@ -237,7 +238,7 @@ class ReceiptTest {
         val saved = listOf(
             ExpenseItemDto("Nasi campur", 130_000, listOf("a", "c")),
             ExpenseItemDto("Sate lilit", 130_000, listOf("b")),
-            ExpenseItemDto("Pajak", 26_000),
+            ExpenseItemDto("Pajak", 26_000, isTax = true),
         )
         val split = ItemSplit.of(saved, memberIds = listOf("a", "b"))
         assertEquals(2, split.extrasIndex)
@@ -285,6 +286,8 @@ class ReceiptTest {
         // the lines are kept to be shown on the expense, without members: they do not decide the split
         assertEquals(listOf("Nasi campur", "Sate lilit", "Pajak"), input.items.map { it.name })
         assertTrue(input.items.all { it.memberIds.isEmpty() })
+        assertTrue(input.items.last().isTax)
+        assertTrue(input.items.dropLast(1).none { it.isTax })
         assertFalse(input.itemsSplit)
         assertEquals("Warung Made", input.note)
     }
@@ -298,6 +301,7 @@ class ReceiptTest {
         assertEquals(3, input.items.size)
         assertEquals("Pajak", input.items.last().name)
         assertTrue(input.itemsSplit)
+        assertTrue(input.items.last().isTax)
         assertTrue(input.items.last().memberIds.isEmpty())
         // a: 65.000 + 6.500 tax, b: 65.000 + 130.000 + 19.500 tax
         assertEquals(mapOf("a" to 71_500L, "b" to 214_500L), input.splits.associate { it.memberId to it.shareMinor })
@@ -438,14 +442,91 @@ class ReceiptTest {
     @Test
     fun aSavedEqualSplitDoesNotTreatTheLastLineAsTax() {
         val saved = listOf(ExpenseItemDto("Nasi goreng", 25_000), ExpenseItemDto("Es teh", 8_000))
-        val split = ItemSplit.of(saved, memberIds = listOf("a", "b"), taxName = "Pajak")
+        val split = ItemSplit.of(saved, memberIds = listOf("a", "b"))
         assertEquals(-1, split.extrasIndex)
         assertEquals(setOf("a", "b"), split.sharersOf(0))
         assertEquals(setOf("a", "b"), split.sharersOf(1))
-        val withTax = ItemSplit.of(saved + ExpenseItemDto("Pajak", 3_300), listOf("a", "b"), taxName = "Pajak")
+        val withTax = ItemSplit.of(saved + ExpenseItemDto("Service charge", 3_300, isTax = true), listOf("a", "b"))
         assertEquals(2, withTax.extrasIndex)
         assertEquals(setOf("a", "b"), withTax.sharersOf(0))
         assertTrue(withTax.sharersOf(2).isEmpty())
+        assertTrue(withTax.items().last().isTax)
+        assertEquals("Service charge", withTax.items().last().name)
+    }
+
+    @Test
+    fun aBlankTaxLabelFilledWhenTheStringLoadsDoesNotBlockSave() {
+        val form = ReceiptFormState(draft, receiptMembers, "a", "")
+        assertEquals("", form.lines.last().name)
+        assertTrue(form.itemSplit.items().last().isTax)
+        assertFalse(form.canSave, "a blank tax name blocks Save")
+        form.applyExtrasLabelIfBlank("Pajak dan layanan")
+        assertEquals("Pajak dan layanan", form.lines.last().name)
+        assertTrue(form.canSave)
+        form.itemSplit.setName(form.extrasIndex, "PB1")
+        form.applyExtrasLabelIfBlank("Tax and service")
+        assertEquals("PB1", form.lines[form.extrasIndex].name, "a name the user already typed stays")
+        val input = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
+        assertTrue(input.items.last().isTax)
+        assertEquals("PB1", input.items.last().name)
+    }
+
+    @Test
+    fun movingFocusBetweenTheNameAndTheAmountDoesNotCommitTheLine() {
+        assertFalse(ItemSplit.shouldCommitLineEdit(armed = true, nameFocused = true, amountFocused = false))
+        assertFalse(ItemSplit.shouldCommitLineEdit(armed = true, nameFocused = false, amountFocused = true))
+        assertFalse(
+            ItemSplit.shouldCommitLineEdit(armed = false, nameFocused = false, amountFocused = false),
+            "the row has not been focused yet",
+        )
+        assertTrue(
+            ItemSplit.shouldCommitLineEdit(armed = true, nameFocused = false, amountFocused = false),
+            "focus left both fields",
+        )
+    }
+
+    @Test
+    fun anEditedEqualSplitSavesTheLineSumNotTheOldAmount() {
+        // QA: Split equally, lines edited to 122_600, the amount field still said 117_600.
+        assertEquals(122_600L, amountSavedWithReceiptLines(lineSum = 122_600, typedAmount = 117_600, perItem = false))
+        assertEquals(122_600L, amountSavedWithReceiptLines(lineSum = 122_600, typedAmount = 117_600, perItem = true))
+        val form = ReceiptFormState(draft, receiptMembers, "a", "Pajak")
+        form.itemSplit.setAmount(0, 152_000) // 152_000 + 130_000 + 26_000 tax
+        assertEquals(308_000L, form.total)
+        form.perItem = false
+        val equal = form.toInput("e1", Instant.parse("2026-11-21T12:00:00Z"), null)
+        assertEquals(308_000L, equal.amountMinor)
+        assertEquals(308_000L, equal.items.sumOf { it.amountMinor })
+        assertEquals(308_000L, equal.splits.sumOf { it.shareMinor })
+    }
+
+    @Test
+    fun aRenamedTaxLineStillBlocksATaxOnlySave() {
+        val saved = listOf(
+            ExpenseItemDto("Nasi goreng", 35_000, listOf("a", "b")),
+            ExpenseItemDto("Pajak PB1", 9_600, isTax = true),
+        )
+        val split = ItemSplit.of(saved, listOf("a", "b"))
+        assertEquals(1, split.extrasIndex)
+        split.setName(1, "Service charge")
+        split.delete(0)
+        assertEquals(listOf("Service charge"), split.lines.map { it.name })
+        assertFalse(split.linesReady(), "tax alone cannot be saved, whatever it is called")
+        assertTrue(split.items().single().isTax)
+        assertEquals("Service charge", split.items().single().name)
+    }
+
+    @Test
+    fun aZeroPriceUntickedLastLineIsNotTaxOnReopen() {
+        val saved = listOf(
+            ExpenseItemDto("Nasi goreng", 25_000, listOf("a")),
+            ExpenseItemDto("Kerupuk", 0),
+        )
+        val split = ItemSplit.of(saved, memberIds = listOf("a", "b"))
+        assertEquals(-1, split.extrasIndex, "a last line at 0 with nobody on it is not tax")
+        assertEquals(setOf("a", "b"), split.sharersOf(1))
+        assertTrue(split.linesReady())
+        assertFalse(split.items().any { it.isTax })
     }
 
     @Test
