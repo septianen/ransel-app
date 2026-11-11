@@ -1268,7 +1268,7 @@
     <string name="expense_estimate_banner">Ini estimasi dari polling. Simpan setelah dibayar untuk mencatat pembayaran sebenarnya.</string>
     <string name="expense_estimate_save">Simpan sebagai pembayaran</string>
     <string name="expense_save_changes">Simpan perubahan</string>
-    <string name="expense_amount_per_item">Nominal mengikuti item struk. Pilih Bagi rata atau Atur nominal untuk mengubahnya.</string>
+    <string name="expense_amount_per_item">Nominal mengikuti item struk.</string>
     <string name="expense_receipt_items">Item dari struk</string>
     <string name="expense_estimate_chip">Estimasi</string>
     <string name="receipt_choose_title">Tambah pengeluaran</string>

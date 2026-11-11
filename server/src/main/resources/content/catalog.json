@@ -1983,8 +1983,8 @@
   {
    "key": "expense_amount_per_item",
    "area": "expense",
-   "id": "Nominal mengikuti item struk. Pilih Bagi rata atau Atur nominal untuk mengubahnya.",
-   "en": "The amount follows the receipt items. Choose Split equally or Set amounts to change it."
+   "id": "Nominal mengikuti item struk.",
+   "en": "The amount follows the receipt items."
   },
   {
    "key": "expense_category_attraction",

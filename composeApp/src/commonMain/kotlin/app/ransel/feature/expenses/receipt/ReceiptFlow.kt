@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -187,7 +188,16 @@ fun ReceiptFlow(
     // the result is a long form: its own screen (phones) or a dialog (wide web), not a sheet that closes while scrolling
     (step as? ReceiptStep.Draft)?.let { s ->
         val extras = stringResource(Res.string.receipt_extras)
+        // Keyed on the draft only. On web the tax label is empty on the first frame; filling it here (instead of
+        // rebuilding the form when the string arrives) keeps edits the user already made.
         val form = remember(s.draft) { ReceiptFormState(s.draft, members, myMemberId, extras) }
+        var extrasApplied by remember(s.draft) { mutableStateOf(extras.isNotBlank()) }
+        SideEffect {
+            if (!extrasApplied && extras.isNotBlank()) {
+                form.applyExtrasLabelIfBlank(extras)
+                extrasApplied = true
+            }
+        }
         ReceiptResult(form, trip, members, myMemberId, onSave, onDismiss)
         return
     }
