@@ -47,6 +47,7 @@ import app.ransel.server.routes.creditRoutes
 import app.ransel.server.routes.balanceRoutes
 import app.ransel.server.routes.paymentMethodRoutes
 import app.ransel.server.routes.placeRoutes
+import app.ransel.server.routes.popularPlaceRoute
 import app.ransel.server.routes.fxRoutes
 import app.ransel.server.service.FxRateService
 import app.ransel.server.service.PlaceSearchService
@@ -303,6 +304,12 @@ fun Application.module(
             val photos = PhotoService(config)
             imageFileRoutes(photos)
             ogRoutes(invites, config.appBaseUrl)
+            // Place search is open to guests (owner, 12 Nov 2026, like the invite preview). A bearer token is still read when
+            // there is one, so a signed-in user keeps their own rate limit; a guest is limited per address.
+            val placeSearch = PlaceSearchService(aiServices.placeSearch)
+            authenticate(JWT_AUTH, optional = true) {
+                placeRoutes(placeSearch)
+            }
             authenticate(JWT_AUTH) {
                 meRoutes(auth, verification, app.ransel.server.service.AccountDeletionService(hasher))
                 tripRoutes()
@@ -326,7 +333,7 @@ fun Application.module(
                 creditRoutes(credits)
                 notificationRoutes(notifications)
                 exploreRoutes(suggestions)
-                placeRoutes(PlaceSearchService(aiServices.placeSearch))
+                popularPlaceRoute(placeSearch)
                 fxRoutes(fxDaily)
                 placeDetailRoutes(placeDetails)
                 adminRoutes(admin, AdminMonitoringService(config, requestStats, settings), settings, content)

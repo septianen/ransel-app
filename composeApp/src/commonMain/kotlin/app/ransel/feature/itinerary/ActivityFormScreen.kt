@@ -99,6 +99,7 @@ fun ActivityFormScreen(
     }
     var pickingTime by rememberSaveable { mutableStateOf<TimeTarget?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var pickingPlace by rememberSaveable { mutableStateOf(false) }
     val dates = rememberDateFormatter()
 
     FormScaffold(
@@ -224,11 +225,13 @@ fun ActivityFormScreen(
             }
         }
 
-        IrisTextField(
+        PlaceField(
             label = stringResource(Res.string.activity_place),
-            value = state.placeName,
-            onValueChange = viewModel::onPlace,
-            leadingSymbol = Symbols.locationOn,
+            name = state.placeName,
+            secondary = state.placeSecondary,
+            hasPoint = state.placeHasPoint,
+            onClick = { pickingPlace = true },
+            onClear = viewModel::onPlaceCleared,
         )
         IrisTextField(
             label = stringResource(Res.string.activity_notes),
@@ -260,6 +263,19 @@ fun ActivityFormScreen(
                 )
             }
         }
+    }
+
+    if (pickingPlace) {
+        // the text now in the field is the first query, so a typo is fixed where it was typed
+        PlacePicker(
+            tripId = tripId,
+            initialQuery = state.placeName,
+            onPicked = {
+                viewModel.onPlacePicked(it)
+                pickingPlace = false
+            },
+            onDismiss = { pickingPlace = false },
+        )
     }
 
     if (confirmDelete) {

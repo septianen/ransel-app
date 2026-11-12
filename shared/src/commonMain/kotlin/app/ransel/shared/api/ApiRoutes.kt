@@ -143,11 +143,11 @@ object ApiRoutes {
     /** Bearer. Query: `name` (the item title, needed only when the server has no saved text to rebuild from) and `currency` (the trip currency for the cost estimate). For opening a place again from the itinerary. */
     fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended
 
-    // Destination search (bearer; 60 autocomplete requests per user per minute). The static paths win over {placeId}.
-    const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] → PlaceSuggestionsDto
+    // Place search. PLACES_AUTOCOMPLETE, PLACES_REVERSE and place(...) are open to guests: the bearer token is optional, and the limit is 60 requests a minute per user, or per address without a token. PLACES_POPULAR still needs a bearer. The static paths win over {placeId}.
+    const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] [&scope=DESTINATION|ACTIVITY, default DESTINATION; ACTIVITY = any kind of place for an itinerary activity, 422 `scope` = INVALID otherwise] → PlaceSuggestionsDto
     const val PLACES_REVERSE = "/places/reverse"                   // GET ?lat=&lng= → ReverseGeocodeDto (coordinates are not logged or stored)
     const val PLACES_POPULAR = "/places/popular"                   // GET → List<PopularDestinationDto>
-    fun place(placeId: String) = "/places/$placeId"                // GET ?session= → PlaceDto, 404 NOT_FOUND
+    fun place(placeId: String) = "/places/$placeId"                // GET ?session= [&scope=DESTINATION|ACTIVITY, default DESTINATION; ACTIVITY leaves `timeZone` out, 422 `scope` = INVALID otherwise] → PlaceDto, 404 NOT_FOUND
 
     // Itinerary voting (docs/specs/voting-spec.md). Any member reads and votes; only the OWNER decides.
     fun rounds(tripId: String) = "/trips/$tripId/rounds"           // GET → List<RoundSummaryDto> (open and recent, newest first)

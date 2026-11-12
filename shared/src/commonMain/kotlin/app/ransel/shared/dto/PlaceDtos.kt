@@ -12,6 +12,21 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class PlaceKind { CITY, REGENCY, PROVINCE, COUNTRY, ATTRACTION, AREA }
 
+/**
+ * What a place search is for: `DESTINATION` (default, Buat trip / Jelajah / polls) suggests cities, regencies, provinces,
+ * countries and tourist attractions; `ACTIVITY` (the "Tempat" field of an itinerary activity) suggests any kind of
+ * place, biased to the `near` point.
+ */
+@Serializable
+enum class PlaceSearchScope { DESTINATION, ACTIVITY }
+
+/**
+ * Icon group of a suggestion in the `ACTIVITY` scope; [PlaceSuggestionDto.category] is null in the `DESTINATION` scope.
+ * Taken from the first Google type of the place that maps to a group, [OTHER] when none does.
+ */
+@Serializable
+enum class PlaceCategory { FOOD, LODGING, SHOPPING, TRANSPORT, ATTRACTION, OTHER }
+
 /** A matched part of [PlaceSuggestionDto.name], drawn bold: [start] inclusive, [end] exclusive. */
 @Serializable
 data class MatchRange(val start: Int, val end: Int)
@@ -25,9 +40,14 @@ data class PlaceSuggestionDto(
     val secondary: String? = null,
     val kind: PlaceKind,
     val matchRanges: List<MatchRange> = emptyList(),
+    /** Only in the `ACTIVITY` scope (restaurant, hotel, shop, station, sight); null for destination search and the built-in list. */
+    val category: PlaceCategory? = null,
 )
 
-/** GET /places/autocomplete. [fallback] = Google was unavailable and these come from the built-in region list. */
+/**
+ * GET /places/autocomplete. [fallback] = Google was unavailable: in the `DESTINATION` scope these come from the built-in
+ * region list, in the `ACTIVITY` scope the list is empty (the app keeps the free-text place).
+ */
 @Serializable
 data class PlaceSuggestionsDto(
     val suggestions: List<PlaceSuggestionDto>,
@@ -46,7 +66,7 @@ data class PlaceDto(
     val viewport: ViewportDto? = null,
     /** ISO 3166-1 alpha-2 from the address, e.g. "ID", "JP"; null when Google gives none. */
     val countryCode: String? = null,
-    /** IANA zone at the place ("Asia/Makassar" for Bali); null when the lookup failed. */
+    /** IANA zone at the place ("Asia/Makassar" for Bali); null when the lookup failed, and always null with `scope=ACTIVITY` (an activity does not need it). */
     val timeZone: String? = null,
 )
 

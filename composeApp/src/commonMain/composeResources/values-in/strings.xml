@@ -1366,6 +1366,31 @@
     <string name="destination_kind_province">provinsi</string>
     <string name="destination_kind_country">negara</string>
     <string name="destination_kind_attraction">tempat wisata</string>
+
+    <!-- Place picker of the activity form (field "Tempat") -->
+    <string name="place_field_hint">Cari tempat atau ketik nama</string>
+    <string name="place_field_no_point">Tanpa titik di peta</string>
+    <string name="place_field_clear">Hapus tempat</string>
+    <string name="place_picker_hint">Cari tempat atau alamat</string>
+    <string name="place_picker_location">Gunakan lokasi saat ini</string>
+    <string name="place_picker_location_hint">Mengisi area tempatmu berada</string>
+    <string name="place_picker_used">Dipakai di trip ini</string>
+    <string name="place_picker_use_text">Pakai “%1$s”</string>
+    <string name="place_picker_use_text_note">Simpan sebagai teks, tanpa titik di peta</string>
+    <string name="place_picker_no_results_title">Tidak ada hasil untuk “%1$s”</string>
+    <string name="place_picker_no_results_body">Coba kata lain, atau simpan sebagai teks.</string>
+    <string name="place_picker_offline_title">Lagi offline</string>
+    <string name="place_picker_offline_body">Cari tempat butuh internet. Kamu tetap bisa mengetik nama tempat.</string>
+    <string name="place_picker_unavailable_title">Pencarian lagi bermasalah</string>
+    <string name="place_picker_unavailable_body">Coba lagi sebentar lagi. Kamu tetap bisa mengetik nama tempat.</string>
+    <string name="place_picker_denied_title">Izin lokasi dimatikan</string>
+    <string name="place_picker_denied_body">Nyalakan di pengaturan HP untuk memakai lokasimu saat ini. Kamu tetap bisa mengetik nama tempat.</string>
+    <string name="place_category_food">Makan</string>
+    <string name="place_category_lodging">Penginapan</string>
+    <string name="place_category_shopping">Belanja</string>
+    <string name="place_category_transport">Transportasi</string>
+    <string name="place_category_attraction">Tempat wisata</string>
+    <string name="place_category_other">Lainnya</string>
     <string name="near_title">Cari dekat mana?</string>
     <string name="near_pick">Pilih</string>
     <string name="near_current">Lokasi saat ini</string>

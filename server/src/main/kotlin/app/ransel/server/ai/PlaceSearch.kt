@@ -2,8 +2,10 @@ package app.ransel.server.ai
 
 import app.ransel.shared.dto.MatchRange
 import app.ransel.shared.dto.NearbyAreaDto
+import app.ransel.shared.dto.PlaceCategory
 import app.ransel.shared.dto.PlaceDto
 import app.ransel.shared.dto.PlaceKind
+import app.ransel.shared.dto.PlaceSearchScope
 import app.ransel.shared.dto.PlaceSuggestionDto
 import app.ransel.shared.dto.ViewportDto
 import io.ktor.client.HttpClient
@@ -31,12 +33,17 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 
-/** Destination search (TRD "Places"). Throws on transport errors; the service decides what to fall back to. */
+/** Destination and activity place search (TRD "Places"). Throws on transport errors; the service decides what to fall back to. */
 interface PlaceSearch {
-    suspend fun autocomplete(input: String, sessionToken: String?, near: Pair<Double, Double>?): List<PlaceSuggestionDto>
+    suspend fun autocomplete(
+        input: String,
+        sessionToken: String?,
+        near: Pair<Double, Double>?,
+        scope: PlaceSearchScope = PlaceSearchScope.DESTINATION,
+    ): List<PlaceSuggestionDto>
 
-    /** Null when Google does not know the place. */
-    suspend fun details(placeId: String, sessionToken: String?): PlaceDto?
+    /** Null when Google does not know the place. [withTimeZone] false skips the Time Zone API call (activities do not need it). */
+    suspend fun details(placeId: String, sessionToken: String?, withTimeZone: Boolean = true): PlaceDto?
 
     suspend fun reverse(lat: Double, lng: Double): List<NearbyAreaDto>
 }
@@ -44,7 +51,9 @@ interface PlaceSearch {
 /**
  * Google Places Autocomplete (New), Place Details Essentials and the Geocoding API. Field masks keep every call in its
  * cheapest tier: details never ask for displayName (Pro); the name comes from the suggestion. Autocomplete takes five
- * primary types at most: airports are left out (owner decision 26 Oct 2026).
+ * primary types at most: airports are left out (owner decision 26 Oct 2026). The ACTIVITY scope (the "Tempat" field of an
+ * itinerary activity) sends no type filter, so restaurants, hotels, shops and stations come up too; it is a bias to
+ * [near], not a restriction, and it costs the same per request.
  */
 class GooglePlaceSearch(
     private val http: HttpClient,
@@ -53,7 +62,12 @@ class GooglePlaceSearch(
     private val geocodeUrl: String = "https://maps.googleapis.com/maps/api/geocode/json",
     private val timeZoneUrl: String = "https://maps.googleapis.com/maps/api/timezone/json",
 ) : PlaceSearch {
-    override suspend fun autocomplete(input: String, sessionToken: String?, near: Pair<Double, Double>?): List<PlaceSuggestionDto> {
+    override suspend fun autocomplete(
+        input: String,
+        sessionToken: String?,
+        near: Pair<Double, Double>?,
+        scope: PlaceSearchScope,
+    ): List<PlaceSuggestionDto> {
         val response = http.post("$placesUrl/places:autocomplete") {
             header("X-Goog-Api-Key", apiKey)
             header("X-Goog-FieldMask", "suggestions.placePrediction.placeId,suggestions.placePrediction.structuredFormat,suggestions.placePrediction.types")
@@ -64,7 +78,9 @@ class GooglePlaceSearch(
                     sessionToken?.let { put("sessionToken", it) }
                     put("languageCode", "id")
                     put("regionCode", "id")
-                    put("includedPrimaryTypes", buildJsonArray { PRIMARY_TYPES.forEach { add(it) } })
+                    if (scope == PlaceSearchScope.DESTINATION) {
+                        put("includedPrimaryTypes", buildJsonArray { PRIMARY_TYPES.forEach { add(it) } })
+                    }
                     putJsonObject("locationBias") {
                         if (near != null) {
                             putJsonObject("circle") {
@@ -86,10 +102,10 @@ class GooglePlaceSearch(
             )
         }
         if (!response.status.isSuccess()) error("Places autocomplete HTTP ${response.status.value}")
-        return parseAutocomplete(response.body<String>())
+        return parseAutocomplete(response.body<String>(), scope)
     }
 
-    override suspend fun details(placeId: String, sessionToken: String?): PlaceDto? {
+    override suspend fun details(placeId: String, sessionToken: String?, withTimeZone: Boolean): PlaceDto? {
         val response = http.get("$placesUrl/places/$placeId") {
             header("X-Goog-Api-Key", apiKey)
             header("X-Goog-FieldMask", "id,location,viewport,addressComponents,types")
@@ -100,6 +116,7 @@ class GooglePlaceSearch(
         if (!response.status.isSuccess()) error("Places details HTTP ${response.status.value}")
         val place = parseDetails(placeId, response.body<String>()) ?: return null
         // the zone only drives the trip's local time: a failed lookup leaves it empty, the place still counts
+        if (!withTimeZone) return place
         val zone = runCatching { timeZone(place.lat, place.lng) }.getOrNull()
         return place.copy(timeZone = zone)
     }
@@ -148,7 +165,43 @@ class GooglePlaceSearch(
         private fun JsonObject.str(key: String) = this[key]?.jsonPrimitive?.content
         private fun JsonObject.strings(key: String) = (this[key] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty()
 
-        internal fun parseAutocomplete(body: String): List<PlaceSuggestionDto> {
+        private val FOOD_TYPES = setOf(
+            "restaurant", "cafe", "coffee_shop", "bakery", "bar", "pub", "meal_takeaway", "meal_delivery", "food",
+            "ice_cream_shop", "dessert_shop", "fast_food_restaurant", "food_court",
+        )
+        private val LODGING_TYPES = setOf(
+            "lodging", "hotel", "resort_hotel", "guest_house", "hostel", "motel", "bed_and_breakfast", "inn", "cottage",
+            "campground", "camping_cabin", "farmstay", "extended_stay_hotel",
+        )
+        private val SHOPPING_TYPES = setOf(
+            "store", "shopping_mall", "market", "supermarket", "convenience_store", "department_store", "grocery_store",
+            "gift_shop", "clothing_store",
+        )
+        private val TRANSPORT_TYPES = setOf(
+            "airport", "train_station", "bus_station", "transit_station", "subway_station", "light_rail_station",
+            "ferry_terminal", "bus_stop", "taxi_stand",
+        )
+        private val ATTRACTION_TYPES = setOf(
+            "tourist_attraction", "museum", "park", "national_park", "amusement_park", "zoo", "aquarium", "art_gallery",
+            "historical_landmark", "monument", "place_of_worship", "hindu_temple", "mosque", "church", "beach",
+            "natural_feature", "water_park", "botanical_garden", "garden",
+        )
+
+        /** The group of the first Google type that maps to one (Google lists the most specific type first). */
+        fun categoryOf(types: List<String>): PlaceCategory {
+            for (type in types) {
+                when {
+                    type in LODGING_TYPES -> return PlaceCategory.LODGING
+                    type in FOOD_TYPES || type.endsWith("_restaurant") -> return PlaceCategory.FOOD
+                    type in TRANSPORT_TYPES -> return PlaceCategory.TRANSPORT
+                    type in SHOPPING_TYPES || type.endsWith("_store") -> return PlaceCategory.SHOPPING
+                    type in ATTRACTION_TYPES -> return PlaceCategory.ATTRACTION
+                }
+            }
+            return PlaceCategory.OTHER
+        }
+
+        internal fun parseAutocomplete(body: String, scope: PlaceSearchScope = PlaceSearchScope.DESTINATION): List<PlaceSuggestionDto> {
             val root = json.parseToJsonElement(body).jsonObject
             return (root["suggestions"] as? JsonArray).orEmpty().mapNotNull { s ->
                 val p = s.jsonObject["placePrediction"]?.jsonObject ?: return@mapNotNull null
@@ -158,6 +211,7 @@ class GooglePlaceSearch(
                     name = main.str("text") ?: return@mapNotNull null,
                     secondary = p["structuredFormat"]?.jsonObject?.get("secondaryText")?.jsonObject?.str("text"),
                     kind = kindOf(p.strings("types")),
+                    category = if (scope == PlaceSearchScope.ACTIVITY) categoryOf(p.strings("types")) else null,
                     matchRanges = (main["matches"] as? JsonArray).orEmpty().mapNotNull { m ->
                         val o = m.jsonObject
                         // Google leaves startOffset out when it is 0

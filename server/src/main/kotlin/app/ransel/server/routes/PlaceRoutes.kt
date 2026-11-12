@@ -4,22 +4,28 @@ import app.ransel.server.plugins.PlaceSearchRateLimit
 import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.PlaceSearchService
 import app.ransel.shared.api.ApiRoutes
+import app.ransel.shared.dto.PlaceSearchScope
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 
-/** Destination search. The static paths are registered before `{placeId}`, and Ktor prefers them anyway. */
+/**
+ * Destination and activity place search: autocomplete, details and reverse geocoding. Open to guests (owner, 12 Nov 2026):
+ * mount it inside `authenticate(JWT_AUTH, optional = true)`, so a signed-in user keeps a rate limit of their own and a
+ * guest is limited per address. The static paths are registered before `{placeId}`, and Ktor prefers them anyway.
+ */
 fun Route.placeRoutes(service: PlaceSearchService) {
     rateLimit(PlaceSearchRateLimit) {
         get(ApiRoutes.PLACES_AUTOCOMPLETE) {
             val q = call.request.queryParameters
+            val scope = q.placeScope()
             val near = q["near"]?.let { raw ->
                 val parts = raw.split(',').mapNotNull { it.trim().toDoubleOrNull() }
                 if (parts.size != 2 || parts[0] !in -90.0..90.0 || parts[1] !in -180.0..180.0) throw validationFailed(mapOf("near" to "INVALID"))
                 parts[0] to parts[1]
             }
-            call.respondData(HttpStatusCode.OK, service.autocomplete(q["q"].orEmpty(), q["session"], near))
+            call.respondData(HttpStatusCode.OK, service.autocomplete(q["q"].orEmpty(), q["session"], near, scope))
         }
         get(ApiRoutes.PLACES_REVERSE) {
             val q = call.request.queryParameters
@@ -29,10 +35,20 @@ fun Route.placeRoutes(service: PlaceSearchService) {
             call.respondData(HttpStatusCode.OK, service.reverse(lat, lng))
         }
         get("/places/{placeId}") {
-            call.respondData(HttpStatusCode.OK, service.details(call.parameters["placeId"].orEmpty(), call.request.queryParameters["session"]))
+            val q = call.request.queryParameters
+            call.respondData(HttpStatusCode.OK, service.details(call.parameters["placeId"].orEmpty(), q["session"], q.placeScope()))
         }
     }
+}
+
+/** "Populer untuk trip grup": still for signed-in users only (mount it inside `authenticate(JWT_AUTH)`). */
+fun Route.popularPlaceRoute(service: PlaceSearchService) {
     get(ApiRoutes.PLACES_POPULAR) {
         call.respondData(HttpStatusCode.OK, service.popular())
     }
 }
+
+/** Optional `scope` of a place request; absent = the destination search, anything else is 422 `scope` = `INVALID`. */
+private fun io.ktor.http.Parameters.placeScope(): PlaceSearchScope =
+    this["scope"]?.let { raw -> PlaceSearchScope.entries.firstOrNull { it.name == raw } ?: throw validationFailed(mapOf("scope" to "INVALID")) }
+        ?: PlaceSearchScope.DESTINATION

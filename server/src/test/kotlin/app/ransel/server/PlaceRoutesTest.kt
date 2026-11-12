@@ -12,11 +12,25 @@ import app.ransel.server.ai.PlaceSearch
 import app.ransel.server.ai.PlacesClient
 import app.ransel.shared.dto.MatchRange
 import app.ransel.shared.dto.NearbyAreaDto
+import app.ransel.shared.dto.PlaceCategory
 import app.ransel.shared.dto.PlaceDto
 import app.ransel.shared.dto.PlaceKind
+import app.ransel.shared.dto.PlaceSearchScope
 import app.ransel.shared.dto.PlaceSuggestionDto
 import app.ransel.shared.dto.ViewportDto
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.header
+import io.ktor.client.request.request
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpMethod
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.content.TextContent
+import io.ktor.http.headersOf
+import kotlinx.serialization.json.Json
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonObject
@@ -38,20 +52,34 @@ private class FakePlaceSearch : PlaceSearch {
     var broken = false
     var lastNear: Pair<Double, Double>? = null
     var lastSession: String? = null
+    var lastScope: PlaceSearchScope? = null
+    var lastWithTimeZone: Boolean? = null
 
-    override suspend fun autocomplete(input: String, sessionToken: String?, near: Pair<Double, Double>?): List<PlaceSuggestionDto> {
+    override suspend fun autocomplete(
+        input: String,
+        sessionToken: String?,
+        near: Pair<Double, Double>?,
+        scope: PlaceSearchScope,
+    ): List<PlaceSuggestionDto> {
         autocompleteCalls++
         lastNear = near
         lastSession = sessionToken
+        lastScope = scope
         if (slowMillis > 0) delay(slowMillis)
         if (broken) error("google down")
+        if (scope == PlaceSearchScope.ACTIVITY) {
+            return listOf(PlaceSuggestionDto("ChIJ-warung", "Warung Bajo", "Labuan Bajo", PlaceKind.AREA, listOf(MatchRange(0, 3)), PlaceCategory.FOOD))
+        }
         return listOf(PlaceSuggestionDto("ChIJ-bajo", "Labuan Bajo", "Manggarai Barat, Nusa Tenggara Timur", PlaceKind.CITY, listOf(MatchRange(0, 3))))
     }
 
-    override suspend fun details(placeId: String, sessionToken: String?): PlaceDto? {
+    override suspend fun details(placeId: String, sessionToken: String?, withTimeZone: Boolean): PlaceDto? {
         detailsCalls++
+        lastWithTimeZone = withTimeZone
         if (broken) error("google down")
-        return if (placeId == "ChIJ-bajo") PlaceDto(placeId, -8.49, 119.88, ViewportDto(-8.6, 119.8, -8.4, 120.0), "ID") else null
+        return if (placeId == "ChIJ-bajo") {
+            PlaceDto(placeId, -8.49, 119.88, ViewportDto(-8.6, 119.8, -8.4, 120.0), "ID", if (withTimeZone) "Asia/Makassar" else null)
+        } else null
     }
 
     override suspend fun reverse(lat: Double, lng: Double): List<NearbyAreaDto> {
@@ -70,6 +98,13 @@ private object NoPlacesClient : PlacesClient {
     override suspend fun findPlaceId(name: String, destination: String): String? = null
     override suspend fun details(placeId: String, withPhotoCredit: Boolean): PlaceDetails? = null
     override suspend fun photo(placeId: String): PlacePhoto? = null
+}
+
+/** A GET as [token] (null = a guest) coming from [ip] (sent as X-Forwarded-For, which the server trusts behind its proxy). */
+private suspend fun Api.getFrom(path: String, token: String?, ip: String? = null) = client.request("/api/v1$path") {
+    method = HttpMethod.Get
+    token?.let { bearerAuth(it) }
+    ip?.let { header("X-Forwarded-For", it) }
 }
 
 class PlaceRoutesTest {
@@ -94,6 +129,201 @@ class PlaceRoutesTest {
             // too short: nothing, and Google is not asked
             assertTrue(get("/places/autocomplete?q=L").data().jsonObject.getValue("suggestions").jsonArray.isEmpty())
             assertEquals(1, search.autocompleteCalls)
+        }
+    }
+
+    @Test
+    fun withoutScopeItIsTheDestinationSearchAndNothingHasACategory() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            val s = get("/places/autocomplete?q=Lab").data().jsonObject.getValue("suggestions").jsonArray.single().jsonObject
+            assertEquals(PlaceSearchScope.DESTINATION, search.lastScope)
+            assertEquals("Labuan Bajo", s.str("name"))
+            assertTrue("category" !in s || s["category"].toString() == "null")
+            get("/places/autocomplete?q=Lab&scope=DESTINATION")
+            assertEquals(1, search.autocompleteCalls, "an explicit DESTINATION shares the cache of the default")
+        }
+    }
+
+    @Test
+    fun theActivityScopeSuggestsAnyPlaceBiasedToTheTripAndHasItsOwnCache() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            val destination = get("/places/autocomplete?q=Lab&near=-8.49,119.88").data().jsonObject
+            assertEquals("Labuan Bajo", destination.getValue("suggestions").jsonArray.single().jsonObject.str("name"))
+
+            val activity = get("/places/autocomplete?q=Lab&near=-8.49,119.88&scope=ACTIVITY&session=$session")
+            assertEquals(HttpStatusCode.OK, activity.status, activity.bodyAsText())
+            val s = activity.data().jsonObject.getValue("suggestions").jsonArray.single().jsonObject
+            assertEquals("Warung Bajo", s.str("name"))
+            assertEquals("FOOD", s.str("category"))
+            assertEquals(PlaceSearchScope.ACTIVITY, search.lastScope)
+            assertEquals(-8.49 to 119.88, search.lastNear)
+            assertEquals(session, search.lastSession)
+            assertEquals(2, search.autocompleteCalls, "the same text in the other scope is not answered from the destination cache")
+
+            get("/places/autocomplete?q=%20LAB%20&near=-8.49,119.88&scope=ACTIVITY")
+            assertEquals(2, search.autocompleteCalls, "the activity answer is cached too")
+            // and the destination answer was not overwritten
+            val again = get("/places/autocomplete?q=Lab&near=-8.49,119.88").data().jsonObject
+            assertEquals("Labuan Bajo", again.getValue("suggestions").jsonArray.single().jsonObject.str("name"))
+            assertEquals(2, search.autocompleteCalls)
+        }
+    }
+
+    @Test
+    fun anUnknownScopeIsRefusedAndTooShortActivityTextAsksNobody() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            val bad = get("/places/autocomplete?q=Lab&scope=EVERYTHING")
+            assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
+            assertEquals("VALIDATION_FAILED", bad.errorCode())
+            assertEquals(HttpStatusCode.UnprocessableEntity, get("/places/autocomplete?q=Lab&scope=activity").status, "the value is case-sensitive like every enum")
+            assertTrue(get("/places/autocomplete?q=L&scope=ACTIVITY").data().jsonObject.getValue("suggestions").jsonArray.isEmpty())
+            assertEquals(0, search.autocompleteCalls)
+        }
+    }
+
+    @Test
+    fun whenGoogleIsDownAnActivitySearchIsEmptyNotTheListOfCities() {
+        val broken = FakePlaceSearch().apply { broken = true }
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, broken)) {
+            val body = get("/places/autocomplete?q=bandung&scope=ACTIVITY").data().jsonObject
+            assertEquals("true", body.str("fallback"))
+            assertTrue(body.getValue("suggestions").jsonArray.isEmpty())
+            // the destination search keeps its list
+            assertEquals("Bandung", get("/places/autocomplete?q=bandung").data().jsonObject.getValue("suggestions").jsonArray.first().jsonObject.str("name"))
+        }
+        val slow = FakePlaceSearch().apply { slowMillis = 3_000 }
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, slow)) {
+            val body = get("/places/autocomplete?q=bandung&scope=ACTIVITY").data().jsonObject
+            assertEquals("true", body.str("fallback"))
+            assertTrue(body.getValue("suggestions").jsonArray.isEmpty())
+        }
+    }
+
+    @Test
+    fun withoutAPlacesKeyAnActivitySearchIsEmptyAndFlaggedAsFallback() = apiTest {
+        val body = get("/places/autocomplete?q=malang&scope=ACTIVITY").data().jsonObject
+        assertEquals("true", body.str("fallback"))
+        assertTrue(body.getValue("suggestions").jsonArray.isEmpty())
+    }
+
+    @Test
+    fun googleGetsNoTypeFilterForActivitiesButKeepsTheFiveTypesForDestinations() {
+        val bodies = mutableListOf<String>()
+        val http = HttpClient(MockEngine { request ->
+            bodies += (request.body as TextContent).text
+            respond("""{"suggestions":[]}""", io.ktor.http.HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
+        })
+        val search = GooglePlaceSearch(http, "test-key")
+        kotlinx.coroutines.runBlocking {
+            search.autocomplete("pantai", "3f1e9c7a-1111-4a2b-9c3d-123456789abc", -8.49 to 119.88)
+            search.autocomplete("pantai", "3f1e9c7a-1111-4a2b-9c3d-123456789abc", -8.49 to 119.88, PlaceSearchScope.DESTINATION)
+            search.autocomplete("pantai", "3f1e9c7a-1111-4a2b-9c3d-123456789abc", -8.49 to 119.88, PlaceSearchScope.ACTIVITY)
+        }
+        val (default, destination, activity) = bodies.map { Json.parseToJsonElement(it).jsonObject }
+        assertEquals(default, destination, "no scope = the destination request, byte for byte")
+        assertEquals(GooglePlaceSearch.PRIMARY_TYPES, destination.getValue("includedPrimaryTypes").jsonArray.map { it.jsonPrimitive.content })
+        assertTrue("includedPrimaryTypes" !in activity)
+        for (b in listOf(destination, activity)) {
+            val circle = b.getValue("locationBias").jsonObject.getValue("circle").jsonObject
+            assertEquals("-8.49", circle.getValue("center").jsonObject.str("latitude"))
+            assertEquals("119.88", circle.getValue("center").jsonObject.str("longitude"))
+            assertEquals("pantai", b.str("input"))
+        }
+    }
+
+    @Test
+    fun googleTypesBecomeACategoryOnlyInTheActivityScope() {
+        fun body(vararg types: String) = """{"suggestions":[{"placePrediction":{"placeId":"p","types":[${types.joinToString(",") { "\"$it\"" }}],
+            "structuredFormat":{"mainText":{"text":"X"},"secondaryText":{"text":"Y"}}}}]}"""
+        fun category(vararg types: String) = GooglePlaceSearch.parseAutocomplete(body(*types), PlaceSearchScope.ACTIVITY).single().category
+
+        assertEquals(PlaceCategory.FOOD, category("restaurant", "food", "point_of_interest", "establishment"))
+        assertEquals(PlaceCategory.FOOD, category("japanese_restaurant", "point_of_interest"))
+        assertEquals(PlaceCategory.FOOD, category("cafe", "store", "establishment"))
+        assertEquals(PlaceCategory.LODGING, category("hotel", "lodging", "point_of_interest"))
+        assertEquals(PlaceCategory.LODGING, category("resort_hotel", "restaurant"))
+        assertEquals(PlaceCategory.SHOPPING, category("shopping_mall", "point_of_interest"))
+        assertEquals(PlaceCategory.SHOPPING, category("clothing_store", "establishment"))
+        assertEquals(PlaceCategory.TRANSPORT, category("train_station", "transit_station"))
+        assertEquals(PlaceCategory.TRANSPORT, category("airport", "point_of_interest"))
+        assertEquals(PlaceCategory.ATTRACTION, category("tourist_attraction", "point_of_interest"))
+        assertEquals(PlaceCategory.ATTRACTION, category("museum", "point_of_interest"))
+        assertEquals(PlaceCategory.OTHER, category("point_of_interest", "establishment"))
+        assertEquals(PlaceCategory.OTHER, category())
+        // the first type that maps wins
+        assertEquals(PlaceCategory.ATTRACTION, category("park", "restaurant"))
+
+        // the destination parsing is untouched: same kind, no category
+        val destination = GooglePlaceSearch.parseAutocomplete(body("locality", "political"))
+        assertEquals(PlaceKind.CITY, destination.single().kind)
+        assertNull(destination.single().category)
+        // an activity result still gets a kind for the shared suggestion row
+        assertEquals(PlaceKind.ATTRACTION, GooglePlaceSearch.parseAutocomplete(body("tourist_attraction"), PlaceSearchScope.ACTIVITY).single().kind)
+    }
+
+    @Test
+    fun guestsSearchPlacesWithoutAnAccountInBothScopes() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            token = null
+            val destination = get("/places/autocomplete?q=Lab")
+            assertEquals(HttpStatusCode.OK, destination.status, destination.bodyAsText())
+            assertEquals("Labuan Bajo", destination.data().jsonObject.getValue("suggestions").jsonArray.single().jsonObject.str("name"))
+            assertEquals("false", destination.data().jsonObject.str("fallback"), "Google answered, not the built-in list")
+
+            val activity = get("/places/autocomplete?q=Lab&scope=ACTIVITY&near=-8.49,119.88")
+            assertEquals(HttpStatusCode.OK, activity.status, activity.bodyAsText())
+            assertEquals("FOOD", activity.data().jsonObject.getValue("suggestions").jsonArray.single().jsonObject.str("category"))
+
+            assertEquals("-8.49", get("/places/ChIJ-bajo?scope=ACTIVITY").data().jsonObject.str("lat"))
+            assertEquals(HttpStatusCode.OK, get("/places/reverse?lat=-6.26&lng=106.81").status)
+            // errors are the same as for a signed-in user
+            assertEquals(HttpStatusCode.UnprocessableEntity, get("/places/autocomplete?q=Lab&scope=EVERYTHING").status)
+            assertEquals("NOT_FOUND", get("/places/ChIJ-nothing").errorCode())
+        }
+    }
+
+    @Test
+    fun aTokenThatIsSentButInvalidStillGets401SoTheAppRenewsItWhileNoTokenIsAGuest() {
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, FakePlaceSearch())) {
+            val bad = getFrom("/places/autocomplete?q=Lab", "not-a-token")
+            assertEquals(HttpStatusCode.Unauthorized, bad.status, bad.bodyAsText())
+            assertEquals("UNAUTHORIZED", bad.errorCode())
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", token).status)
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", null).status)
+        }
+    }
+
+    @Test
+    fun theListOfPopularDestinationsStillNeedsAnAccount() {
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, FakePlaceSearch())) {
+            assertEquals(HttpStatusCode.OK, getFrom("/places/popular", token).status)
+            assertEquals(HttpStatusCode.Unauthorized, getFrom("/places/popular", null).status)
+        }
+    }
+
+    @Test
+    fun aGuestIsLimitedPerAddressAndASignedInUserPerAccount() {
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, FakePlaceSearch())) {
+            val alice = session()
+            signUp()
+            val bob = session()
+
+            // 60 a minute from one address without a token
+            repeat(60) { assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", null, "203.0.113.7").status, "request ${it + 1}") }
+            assertEquals(HttpStatusCode.TooManyRequests, getFrom("/places/autocomplete?q=Lab", null, "203.0.113.7").status)
+            // the other routes of the same limit share that bucket
+            assertEquals(HttpStatusCode.TooManyRequests, getFrom("/places/ChIJ-bajo?scope=ACTIVITY", null, "203.0.113.7").status)
+            // another address has its own
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", null, "203.0.113.8").status)
+            // signed-in users on the busy address are not held by the guests' bucket, nor by each other
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", alice.token, "203.0.113.7").status)
+            repeat(59) { assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", alice.token, "203.0.113.7").status) }
+            assertEquals(HttpStatusCode.TooManyRequests, getFrom("/places/autocomplete?q=Lab", alice.token, "203.0.113.7").status)
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", bob.token, "203.0.113.7").status)
         }
     }
 
@@ -139,6 +369,67 @@ class PlaceRoutesTest {
             search.broken = true
             assertEquals("PLACES_UNAVAILABLE", get("/places/ChIJ-other").errorCode())
             assertEquals("PLACES_UNAVAILABLE", get("/places/reverse?lat=-6.26&lng=106.81").errorCode())
+        }
+    }
+
+    @Test
+    fun anActivityPlaceHasNoTimeZoneAndIsCachedApartFromTheDestination() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            val destination = get("/places/ChIJ-bajo?session=$session").data().jsonObject
+            assertEquals("Asia/Makassar", destination.str("timeZone"))
+            assertEquals(true, search.lastWithTimeZone)
+
+            val activity = get("/places/ChIJ-bajo?scope=ACTIVITY&session=$session")
+            assertEquals(HttpStatusCode.OK, activity.status, activity.bodyAsText())
+            val place = activity.data().jsonObject
+            assertEquals("ChIJ-bajo", place.str("placeId"), "the answer names the real place, not the cache key")
+            assertEquals("-8.49", place.str("lat"))
+            assertTrue("timeZone" !in place || place["timeZone"].toString() == "null")
+            assertEquals(false, search.lastWithTimeZone)
+            assertEquals(2, search.detailsCalls, "an activity pick does not read the destination's cached place")
+
+            get("/places/ChIJ-bajo?scope=ACTIVITY")
+            assertEquals(2, search.detailsCalls, "the activity answer is cached too")
+            // the destination still has its zone, from its own cache entry
+            assertEquals("Asia/Makassar", get("/places/ChIJ-bajo").data().jsonObject.str("timeZone"))
+            assertEquals(2, search.detailsCalls)
+        }
+    }
+
+    @Test
+    fun placeDetailsRefuseAnUnknownScopeAndKeepTheirErrors() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            val bad = get("/places/ChIJ-bajo?scope=EVERYTHING")
+            assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
+            assertEquals("VALIDATION_FAILED", bad.errorCode())
+            assertEquals(0, search.detailsCalls)
+            assertEquals("NOT_FOUND", get("/places/ChIJ-nothing?scope=ACTIVITY").errorCode())
+            search.broken = true
+            assertEquals("PLACES_UNAVAILABLE", get("/places/ChIJ-other?scope=ACTIVITY").errorCode())
+        }
+    }
+
+    @Test
+    fun googleIsNotAskedForTheTimeZoneOfAnActivityPlace() {
+        val hosts = mutableListOf<String>()
+        val http = HttpClient(MockEngine { request ->
+            hosts += request.url.host
+            val json = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            when (request.url.host) {
+                "tz.test" -> respond("""{"status":"OK","timeZoneId":"Asia/Makassar"}""", io.ktor.http.HttpStatusCode.OK, json)
+                else -> respond("""{"id":"ChIJ1","location":{"latitude":-8.49,"longitude":119.88}}""", io.ktor.http.HttpStatusCode.OK, json)
+            }
+        })
+        val search = GooglePlaceSearch(http, "test-key", placesUrl = "https://places.test/v1", timeZoneUrl = "https://tz.test/tz")
+        kotlinx.coroutines.runBlocking {
+            assertEquals("Asia/Makassar", search.details("ChIJ1", null)!!.timeZone)
+            assertEquals(listOf("places.test", "tz.test"), hosts)
+
+            hosts.clear()
+            assertNull(search.details("ChIJ1", null, withTimeZone = false)!!.timeZone)
+            assertEquals(listOf("places.test"), hosts, "no Time Zone API call")
         }
     }
 

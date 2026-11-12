@@ -92,7 +92,8 @@ fun Application.configureRateLimit(config: AppConfig, suggestionsPerHour: () -> 
             rateLimiter(limit = 30, refillPeriod = 1.minutes)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
         }
-        // Every key press after the second character can reach Google: per user, 60 a minute.
+        // Every key press after the second character can reach Google: 60 a minute per user, or per address for a guest
+        // (the routes are open to guests; the bearer token is read when there is one).
         register(PlaceSearchRateLimit) {
             rateLimiter(limit = 60, refillPeriod = 1.minutes)
             requestKey { call -> call.principal<JWTPrincipal>()?.payload?.subject ?: call.request.origin.remoteHost }
