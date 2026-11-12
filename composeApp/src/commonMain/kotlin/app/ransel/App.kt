@@ -915,7 +915,6 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
             itemId = route.itemId,
             initialDay = route.dayDate,
             onClose = { navController.popBackStack() },
-            onSignIn = { navController.navigate(SignInRoute) },
         )
     }
     page<CreateTripRoute> {

@@ -82,7 +82,6 @@ import ransel.composeapp.generated.resources.destination_clear
 import ransel.composeapp.generated.resources.destination_denied_settings
 import ransel.composeapp.generated.resources.destination_location_failed
 import ransel.composeapp.generated.resources.destination_locating
-import ransel.composeapp.generated.resources.explore_guest_sign_in
 import ransel.composeapp.generated.resources.itinerary_day_chip
 import ransel.composeapp.generated.resources.place_category_attraction
 import ransel.composeapp.generated.resources.place_category_food
@@ -99,8 +98,6 @@ import ransel.composeapp.generated.resources.place_picker_no_results_body
 import ransel.composeapp.generated.resources.place_picker_no_results_title
 import ransel.composeapp.generated.resources.place_picker_offline_body
 import ransel.composeapp.generated.resources.place_picker_offline_title
-import ransel.composeapp.generated.resources.place_picker_signed_out_body
-import ransel.composeapp.generated.resources.place_picker_signed_out_title
 import ransel.composeapp.generated.resources.place_picker_unavailable_body
 import ransel.composeapp.generated.resources.place_picker_unavailable_title
 import ransel.composeapp.generated.resources.place_picker_use_text
@@ -117,7 +114,7 @@ private val CardMaxHeight: Dp = 640.dp
 
 /**
  * The place picker opened by the "Tempat" field. [onPicked] gets a place with or without a point (free text);
- * [onSignIn] is the "Masuk" button of the guest banner (null hides it). Every opening is a fresh search session.
+ * Guests use it like signed-in users. Every opening is a fresh search session.
  */
 @Composable
 fun PlacePicker(
@@ -125,7 +122,6 @@ fun PlacePicker(
     initialQuery: String,
     onPicked: (PlaceChoice) -> Unit,
     onDismiss: () -> Unit,
-    onSignIn: (() -> Unit)? = null,
 ) {
     val key = remember { newId() }
     val viewModel: PlacePickerViewModel = koinViewModel(key = "place-picker-$key") { parametersOf(tripId) }
@@ -153,7 +149,6 @@ fun PlacePicker(
                 onUseTyped = viewModel::useTyped,
                 onUseLocation = { viewModel.useLocation(around, location.request) },
                 onOpenSettings = location.openSettings,
-                onSignIn = onSignIn,
                 onMoveHighlight = viewModel::moveHighlight,
                 onEnter = viewModel::enter,
             )
@@ -183,7 +178,6 @@ fun PlacePickerContent(
     onUseTyped: () -> Unit,
     onUseLocation: () -> Unit,
     onOpenSettings: (() -> Unit)?,
-    onSignIn: (() -> Unit)?,
     modifier: Modifier = Modifier,
     card: Boolean = false,
     focus: FocusRequester = remember { FocusRequester() },
@@ -192,7 +186,6 @@ fun PlacePickerContent(
 ) {
     val scheme = MaterialTheme.colorScheme
     val rows = state.rows
-    val signedOut = state.mode == PlaceSearchMode.SIGNED_OUT
     Column(modifier.fillMaxSize().let { if (card) it else it.statusBarsPadding() }) {
         // header: back + search field (spec: 64 dp, field 48 dp radius 12, 2 dp primary border while focused)
         Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -251,12 +244,6 @@ fun PlacePickerContent(
 
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             when (state.mode) {
-                PlaceSearchMode.SIGNED_OUT -> InfoBanner(
-                    Symbols.lock,
-                    stringResource(Res.string.place_picker_signed_out_title),
-                    stringResource(Res.string.place_picker_signed_out_body),
-                    action = onSignIn?.let { stringResource(Res.string.explore_guest_sign_in) to it },
-                )
                 PlaceSearchMode.OFFLINE -> InfoBanner(
                     Symbols.wifiOff,
                     stringResource(Res.string.place_picker_offline_title),
@@ -270,8 +257,8 @@ fun PlacePickerContent(
                 PlaceSearchMode.READY -> {}
             }
 
-            // "Gunakan lokasi saat ini" is for signed-in users (the area name comes from the server) and only before typing
-            if (!signedOut && !state.typing && state.query.isEmpty()) LocationRow(state.location, onUseLocation, onOpenSettings)
+            // "Gunakan lokasi saat ini" only before typing
+            if (!state.typing && state.query.isEmpty()) LocationRow(state.location, onUseLocation, onOpenSettings)
 
             if (state.used.isNotEmpty()) {
                 SectionTitle(Res.string.place_picker_used)
@@ -503,7 +490,7 @@ private val previewUsed = listOf(
 @Preview
 @Composable
 private fun PlacePickerBeforeTypingPreview() = IrisPreview {
-    PlacePickerContent(PlacePickerUiState(usedAll = previewUsed), {}, {}, {}, {}, {}, {}, null, null)
+    PlacePickerContent(PlacePickerUiState(usedAll = previewUsed), {}, {}, {}, {}, {}, {}, null)
 }
 
 @Preview
@@ -511,14 +498,14 @@ private fun PlacePickerBeforeTypingPreview() = IrisPreview {
 private fun PlacePickerTypingPreview() = IrisPreview {
     PlacePickerContent(
         PlacePickerUiState(query = "baj", suggestions = previewSuggestions, searched = true, usedAll = previewUsed, highlight = 1),
-        {}, {}, {}, {}, {}, {}, null, null,
+        {}, {}, {}, {}, {}, {}, null,
     )
 }
 
 @Preview
 @Composable
 private fun PlacePickerNoResultsPreview() = IrisPreview {
-    PlacePickerContent(PlacePickerUiState(query = "xqzv", searched = true), {}, {}, {}, {}, {}, {}, null, null)
+    PlacePickerContent(PlacePickerUiState(query = "xqzv", searched = true), {}, {}, {}, {}, {}, {}, null)
 }
 
 @Preview
@@ -526,12 +513,7 @@ private fun PlacePickerNoResultsPreview() = IrisPreview {
 private fun PlacePickerOfflinePreview() = IrisPreview {
     PlacePickerContent(
         PlacePickerUiState(query = "pantai", searched = true, mode = PlaceSearchMode.OFFLINE, usedAll = previewUsed),
-        {}, {}, {}, {}, {}, {}, null, null,
+        {}, {}, {}, {}, {}, {}, null,
     )
 }
 
-@Preview
-@Composable
-private fun PlacePickerSignedOutPreview() = IrisPreview {
-    PlacePickerContent(PlacePickerUiState(mode = PlaceSearchMode.SIGNED_OUT, usedAll = previewUsed), {}, {}, {}, {}, {}, {}, null, {})
-}

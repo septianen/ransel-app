@@ -1393,8 +1393,6 @@
     <string name="place_picker_no_results_body">Try another word, or save it as text.</string>
     <string name="place_picker_offline_title">You are offline</string>
     <string name="place_picker_offline_body">Place search needs internet. You can still type a place name.</string>
-    <string name="place_picker_signed_out_title">Sign in to search places</string>
-    <string name="place_picker_signed_out_body">Searching places needs an account. You can still type a place name.</string>
     <string name="place_picker_unavailable_title">Place search is having trouble</string>
     <string name="place_picker_unavailable_body">Try again in a moment. You can still type a place name.</string>
     <string name="place_picker_denied_title">Location is off</string>

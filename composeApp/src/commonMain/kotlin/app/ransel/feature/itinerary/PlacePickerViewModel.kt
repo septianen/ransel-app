@@ -2,7 +2,6 @@ package app.ransel.feature.itinerary
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.ransel.data.auth.SessionManager
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.ItineraryRepository
@@ -49,8 +48,6 @@ data class UsedPlace(val choice: PlaceChoice, val day: Int?)
 /** What the server side of the search can do right now. */
 enum class PlaceSearchMode {
     READY,
-    /** Guests cannot search places: only this trip's places and free text. */
-    SIGNED_OUT,
     /** The request did not reach the server. */
     OFFLINE,
     /** The server or Google answered with an error, or Google is down (`fallback`). */
@@ -110,18 +107,16 @@ data class PlacePickerUiState(
  * The place picker of the activity form (spec "Field Tempat di form aktivitas"): suggestions 300 ms after the last key
  * from 2 characters (the older request is cancelled) in the ACTIVITY scope, biased to the trip's destination point;
  * one session token per opening, rotated after a pick so Google bills the session once. Free text is always a way out:
- * [useTyped]. Guests, offline and a broken server leave only this trip's places and free text.
+ * [useTyped]. Open to guests (owner, 12 Nov 2026): the server needs no account for place search. Offline and a broken
+ * server leave only this trip's places and free text.
  */
 class PlacePickerViewModel(
     private val tripId: String,
     private val api: RanselApi,
-    private val session: SessionManager,
     private val trips: TripRepository,
     private val itinerary: ItineraryRepository,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(
-        PlacePickerUiState(mode = if (session.user == null) PlaceSearchMode.SIGNED_OUT else PlaceSearchMode.READY),
-    )
+    private val _state = MutableStateFlow(PlacePickerUiState())
     val state: StateFlow<PlacePickerUiState> = _state.asStateFlow()
 
     private val _picked = Channel<PlaceChoice>(Channel.BUFFERED)
@@ -156,10 +151,6 @@ class PlacePickerViewModel(
         searchJob?.cancel()
         if (normalizeSearch(text).length < PLACE_QUERY_MIN) {
             _state.update { it.copy(suggestions = emptyList(), searching = false, searched = false) }
-            return
-        }
-        if (session.user == null) {
-            _state.update { it.copy(suggestions = emptyList(), searching = false, searched = true, mode = PlaceSearchMode.SIGNED_OUT) }
             return
         }
         _state.update { it.copy(searching = true, searched = false) }
@@ -207,7 +198,7 @@ class PlacePickerViewModel(
     /** Asks for the point once (scope ACTIVITY: no time zone); without it the name still works as free text. */
     fun pickSuggestion(suggestion: PlaceSuggestionDto) {
         val placeId = suggestion.placeId
-        if (placeId == null || session.user == null) {
+        if (placeId == null) {
             finish(PlaceChoice(suggestion.name, suggestion.secondary, fromSuggestion = true))
             return
         }
@@ -225,7 +216,7 @@ class PlacePickerViewModel(
      * placeId (owner and Benn, 12 Nov 2026). [aroundLabel] is "Sekitar %s" in the UI language.
      */
     fun useLocation(aroundLabel: String, request: suspend () -> LocationFix) {
-        if (session.user == null || _state.value.location == LocationState.Locating) return
+        if (_state.value.location == LocationState.Locating) return
         _state.update { it.copy(location = LocationState.Locating) }
         viewModelScope.launch {
             when (val fix = request()) {

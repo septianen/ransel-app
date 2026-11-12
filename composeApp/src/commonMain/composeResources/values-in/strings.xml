@@ -1381,8 +1381,6 @@
     <string name="place_picker_no_results_body">Coba kata lain, atau simpan sebagai teks.</string>
     <string name="place_picker_offline_title">Lagi offline</string>
     <string name="place_picker_offline_body">Cari tempat butuh internet. Kamu tetap bisa mengetik nama tempat.</string>
-    <string name="place_picker_signed_out_title">Masuk dulu untuk cari tempat</string>
-    <string name="place_picker_signed_out_body">Cari tempat butuh akun. Kamu tetap bisa mengetik nama tempat.</string>
     <string name="place_picker_unavailable_title">Pencarian lagi bermasalah</string>
     <string name="place_picker_unavailable_body">Coba lagi sebentar lagi. Kamu tetap bisa mengetik nama tempat.</string>
     <string name="place_picker_denied_title">Izin lokasi dimatikan</string>

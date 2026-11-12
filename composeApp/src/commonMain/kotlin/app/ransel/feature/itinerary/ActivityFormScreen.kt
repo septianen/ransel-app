@@ -89,8 +89,6 @@ fun ActivityFormScreen(
     initialDay: String?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    /** "Masuk" in the place picker's guest banner. */
-    onSignIn: (() -> Unit)? = null,
     viewModel: ActivityFormViewModel = koinViewModel(key = "activity-form-$tripId-${itemId ?: "new"}") {
         parametersOf(tripId, itemId, initialDay)
     },
@@ -277,7 +275,6 @@ fun ActivityFormScreen(
                 pickingPlace = false
             },
             onDismiss = { pickingPlace = false },
-            onSignIn = onSignIn,
         )
     }
 

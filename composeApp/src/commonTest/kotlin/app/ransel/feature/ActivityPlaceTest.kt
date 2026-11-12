@@ -1,8 +1,5 @@
 package app.ransel.feature
 
-import app.ransel.data.auth.SessionManager
-import app.ransel.data.auth.StoredSession
-import app.ransel.data.auth.TokenStore
 import app.ransel.data.fake.InMemoryItineraryRepository
 import app.ransel.data.fake.InMemoryStore
 import app.ransel.data.fake.InMemoryTripRepository
@@ -15,9 +12,7 @@ import app.ransel.feature.itinerary.PlacePickerViewModel
 import app.ransel.feature.itinerary.PlaceSearchMode
 import app.ransel.platform.LocationFix
 import app.ransel.shared.api.ErrorCode
-import app.ransel.shared.dto.AuthSessionDto
 import app.ransel.shared.dto.ItineraryItemDto
-import app.ransel.shared.dto.MeDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripPlaceDto
 import app.ransel.stopTestMain
@@ -75,24 +70,13 @@ private suspend fun eventually(check: () -> Boolean) = withContext(Dispatchers.D
     withTimeout(5_000) { while (!check()) delay(10) }
 }
 
-private suspend fun session(signedIn: Boolean): SessionManager {
-    val store = object : TokenStore {
-        var saved: StoredSession? = null
-        override suspend fun read() = saved
-        override suspend fun write(session: StoredSession) { saved = session }
-        override suspend fun clear() { saved = null }
-    }
-    return SessionManager(store) { error("not used") }.also {
-        if (signedIn) it.start(AuthSessionDto("a", Instant.parse("2099-01-01T00:00:00Z"), "r", MeDto("u1", "ayu@contoh.id", "Ayu")))
-    }
-}
-
 @OptIn(ExperimentalCoroutinesApi::class)
 class PlacePickerViewModelTest {
     @BeforeTest fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
     @AfterTest fun tearDown() = stopTestMain()
 
     private val requests = MutableStateFlow<List<String>>(emptyList())
+    private val bearers = MutableStateFlow<List<String?>>(emptyList())
     private val store = InMemoryStore().apply { trips.value = listOf(tripWithDestination()) }
 
     private enum class Server { OK, OFFLINE, DOWN, GOOGLE_DOWN, NO_DETAILS }
@@ -102,6 +86,7 @@ class PlacePickerViewModelTest {
             MockEngine { request ->
                 val path = request.url.encodedPath
                 requests.update { it + (path + "?" + request.url.encodedQuery) }
+                bearers.update { it + request.headers[HttpHeaders.Authorization] }
                 when {
                     server == Server.OFFLINE -> error("no route to host")
                     server == Server.DOWN -> respondError(HttpStatusCode.ServiceUnavailable)
@@ -122,8 +107,9 @@ class PlacePickerViewModelTest {
         origin = "http://api.test",
     )
 
-    private suspend fun picker(signedIn: Boolean = true, server: Server = Server.OK) =
-        PlacePickerViewModel(TRIP, api(server), session(signedIn), InMemoryTripRepository(store), InMemoryItineraryRepository(store))
+    /** The client has no sign-in behind it, like a guest: it sends no bearer token. */
+    private fun picker(server: Server = Server.OK) =
+        PlacePickerViewModel(TRIP, api(server), InMemoryTripRepository(store), InMemoryItineraryRepository(store))
 
     private fun autocompletes() = requests.value.filter { it.startsWith("/api/v1/places/autocomplete") }
 
@@ -251,20 +237,22 @@ class PlacePickerViewModelTest {
     }
 
     @Test
-    fun guestsGetNoSearchOnlyThisTripsPlacesAndText() = runTest {
+    fun guestsSearchLikeEveryoneWithoutAnyBannerOrBearerToken() = runTest {
         store.items.value = listOf(item("a", "Rumah Budi"))
-        val vm = picker(signedIn = false)
-        assertEquals(PlaceSearchMode.SIGNED_OUT, vm.state.value.mode)
+        val vm = picker()
+        assertEquals(PlaceSearchMode.READY, vm.state.value.mode)
         vm.onQuery("Rum")
-        assertTrue(autocompletes().isEmpty())
-        assertEquals(PlaceSearchMode.SIGNED_OUT, vm.state.value.mode)
-        eventually { vm.state.value.usedAll.isNotEmpty() }
+        eventually { vm.state.value.searched }
+        assertEquals(1, autocompletes().size)
+        assertEquals(PlaceSearchMode.READY, vm.state.value.mode)
+        assertEquals(listOf("Warung Bajo", "Pantai Pede"), vm.state.value.suggestions.map { it.name })
         assertEquals(listOf("Rumah Budi"), vm.state.value.used.map { it.choice.name })
-        vm.useTyped()
-        assertEquals(PlaceChoice("Rum"), vm.picked.first())
 
-        vm.useLocation("Sekitar %s") { error("a guest has no area lookup") }
-        assertEquals(LocationState.Idle, vm.state.value.location)
+        vm.pickSuggestion(vm.state.value.suggestions.first())
+        assertEquals("ChIJ-warung", vm.picked.first().placeId)
+        vm.useLocation("Sekitar %s") { LocationFix.Found(-6.26, 106.81) }
+        assertEquals("Sekitar Kemang", vm.picked.first().name)
+        assertTrue(bearers.value.isNotEmpty() && bearers.value.all { it == null }, "no bearer token went to the server: $bearers")
     }
 
     @Test
