@@ -144,7 +144,7 @@ object ApiRoutes {
     fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended
 
     // Destination search (bearer; 60 autocomplete requests per user per minute). The static paths win over {placeId}.
-    const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] → PlaceSuggestionsDto
+    const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] [&scope=DESTINATION|ACTIVITY, default DESTINATION; ACTIVITY = any kind of place for an itinerary activity, 422 `scope` = INVALID otherwise] → PlaceSuggestionsDto
     const val PLACES_REVERSE = "/places/reverse"                   // GET ?lat=&lng= → ReverseGeocodeDto (coordinates are not logged or stored)
     const val PLACES_POPULAR = "/places/popular"                   // GET → List<PopularDestinationDto>
     fun place(placeId: String) = "/places/$placeId"                // GET ?session= → PlaceDto, 404 NOT_FOUND
