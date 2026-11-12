@@ -147,7 +147,7 @@ object ApiRoutes {
     const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] [&scope=DESTINATION|ACTIVITY, default DESTINATION; ACTIVITY = any kind of place for an itinerary activity, 422 `scope` = INVALID otherwise] → PlaceSuggestionsDto
     const val PLACES_REVERSE = "/places/reverse"                   // GET ?lat=&lng= → ReverseGeocodeDto (coordinates are not logged or stored)
     const val PLACES_POPULAR = "/places/popular"                   // GET → List<PopularDestinationDto>
-    fun place(placeId: String) = "/places/$placeId"                // GET ?session= → PlaceDto, 404 NOT_FOUND
+    fun place(placeId: String) = "/places/$placeId"                // GET ?session= [&scope=DESTINATION|ACTIVITY, default DESTINATION; ACTIVITY leaves `timeZone` out, 422 `scope` = INVALID otherwise] → PlaceDto, 404 NOT_FOUND
 
     // Itinerary voting (docs/specs/voting-spec.md). Any member reads and votes; only the OWNER decides.
     fun rounds(tripId: String) = "/trips/$tripId/rounds"           // GET → List<RoundSummaryDto> (open and recent, newest first)

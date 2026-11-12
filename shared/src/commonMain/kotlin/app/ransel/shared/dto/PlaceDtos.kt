@@ -66,7 +66,7 @@ data class PlaceDto(
     val viewport: ViewportDto? = null,
     /** ISO 3166-1 alpha-2 from the address, e.g. "ID", "JP"; null when Google gives none. */
     val countryCode: String? = null,
-    /** IANA zone at the place ("Asia/Makassar" for Bali); null when the lookup failed. */
+    /** IANA zone at the place ("Asia/Makassar" for Bali); null when the lookup failed, and always null with `scope=ACTIVITY` (an activity does not need it). */
     val timeZone: String? = null,
 )
 
