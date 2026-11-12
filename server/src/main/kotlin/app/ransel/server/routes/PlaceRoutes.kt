@@ -15,14 +15,12 @@ fun Route.placeRoutes(service: PlaceSearchService) {
     rateLimit(PlaceSearchRateLimit) {
         get(ApiRoutes.PLACES_AUTOCOMPLETE) {
             val q = call.request.queryParameters
+            val scope = q.placeScope()
             val near = q["near"]?.let { raw ->
                 val parts = raw.split(',').mapNotNull { it.trim().toDoubleOrNull() }
                 if (parts.size != 2 || parts[0] !in -90.0..90.0 || parts[1] !in -180.0..180.0) throw validationFailed(mapOf("near" to "INVALID"))
                 parts[0] to parts[1]
             }
-            val scope = q["scope"]?.let { raw ->
-                PlaceSearchScope.entries.firstOrNull { it.name == raw } ?: throw validationFailed(mapOf("scope" to "INVALID"))
-            } ?: PlaceSearchScope.DESTINATION
             call.respondData(HttpStatusCode.OK, service.autocomplete(q["q"].orEmpty(), q["session"], near, scope))
         }
         get(ApiRoutes.PLACES_REVERSE) {
@@ -33,10 +31,16 @@ fun Route.placeRoutes(service: PlaceSearchService) {
             call.respondData(HttpStatusCode.OK, service.reverse(lat, lng))
         }
         get("/places/{placeId}") {
-            call.respondData(HttpStatusCode.OK, service.details(call.parameters["placeId"].orEmpty(), call.request.queryParameters["session"]))
+            val q = call.request.queryParameters
+            call.respondData(HttpStatusCode.OK, service.details(call.parameters["placeId"].orEmpty(), q["session"], q.placeScope()))
         }
     }
     get(ApiRoutes.PLACES_POPULAR) {
         call.respondData(HttpStatusCode.OK, service.popular())
     }
 }
+
+/** Optional `scope` of a place request; absent = the destination search, anything else is 422 `scope` = `INVALID`. */
+private fun io.ktor.http.Parameters.placeScope(): PlaceSearchScope =
+    this["scope"]?.let { raw -> PlaceSearchScope.entries.firstOrNull { it.name == raw } ?: throw validationFailed(mapOf("scope" to "INVALID")) }
+        ?: PlaceSearchScope.DESTINATION

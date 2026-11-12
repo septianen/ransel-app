@@ -42,8 +42,8 @@ interface PlaceSearch {
         scope: PlaceSearchScope = PlaceSearchScope.DESTINATION,
     ): List<PlaceSuggestionDto>
 
-    /** Null when Google does not know the place. */
-    suspend fun details(placeId: String, sessionToken: String?): PlaceDto?
+    /** Null when Google does not know the place. [withTimeZone] false skips the Time Zone API call (activities do not need it). */
+    suspend fun details(placeId: String, sessionToken: String?, withTimeZone: Boolean = true): PlaceDto?
 
     suspend fun reverse(lat: Double, lng: Double): List<NearbyAreaDto>
 }
@@ -105,7 +105,7 @@ class GooglePlaceSearch(
         return parseAutocomplete(response.body<String>(), scope)
     }
 
-    override suspend fun details(placeId: String, sessionToken: String?): PlaceDto? {
+    override suspend fun details(placeId: String, sessionToken: String?, withTimeZone: Boolean): PlaceDto? {
         val response = http.get("$placesUrl/places/$placeId") {
             header("X-Goog-Api-Key", apiKey)
             header("X-Goog-FieldMask", "id,location,viewport,addressComponents,types")
@@ -116,6 +116,7 @@ class GooglePlaceSearch(
         if (!response.status.isSuccess()) error("Places details HTTP ${response.status.value}")
         val place = parseDetails(placeId, response.body<String>()) ?: return null
         // the zone only drives the trip's local time: a failed lookup leaves it empty, the place still counts
+        if (!withTimeZone) return place
         val zone = runCatching { timeZone(place.lat, place.lng) }.getOrNull()
         return place.copy(timeZone = zone)
     }

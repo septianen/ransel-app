@@ -87,22 +87,24 @@ class PlaceSearchService(
         return PlaceSuggestionsDto(found)
     }
 
-    suspend fun details(placeId: String, session: String?): PlaceDto {
+    suspend fun details(placeId: String, session: String?, scope: PlaceSearchScope = PlaceSearchScope.DESTINATION): PlaceDto {
         requireValid(if (placeId.isBlank() || placeId.length > MAX_PLACE_ID) mapOf("placeId" to "INVALID") else emptyMap())
+        // an activity place has no time zone: it lives under its own key, so a destination never reads it
+        val cacheKey = if (scope == PlaceSearchScope.ACTIVITY) "act:$placeId" else placeId
         transaction {
-            PlaceDetailsCache.selectAll().where { PlaceDetailsCache.placeId eq placeId }.singleOrNull()
+            PlaceDetailsCache.selectAll().where { PlaceDetailsCache.placeId eq cacheKey }.singleOrNull()
                 ?.takeIf { Duration.between(it[PlaceDetailsCache.fetchedAt], Instant.now()) < DETAILS_TTL }
                 ?.get(PlaceDetailsCache.place)
         }?.let { return it }
         val place = try {
-            (search ?: throw IllegalStateException("places not configured")).details(placeId, session.validToken())
+            (search ?: throw IllegalStateException("places not configured")).details(placeId, session.validToken(), withTimeZone = scope == PlaceSearchScope.DESTINATION)
         } catch (e: Exception) {
             log.warn("places.details failed: {}", e.toString())
             throw unavailable()
         } ?: throw notFound("Place")
         transaction {
             PlaceDetailsCache.upsert {
-                it[PlaceDetailsCache.placeId] = placeId
+                it[PlaceDetailsCache.placeId] = cacheKey
                 it[PlaceDetailsCache.place] = place
                 it[fetchedAt] = Instant.now()
             }

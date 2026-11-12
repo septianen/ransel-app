@@ -187,9 +187,9 @@ private class MeteredPlaceSearch(private val inner: PlaceSearch, private val met
         return inner.autocomplete(input, sessionToken, near, scope)
     }
 
-    override suspend fun details(placeId: String, sessionToken: String?): PlaceDto? {
+    override suspend fun details(placeId: String, sessionToken: String?, withTimeZone: Boolean): PlaceDto? {
         meter.record(ProviderCall.PLACES_DETAILS)
-        return inner.details(placeId, sessionToken)
+        return inner.details(placeId, sessionToken, withTimeZone)
     }
 
     override suspend fun reverse(lat: Double, lng: Double): List<NearbyAreaDto> {

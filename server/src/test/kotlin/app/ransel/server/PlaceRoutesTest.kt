@@ -49,6 +49,7 @@ private class FakePlaceSearch : PlaceSearch {
     var lastNear: Pair<Double, Double>? = null
     var lastSession: String? = null
     var lastScope: PlaceSearchScope? = null
+    var lastWithTimeZone: Boolean? = null
 
     override suspend fun autocomplete(
         input: String,
@@ -68,10 +69,13 @@ private class FakePlaceSearch : PlaceSearch {
         return listOf(PlaceSuggestionDto("ChIJ-bajo", "Labuan Bajo", "Manggarai Barat, Nusa Tenggara Timur", PlaceKind.CITY, listOf(MatchRange(0, 3))))
     }
 
-    override suspend fun details(placeId: String, sessionToken: String?): PlaceDto? {
+    override suspend fun details(placeId: String, sessionToken: String?, withTimeZone: Boolean): PlaceDto? {
         detailsCalls++
+        lastWithTimeZone = withTimeZone
         if (broken) error("google down")
-        return if (placeId == "ChIJ-bajo") PlaceDto(placeId, -8.49, 119.88, ViewportDto(-8.6, 119.8, -8.4, 120.0), "ID") else null
+        return if (placeId == "ChIJ-bajo") {
+            PlaceDto(placeId, -8.49, 119.88, ViewportDto(-8.6, 119.8, -8.4, 120.0), "ID", if (withTimeZone) "Asia/Makassar" else null)
+        } else null
     }
 
     override suspend fun reverse(lat: Double, lng: Double): List<NearbyAreaDto> {
@@ -291,6 +295,67 @@ class PlaceRoutesTest {
             search.broken = true
             assertEquals("PLACES_UNAVAILABLE", get("/places/ChIJ-other").errorCode())
             assertEquals("PLACES_UNAVAILABLE", get("/places/reverse?lat=-6.26&lng=106.81").errorCode())
+        }
+    }
+
+    @Test
+    fun anActivityPlaceHasNoTimeZoneAndIsCachedApartFromTheDestination() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            val destination = get("/places/ChIJ-bajo?session=$session").data().jsonObject
+            assertEquals("Asia/Makassar", destination.str("timeZone"))
+            assertEquals(true, search.lastWithTimeZone)
+
+            val activity = get("/places/ChIJ-bajo?scope=ACTIVITY&session=$session")
+            assertEquals(HttpStatusCode.OK, activity.status, activity.bodyAsText())
+            val place = activity.data().jsonObject
+            assertEquals("ChIJ-bajo", place.str("placeId"), "the answer names the real place, not the cache key")
+            assertEquals("-8.49", place.str("lat"))
+            assertTrue("timeZone" !in place || place["timeZone"].toString() == "null")
+            assertEquals(false, search.lastWithTimeZone)
+            assertEquals(2, search.detailsCalls, "an activity pick does not read the destination's cached place")
+
+            get("/places/ChIJ-bajo?scope=ACTIVITY")
+            assertEquals(2, search.detailsCalls, "the activity answer is cached too")
+            // the destination still has its zone, from its own cache entry
+            assertEquals("Asia/Makassar", get("/places/ChIJ-bajo").data().jsonObject.str("timeZone"))
+            assertEquals(2, search.detailsCalls)
+        }
+    }
+
+    @Test
+    fun placeDetailsRefuseAnUnknownScopeAndKeepTheirErrors() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            val bad = get("/places/ChIJ-bajo?scope=EVERYTHING")
+            assertEquals(HttpStatusCode.UnprocessableEntity, bad.status)
+            assertEquals("VALIDATION_FAILED", bad.errorCode())
+            assertEquals(0, search.detailsCalls)
+            assertEquals("NOT_FOUND", get("/places/ChIJ-nothing?scope=ACTIVITY").errorCode())
+            search.broken = true
+            assertEquals("PLACES_UNAVAILABLE", get("/places/ChIJ-other?scope=ACTIVITY").errorCode())
+        }
+    }
+
+    @Test
+    fun googleIsNotAskedForTheTimeZoneOfAnActivityPlace() {
+        val hosts = mutableListOf<String>()
+        val http = HttpClient(MockEngine { request ->
+            hosts += request.url.host
+            val json = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            when (request.url.host) {
+                "tz.test" -> respond("""{"status":"OK","timeZoneId":"Asia/Makassar"}""", io.ktor.http.HttpStatusCode.OK, json)
+                else -> respond("""{"id":"ChIJ1","location":{"latitude":-8.49,"longitude":119.88}}""", io.ktor.http.HttpStatusCode.OK, json)
+            }
+        })
+        val search = GooglePlaceSearch(http, "test-key", placesUrl = "https://places.test/v1", timeZoneUrl = "https://tz.test/tz")
+        kotlinx.coroutines.runBlocking {
+            assertEquals("Asia/Makassar", search.details("ChIJ1", null)!!.timeZone)
+            assertEquals(listOf("places.test", "tz.test"), hosts)
+
+            hosts.clear()
+            assertNull(search.details("ChIJ1", null, withTimeZone = false)!!.timeZone)
+            assertEquals(listOf("places.test"), hosts, "no Time Zone API call")
         }
     }
 
