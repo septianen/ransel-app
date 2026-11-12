@@ -2,6 +2,8 @@
 
 Public entry: `https://api.ransel.app` -> host nginx -> `127.0.0.1:8080` (server container) -> Postgres container (private).
 
+Production (`api.ransel.app`, `ransel.app`, the Play AAB, Karung) ships only from the **Release** workflow. A push deploys staging and does not change the app version. See [Releases](#releases).
+
 ## One-time setup on the VPS (needs sudo)
 
 ```
@@ -37,7 +39,7 @@ sudo mkdir -p /opt/ransel && sudo chown -R sen:sen /opt/ransel
 
 | `FCM_SERVICE_ACCOUNT_JSON` (secret), `FCM_PROJECT_ID` (variable), optional until push goes live | Firebase service-account key and project id for push notifications. Store the key as **base64 on one line** (`base64 -i key.json \| tr -d '\n'`) so `.env` and the secret survive the quotes in JSON. Without them pushes are only logged; the in-app inbox works either way. See "Push notifications" below |
 
-**Changing a secret or variable does not change the running server.** The values are written to the VPS by the deploy job, so after editing one (a new `LLM_API_KEY`, say) run the *Deploy server* workflow again: Actions -> Deploy server -> Run workflow on `main` (it has `workflow_dispatch`), or push any change under `server/`, `shared/` or `deploy/`.
+**Changing a secret or variable does not change the running server.** The values are written to the VPS by the deploy job. A push under `server/`, `shared/` or `deploy/`, or Actions -> Deploy server -> Run workflow, updates **staging**. Production picks them up on the next [Release](#releases) (that also bumps the app version).
 
 ### Email
 
@@ -70,16 +72,49 @@ The server and the apps are ready and stay quiet until these steps are done.
 
 Reminders run on the server every minute and use WIB for every trip: the packing reminder at 18:00 the day before departure (`NOTIFY_PACKING_HOUR`), the activity reminder 30 minutes before it starts (`NOTIFY_ACTIVITY_LEAD_MINUTES`). A trip in WITA/WIT gets them 1-2 hours off until trips have a timezone.
 
+## Releases
+
+`version.properties` in the repo root is the only `versionName` and `versionCode`. The Android build reads it. Nothing else writes it.
+
+Actions -> **Release** -> Run workflow:
+
+| `RELEASE_TYPE` | What runs |
+| --- | --- |
+| `none` (default) | Staging only: Deploy server, Deploy web, and a debug APK (*Distribute Android*). No version bump, no commit, no tag, no release AAB, no Karung deploy. Any branch. |
+| `MAJOR` | From `main` only. `versionName` becomes X+1.0.0 (1.4.2 -> 2.0.0) and `versionCode` increases by 1. The commit is pushed to `main` and tagged `vX.Y.Z`. Then production: server, web, release APK + AAB, Karung. |
+| `MINOR` | Same, with `versionName` X.Y+1.0 (1.4.2 -> 1.5.0). |
+| `PATCH` | Same, with `versionName` X.Y.Z+1 (1.0.1 -> 1.0.2). |
+
+A push (to `develop` or `main`) behaves like `none` for the workflow it starts: staging, current version, no release AAB. Push to `main` does **not** update `api.ransel.app` or `ransel.app`. Karung is not on the push path; it ships with a release.
+
+The menu value is `none` rather than a blank line because a GitHub choice input cannot be empty. The workflow treats `none` as no release. Release passes `production: true` to the deploy workflows only for `MAJOR`, `MINOR` or `PATCH` run from `main`. Those workflows gate every production step on that flag. `github.event_name` inside a called workflow is the caller's event, so it is not used as the gate.
+
+A release commits the bump on the runner, then runs `:shared:jvmTest`, `:server:test`, `:composeApp:testDebugUnitTest` and `:adminApp:wasmJsBrowserTest` (Karung) on that commit. The commit and the `vX.Y.Z` tag are pushed only after those tests pass. Server, web, the Android release build and Karung then check out that SHA.
+
+Two releases use the concurrency group `ransel-release` and wait in line, so they cannot both add 1 to the same `versionCode`. The release Android build uses the group `distribute-android-release` and is not cancelled by a staging build. Re-running the workflow reuses the bump when this run's commit is already on `main`, or when the `vX.Y.Z` tag points at that commit, so a second attempt does not bump again.
+
+The bump is committed as `github-actions[bot]` with the workflow's `contents: write` permission, then tagged `vX.Y.Z`. That push uses `GITHUB_TOKEN`, which does not start other workflows. The same run deploys production from the bumped SHA.
+
+If branch protection rejects the Actions bot, set the secret `RELEASE_PUSH_TOKEN` to a fine-grained token or a classic PAT with contents write on this repo. The Release workflow uses it for the checkout and the push when it is set. Do not put the token on the command line.
+
+```
+gh workflow run release.yml --ref main -f RELEASE_TYPE=PATCH
+```
+
+`scripts/bump_version.py` is the bump. `python3 -m unittest discover -s scripts -p 'test_bump_version.py' -v` runs its tests; the CI `test` job runs the same command.
+
+The current file is `1.0.1` / `67`: `1.0.1` is the version name already on `main`, and `67` is the latest Distribute Android run number already shipped (the counter debug and release used to share). The next release is `68` or higher, which is above the last production build (`1.0.1` run 62) and not a downgrade from the latest debug build. If more Distribute Android runs land before this is on `main`, set `versionCode` to that run number (do not go backwards) and leave `versionName` at `1.0.1`.
+
 ## Android builds (Firebase App Distribution)
 
 The *Distribute Android* workflow (`.github/workflows/distribute-android.yml`) builds an APK and sends it to testers through Firebase App Distribution (they install it from the email link or the *App Tester* app):
 
 | Trigger | Build | App | API |
 | --- | --- | --- | --- |
-| push to `develop` (app, `iris`, `shared` or Gradle changes), or *Run workflow* with target `staging` | debug | "RANSEL Dev" `app.ransel.debug` | `api-staging.ransel.app` |
-| push to `main`, or *Run workflow* on `main` with target `production` | release (R8, signed) | "RANSEL" `app.ransel` | `api.ransel.app` |
+| push (app, `iris`, `shared` or Gradle changes) to `develop` or `main`, or *Run workflow* | debug | "RANSEL Dev" `app.ransel.debug` | `api-staging.ransel.app` |
+| **Release** with `MAJOR`, `MINOR` or `PATCH` on `main` | release (R8, signed) plus the AAB | "RANSEL" `app.ransel` | `api.ransel.app` |
 
-`versionCode` is the workflow's run number, so every build installs over the previous one; the release notes are the commit message (or the text given to *Run workflow*). Each run also keeps the APK as a workflow artifact for 14 days.
+`versionName` and `versionCode` are the values in `version.properties` for every build. A staging build does not increment them, so a tester who already has that `versionCode` may need to reinstall if the device refuses the same code. The release notes are the commit message (or the text given to *Run workflow* / Release). Each run also keeps the APK as a workflow artifact for 14 days.
 
 One-time setup:
 
@@ -102,9 +137,9 @@ Keep the release keystore and its passwords safe outside git: the Play Store lat
 
 ## Google Play (closed testing)
 
-A release run of *Distribute Android* (push to `main`, or *Run workflow* on `main` with target `production`) also builds `composeApp-release.aab` and keeps it with `mapping.txt` as the workflow artifact `ransel-play-<run>` for 90 days. Upload the AAB in Play Console -> Test and release -> Closed testing (the first upload is always by hand). The bundle is signed with the release keystore, which becomes the **upload key** once Play App Signing is on.
+A **Release** (`MAJOR`, `MINOR` or `PATCH` on `main`) also builds `composeApp-release.aab` and keeps it with `mapping.txt` as the workflow artifact `ransel-play-<versionName>-<versionCode>` for 90 days. Upload the AAB in Play Console -> Test and release -> Closed testing (the first upload is always by hand). The bundle is signed with the release keystore, which becomes the **upload key** once Play App Signing is on. A push does not build the AAB.
 
-- **Version:** `versionName` is in `composeApp/build.gradle.kts` (1.0.0); `versionCode` is the run number of *Distribute Android*, so it only goes up. Do not rename or recreate that workflow file, or the count starts again at 1 and Play rejects the upload.
+- **Version:** `versionName` and `versionCode` are in `version.properties`. A release adds 1 to `versionCode` and moves `versionName` as in [Releases](#releases). Play rejects an upload whose `versionCode` is not higher than the last one, so do not set the file backwards.
 - **Checks in every run:** the permission list of the APK is printed; the run fails on `AD_ID` / AdServices permissions (the app has no ads, the manifest removes what Firebase Analytics adds) and on native libraries that are not 16 KB aligned.
 - **App Links with Play App Signing:** Play re-signs the app with its own key, so `assetlinks.json` must list both fingerprints. Set the repository variable `ANDROID_CERT_SHA256` to both, comma separated: the *App signing key certificate* SHA-256 and the *Upload key certificate* SHA-256 (Play Console -> Test and release -> App integrity -> App signing). Run *Deploy server*, then check `https://ransel.app/.well-known/assetlinks.json`. Add the Play signing SHA-1/SHA-256 to the `app.ransel` app in Firebase too.
 - **Privacy policy and account deletion URLs** (Play Console -> App content): `https://ransel.app/privacy.html` and `https://ransel.app/delete-account.html` (live once the delete-account branch is deployed by *Deploy web*).
@@ -134,7 +169,7 @@ Promo vouchers are easier in Karung (Voucher page: make, copy, revoke). The scri
 
 ## Admin app (Karung)
 
-Admins are the accounts in `ADMIN_EMAILS` (comma separated, case-insensitive). The deploy workflow rewrites the VPS `.env` on every deploy, so set it as the GitHub **repository variable** `ADMIN_EMAILS` (Settings > Secrets and variables > Actions > Variables), not by editing `.env`; it takes effect with the next *Deploy server* run. The server checks the list on every `/admin` request, so removing an email locks that person out at once. Set `ADMIN_APP_ORIGIN=https://karung.ransel.app` so the browser may call the API. `APP_ENV` (`production` / `staging`) is shown as a badge in Karung. Karung manages both servers: pick Production or Staging on its sign-in screen (switching signs out). To use Staging, your account must exist there (e.g. via the seed variables) and be in staging's `ADMIN_EMAILS` (the staging Environment, else the repository value); staging's `ADMIN_APP_ORIGIN` is `https://karung.ransel.app` as well, so the browser may call it. Leave `ADMIN_PASSWORD_RESET_ENABLED` unset until an email provider is connected. Every admin action is in the `admin_audit_log` table. Karung's cost card estimates provider cost from list prices per call (`COST_*_MICRO_USD`, defaults in `AppConfig.ProviderPrices`); set the VPS price per month as the repository variable `SERVER_MONTHLY_COST_USD` (e.g. `24.60`) for the "Server dan database" line. `AI_MONTHLY_BUDGET_USD` (repository variable, blank = no warning) is the LLM + Places budget Karung warns about from `AI_BUDGET_ALERT_PERCENT` (80/90/100); with `AI_BUDGET_MODE=CACHE_ONLY` new LLM calls stop once it is spent (searches from the cache still work, new ones and receipt photos answer 503 `AI_PAUSED` and charge nothing). `LLM_MODELS` lists the other models Karung may switch to. All of these can be overridden in Karung (stage C, table `app_settings`). "Backup terakhir" on the system page is the time `deploy/backup-db.sh` writes to `/data/documents/.last-backup` after a good backup (copy the new script to the VPS: the deploy does that). Karung itself: `deploy/nginx/karung.ransel.app.conf` (copy, enable, `certbot --nginx -d karung.ransel.app`, DNS A record for `karung`), served from `/opt/ransel/karung`; the *Deploy admin* workflow (`.github/workflows/deploy-admin.yml`) builds `:adminApp:wasmJsBrowserDistribution` and swaps it in the same way as *Deploy web*, with the same secrets.
+Admins are the accounts in `ADMIN_EMAILS` (comma separated, case-insensitive). The deploy workflow rewrites the VPS `.env` on every deploy, so set it as the GitHub **repository variable** `ADMIN_EMAILS` (Settings > Secrets and variables > Actions > Variables), not by editing `.env`; it takes effect with the next *Deploy server* run. The server checks the list on every `/admin` request, so removing an email locks that person out at once. Set `ADMIN_APP_ORIGIN=https://karung.ransel.app` so the browser may call the API. `APP_ENV` (`production` / `staging`) is shown as a badge in Karung. Karung manages both servers: pick Production or Staging on its sign-in screen (switching signs out). To use Staging, your account must exist there (e.g. via the seed variables) and be in staging's `ADMIN_EMAILS` (the staging Environment, else the repository value); staging's `ADMIN_APP_ORIGIN` is `https://karung.ransel.app` as well, so the browser may call it. Leave `ADMIN_PASSWORD_RESET_ENABLED` unset until an email provider is connected. Every admin action is in the `admin_audit_log` table. Karung's cost card estimates provider cost from list prices per call (`COST_*_MICRO_USD`, defaults in `AppConfig.ProviderPrices`); set the VPS price per month as the repository variable `SERVER_MONTHLY_COST_USD` (e.g. `24.60`) for the "Server dan database" line. `AI_MONTHLY_BUDGET_USD` (repository variable, blank = no warning) is the LLM + Places budget Karung warns about from `AI_BUDGET_ALERT_PERCENT` (80/90/100); with `AI_BUDGET_MODE=CACHE_ONLY` new LLM calls stop once it is spent (searches from the cache still work, new ones and receipt photos answer 503 `AI_PAUSED` and charge nothing). `LLM_MODELS` lists the other models Karung may switch to. All of these can be overridden in Karung (stage C, table `app_settings`). "Backup terakhir" on the system page is the time `deploy/backup-db.sh` writes to `/data/documents/.last-backup` after a good backup (copy the new script to the VPS: the deploy does that). Karung itself: `deploy/nginx/karung.ransel.app.conf` (copy, enable, `certbot --nginx -d karung.ransel.app`, DNS A record for `karung`), served from `/opt/ransel/karung`. A production **Release** builds `:adminApp:wasmJsBrowserDistribution` and swaps it in the same way as *Deploy web*, with the same secrets (`.github/workflows/deploy-admin.yml`). A push does not publish Karung.
 
 ## Backups
 
@@ -159,7 +194,7 @@ build, its own Postgres and data (Karung has no staging):
 
 | | production | staging |
 | --- | --- | --- |
-| Deployed by | push to `main` | push to `develop`, or Actions -> Deploy server / Deploy web -> Run workflow with target `staging` (any branch) |
+| Deployed by | **Release** on `main` with `MAJOR`, `MINOR` or `PATCH` | push to `develop` or `main`, or Actions -> Deploy server / Deploy web -> Run workflow (any branch), or **Release** with `none` |
 | API host | `api.ransel.app` | `api-staging.ransel.app` |
 | Web host | `ransel.app` | `staging.ransel.app` (`index.html` picks the API from the hostname) |
 | Folder on the VPS | `/opt/ransel` (`DEPLOY_PATH`), web in `web/` | `/opt/ransel-dev` (`STAGING_DEPLOY_PATH`), web in `web/` |
@@ -186,7 +221,7 @@ One-time setup:
    open the staging web app, or the debug app. For the debug app to open them directly (no chooser), set the
    Environment variable `ANDROID_CERT_SHA256` to the debug key's SHA-256 (`./gradlew :composeApp:signingReport`);
    staging already answers `assetlinks.json` for `app.ransel.debug`.
-5. Create the branch `develop` (`git push origin main:develop`) or run both workflows by hand with target `staging`.
+5. Create the branch `develop` (`git push origin main:develop`) or run Deploy server and Deploy web by hand (they deploy staging).
 6. Check: `curl https://api-staging.ransel.app/api/v1/health` and open `https://staging.ransel.app`.
 
 Push for the debug app: register `app.ransel.debug` as a second Android app in the same Firebase project (see "Push
@@ -222,9 +257,9 @@ Gotchas from the first setup:
 
 ### Publishing the web build
 
-The *Deploy web* workflow (`.github/workflows/deploy-web.yml`) publishes it on every push to `main` that touches
-`composeApp/`, `shared/`, `gradle/`, a `*.gradle.kts` file, `gradle.properties` or the workflow itself; run it by hand with
-Actions -> Deploy web -> Run workflow (or `gh workflow run deploy-web.yml --ref main`). It builds
+The *Deploy web* workflow (`.github/workflows/deploy-web.yml`) publishes **staging** on a push to `develop` or `main` that touches
+`composeApp/`, `shared/`, `gradle/`, a `*.gradle.kts` file, `gradle.properties` or the workflow itself, and when you run it by hand
+(Actions -> Deploy web -> Run workflow). Production (`ransel.app`) is a **Release** (`MAJOR` / `MINOR` / `PATCH` on `main`). It builds
 `:composeApp:wasmJsBrowserDistribution`, rsyncs the result into `/opt/ransel/web.new` (seeded with a copy of the live
 folder, so only changed files travel) and then swaps it in with two `mv`s, so visitors never get a half-uploaded app. It
 uses the same SSH secrets as *Deploy server* (`DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `DEPLOY_HOST`, `DEPLOY_PORT`,
@@ -258,8 +293,7 @@ location /.well-known/ { proxy_pass http://127.0.0.1:8080; }
 
 `ANDROID_CERT_SHA256` is a comma-separated list of release / Play App Signing fingerprints for `app.ransel`. The debug build
 is `app.ransel.debug`, which these files do not name, so on a debug build invite links open through the "Open with" chooser
-instead of directly; pick "RANSEL Dev". Changing a repository variable does not start a deploy: run *Deploy server* by hand
-(`gh workflow run deploy-server.yml --ref main`) or push a change under `server/`, `shared/` or `deploy/`. Check with
+instead of directly; pick "RANSEL Dev". Changing a repository variable does not start a deploy: push a change under `server/`, `shared/` or `deploy/` (staging) or run a **Release** (production). Check with
 `curl https://ransel.app/.well-known/assetlinks.json`, and on the phone
 `adb shell pm verify-app-links --re-verify app.ransel`, then `adb shell pm get-app-links app.ransel`.
 

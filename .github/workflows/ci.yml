@@ -16,7 +16,9 @@ on:
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
-      - ".github/workflows/ci.yml"
+      - "version.properties"
+      - "scripts/**"
+      - ".github/workflows/**"
 
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
@@ -36,6 +38,8 @@ jobs:
           # 21, not 17: Robolectric loads the debug manifest, and Chucker (debug only) is compiled for 21.
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
+      - name: Version bump tests
+        run: python3 -m unittest discover -s scripts -p 'test_bump_version.py' -v
       - name: Accept Android licenses (the :shared module configures the Android plugin)
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: browser-actions/setup-chrome@v1

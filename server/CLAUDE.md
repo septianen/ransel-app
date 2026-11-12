@@ -56,7 +56,7 @@ Config comes from env vars (defaults match the compose database); see `.env.exam
 Live at `https://api.ransel.app` (VPS `sen@187.127.97.109`, SSH port 2212, folder `/opt/ransel`). Full runbook, secrets list and rollback: `deploy/README.md`.
 
 - The VPS already runs nginx for other sites, so nginx is the public entry (`deploy/nginx/`), not Caddy. `docker-compose.prod.yml` runs `server` (published on `127.0.0.1:8080` only) and `db` (Postgres 16, private volume).
-- `.github/workflows/deploy-server.yml`: on push to `main` touching server/shared/deploy it runs the tests, builds `:server:installDist`, pushes `ghcr.io/septianen/ransel-server:<sha>` and rolls it out over SSH. Gradle does not run inside Docker because `:shared` configures the Android plugin.
+- `.github/workflows/deploy-server.yml`: a push to `develop` or `main` that touches server/shared/deploy runs the tests, builds `:server:installDist`, pushes `ghcr.io/septianen/ransel-server:<sha>` and rolls it out to **staging**. Production is the Release workflow (`RELEASE_TYPE` MAJOR, MINOR or PATCH on `main`), which also bumps `version.properties`. Gradle does not run inside Docker because `:shared` configures the Android plugin.
 - Sign-up is open (`REGISTRATION_ENABLED` defaults to true; set `false` to close it). New accounts verify their email (SMTP via `SMTP_*`) before Explore and the signup credits; `SEED_USER_*` accounts start verified.
 - The migrations were squashed into one `V1__init.sql` on 3 Nov 2026 (owner, before the first store release; production and staging were reset). Once V1 is applied in production: **never edit it again**, add V2, V3, ...
 - Daily `pg_dump` via `deploy/backup-db.sh` (cron on the VPS); copying dumps off the VPS is still manual.

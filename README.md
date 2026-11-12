@@ -23,3 +23,9 @@ composeApp/src/commonMain/kotlin/app/ransel/ui/theme/   IrisTheme (colors, type,
    - **Backend:** "Kamu agent backend RANSEL. Baca CLAUDE.md dan server/CLAUDE.md, lalu kerjakan docs/tasks/backend.md mulai dari Phase 2. Berhenti dan lapor setiap selesai satu fase."
 5. Agent frontend mengerjakan F0 (setup) dulu supaya modul `shared` bisa dipakai keduanya. Agent backend boleh mulai B2.1 setelah F0.2 selesai.
 6. Untuk deploy (akhir Fase 2), siapkan akses VPS dan domain `ransel.app` (DNS `api.ransel.app` → IP VPS).
+
+## Releases
+
+Production ships only from Actions → **Release**, on `main`, with `RELEASE_TYPE` set to `MAJOR`, `MINOR`, or `PATCH`. That bumps `version.properties` (`versionName` / `versionCode`), tests that commit, pushes it and the tag `vX.Y.Z`, then deploys the server, the web app, the Android release (APK and AAB) and Karung from that commit.
+
+`none` (the default) and every push deploy staging only. They keep the current version and do not build a release AAB. How to run it, and the `RELEASE_PUSH_TOKEN` secret if `main` rejects the Actions bot: `deploy/README.md` (Releases).
