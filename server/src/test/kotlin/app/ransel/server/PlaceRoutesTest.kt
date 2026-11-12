@@ -21,7 +21,11 @@ import app.ransel.shared.dto.ViewportDto
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.header
+import io.ktor.client.request.request
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpMethod
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.content.TextContent
@@ -94,6 +98,13 @@ private object NoPlacesClient : PlacesClient {
     override suspend fun findPlaceId(name: String, destination: String): String? = null
     override suspend fun details(placeId: String, withPhotoCredit: Boolean): PlaceDetails? = null
     override suspend fun photo(placeId: String): PlacePhoto? = null
+}
+
+/** A GET as [token] (null = a guest) coming from [ip] (sent as X-Forwarded-For, which the server trusts behind its proxy). */
+private suspend fun Api.getFrom(path: String, token: String?, ip: String? = null) = client.request("/api/v1$path") {
+    method = HttpMethod.Get
+    token?.let { bearerAuth(it) }
+    ip?.let { header("X-Forwarded-For", it) }
 }
 
 class PlaceRoutesTest {
@@ -251,6 +262,69 @@ class PlaceRoutesTest {
         assertNull(destination.single().category)
         // an activity result still gets a kind for the shared suggestion row
         assertEquals(PlaceKind.ATTRACTION, GooglePlaceSearch.parseAutocomplete(body("tourist_attraction"), PlaceSearchScope.ACTIVITY).single().kind)
+    }
+
+    @Test
+    fun guestsSearchPlacesWithoutAnAccountInBothScopes() {
+        val search = FakePlaceSearch()
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
+            token = null
+            val destination = get("/places/autocomplete?q=Lab")
+            assertEquals(HttpStatusCode.OK, destination.status, destination.bodyAsText())
+            assertEquals("Labuan Bajo", destination.data().jsonObject.getValue("suggestions").jsonArray.single().jsonObject.str("name"))
+            assertEquals("false", destination.data().jsonObject.str("fallback"), "Google answered, not the built-in list")
+
+            val activity = get("/places/autocomplete?q=Lab&scope=ACTIVITY&near=-8.49,119.88")
+            assertEquals(HttpStatusCode.OK, activity.status, activity.bodyAsText())
+            assertEquals("FOOD", activity.data().jsonObject.getValue("suggestions").jsonArray.single().jsonObject.str("category"))
+
+            assertEquals("-8.49", get("/places/ChIJ-bajo?scope=ACTIVITY").data().jsonObject.str("lat"))
+            assertEquals(HttpStatusCode.OK, get("/places/reverse?lat=-6.26&lng=106.81").status)
+            // errors are the same as for a signed-in user
+            assertEquals(HttpStatusCode.UnprocessableEntity, get("/places/autocomplete?q=Lab&scope=EVERYTHING").status)
+            assertEquals("NOT_FOUND", get("/places/ChIJ-nothing").errorCode())
+        }
+    }
+
+    @Test
+    fun aTokenThatIsSentButInvalidStillGets401SoTheAppRenewsItWhileNoTokenIsAGuest() {
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, FakePlaceSearch())) {
+            val bad = getFrom("/places/autocomplete?q=Lab", "not-a-token")
+            assertEquals(HttpStatusCode.Unauthorized, bad.status, bad.bodyAsText())
+            assertEquals("UNAUTHORIZED", bad.errorCode())
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", token).status)
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", null).status)
+        }
+    }
+
+    @Test
+    fun theListOfPopularDestinationsStillNeedsAnAccount() {
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, FakePlaceSearch())) {
+            assertEquals(HttpStatusCode.OK, getFrom("/places/popular", token).status)
+            assertEquals(HttpStatusCode.Unauthorized, getFrom("/places/popular", null).status)
+        }
+    }
+
+    @Test
+    fun aGuestIsLimitedPerAddressAndASignedInUserPerAccount() {
+        apiTest(ai = AiServices(QuietLlm, NoPlacesClient, FakePlaceSearch())) {
+            val alice = session()
+            signUp()
+            val bob = session()
+
+            // 60 a minute from one address without a token
+            repeat(60) { assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", null, "203.0.113.7").status, "request ${it + 1}") }
+            assertEquals(HttpStatusCode.TooManyRequests, getFrom("/places/autocomplete?q=Lab", null, "203.0.113.7").status)
+            // the other routes of the same limit share that bucket
+            assertEquals(HttpStatusCode.TooManyRequests, getFrom("/places/ChIJ-bajo?scope=ACTIVITY", null, "203.0.113.7").status)
+            // another address has its own
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", null, "203.0.113.8").status)
+            // signed-in users on the busy address are not held by the guests' bucket, nor by each other
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", alice.token, "203.0.113.7").status)
+            repeat(59) { assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", alice.token, "203.0.113.7").status) }
+            assertEquals(HttpStatusCode.TooManyRequests, getFrom("/places/autocomplete?q=Lab", alice.token, "203.0.113.7").status)
+            assertEquals(HttpStatusCode.OK, getFrom("/places/autocomplete?q=Lab", bob.token, "203.0.113.7").status)
+        }
     }
 
     @Test

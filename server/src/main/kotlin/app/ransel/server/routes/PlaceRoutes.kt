@@ -10,7 +10,11 @@ import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 
-/** Destination and activity place search. The static paths are registered before `{placeId}`, and Ktor prefers them anyway. */
+/**
+ * Destination and activity place search: autocomplete, details and reverse geocoding. Open to guests (owner, 12 Nov 2026):
+ * mount it inside `authenticate(JWT_AUTH, optional = true)`, so a signed-in user keeps a rate limit of their own and a
+ * guest is limited per address. The static paths are registered before `{placeId}`, and Ktor prefers them anyway.
+ */
 fun Route.placeRoutes(service: PlaceSearchService) {
     rateLimit(PlaceSearchRateLimit) {
         get(ApiRoutes.PLACES_AUTOCOMPLETE) {
@@ -35,6 +39,10 @@ fun Route.placeRoutes(service: PlaceSearchService) {
             call.respondData(HttpStatusCode.OK, service.details(call.parameters["placeId"].orEmpty(), q["session"], q.placeScope()))
         }
     }
+}
+
+/** "Populer untuk trip grup": still for signed-in users only (mount it inside `authenticate(JWT_AUTH)`). */
+fun Route.popularPlaceRoute(service: PlaceSearchService) {
     get(ApiRoutes.PLACES_POPULAR) {
         call.respondData(HttpStatusCode.OK, service.popular())
     }
