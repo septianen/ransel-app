@@ -14,7 +14,9 @@ on:
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
-      - ".github/workflows/ci.yml"
+      - "version.properties"
+      - "scripts/**"
+      - ".github/workflows/**"
 
 concurrency:
   group: ci-${{ github.event.pull_request.number }}
@@ -33,6 +35,8 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+      - name: Version bump tests
+        run: python3 -m unittest discover -s scripts -p 'test_bump_version.py' -v
       - name: Accept Android licenses (the :shared module configures the Android plugin)
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - name: Shared, server, and receipt form tests (Testcontainers uses the runner's Docker)
