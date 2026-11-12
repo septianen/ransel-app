@@ -4,6 +4,7 @@ import app.ransel.server.AppConfig
 import app.ransel.server.db.ProviderUsage
 import app.ransel.shared.dto.NearbyAreaDto
 import app.ransel.shared.dto.PlaceDto
+import app.ransel.shared.dto.PlaceSearchScope
 import app.ransel.shared.dto.PlaceSuggestionDto
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -176,9 +177,14 @@ private class MeteredPlaces(private val inner: PlacesClient, private val meter: 
 }
 
 private class MeteredPlaceSearch(private val inner: PlaceSearch, private val meter: UsageMeter) : PlaceSearch {
-    override suspend fun autocomplete(input: String, sessionToken: String?, near: Pair<Double, Double>?): List<PlaceSuggestionDto> {
+    override suspend fun autocomplete(
+        input: String,
+        sessionToken: String?,
+        near: Pair<Double, Double>?,
+        scope: PlaceSearchScope,
+    ): List<PlaceSuggestionDto> {
         meter.record(ProviderCall.PLACES_AUTOCOMPLETE)
-        return inner.autocomplete(input, sessionToken, near)
+        return inner.autocomplete(input, sessionToken, near, scope)
     }
 
     override suspend fun details(placeId: String, sessionToken: String?): PlaceDto? {

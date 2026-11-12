@@ -4,12 +4,13 @@ import app.ransel.server.plugins.PlaceSearchRateLimit
 import app.ransel.server.plugins.validationFailed
 import app.ransel.server.service.PlaceSearchService
 import app.ransel.shared.api.ApiRoutes
+import app.ransel.shared.dto.PlaceSearchScope
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 
-/** Destination search. The static paths are registered before `{placeId}`, and Ktor prefers them anyway. */
+/** Destination and activity place search. The static paths are registered before `{placeId}`, and Ktor prefers them anyway. */
 fun Route.placeRoutes(service: PlaceSearchService) {
     rateLimit(PlaceSearchRateLimit) {
         get(ApiRoutes.PLACES_AUTOCOMPLETE) {
@@ -19,7 +20,10 @@ fun Route.placeRoutes(service: PlaceSearchService) {
                 if (parts.size != 2 || parts[0] !in -90.0..90.0 || parts[1] !in -180.0..180.0) throw validationFailed(mapOf("near" to "INVALID"))
                 parts[0] to parts[1]
             }
-            call.respondData(HttpStatusCode.OK, service.autocomplete(q["q"].orEmpty(), q["session"], near))
+            val scope = q["scope"]?.let { raw ->
+                PlaceSearchScope.entries.firstOrNull { it.name == raw } ?: throw validationFailed(mapOf("scope" to "INVALID"))
+            } ?: PlaceSearchScope.DESTINATION
+            call.respondData(HttpStatusCode.OK, service.autocomplete(q["q"].orEmpty(), q["session"], near, scope))
         }
         get(ApiRoutes.PLACES_REVERSE) {
             val q = call.request.queryParameters

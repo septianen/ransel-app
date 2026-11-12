@@ -12,6 +12,7 @@ import app.ransel.shared.domain.PLACE_QUERY_MIN
 import app.ransel.shared.domain.normalizeSearch
 import app.ransel.shared.domain.regionSuggestions
 import app.ransel.shared.dto.PlaceDto
+import app.ransel.shared.dto.PlaceSearchScope
 import app.ransel.shared.dto.PlaceSuggestionsDto
 import app.ransel.shared.dto.PopularDestinationDto
 import app.ransel.shared.dto.ReverseGeocodeDto
@@ -36,7 +37,7 @@ import java.time.Instant
 import kotlin.math.roundToInt
 
 /**
- * Destination search (TRD "Places"): Google behind a Postgres cache, the built-in region list when Google is down or
+ * Destination and activity place search (TRD "Places"): Google behind a Postgres cache, the built-in region list when Google is down or
  * slow, and the places groups pick most often. [search] null = no Places key configured (suggestions use the list,
  * details and reverse answer 503).
  */
@@ -49,23 +50,33 @@ class PlaceSearchService(
 
     @Volatile private var popular: Pair<Instant, List<PopularDestinationDto>>? = null
 
-    suspend fun autocomplete(query: String, session: String?, near: Pair<Double, Double>?): PlaceSuggestionsDto {
+    suspend fun autocomplete(
+        query: String,
+        session: String?,
+        near: Pair<Double, Double>?,
+        scope: PlaceSearchScope = PlaceSearchScope.DESTINATION,
+    ): PlaceSuggestionsDto {
         val q = query.trim()
         requireValid(if (q.length > MAX_QUERY) mapOf("q" to "TOO_LONG") else emptyMap())
         if (normalizeSearch(q).length < PLACE_QUERY_MIN) return PlaceSuggestionsDto(emptyList())
         // a bias point rounded to about 10 km keeps the cache useful
-        val key = normalizeSearch(q) + (near?.let { "@" + round1(it.first) + "," + round1(it.second) } ?: "")
+        // the destination key keeps its old shape (cached answers stay valid); the activity scope has its own namespace
+        val key = (if (scope == PlaceSearchScope.ACTIVITY) "act:" else "") + normalizeSearch(q) + (near?.let { "@" + round1(it.first) + "," + round1(it.second) } ?: "")
         cachedSuggestions(key)?.let { return PlaceSuggestionsDto(it) }
         val found = try {
             val s = search ?: throw IllegalStateException("places not configured")
-            withTimeout(fallbackAfterMillis) { s.autocomplete(q, session.validToken(), near) }
+            withTimeout(fallbackAfterMillis) { s.autocomplete(q, session.validToken(), near, scope) }
         } catch (e: TimeoutCancellationException) {
             log.warn("places.autocomplete timeout, using the built-in list")
             null
         } catch (e: Exception) {
             log.warn("places.autocomplete failed: {}, using the built-in list", e.toString())
             null
-        } ?: return PlaceSuggestionsDto(regionSuggestions(q), fallback = true)
+        } ?: return PlaceSuggestionsDto(
+            // the built-in list is cities and regions only: for an activity the app keeps the free-text place
+            if (scope == PlaceSearchScope.ACTIVITY) emptyList() else regionSuggestions(q),
+            fallback = true,
+        )
         transaction {
             PlaceAutocompleteCache.upsert {
                 it[queryKey] = key
