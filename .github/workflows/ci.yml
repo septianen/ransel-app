@@ -50,7 +50,7 @@ jobs:
       - name: App update and Karung tests
         run: |
           export CHROME_BIN="$(which google-chrome)"
-          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --tests app.ransel.feature.AppUpdateTest --tests app.ransel.feature.SoftUpdateDialogTest --tests app.ransel.feature.ActivityPlaceTest :adminApp:wasmJsBrowserTest --no-daemon
+          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --tests app.ransel.feature.AppUpdateTest --tests app.ransel.feature.SoftUpdateDialogTest --tests app.ransel.feature.PlacePickerViewModelTest --tests app.ransel.feature.ActivityFormPlaceTest :adminApp:wasmJsBrowserTest --no-daemon
           python3 - <<'PY'
           import glob, xml.etree.ElementTree as ET
           files = glob.glob('composeApp/build/test-results/testDebugUnitTest/TEST-app.ransel.feature.AppUpdateTest.xml')
