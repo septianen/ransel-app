@@ -69,6 +69,7 @@ import app.ransel.shared.dto.CreateSettlementRequest
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.FxRateDto
 import app.ransel.shared.dto.PlaceDto
+import app.ransel.shared.dto.PlaceSearchScope
 import app.ransel.shared.dto.PlaceSuggestionsDto
 import app.ransel.shared.dto.PopularDestinationDto
 import app.ransel.shared.dto.ReverseGeocodeDto
@@ -502,14 +503,25 @@ class RanselApi(
 
     // ── destination search ──────────────────────────────────────────────────
     /** Cancelled with the caller's coroutine, so a newer key press drops the older request. */
-    suspend fun placeAutocomplete(query: String, session: String?, near: Pair<Double, Double>? = null): ApiResult<PlaceSuggestionsDto> =
+    /** [scope] null = the destination search (the parameter is left out); ACTIVITY = any kind of place for an activity. */
+    suspend fun placeAutocomplete(
+        query: String,
+        session: String?,
+        near: Pair<Double, Double>? = null,
+        scope: PlaceSearchScope? = null,
+    ): ApiResult<PlaceSuggestionsDto> =
         call(HttpMethod.Get, ApiRoutes.PLACES_AUTOCOMPLETE, bodyOf = {
             parameter("q", query)
             session?.let { parameter("session", it) }
             near?.let { parameter("near", "${it.first},${it.second}") }
+            scope?.let { parameter("scope", it.name) }
         }) { it.body<ApiResponse<PlaceSuggestionsDto>>().data }
-    suspend fun place(placeId: String, session: String?): ApiResult<PlaceDto> =
-        call(HttpMethod.Get, ApiRoutes.place(placeId), bodyOf = { session?.let { parameter("session", it) } }) {
+    /** [scope] ACTIVITY skips the time zone lookup on the server (an activity does not need it). */
+    suspend fun place(placeId: String, session: String?, scope: PlaceSearchScope? = null): ApiResult<PlaceDto> =
+        call(HttpMethod.Get, ApiRoutes.place(placeId), bodyOf = {
+            session?.let { parameter("session", it) }
+            scope?.let { parameter("scope", it.name) }
+        }) {
             it.body<ApiResponse<PlaceDto>>().data
         }
     /** The coordinates go to the server once and are not kept anywhere. */

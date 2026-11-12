@@ -15,3 +15,10 @@ fun rememberIsExpanded(): Boolean {
     val widthPx = LocalWindowInfo.current.containerSize.width
     return with(LocalDensity.current) { widthPx.toDp() } >= ExpandedWidth
 }
+
+/** The window's width now (the web window can be resized; on phones it is the screen width). */
+@Composable
+fun rememberWindowWidth(): Dp {
+    val widthPx = LocalWindowInfo.current.containerSize.width
+    return with(LocalDensity.current) { widthPx.toDp() }
+}

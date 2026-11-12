@@ -1374,6 +1374,33 @@
     <string name="destination_kind_province">province</string>
     <string name="destination_kind_country">country</string>
     <string name="destination_kind_attraction">attraction</string>
+
+    <!-- Place picker of the activity form (field "Tempat") -->
+    <string name="place_field_hint">Search a place or type a name</string>
+    <string name="place_field_no_point">No map point</string>
+    <string name="place_field_clear">Clear place</string>
+    <string name="place_picker_hint">Search a place or address</string>
+    <string name="place_picker_location">Use current location</string>
+    <string name="place_picker_location_hint">Fills in the area you are in</string>
+    <string name="place_picker_used">Used in this trip</string>
+    <string name="place_picker_use_text">Use “%1$s”</string>
+    <string name="place_picker_use_text_note">Save as text, no map point</string>
+    <string name="place_picker_no_results_title">No results for “%1$s”</string>
+    <string name="place_picker_no_results_body">Try another word, or save it as text.</string>
+    <string name="place_picker_offline_title">You are offline</string>
+    <string name="place_picker_offline_body">Place search needs internet. You can still type a place name.</string>
+    <string name="place_picker_signed_out_title">Sign in to search places</string>
+    <string name="place_picker_signed_out_body">Searching places needs an account. You can still type a place name.</string>
+    <string name="place_picker_unavailable_title">Place search is having trouble</string>
+    <string name="place_picker_unavailable_body">Try again in a moment. You can still type a place name.</string>
+    <string name="place_picker_denied_title">Location is off</string>
+    <string name="place_picker_denied_body">Turn it on in your phone settings to use your current location. You can still type a place name.</string>
+    <string name="place_category_food">Food</string>
+    <string name="place_category_lodging">Stay</string>
+    <string name="place_category_shopping">Shopping</string>
+    <string name="place_category_transport">Transport</string>
+    <string name="place_category_attraction">Attraction</string>
+    <string name="place_category_other">Other</string>
     <string name="near_title">Search near where?</string>
     <string name="near_pick">Pick</string>
     <string name="near_current">Current location</string>
