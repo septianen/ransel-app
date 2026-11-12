@@ -111,6 +111,13 @@ kotlin {
                 implementation(libs.androidx.test.ext.junit)
             }
         }
+        // Robolectric host tests: the soft-update dialog (Nanti, scrim, Back) without an emulator.
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(libs.compose.ui.test.junit4)
+                implementation(libs.robolectric)
+            }
+        }
         androidMain.dependencies {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
@@ -181,6 +188,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { buildConfig = true }
+    testOptions.unitTests.isIncludeAndroidResources = true
 
     // Release signing: keystore.properties in the repo root (git-ignored, see keystore.properties.example) or the
     // RANSEL_KEYSTORE_* environment variables on CI. Without either, assembleRelease builds an unsigned APK.

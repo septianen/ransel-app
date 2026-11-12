@@ -3,8 +3,10 @@ package app.ransel.shared.dto
 import app.ransel.shared.model.CategoryKind
 import app.ransel.shared.model.ContentStatus
 import app.ransel.shared.model.ErrorDisplay
+import app.ransel.shared.model.HolidayType
 import app.ransel.shared.model.InterestChipKind
 import app.ransel.shared.serialization.Timestamp
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 // Remote content (admin-spec stage D). Karung edits it. Since 3 Nov 2026 the apps only read categories from
@@ -16,7 +18,8 @@ import kotlinx.serialization.Serializable
 /**
  * GET /content: [categories] that were restyled. [version] goes up with every change. [strings] and [errors] are
  * always empty since 3 Nov 2026 (kept so older builds still parse it): screen texts are the apps' own, error copy
- * comes in `ApiError.text`.
+ * comes in `ApiError.text`. [holidays] overrides the apps' bundled list (`domain/Holidays.kt`) when not empty: it is
+ * the full list of the years it covers, so the apps replace the bundled days of those years and keep the others.
  */
 @Serializable
 data class ContentDto(
@@ -24,6 +27,15 @@ data class ContentDto(
     val strings: Map<String, Map<String, String>> = emptyMap(),
     val errors: List<ContentErrorDto> = emptyList(),
     val categories: List<ContentCategoryDto> = emptyList(),
+    val holidays: List<HolidayDto> = emptyList(),
+)
+
+/** One day off (SKB 3 Menteri): [name] is the official Indonesian name, shown in the date picker. */
+@Serializable
+data class HolidayDto(
+    val date: LocalDate,
+    val name: String,
+    val type: HolidayType,
 )
 
 /** Title, message and button for an error code; null fields fall back to the app's own copy. */

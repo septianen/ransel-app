@@ -131,6 +131,9 @@
     <string name="error_required">Wajib diisi</string>
     <string name="date_range_title">Pilih tanggal trip</string>
     <string name="date_range_confirm">Selesai</string>
+    <string name="calendar_date_title">Pilih tanggal</string>
+    <string name="calendar_legend_holiday">Tanggal merah</string>
+    <string name="calendar_legend_collective_leave">Cuti bersama</string>
 
     <!-- Delete trip dialog -->
     <string name="delete_trip_title">Hapus %1$s?</string>
@@ -378,13 +381,17 @@
     <string name="state_back_home">Kembali ke Beranda</string>
     <string name="state_coming_soon_title">Segera hadir</string>
 
-    <!-- App update dialog (Karung sets the minimum version) -->
-    <string name="update_title_optional">Pembaruan tersedia</string>
+    <!-- Android force update. Compared on VERSION_NAME. Debug builds are not asked. -->
+    <string name="update_title_optional">Update tersedia</string>
     <string name="update_title_required">Perlu diperbarui</string>
     <string name="update_body_optional">Versi %1$s sudah rilis. Kamu memakai %2$s.</string>
-    <string name="update_body_required">Perbarui ke versi %1$s untuk terus memakai RANSEL. Kamu memakai %2$s.</string>
-    <string name="update_action">Perbarui</string>
+    <string name="update_body_required">Perbarui ke versi %1$s untuk terus memakai RANSEL.</string>
+    <string name="update_current_version">Kamu memakai %1$s.</string>
+    <string name="update_action">Update</string>
+    <string name="update_action_required">Update sekarang</string>
     <string name="update_later">Nanti</string>
+    <string name="update_opening_store">Membuka Play Store…</string>
+    <string name="update_store_error">Tidak bisa membuka Play Store. Coba lagi.</string>
 
     <!-- Web side panel -->
     <string name="sidepanel_packing_ready">%1$d/%2$d siap</string>
@@ -1264,7 +1271,8 @@
     <string name="payto_claim">Saya sudah bayar</string>
     <string name="expense_estimate_banner">Ini estimasi dari polling. Simpan setelah dibayar untuk mencatat pembayaran sebenarnya.</string>
     <string name="expense_estimate_save">Simpan sebagai pembayaran</string>
-    <string name="expense_amount_per_item">Nominal mengikuti item struk. Pilih Bagi rata atau Atur nominal untuk mengubahnya.</string>
+    <string name="expense_save_changes">Simpan perubahan</string>
+    <string name="expense_amount_per_item">Nominal mengikuti item struk.</string>
     <string name="expense_receipt_items">Item dari struk</string>
     <string name="expense_estimate_chip">Estimasi</string>
     <string name="receipt_choose_title">Tambah pengeluaran</string>
@@ -1298,6 +1306,19 @@
     <string name="receipt_extras">Pajak dan layanan</string>
     <string name="receipt_match">Total item cocok dengan struk</string>
     <string name="receipt_mismatch">Item belum cocok dengan total, selisih %1$s. Bagi rata saja, atau catat manual.</string>
+    <string name="receipt_add_item">Tambah item</string>
+    <string name="receipt_item_name">Nama item</string>
+    <string name="receipt_item_amount">Jumlah</string>
+    <string name="receipt_edit_line">Ubah</string>
+    <string name="receipt_delete_item">Hapus item</string>
+    <string name="receipt_item_name_error">Isi nama item.</string>
+    <string name="receipt_item_deleted">%1$s dihapus.</string>
+    <string name="receipt_item_deleted_generic">Item dihapus.</string>
+    <string name="receipt_delete_item_cd">Hapus %1$s</string>
+    <string name="receipt_total">Total</string>
+    <string name="receipt_total_mismatch_warning">Total di struk %1$s · selisih %2$s</string>
+    <string name="receipt_edit_hint">Item dari struk. Ubah kalau ada yang salah.</string>
+    <string name="receipt_incl_pb1">Incl. Pb1 %1$s — sudah termasuk di harga item.</string>
     <string name="paymethod_title">Info pembayaran</string>
     <string name="paymethod_intro">Ditampilkan ke anggota trip yang perlu membayar ke kamu, dan bisa disertakan di pengingat WhatsApp.</string>
     <string name="paymethod_add">Tambah rekening atau e-wallet</string>

@@ -88,4 +88,7 @@ private external fun pollPathCode(): String
 actual fun initialGuestPollCode(): String? = pollPathCode().takeIf { it.isNotBlank() }?.uppercase()
 
 @androidx.compose.runtime.Composable
+actual fun rememberPlayStoreOpener(): (httpsUrl: String?) -> Boolean = { false }
+
+@androidx.compose.runtime.Composable
 actual fun rememberShareText(): (String) -> Unit = { shareOrCopy(it) }

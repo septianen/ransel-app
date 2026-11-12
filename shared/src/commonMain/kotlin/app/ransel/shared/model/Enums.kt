@@ -167,16 +167,20 @@ enum class SettingKey {
     SUGGESTIONS_PER_HOUR,
     /** The LLM model, one of the server's allow-list (`LLM_MODEL`, `LLM_MODELS`). */
     LLM_MODEL,
-    /** Lowest Android version allowed to run without a prompt, "1.2.3"; "" = no update prompt (`ANDROID_MIN_VERSION`). */
+    /**
+     * Android `VERSION_NAME` below this gets the full-screen update gate, "1.2.3"; "" = no hard floor
+     * (`ANDROID_MIN_VERSION`). iOS and web are not checked.
+     */
     ANDROID_MIN_VERSION,
-    /** "true" = an Android app below [ANDROID_MIN_VERSION] cannot dismiss the update dialog (`ANDROID_FORCE_UPDATE`). */
-    ANDROID_FORCE_UPDATE,
-    /** Where the Android update dialog sends people, an https link (`ANDROID_STORE_URL`). */
+    /**
+     * Android `VERSION_NAME` at least [ANDROID_MIN_VERSION] and below this gets one "Update tersedia" dialog per
+     * process, "1.2.3"; "" = no soft offer (`ANDROID_LATEST_VERSION`).
+     */
+    ANDROID_LATEST_VERSION,
+    /** Bahasa Indonesia body of both update screens (`ANDROID_UPDATE_MESSAGE`). Blank = the app's own sentence. */
+    ANDROID_UPDATE_MESSAGE,
+    /** Where the update screens send people, an https link (`ANDROID_STORE_URL`). Blank = no prompt. */
     ANDROID_STORE_URL,
-    /** Same three for iOS (`IOS_MIN_VERSION`, `IOS_FORCE_UPDATE`, `IOS_STORE_URL`). */
-    IOS_MIN_VERSION,
-    IOS_FORCE_UPDATE,
-    IOS_STORE_URL,
 }
 
 /** What an installed app should do about its version: nothing, offer the update, or insist on it. */
@@ -256,3 +260,7 @@ enum class FxSource { DAILY, MANUAL }
 /** Account → Info pembayaran: a bank account or an e-wallet. */
 @Serializable
 enum class PaymentMethodKind { BANK, EWALLET }
+
+/** Kind of a day off in Indonesia: a national holiday (tanggal merah) or a cuti bersama (collective leave day). */
+@Serializable
+enum class HolidayType { NATIONAL, CUTI_BERSAMA }

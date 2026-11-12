@@ -10,6 +10,7 @@ import app.ransel.shared.model.PollPriceUnit
 import app.ransel.shared.model.SettlementStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -115,6 +116,24 @@ class GroupMoneyTest {
             assertEquals(itemsTotal(items), shares.values.sum(), "$items paid by $payer")
             assertTrue(shares.values.all { it >= 0 }, "$items paid by $payer")
         }
+    }
+
+    @Test
+    fun aMarkedTaxLineIsTheExtraWhateverItsName() {
+        val items = listOf(
+            ExpenseItemDto("Nasi", 100, listOf("a")),
+            ExpenseItemDto("Kerupuk", 0),
+            ExpenseItemDto("Service charge", 10, isTax = true),
+        )
+        assertEquals(mapOf("a" to 110L), splitByItems(items, payerId = "a"))
+        assertEquals(itemsTotal(items), splitByItems(items, payerId = "a").values.sum())
+    }
+
+    @Test
+    fun taxAloneIsNotAChargeableReceipt() {
+        assertFalse(hasChargeableReceiptItem(listOf(ExpenseItemDto("PB1", 9_600, isTax = true))))
+        assertFalse(hasChargeableReceiptItem(listOf(ExpenseItemDto("PB1", 9_600, isTax = true), ExpenseItemDto("Kerupuk", 0))))
+        assertTrue(hasChargeableReceiptItem(listOf(ExpenseItemDto("Nasi", 35_000), ExpenseItemDto("Service charge", 9_600, isTax = true))))
     }
 
     @Test

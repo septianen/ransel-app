@@ -17,15 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -46,6 +50,7 @@ import app.ransel.ui.category.expenseLabel
 import app.ransel.ui.category.expenseSymbol
 import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.components.AdaptiveSheet
+import app.ransel.ui.components.UndoSnackbar
 import app.ransel.feature.expenses.ItemSplitLines
 import app.ransel.feature.expenses.ItemSplitSummary
 import app.ransel.feature.expenses.SplitSection
@@ -56,9 +61,10 @@ import app.ransel.ui.format.rememberDateFormatter
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_ok
 import ransel.composeapp.generated.resources.receipt_change_date
-import ransel.composeapp.generated.resources.receipt_extras_included
-import app.ransel.util.toPickerMillis
-import app.ransel.util.fromPickerMillis
+import ransel.composeapp.generated.resources.action_undo
+import ransel.composeapp.generated.resources.receipt_incl_pb1
+import ransel.composeapp.generated.resources.receipt_total
+import ransel.composeapp.generated.resources.receipt_total_mismatch_warning
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
@@ -182,7 +188,16 @@ fun ReceiptFlow(
     // the result is a long form: its own screen (phones) or a dialog (wide web), not a sheet that closes while scrolling
     (step as? ReceiptStep.Draft)?.let { s ->
         val extras = stringResource(Res.string.receipt_extras)
+        // Keyed on the draft only. On web the tax label is empty on the first frame; filling it here (instead of
+        // rebuilding the form when the string arrives) keeps edits the user already made.
         val form = remember(s.draft) { ReceiptFormState(s.draft, members, myMemberId, extras) }
+        var extrasApplied by remember(s.draft) { mutableStateOf(extras.isNotBlank()) }
+        SideEffect {
+            if (!extrasApplied && extras.isNotBlank()) {
+                form.applyExtrasLabelIfBlank(extras)
+                extrasApplied = true
+            }
+        }
         ReceiptResult(form, trip, members, myMemberId, onSave, onDismiss)
         return
     }
@@ -269,6 +284,9 @@ private fun ReceiptResult(
     fun name(id: String) = members.firstOrNull { it.memberId == id }?.displayName?.let { if (id == myMemberId) "$it ($you)" else it } ?: "?"
     var pickDate by remember { mutableStateOf(false) }
     val split = form.split
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val undo = stringResource(Res.string.action_undo)
 
     AdaptiveFormScreen(
         title = stringResource(Res.string.receipt_result_title),
@@ -279,6 +297,7 @@ private fun ReceiptResult(
         footer = {
             Button(
                 onClick = {
+                    if (!form.itemSplit.commitEdit()) return@Button
                     val tz = TimeZone.currentSystemDefault()
                     val time = now().toLocalDateTime(tz).time
                     val spentAt = LocalDateTime(form.date ?: today(), time).toInstant(tz)
@@ -287,6 +306,11 @@ private fun ReceiptResult(
                 enabled = form.canSave && (!foreign || (rate != null && rate > 0.0)),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) { Text(stringResource(Res.string.action_save), style = MaterialTheme.typography.titleMedium) }
+        },
+        overlay = {
+            SnackbarHost(snackbar) { data ->
+                UndoSnackbar(data.visuals.message, actionLabel = data.visuals.actionLabel, onAction = { data.performAction() })
+            }
         },
     ) {
         Row(
@@ -297,23 +321,20 @@ private fun ReceiptResult(
             Text(stringResource(Res.string.receipt_result_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onTertiaryContainer)
         }
         IrisTextField(label = stringResource(Res.string.receipt_place), value = form.place, onValueChange = { form.place = it })
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // the day the AI read; tap to fix it. The year shows when it is not the trip's, so a misread stands out.
-            val day = form.date ?: today()
-            Row(
-                Modifier.weight(1f).clip(IrisShape.md)
-                    .clickable(role = Role.Button, onClickLabel = stringResource(Res.string.receipt_change_date)) { pickDate = true }
-                    .heightIn(min = 48.dp).padding(end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Symbol(Symbols.calendarMonth, size = 18.dp, tint = scheme.primary)
-                Text(
-                    dates.weekdayDayMonth(day) + if (day.year != (trip.startDate ?: today()).year) " ${day.year}" else "",
-                    style = MaterialTheme.typography.bodyMedium, color = scheme.primary,
-                )
-            }
-            Text(formatMoney(form.total, currency), style = MaterialTheme.typography.headlineSmall)
+        // the day the AI read; tap to fix it. The year shows when it is not the trip's, so a misread stands out.
+        val day = form.date ?: today()
+        Row(
+            Modifier.fillMaxWidth().clip(IrisShape.md)
+                .clickable(role = Role.Button, onClickLabel = stringResource(Res.string.receipt_change_date)) { pickDate = true }
+                .heightIn(min = 48.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Symbol(Symbols.calendarMonth, size = 18.dp, tint = scheme.primary)
+            Text(
+                dates.weekdayDayMonth(day) + if (day.year != (trip.startDate ?: today()).year) " ${day.year}" else "",
+                style = MaterialTheme.typography.bodyMedium, color = scheme.primary,
+            )
         }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             expenseCategoryChoices(form.category).forEach { c ->
@@ -340,33 +361,55 @@ private fun ReceiptResult(
                 onPerItemChange = { form.perItem = it },
             )
         }
-        ItemSplitLines(form.itemSplit, currency, members, picking = shared && form.perItem)
+        // editing a line does not take another photo and does not spend a credit
+        ItemSplitLines(
+            form.itemSplit, currency, members, picking = shared && form.perItem,
+            onDeleted = { message, undoDelete ->
+                scope.launch {
+                    val result = snackbar.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Long)
+                    if (result == SnackbarResult.ActionPerformed) undoDelete()
+                }
+            },
+        )
         if (form.includedExtrasMinor > 0) {
             Text(
-                stringResource(Res.string.receipt_extras_included, formatMoney(form.includedExtrasMinor, currency)),
+                stringResource(Res.string.receipt_incl_pb1, form.includedTaxPhrase),
                 style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
             )
         }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(Res.string.receipt_total), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
+            Text(
+                formatMoney(form.total, currency),
+                style = MaterialTheme.typography.headlineSmall.copy(fontFeatureSettings = "tnum"),
+                color = scheme.onSurface,
+            )
+        }
+        val gap = form.scannedGap
+        if (kotlin.math.abs(gap) >= 1L) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Symbol(Symbols.info, size = 18.dp, tint = scheme.onSurfaceVariant)
+                Text(
+                    stringResource(
+                        Res.string.receipt_total_mismatch_warning,
+                        formatMoney(form.scannedTotal, currency),
+                        formatMoney(kotlin.math.abs(gap), currency),
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+        }
         if (shared && form.perItem) {
-            ItemSplitSummary(form.perPerson(), form.difference, form.total, currency, members, ::name)
+            ItemSplitSummary(form.perPerson(), currency, members, ::name)
         }
     }
     if (pickDate) {
-        val state = androidx.compose.material3.rememberDatePickerState(initialSelectedDateMillis = (form.date ?: today()).toPickerMillis())
-        androidx.compose.material3.DatePickerDialog(
-            onDismissRequest = { pickDate = false },
-            confirmButton = {
-                androidx.compose.material3.TextButton(
-                    onClick = {
-                        state.selectedDateMillis?.let { form.date = it.fromPickerMillis() }
-                        pickDate = false
-                    },
-                ) { Text(stringResource(Res.string.action_ok)) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { pickDate = false }) { Text(stringResource(Res.string.action_cancel)) }
-            },
-        ) { androidx.compose.material3.DatePicker(state = state) }
+        app.ransel.ui.components.calendar.RanselDatePickerDialog(
+            initial = form.date ?: today(),
+            onConfirm = { form.date = it; pickDate = false },
+            onDismiss = { pickDate = false },
+        )
     }
 }
 

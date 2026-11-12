@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -66,6 +67,7 @@ fun AdaptiveFormScreen(
     subtitle: String? = null,
     confirmDiscard: Boolean = false,
     footer: @Composable ColumnScope.() -> Unit,
+    overlay: @Composable BoxScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var asking by remember { mutableStateOf(false) }
@@ -85,7 +87,7 @@ fun AdaptiveFormScreen(
                     contentColor = MaterialTheme.colorScheme.onSurface,
                     shadowElevation = 8.dp,
                 ) {
-                    AdaptiveFormContent(title, subtitle, requestClose, card = true, footer = footer, content = content)
+                    AdaptiveFormContent(title, subtitle, requestClose, card = true, footer = footer, overlay = overlay, content = content)
                 }
             }
         } else {
@@ -94,7 +96,7 @@ fun AdaptiveFormScreen(
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface,
             ) {
-                AdaptiveFormContent(title, subtitle, requestClose, card = false, footer = footer, content = content)
+                AdaptiveFormContent(title, subtitle, requestClose, card = false, footer = footer, overlay = overlay, content = content)
             }
         }
     }
@@ -122,6 +124,7 @@ internal fun AdaptiveFormContent(
     onClose: () -> Unit,
     card: Boolean,
     footer: @Composable ColumnScope.() -> Unit,
+    overlay: @Composable BoxScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -158,15 +161,18 @@ internal fun AdaptiveFormContent(
             if (card) close()
         }
         HorizontalDivider(color = scheme.outlineVariant)
-        Column(
-            Modifier
-                .weight(1f, fill = !card)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            content = content,
-        )
+        Box(Modifier.weight(1f, fill = !card).fillMaxWidth()) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .then(if (card) Modifier else Modifier.fillMaxSize())
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                content = content,
+            )
+            Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth(), content = overlay)
+        }
         HorizontalDivider(color = scheme.outlineVariant)
         Column(
             Modifier

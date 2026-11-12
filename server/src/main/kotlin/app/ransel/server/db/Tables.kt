@@ -332,6 +332,8 @@ object ExpenseItems : Table("expense_items") {
     val name = text("name")
     val amountMinor = long("amount_minor")
     val memberIds = jsonb<List<String>>("member_ids", Json)
+    /** V4: tax and service. Not derived from the name. */
+    val isTax = bool("is_tax")
     override val primaryKey = PrimaryKey(expenseId, sortOrder)
 }
 

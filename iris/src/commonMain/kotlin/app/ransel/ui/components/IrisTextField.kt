@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,7 +22,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import app.ransel.ui.preview.IrisPreview
@@ -48,8 +52,13 @@ fun IrisTextField(
     prefix: String? = null,
     error: String? = null,
     singleLine: Boolean = true,
+    /** Used when [singleLine] is false. The box is at least 96 dp, about four lines. */
+    minLines: Int = 1,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    focusRequester: FocusRequester? = null,
+    textStyle: TextStyle? = null,
     trailing: (@Composable () -> Unit)? = null,
     readOnly: Boolean = false,
 ) {
@@ -61,36 +70,40 @@ fun IrisTextField(
         else -> MaterialTheme.colorScheme.outline
     }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
-            if (labelSuffix != null) {
-                Text(
-                    " $labelSuffix",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        if (label.isNotEmpty()) {
+            Row {
+                Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+                if (labelSuffix != null) {
+                    Text(
+                        " $labelSuffix",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = singleLine,
+            minLines = if (singleLine) 1 else minLines.coerceAtLeast(1),
             readOnly = readOnly,
             interactionSource = interaction,
             keyboardOptions = keyboardOptions,
+            keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+            textStyle = (textStyle ?: MaterialTheme.typography.bodyLarge).copy(color = MaterialTheme.colorScheme.onSurface),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
             decorationBox = { inner ->
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 48.dp)
+                        .heightIn(min = if (singleLine) 48.dp else 96.dp)
                         .then(if (readOnly) Modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, IrisShape.md) else Modifier)
                         .border(BorderStroke(if (focused || error != null) 2.dp else 1.dp, borderColor), IrisShape.md)
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(horizontal = 12.dp, vertical = if (singleLine) 0.dp else 8.dp),
+                    verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (leadingSymbol != null) {

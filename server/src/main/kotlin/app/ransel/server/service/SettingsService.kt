@@ -4,6 +4,7 @@ import app.ransel.server.AppConfig
 import app.ransel.server.db.AppSettings
 import app.ransel.server.db.Users
 import app.ransel.server.plugins.validationFailed
+import app.ransel.shared.domain.androidUpdateProblems
 import app.ransel.shared.domain.microToUsdText
 import app.ransel.shared.domain.usdToMicro
 import app.ransel.shared.domain.validateSetting
@@ -74,7 +75,21 @@ class SettingsService(private val base: AppConfig) {
     fun update(admin: AdminPrincipal, body: UpdateSettingsRequest): AdminSettingsDto {
         val problems = body.values.mapNotNull { (key, value) ->
             value?.let { v -> validateSetting(key, v, base.llmModels)?.let { key.name to it } }
-        }.toMap()
+        }.toMap().toMutableMap()
+        if (problems.isEmpty()) {
+            val effective = SettingKey.entries.associateWith { key ->
+                when {
+                    key !in body.values -> overrides[key]?.value ?: valueOf(base, key)
+                    body.values.getValue(key) == null -> valueOf(base, key)
+                    else -> normalise(key, body.values.getValue(key)!!)
+                }
+            }
+            androidUpdateProblems(
+                effective.getValue(SettingKey.ANDROID_MIN_VERSION),
+                effective.getValue(SettingKey.ANDROID_LATEST_VERSION),
+                effective.getValue(SettingKey.ANDROID_STORE_URL),
+            ).forEach { (key, code) -> problems[key.name] = code }
+        }
         if (problems.isNotEmpty()) throw validationFailed(problems)
         transaction {
             for ((key, raw) in body.values) {
@@ -106,6 +121,7 @@ class SettingsService(private val base: AppConfig) {
             val text = value.trim()
             return when (key) {
                 SettingKey.AI_MONTHLY_BUDGET_USD -> microToUsdText(usdToMicro(text)!!)
+                SettingKey.ANDROID_UPDATE_MESSAGE, SettingKey.ANDROID_MIN_VERSION, SettingKey.ANDROID_LATEST_VERSION, SettingKey.ANDROID_STORE_URL -> text
                 else -> text.toIntOrNull()?.toString() ?: text
             }
         }
@@ -124,11 +140,9 @@ class SettingsService(private val base: AppConfig) {
             SettingKey.SUGGESTIONS_PER_HOUR -> config.suggestionsRateLimitPerHour.toString()
             SettingKey.LLM_MODEL -> config.llmModel
             SettingKey.ANDROID_MIN_VERSION -> config.androidUpdate.minVersion
-            SettingKey.ANDROID_FORCE_UPDATE -> config.androidUpdate.force.toString()
+            SettingKey.ANDROID_LATEST_VERSION -> config.androidUpdate.latestVersion
+            SettingKey.ANDROID_UPDATE_MESSAGE -> config.androidUpdate.message
             SettingKey.ANDROID_STORE_URL -> config.androidUpdate.storeUrl
-            SettingKey.IOS_MIN_VERSION -> config.iosUpdate.minVersion
-            SettingKey.IOS_FORCE_UPDATE -> config.iosUpdate.force.toString()
-            SettingKey.IOS_STORE_URL -> config.iosUpdate.storeUrl
         }
 
         /** [config] with [values] applied; a stored value that no longer passes the rule (a model taken off the list) is skipped. */
@@ -148,11 +162,9 @@ class SettingsService(private val base: AppConfig) {
                     SettingKey.SUGGESTIONS_PER_HOUR -> c.copy(suggestionsRateLimitPerHour = value.toInt())
                     SettingKey.LLM_MODEL -> c.copy(llmModel = value)
                     SettingKey.ANDROID_MIN_VERSION -> c.copy(androidUpdate = c.androidUpdate.copy(minVersion = value))
-                    SettingKey.ANDROID_FORCE_UPDATE -> c.copy(androidUpdate = c.androidUpdate.copy(force = value.toBoolean()))
+                    SettingKey.ANDROID_LATEST_VERSION -> c.copy(androidUpdate = c.androidUpdate.copy(latestVersion = value))
+                    SettingKey.ANDROID_UPDATE_MESSAGE -> c.copy(androidUpdate = c.androidUpdate.copy(message = value))
                     SettingKey.ANDROID_STORE_URL -> c.copy(androidUpdate = c.androidUpdate.copy(storeUrl = value))
-                    SettingKey.IOS_MIN_VERSION -> c.copy(iosUpdate = c.iosUpdate.copy(minVersion = value))
-                    SettingKey.IOS_FORCE_UPDATE -> c.copy(iosUpdate = c.iosUpdate.copy(force = value.toBoolean()))
-                    SettingKey.IOS_STORE_URL -> c.copy(iosUpdate = c.iosUpdate.copy(storeUrl = value))
                 }
             }
     }

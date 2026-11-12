@@ -19,19 +19,21 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +72,7 @@ import app.ransel.ui.category.label
 import app.ransel.ui.category.symbol
 import app.ransel.ui.components.AdaptiveFormScreen
 import app.ransel.ui.components.IrisTextField
+import app.ransel.ui.components.UndoSnackbar
 import app.ransel.ui.format.amountToInput
 import app.ransel.ui.format.parseAmountMinor
 import app.ransel.ui.format.FX_RATE_INPUT_DECIMALS
@@ -81,11 +84,10 @@ import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import app.ransel.feature.tripform.ThousandsVisualTransformation
-import app.ransel.util.fromPickerMillis
 import app.ransel.util.newId
 import app.ransel.util.now
-import app.ransel.util.toPickerMillis
 import app.ransel.util.today
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -99,9 +101,12 @@ import ransel.composeapp.generated.resources.expense_estimate_banner
 import ransel.composeapp.generated.resources.expense_estimate_save
 import ransel.composeapp.generated.resources.expense_amount_per_item
 import ransel.composeapp.generated.resources.expense_receipt_items
+import ransel.composeapp.generated.resources.expense_save_changes
+import ransel.composeapp.generated.resources.receipt_edit_hint
 import ransel.composeapp.generated.resources.shared_you
 import ransel.composeapp.generated.resources.receipt_per_item
 import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.action_undo
 import ransel.composeapp.generated.resources.action_ok
 import ransel.composeapp.generated.resources.action_save
 import ransel.composeapp.generated.resources.currency_sheet_title
@@ -121,6 +126,7 @@ import ransel.composeapp.generated.resources.activity_category
 import ransel.composeapp.generated.resources.expenses_record
 import ransel.composeapp.generated.resources.itinerary_close
 import ransel.composeapp.generated.resources.itinerary_day_chip
+import app.ransel.ui.components.calendar.RanselDatePickerDialog
 
 /** Record (existing == null) or edit an expense (design "Catat pengeluaran"). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -167,12 +173,19 @@ fun ExpenseSheet(
 
     val shared = members.size > 1
     val split = remember(members) { if (shared) SplitState(members, myMemberId, existing, currency) else null }
-    // an expense split "Per item": who shares each line can be picked again, as after a scan (owner, 30 Oct 2026)
-    val itemSplit = remember(members) {
-        existing?.takeIf { split != null && it.itemsSplit && it.items.isNotEmpty() }?.let { e -> ItemSplit.of(e.items, members.map { it.memberId }) }
+    // Receipt lines can be edited when the member list is here, or when the expense was never shared (a solo trip).
+    // Members not loaded (offline) keep the old read-only lines, so a save cannot drop who shared them.
+    val linesEditable = existing != null && existing.items.isNotEmpty() && (
+        members.size > 1 || (existing.splits.isEmpty() && !existing.itemsSplit)
+        )
+    val itemSplit = remember(members, linesEditable) {
+        val items = existing?.items
+        if (!linesEditable || items.isNullOrEmpty()) null
+        else ItemSplit.of(items, members.map { it.memberId })
     }
-    // while "Per item" is on the amount is the lines' sum and cannot be typed; "Bagi rata" / "Atur nominal" unlock it
-    var perItem by remember(itemSplit) { mutableStateOf(itemSplit != null) }
+    // Receipt lines decide the amount in every split mode. The field cannot be typed apart from them.
+    var perItem by remember(itemSplit) { mutableStateOf(existing?.itemsSplit == true && itemSplit != null && members.size > 1) }
+    if (itemSplit != null && perItem && !itemSplit.hasItemLine()) perItem = false
 
     val foreign = !currency.equals(trip.baseCurrency, ignoreCase = true)
     androidx.compose.runtime.LaunchedEffect(currency, date, foreign) {
@@ -188,7 +201,14 @@ fun ExpenseSheet(
             is ApiResult.Failure -> if (rateText.isBlank()) showRateField = true
         }
     }
-    val amountMinor = parseAmountMinor(amountText, currency)
+    // The amount is the lines in every split mode, including a line the user just fixed. No second scan, no credit.
+    val lineSum = itemSplit?.let { itemsTotal(it.lines) }
+    val typedAmount = parseAmountMinor(amountText, currency)
+    val amountMinor = if (itemSplit != null && lineSum != null) {
+        amountSavedWithReceiptLines(lineSum, typedAmount, perItem)
+    } else {
+        typedAmount
+    }
     // "," starts the decimals, as in the amount field; the field shows the thousands, so "16.250" is never typed
     val storedRate = fxRateFromInput(rateText)
     val rate = storedRate?.toDouble()
@@ -196,17 +216,24 @@ fun ExpenseSheet(
     val rateError = showErrors && foreign && rate == null
 
     fun canSave(amountMinor: Long?): Boolean = when {
+        itemSplit != null && !itemSplit.linesReady() -> false
         amountMinor == null || amountMinor <= 0 -> false
         perItem -> split!!.payersValid(amountMinor, currency) && itemSplit!!.isValid(amountMinor)
         else -> split == null || split.isValid(amountMinor, currency)
     }
 
     fun save() {
-        if (amountMinor == null || amountMinor <= 0 || (foreign && rate == null)) {
+        if (itemSplit != null && !itemSplit.commitEdit()) return
+        val amount = if (itemSplit != null) {
+            amountSavedWithReceiptLines(itemsTotal(itemSplit.lines), amountMinor, perItem)
+        } else {
+            amountMinor
+        }
+        if (amount == null || amount <= 0 || (foreign && rate == null)) {
             showErrors = true
             return
         }
-        if (!canSave(amountMinor)) return
+        if (!canSave(amount)) return
         // receipt lines stay while the amount does; with "Per item" the server derives the splits from them, otherwise
         // they are only shown (no members)
         val itemsSplit = when {
@@ -216,28 +243,29 @@ fun ExpenseSheet(
         }
         val keptItems = when {
             perItem -> itemSplit!!.items()
-            else -> existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amountMinor }.orEmpty()
+            itemSplit != null -> itemSplit.items().map { it.copy(memberIds = emptyList()) }
+            else -> existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amount }.orEmpty()
                 .map { if (itemsSplit) it else it.copy(memberIds = emptyList()) }
         }
         // Members not loaded (offline) while editing a shared expense: keep who paid and re-split the old people.
         val keptSplits = when {
             split != null || existing == null || existing.splits.isEmpty() -> null
-            existing.amountMinor == amountMinor -> existing.splits
-            else -> splitEqually(amountMinor, existing.splits.map { it.memberId }, existing.paidByMemberId)
+            existing.amountMinor == amount -> existing.splits
+            else -> splitEqually(amount, existing.splits.map { it.memberId }, existing.paidByMemberId)
                 .map { (id, share) -> ExpenseSplitDto(id, share) }
         }
         // Same for who paid: keep the old payers, scaled when the amount changed.
         val keptPayers = when {
             split != null || existing == null || existing.payers.isEmpty() -> null
-            existing.amountMinor == amountMinor -> existing.payers
-            else -> convertPayers(existing.payers.map { it.memberId to it.amountMinor }, existing.amountMinor, amountMinor)
+            existing.amountMinor == amount -> existing.payers
+            else -> convertPayers(existing.payers.map { it.memberId to it.amountMinor }, existing.amountMinor, amount)
                 .map { (id, paid) -> ExpensePayerDto(id, paid) }
         }
         val time = existingLocal?.time ?: now().toLocalDateTime(tz).time
         onSave(
             ExpenseInput(
                 id = existing?.id ?: newId(),
-                amountMinor = amountMinor,
+                amountMinor = amount,
                 currency = currency,
                 fxRateToBase = if (foreign) storedRate else null,
                 fxSource = if (foreign) fxSource ?: FxSource.MANUAL else null,
@@ -249,10 +277,10 @@ fun ExpenseSheet(
                     kotlinx.datetime.LocalDateTime(it, LocalTime(time.hour, time.minute)).toInstant(tz)
                 },
                 paidByMemberId = keptPayers?.firstOrNull()?.memberId ?: split?.paidBy ?: existing?.paidByMemberId,
-                payers = split?.toPayers(amountMinor, currency) ?: keptPayers.orEmpty(),
+                payers = split?.toPayers(amount, currency) ?: keptPayers.orEmpty(),
                 splits = when {
                     perItem -> itemSplit!!.shares(split!!.paidBy).filterValues { it > 0 }.map { (id, share) -> ExpenseSplitDto(id, share) }
-                    else -> split?.toSplits(amountMinor, currency) ?: keptSplits.orEmpty()
+                    else -> split?.toSplits(amount, currency) ?: keptSplits.orEmpty()
                 },
                 // saving an estimate records the real payment
                 isEstimate = false,
@@ -266,6 +294,14 @@ fun ExpenseSheet(
     val initial = remember { listOf(currency, amountText, category, note, date, method, rateText, perItem, itemSplit?.snapshot()) to split?.snapshot() }
     val dirty = initial != (listOf(currency, amountText, category, note, date, method, rateText, perItem, itemSplit?.snapshot()) to split?.snapshot())
     val dayNumber = trip.startDate?.daysUntil(date)?.plus(1) ?: 0
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val undo = stringResource(Res.string.action_undo)
+    val saveLabel = when {
+        existing?.isEstimate == true -> Res.string.expense_estimate_save
+        existing?.items?.isNotEmpty() == true -> Res.string.expense_save_changes
+        else -> Res.string.action_save
+    }
 
     AdaptiveFormScreen(
         title = stringResource(if (existing == null) Res.string.expenses_record else Res.string.expense_sheet_edit_title),
@@ -276,16 +312,22 @@ fun ExpenseSheet(
         },
         onDismiss = onDismiss,
         confirmDiscard = dirty,
+        overlay = {
+            SnackbarHost(snackbar) { data ->
+                UndoSnackbar(data.visuals.message, actionLabel = data.visuals.actionLabel, onAction = { data.performAction() })
+            }
+        },
         footer = {
             Button(
                 onClick = ::save,
-                enabled = if (perItem) canSave(amountMinor) else split == null || split.isValid(amountMinor, currency) || amountMinor == null,
+                enabled = when {
+                    itemSplit?.linesReady() == false -> false
+                    perItem -> canSave(amountMinor)
+                    else -> split == null || amountMinor == null || split.isValid(amountMinor, currency)
+                },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
             ) {
-                Text(
-                    stringResource(if (existing?.isEstimate == true) Res.string.expense_estimate_save else Res.string.action_save),
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Text(stringResource(saveLabel), style = MaterialTheme.typography.titleMedium)
             }
             if (onDelete != null) {
                 TextButton(
@@ -305,8 +347,8 @@ fun ExpenseSheet(
     ) {
         IrisTextField(
             label = stringResource(Res.string.expense_amount),
-            value = amountText,
-            onValueChange = { amountText = sanitizeAmountInput(it, currencyDecimals(currency)) },
+            value = if (itemSplit != null && amountMinor != null) amountToInput(amountMinor, currency) else amountText,
+            onValueChange = { if (itemSplit == null) amountText = sanitizeAmountInput(it, currencyDecimals(currency)) },
             visualTransformation = ThousandsVisualTransformation,
             prefix = currencySymbol(currency),
             placeholder = "0",
@@ -314,7 +356,7 @@ fun ExpenseSheet(
             keyboardOptions = KeyboardOptions(
                 keyboardType = if (currencyDecimals(currency) == 0) KeyboardType.Number else KeyboardType.Decimal,
             ),
-            readOnly = perItem,
+            readOnly = itemSplit != null,
             trailing = {
                 Row(
                     Modifier
@@ -333,7 +375,7 @@ fun ExpenseSheet(
                 }
             },
         )
-        if (perItem) {
+        if (itemSplit != null) {
             Text(stringResource(Res.string.expense_amount_per_item), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (foreign && rate != null && amountMinor != null) {
@@ -469,35 +511,46 @@ fun ExpenseSheet(
             }
         }
 
-        // the receipt's lines, also when the split was "Bagi rata" or "Atur nominal" (owner, 30 Oct 2026)
-        val receiptLines = existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amountMinor }.orEmpty()
-        if (split != null && itemSplit != null) {
-            // as after a scan: "Bagi rata", "Atur nominal" or "Per item", then the lines
-            SplitSection(
-                split, amountMinor, currency, myMemberId,
-                perItemLabel = stringResource(Res.string.receipt_per_item),
-                perItem = perItem,
-                onPerItemChange = { on ->
-                    perItem = on
-                    // back to "Per item": the amount is the lines' sum again
-                    if (on) {
-                        currency = existing!!.currency
-                        amountText = amountToInput(itemsTotal(itemSplit.lines), existing.currency)
-                    }
-                },
+        // the receipt's lines, also when the split was "Bagi rata" or "Atur nominal" (owner, 30 Oct 2026).
+        // The printed total is not stored, so this screen never warns about a mismatch.
+        if (itemSplit != null) {
+            if (split != null) {
+                SplitSection(
+                    split, amountMinor, currency, myMemberId,
+                    perItemLabel = if (itemSplit.hasItemLine()) stringResource(Res.string.receipt_per_item) else null,
+                    perItem = perItem,
+                    onPerItemChange = { on ->
+                        if (!on && lineSum != null) amountText = amountToInput(lineSum, currency)
+                        perItem = on
+                        // back to "Per item": the amount is the lines' sum again
+                        if (on) {
+                            currency = existing!!.currency
+                            amountText = amountToInput(itemsTotal(itemSplit.lines), existing.currency)
+                        }
+                    },
+                )
+            }
+            Text(
+                stringResource(Res.string.receipt_edit_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            val total = amountMinor ?: 0L
-            if (perItem) {
+            ItemSplitLines(itemSplit, currency, members, picking = perItem && split != null) { message, undoDelete ->
+                scope.launch {
+                    val result = snackbar.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Long)
+                    if (result == SnackbarResult.ActionPerformed) undoDelete()
+                }
+            }
+            if (perItem && split != null) {
                 val you = stringResource(Res.string.shared_you)
-                ItemSplitLines(itemSplit, currency, members, picking = true)
+                val total = amountMinor ?: 0L
                 ItemSplitSummary(
                     itemSplit.perPerson(split.paidBy, total, members.map { it.memberId }),
-                    itemSplit.difference(total), total, currency, members,
+                    currency, members,
                 ) { id -> members.firstOrNull { it.memberId == id }?.displayName?.let { if (id == myMemberId) "$it ($you)" else it } ?: "?" }
-            } else if (receiptLines.isNotEmpty()) {
-                ReceiptLines(itemSplit.lines, existing!!.currency, members)
             }
         } else {
+            val receiptLines = existing?.items?.takeIf { it.isNotEmpty() && existing.amountMinor == amountMinor }.orEmpty()
             if (receiptLines.isNotEmpty()) ReceiptLines(receiptLines, existing!!.currency, split?.members.orEmpty())
             if (split != null) SplitSection(split, amountMinor, currency, myMemberId)
         }
@@ -517,21 +570,11 @@ fun ExpenseSheet(
         )
     }
     if (pickDate) {
-        val state = rememberDatePickerState(initialSelectedDateMillis = date.toPickerMillis())
-        DatePickerDialog(
-            onDismissRequest = { pickDate = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        state.selectedDateMillis?.let { date = it.fromPickerMillis() }
-                        pickDate = false
-                    },
-                ) { Text(stringResource(Res.string.action_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pickDate = false }) { Text(stringResource(Res.string.action_cancel)) }
-            },
-        ) { DatePicker(state = state) }
+        RanselDatePickerDialog(
+            initial = date,
+            onConfirm = { date = it; pickDate = false },
+            onDismiss = { pickDate = false },
+        )
     }
 }
 
