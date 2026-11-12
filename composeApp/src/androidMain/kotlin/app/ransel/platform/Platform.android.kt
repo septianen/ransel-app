@@ -85,3 +85,21 @@ actual fun rememberShareText(): (String) -> Unit {
         context.startActivity(android.content.Intent.createChooser(send, null))
     }
 }
+
+@androidx.compose.runtime.Composable
+actual fun rememberPlayStoreOpener(): (httpsUrl: String?) -> Boolean {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    return { httpsUrl ->
+        fun open(uri: String): Boolean = try {
+            context.startActivity(
+                android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(uri)),
+            )
+            true
+        } catch (_: android.content.ActivityNotFoundException) {
+            false
+        } catch (_: RuntimeException) {
+            false
+        }
+        open(app.ransel.shared.domain.PLAY_STORE_MARKET) || open(app.ransel.shared.domain.playStoreHttps(httpsUrl))
+    }
+}

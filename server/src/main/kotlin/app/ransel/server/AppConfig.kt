@@ -1,5 +1,7 @@
 package app.ransel.server
 
+import app.ransel.shared.domain.MAX_UPDATE_MESSAGE
+import app.ransel.shared.domain.PLAY_STORE_HTTPS
 import app.ransel.shared.domain.isValidAppVersion
 import app.ransel.shared.model.AiBudgetMode
 import kotlin.time.Duration
@@ -86,9 +88,11 @@ data class AppConfig(
     val creditPackages: List<CreditPack> = DEFAULT_CREDIT_PACKS,
     /** `purchasable` of `GET /credits/packages`: packs can be ordered (by email for now, the owner adds the credits in Karung). */
     val creditPurchaseEnabled: Boolean = false,
-    /** Update dialog per platform; Karung overrides these (`SettingsService`). Blank minimum or link = no dialog. */
-    val androidUpdate: AppUpdate = AppUpdate(),
-    val iosUpdate: AppUpdate = AppUpdate(),
+    /**
+     * Android update floors (`VERSION_NAME`). Karung overrides these. Blank minimum = no hard gate, blank latest = no
+     * soft offer, blank link = no prompt. iOS is not checked.
+     */
+    val androidUpdate: AndroidUpdate = AndroidUpdate(),
     /** Push (FCM HTTP v1). Blank service account = pushes are only logged; the inbox works either way. */
     val fcmProjectId: String = "",
     val fcmServiceAccountJson: String = "",
@@ -140,8 +144,16 @@ data class AppConfig(
         val placesGeocode: Long = 5_000,
     )
 
-    /** [minVersion] "1.2.3" or blank; [force] = the dialog cannot be dismissed; [storeUrl] = an https store link or blank. */
-    data class AppUpdate(val minVersion: String = "", val force: Boolean = false, val storeUrl: String = "")
+    /**
+     * [minVersion] and [latestVersion] are "1.2.3" or blank. [message] is Bahasa Indonesia, blank = the app's sentence.
+     * [storeUrl] is an https link; the built-in default is the Play listing.
+     */
+    data class AndroidUpdate(
+        val minVersion: String = "",
+        val latestVersion: String = "",
+        val message: String = "",
+        val storeUrl: String = PLAY_STORE_HTTPS,
+    )
 
     data class CreditPack(val id: String, val credits: Int, val priceMinor: Long, val currency: String = "IDR")
 
@@ -170,14 +182,17 @@ data class AppConfig(
             CreditPack("large", 100, 55_000),
         )
 
-        /** `CREDIT_PACKAGES` = `id:credits:priceMinor;id:credits:priceMinor` (currency IDR). */
-        /** `<PLATFORM>_MIN_VERSION`, `_FORCE_UPDATE`, `_STORE_URL`; a value Karung would refuse is ignored. */
-        private fun appUpdate(env: Map<String, String>, platform: String) = AppUpdate(
-            minVersion = env["${platform}_MIN_VERSION"].orEmpty().trim().takeIf(::isValidAppVersion).orEmpty(),
-            force = env["${platform}_FORCE_UPDATE"].toBoolean(),
-            storeUrl = env["${platform}_STORE_URL"].orEmpty().trim().takeIf { it.startsWith("https://") && ' ' !in it }.orEmpty(),
+        /** `ANDROID_MIN_VERSION`, `ANDROID_LATEST_VERSION`, `ANDROID_UPDATE_MESSAGE`, `ANDROID_STORE_URL`. A value Karung would refuse is ignored. */
+        private fun androidUpdate(env: Map<String, String>) = AndroidUpdate(
+            minVersion = env["ANDROID_MIN_VERSION"].orEmpty().trim().takeIf(::isValidAppVersion).orEmpty(),
+            latestVersion = env["ANDROID_LATEST_VERSION"].orEmpty().trim().takeIf(::isValidAppVersion).orEmpty(),
+            message = env["ANDROID_UPDATE_MESSAGE"].orEmpty().trim().take(MAX_UPDATE_MESSAGE),
+            storeUrl = env["ANDROID_STORE_URL"].orEmpty().trim().let { raw ->
+                if (raw.startsWith("https://") && raw.length <= 300 && ' ' !in raw) raw else PLAY_STORE_HTTPS
+            },
         )
 
+        /** `CREDIT_PACKAGES` = `id:credits:priceMinor;id:credits:priceMinor` (currency IDR). */
         fun parseCreditPacks(raw: String?): List<CreditPack> =
             raw.orEmpty().split(';').map { it.trim() }.filter { it.isNotEmpty() }.mapIndexed { index, entry ->
                 val parts = entry.split(':').map { it.trim() }
@@ -281,8 +296,7 @@ data class AppConfig(
                 creditCostReceipt = env["CREDIT_COST_RECEIPT"]?.toIntOrNull()?.coerceAtLeast(0) ?: 1,
                 creditPackages = parseCreditPacks(env["CREDIT_PACKAGES"]).ifEmpty { DEFAULT_CREDIT_PACKS },
                 creditPurchaseEnabled = env["CREDIT_PURCHASE_ENABLED"].toBoolean(),
-                androidUpdate = appUpdate(env, "ANDROID"),
-                iosUpdate = appUpdate(env, "IOS"),
+                androidUpdate = androidUpdate(env),
                 fcmProjectId = env["FCM_PROJECT_ID"].orEmpty().trim(),
                 fcmServiceAccountJson = serviceAccountJson(env["FCM_SERVICE_ACCOUNT_JSON"]),
                 notifyPackingHour = env["NOTIFY_PACKING_HOUR"]?.toIntOrNull()?.coerceIn(0, 23) ?: 18,

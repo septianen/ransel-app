@@ -52,6 +52,8 @@ fun IrisTextField(
     prefix: String? = null,
     error: String? = null,
     singleLine: Boolean = true,
+    /** Used when [singleLine] is false. The box is at least 96 dp, about four lines. */
+    minLines: Int = 1,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
@@ -84,6 +86,7 @@ fun IrisTextField(
             value = value,
             onValueChange = onValueChange,
             singleLine = singleLine,
+            minLines = if (singleLine) 1 else minLines.coerceAtLeast(1),
             readOnly = readOnly,
             interactionSource = interaction,
             keyboardOptions = keyboardOptions,
@@ -96,11 +99,11 @@ fun IrisTextField(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .heightIn(min = 48.dp)
+                        .heightIn(min = if (singleLine) 48.dp else 96.dp)
                         .then(if (readOnly) Modifier.background(MaterialTheme.colorScheme.surfaceContainerHighest, IrisShape.md) else Modifier)
                         .border(BorderStroke(if (focused || error != null) 2.dp else 1.dp, borderColor), IrisShape.md)
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(horizontal = 12.dp, vertical = if (singleLine) 0.dp else 8.dp),
+                    verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     if (leadingSymbol != null) {

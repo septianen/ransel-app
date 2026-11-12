@@ -20,23 +20,56 @@ class AppVersionTest {
         assertNull(compareAppVersions("dev", "1.0.0"))
     }
 
-    @Test fun onlyAWholeVersionIsAcceptedForTheMinimum() {
+    @Test fun onlyAWholeVersionIsAcceptedForKarung() {
         assertTrue(isValidAppVersion("10.20.30"))
         assertFalse(isValidAppVersion("1.2"))
         assertFalse(isValidAppVersion("1.2.3-beta"))
         assertFalse(isValidAppVersion(""))
     }
 
-    @Test fun statusFollowsTheMinimumAndTheForceFlag() {
-        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("0.3.0", "0.3.0", force = true))
-        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("0.4.0", "0.3.0", force = true))
-        assertEquals(AppUpdateStatus.OPTIONAL, appUpdateStatus("0.1.0", "0.3.0", force = false))
-        assertEquals(AppUpdateStatus.REQUIRED, appUpdateStatus("0.1.0", "0.3.0", force = true))
+    @Test fun belowTheMinimumIsRequiredEvenWhenLatestIsBlank() {
+        assertEquals(AppUpdateStatus.REQUIRED, appUpdateStatus("1.0.0", "1.1.0", "1.2.0"))
+        assertEquals(AppUpdateStatus.REQUIRED, appUpdateStatus("1.0.0", "1.1.0", ""))
+        assertEquals(AppUpdateStatus.REQUIRED, appUpdateStatus("1.0.0-debug", "1.1.0", "1.2.0"))
     }
 
-    @Test fun aBlankMinimumOrAnUnreadableVersionNeverPrompts() {
-        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("0.1.0", "", force = true))
-        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("dev", "0.3.0", force = true))
-        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("0.1.0", "soon", force = true))
+    @Test fun betweenMinimumAndLatestIsOptional() {
+        assertEquals(AppUpdateStatus.OPTIONAL, appUpdateStatus("1.1.0", "1.1.0", "1.2.0"))
+        assertEquals(AppUpdateStatus.OPTIONAL, appUpdateStatus("1.1.5", "1.1.0", "1.2.0"))
+        assertEquals(AppUpdateStatus.OPTIONAL, appUpdateStatus("1.0.0", "", "1.2.0"))
+    }
+
+    @Test fun theLatestAndAnythingNewerStayQuiet() {
+        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("1.2.0", "1.1.0", "1.2.0"))
+        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("1.3.0", "1.1.0", "1.2.0"))
+        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("1.0.0", "", ""))
+        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("1.2.0", "", "1.2.0"))
+    }
+
+    @Test fun aLatestThatIsNotNewerThanTheMinimumHasNoSoftWindow() {
+        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("1.2.0", "1.2.0", "1.2.0"))
+        assertEquals(AppUpdateStatus.REQUIRED, appUpdateStatus("1.0.0", "1.2.0", "1.1.0"))
+        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("1.3.0", "1.2.0", "1.1.0"))
+    }
+
+    @Test fun anUnreadableVersionNeverPrompts() {
+        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("dev", "1.0.0", "1.2.0"))
+        // a minimum Karung would refuse is off, so a valid latest still offers
+        assertEquals(AppUpdateStatus.OPTIONAL, appUpdateStatus("1.0.0", "soon", "1.2.0"))
+        assertEquals(AppUpdateStatus.NONE, appUpdateStatus("1.0.0", "1.0.0", "soon"))
+    }
+
+    @Test fun snoozingHidesThatLatestUntilItChangesAndNeverHidesTheGate() {
+        assertEquals(AppUpdateStatus.NONE, promptedUpdate(AppUpdateStatus.OPTIONAL, "1.2.0", snoozedLatest = "1.2.0"))
+        assertEquals(AppUpdateStatus.OPTIONAL, promptedUpdate(AppUpdateStatus.OPTIONAL, "1.3.0", snoozedLatest = "1.2.0"))
+        assertEquals(AppUpdateStatus.OPTIONAL, promptedUpdate(AppUpdateStatus.OPTIONAL, "1.2.0", snoozedLatest = null))
+        assertEquals(AppUpdateStatus.REQUIRED, promptedUpdate(AppUpdateStatus.REQUIRED, "1.2.0", snoozedLatest = "1.2.0"))
+    }
+
+    @Test fun theHttpsStoreLinkPrefersKarungThenThePlayListing() {
+        assertEquals(PLAY_STORE_HTTPS, playStoreHttps(null))
+        assertEquals(PLAY_STORE_HTTPS, playStoreHttps("  "))
+        assertEquals(PLAY_STORE_HTTPS, playStoreHttps("market://details?id=app.ransel"))
+        assertEquals("https://play.google.com/store/apps/details?id=app.ransel.beta", playStoreHttps(" https://play.google.com/store/apps/details?id=app.ransel.beta "))
     }
 }

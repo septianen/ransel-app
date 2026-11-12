@@ -381,13 +381,17 @@
     <string name="state_back_home">Kembali ke Beranda</string>
     <string name="state_coming_soon_title">Segera hadir</string>
 
-    <!-- App update dialog (Karung sets the minimum version) -->
-    <string name="update_title_optional">Pembaruan tersedia</string>
+    <!-- Android force update. Compared on VERSION_NAME. Debug builds are not asked. -->
+    <string name="update_title_optional">Update tersedia</string>
     <string name="update_title_required">Perlu diperbarui</string>
     <string name="update_body_optional">Versi %1$s sudah rilis. Kamu memakai %2$s.</string>
-    <string name="update_body_required">Perbarui ke versi %1$s untuk terus memakai RANSEL. Kamu memakai %2$s.</string>
-    <string name="update_action">Perbarui</string>
+    <string name="update_body_required">Perbarui ke versi %1$s untuk terus memakai RANSEL.</string>
+    <string name="update_current_version">Kamu memakai %1$s.</string>
+    <string name="update_action">Update</string>
+    <string name="update_action_required">Update sekarang</string>
     <string name="update_later">Nanti</string>
+    <string name="update_opening_store">Membuka Play Store…</string>
+    <string name="update_store_error">Tidak bisa membuka Play Store. Coba lagi.</string>
 
     <!-- Web side panel -->
     <string name="sidepanel_packing_ready">%1$d/%2$d siap</string>

@@ -381,13 +381,17 @@
     <string name="state_back_home">Back to Home</string>
     <string name="state_coming_soon_title">Coming soon</string>
 
-    <!-- App update dialog (Karung sets the minimum version) -->
+    <!-- Android force update. Compared on VERSION_NAME. Debug builds are not asked. -->
     <string name="update_title_optional">Update available</string>
     <string name="update_title_required">Update required</string>
-    <string name="update_body_optional">Version %1$s is out. You are using %2$s.</string>
-    <string name="update_body_required">Update to version %1$s to keep using RANSEL. You are using %2$s.</string>
+    <string name="update_body_optional">Version %1$s is out. You're on %2$s.</string>
+    <string name="update_body_required">Update to version %1$s to keep using RANSEL.</string>
+    <string name="update_current_version">You're on %1$s.</string>
     <string name="update_action">Update</string>
+    <string name="update_action_required">Update now</string>
     <string name="update_later">Later</string>
+    <string name="update_opening_store">Opening Play Store…</string>
+    <string name="update_store_error">Couldn't open the Play Store. Try again.</string>
 
     <!-- Web side panel -->
     <string name="sidepanel_packing_ready">%1$d/%2$d ready</string>

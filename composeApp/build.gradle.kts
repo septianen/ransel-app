@@ -111,6 +111,13 @@ kotlin {
                 implementation(libs.androidx.test.ext.junit)
             }
         }
+        // Robolectric host tests: the soft-update dialog (Nanti, scrim, Back) without an emulator.
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(libs.compose.ui.test.junit4)
+                implementation(libs.robolectric)
+            }
+        }
         androidMain.dependencies {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
@@ -167,6 +174,19 @@ compose.resources {
     customDirectory("commonMain", layout.dir(composeResourcesWithId.map { it.destinationDir }))
 }
 
+// version.properties at the repo root is the only source of versionName and versionCode.
+// The Release workflow bumps it. Builds, including CI, do not.
+val ranselAppVersion = Properties().apply {
+    val versionFile = rootProject.file("version.properties")
+    check(versionFile.isFile) { "Missing $versionFile (versionName and versionCode)." }
+    versionFile.inputStream().use { load(it) }
+}
+val ranselVersionName = ranselAppVersion.getProperty("versionName")?.trim().orEmpty()
+val ranselVersionCode = ranselAppVersion.getProperty("versionCode")?.trim().orEmpty()
+check(ranselVersionName.isNotEmpty() && ranselVersionCode.isNotEmpty()) {
+    "version.properties must set versionName and versionCode"
+}
+
 android {
     namespace = "app.ransel"
     compileSdk = 36
@@ -175,12 +195,12 @@ android {
         applicationId = "app.ransel"
         minSdk = 24
         targetSdk = 36
-        // CI passes -Pransel.versionCode=<run number> so each distributed build installs over the previous one.
-        versionCode = (project.findProperty("ransel.versionCode") as String?)?.toInt() ?: 1
-        versionName = "1.0.0"
+        versionCode = ranselVersionCode.toInt()
+        versionName = ranselVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { buildConfig = true }
+    testOptions.unitTests.isIncludeAndroidResources = true
 
     // Release signing: keystore.properties in the repo root (git-ignored, see keystore.properties.example) or the
     // RANSEL_KEYSTORE_* environment variables on CI. Without either, assembleRelease builds an unsigned APK.

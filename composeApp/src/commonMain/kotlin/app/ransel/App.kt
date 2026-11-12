@@ -119,6 +119,8 @@ import app.ransel.navigation.PaymentMethodsRoute
 import app.ransel.navigation.NotificationSettingsRoute
 import app.ransel.navigation.NotificationsRoute
 import app.ransel.feature.notifications.NotificationPermissionSheet
+import app.ransel.feature.update.notificationSheetAllowed
+import app.ransel.shared.model.AppUpdateStatus
 import app.ransel.feature.notifications.NotificationSettingsScreen
 import app.ransel.feature.notifications.NotificationsScreen
 import app.ransel.data.notification.PushRegistrar
@@ -328,12 +330,14 @@ private fun SessionGate(openSignIn: Boolean) {
         requiresAccount && state !is SessionState.SignedIn -> WebAuthNavigation()
         else -> RanselNavigation(openSignIn = openSignIn)
     }
-    // Below the minimum Karung sets for this platform: an update dialog over whatever is showing (mobile only).
-    app.ransel.feature.update.AppUpdatePrompt(ready = state !is SessionState.Loading)
-    // the tour waits while the permission sheet is open
+    // Android release only: full-screen gate below the minimum, or "Update tersedia" once per latest. Debug, iOS and web are not asked.
+    var updateStatus by remember { mutableStateOf<AppUpdateStatus?>(null) }
+    app.ransel.feature.update.AppUpdatePrompt(ready = state !is SessionState.Loading, onStatus = { updateStatus = it })
+    // the tour waits while the permission explanation is still pending. The sheet itself is a dialog window,
+    // so it is not composed over a required update.
     val tour: app.ransel.ui.tour.TourController = koinInject()
     LaunchedEffect(explainPermission) { tour.blocked = explainPermission }
-    if (explainPermission) {
+    if (explainPermission && notificationSheetAllowed(updateStatus)) {
         NotificationPermissionSheet(
             onAllow = { explainPermission = false; registrar.explanationDismissed(); registrar.requestPermission() },
             onLater = { explainPermission = false; registrar.explanationDismissed() },
