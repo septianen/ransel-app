@@ -44,8 +44,9 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "datetime" }
 
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-# the mini map of the itinerary on Android (Google Maps SDK; no Map ID, so native maps are free)
-maps-compose = { module = "com.google.maps.android:maps-compose", version = "9.0.1" }
+# the mini map of the itinerary on Android (Google Maps SDK; no Map ID, so native maps are free).
+# 8.3.0 is the newest that compiles against compileSdk 36 / AGP 8.13: 8.3.1 and later (9.x too) need compileSdk 37 and AGP 9.
+maps-compose = { module = "com.google.maps.android:maps-compose", version = "8.3.0" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
