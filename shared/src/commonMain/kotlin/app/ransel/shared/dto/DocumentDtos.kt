@@ -33,6 +33,11 @@ data class TripDocumentDto(
     val sizeBytes: Long? = null,
     /** The activity it belongs to ("Hari 1, 06.10"), if any. */
     val itineraryItemId: String? = null,
+    /**
+     * The expense this is the receipt photo of: the app lists such a document in the group "Struk" (the wire [category] stays
+     * OTHER, so apps from before the group still parse the list). One live photo per expense; deleting either deletes both.
+     */
+    val expenseId: String? = null,
     val uploadedByMemberId: String,
     val uploadedByName: String,
     val createdAt: Timestamp,
@@ -57,6 +62,8 @@ data class CreateDocumentRequest(
     val category: DocumentCategory = DocumentCategory.OTHER,
     val url: String? = null,
     val itineraryItemId: String? = null,
+    /** FILE only: makes the photo the receipt of this expense of the trip (replacing the one it had). 422 `expenseId` = NOT_IN_TRIP. */
+    val expenseId: String? = null,
 )
 
 /** PATCH /trips/{id}/documents/{docId} (the uploader or EDITOR+). null = unchanged; [unlinkItinerary] clears the activity. */

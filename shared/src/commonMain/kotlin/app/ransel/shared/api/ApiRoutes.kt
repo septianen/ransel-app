@@ -79,8 +79,8 @@ object ApiRoutes {
     fun guestPersonalItem(code: String, itemId: String) = "/guest/$code/personal-items/$itemId" // PATCH GuestTickRequest → PersonalItemDto
     fun guestAlbumItems(code: String, albumId: String) = "/guest/$code/albums/$albumId/items" // GET ?pageToken= → AlbumItemsDto (no name needed, like the page)
     // Trip documents (stage 9). Online only.
-    fun documents(tripId: String) = "/trips/$tripId/documents"    // GET → TripDocumentsDto; POST CreateDocumentRequest (link, JSON) or multipart meta+file → 201 TripDocumentDto (EDITOR+); 413 FILE_TOO_LARGE / STORAGE_FULL, 415 UNSUPPORTED_FILE
-    fun document(tripId: String, docId: String) = "/trips/$tripId/documents/$docId" // PATCH PatchDocumentRequest → TripDocumentDto, DELETE → 204 (uploader or OWNER)
+    fun documents(tripId: String) = "/trips/$tripId/documents"    // GET → TripDocumentsDto; POST CreateDocumentRequest (link, JSON) or multipart meta+file → 201 TripDocumentDto (EDITOR+; a FILE with `expenseId` is that expense's receipt photo); 413 FILE_TOO_LARGE / STORAGE_FULL, 415 UNSUPPORTED_FILE
+    fun document(tripId: String, docId: String) = "/trips/$tripId/documents/$docId" // PATCH PatchDocumentRequest → TripDocumentDto, DELETE → 204 (uploader or OWNER; a receipt photo takes its expense with it)
     fun documentDownload(tripId: String, docId: String) = "/trips/$tripId/documents/$docId/download" // GET → DocumentDownloadDto (any member)
     fun documentFile(docId: String) = "/files/documents/$docId"  // GET ?exp=&sig= (public, signed for 15 minutes) → the bytes
 

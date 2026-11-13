@@ -474,6 +474,8 @@ object TripDocuments : Table("trip_documents") {
     val mime = text("mime").nullable()
     val sizeBytes = long("size_bytes").nullable()
     val itineraryItemId = javaUUID("itinerary_item_id").nullable()
+    /** The expense this is the receipt photo of (V7); one live document per expense. */
+    val expenseId = javaUUID("expense_id").nullable()
     val uploadedByMemberId = javaUUID("uploaded_by_member_id")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
