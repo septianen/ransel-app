@@ -5,10 +5,17 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.remote.ApiJson
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
+import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PreferencesRepository
+import app.ransel.feature.documents.viewer.DocumentPhotoSource
+import app.ransel.feature.documents.viewer.PhotoLoad
+import app.ransel.feature.documents.viewer.PhotoLoader
+import app.ransel.feature.documents.viewer.ViewerPhoto
 import app.ransel.platform.DeviceFiles
 import app.ransel.shared.dto.CreateDocumentRequest
+import app.ransel.shared.dto.ExpenseDto
+import app.ransel.ui.format.formatMoney
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.MAX_DOCUMENT_BYTES
 import app.ransel.shared.dto.MAX_TRIP_DOCUMENT_BYTES
@@ -42,9 +49,15 @@ data class DocumentsUiState(
     val uploadProgress: Float? = null,
     /** Activities a document can belong to. */
     val activities: List<ItineraryItemDto> = emptyList(),
+    /** The trip's expenses by id, for the amount on a receipt photo ("Struk"). */
+    val expenses: Map<String, ExpenseDto> = emptyMap(),
 ) {
+    /** The groups of "Dokumen trip" without the receipts (they have a group of their own, "Struk"). */
     val byCategory: List<Pair<DocumentCategory, List<TripDocumentDto>>>
-        get() = DocumentCategory.entries.map { c -> c to documents.filter { it.category == c } }.filter { it.second.isNotEmpty() }
+        get() = DocumentCategory.entries.map { c -> c to documents.filter { it.category == c && it.expenseId == null } }.filter { it.second.isNotEmpty() }
+
+    /** The group "Struk": photos that belong to an expense, in the list's order. */
+    val receipts: List<TripDocumentDto> get() = documents.filter { it.expenseId != null }
 }
 
 sealed interface DocumentsEvent {
@@ -55,6 +68,9 @@ sealed interface DocumentsEvent {
     data object Added : DocumentsEvent
     data object Deleted : DocumentsEvent
 }
+
+/** The photos of one group of "Dokumen trip" for the full-screen viewer, and which one was tapped. */
+class ViewerRequest(val photos: List<ViewerPhoto>, val startIndex: Int)
 
 /** A file picked to upload. */
 class PickedFile(val name: String, val bytes: ByteArray)
@@ -71,6 +87,7 @@ class DocumentsViewModel(
     private val files: DeviceFiles,
     itinerary: ItineraryRepository,
     session: app.ransel.data.auth.SessionManager,
+    expenses: ExpenseRepository? = null,
 ) : ViewModel() {
     /** Phones keep opened documents; the web downloads them. */
     val keepsFiles: Boolean get() = files.keepsFiles
@@ -87,6 +104,9 @@ class DocumentsViewModel(
             itinerary.observe(tripId).collect { items ->
                 _state.update { s -> s.copy(activities = items.filter { it.dayDate != null }.sortedWith(compareBy({ it.dayDate }, { it.startTime }))) }
             }
+        }
+        expenses?.let { repo ->
+            viewModelScope.launch { repo.observe(tripId).collect { list -> _state.update { s -> s.copy(expenses = list.associateBy { it.id }) } } }
         }
         load()
     }
@@ -184,6 +204,49 @@ class DocumentsViewModel(
         }
     }
 
+    /** A document that opens in the in-app photo viewer: an uploaded image (PDF and other types open in another app). */
+    fun isPhoto(doc: TripDocumentDto) = doc.kind == DocumentKind.FILE && doc.mime?.startsWith("image/") == true
+
+    /**
+     * The viewer for [doc]: the photos of its group in the order of the list (spec "Viewer foto layar penuh"); the receipts
+     * are one group. [receiptSubtitle] is "Struk · ditambahkan %s" in the UI language (the `%s` is the adder).
+     */
+    fun viewerFor(doc: TripDocumentDto, receiptSubtitle: String = "%s"): ViewerRequest {
+        val receipt = doc.expenseId != null
+        val photos = _state.value.documents.filter { isPhoto(it) && (it.expenseId != null) == receipt && (receipt || it.category == doc.category) }
+        return ViewerRequest(photos.map { viewerPhoto(it, receiptSubtitle) }, photos.indexOfFirst { it.id == doc.id }.coerceAtLeast(0))
+    }
+
+    /** The expense a photo is the receipt of, for the viewer's "Buka pengeluaran"; null for any other photo. */
+    fun expenseOf(photoId: String): String? = _state.value.documents.firstOrNull { it.id == photoId }?.expenseId
+
+    private fun viewerPhoto(doc: TripDocumentDto, receiptSubtitle: String): ViewerPhoto {
+        val expense = doc.expenseId?.let { _state.value.expenses[it] }
+        return if (doc.expenseId != null) {
+            ViewerPhoto(doc.id, heading = doc.title, title = expense?.let { formatMoney(it.amountMinor, it.currency) } ?: doc.title, subtitle = receiptSubtitle.replace("%s", doc.uploadedByName))
+        } else {
+            ViewerPhoto(doc.id, heading = doc.title, title = doc.title, subtitle = doc.uploadedByName)
+        }
+    }
+
+    private val source = DocumentPhotoSource(tripId, api, files)
+
+    /** What the viewer shows: the copy kept on the phone, else a download (kept for the next time on phones). */
+    val photoLoader = PhotoLoader { photo ->
+        val doc = _state.value.documents.firstOrNull { it.id == photo.id } ?: return@PhotoLoader PhotoLoad.Failed
+        source.load(doc.id, fileName(doc)) { _state.update { it.copy(kept = it.kept + doc.id) } }
+    }
+
+    /** The gesture hint shows on the first [HINT_OPENINGS] openings of the viewer (a counter on this device). */
+    suspend fun viewerHintDue(): Boolean = (preferences.getString(HINT_KEY)?.toIntOrNull() ?: 0) < HINT_OPENINGS
+
+    fun viewerOpened() {
+        viewModelScope.launch {
+            val count = preferences.getString(HINT_KEY)?.toIntOrNull() ?: 0
+            if (count < HINT_OPENINGS) preferences.putString(HINT_KEY, (count + 1).toString())
+        }
+    }
+
     private fun problem(code: String) {
         viewModelScope.launch { events.send(DocumentsEvent.Problem(code)) }
     }
@@ -193,6 +256,8 @@ class DocumentsViewModel(
 
     companion object {
         const val OPEN_FAILED = "OPEN_FAILED"
+        const val HINT_KEY = "photo_viewer_hint_count"
+        const val HINT_OPENINGS = 3
         const val LINK = "LINK"
         const val TITLE = "TITLE"
         private val listSerializer = ListSerializer(TripDocumentDto.serializer())

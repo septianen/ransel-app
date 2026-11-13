@@ -60,6 +60,7 @@ fun ResultRow.toItineraryItemDto() = ItineraryItemDto(
     durationMin = this[ItineraryItems.durationMin],
     notes = this[ItineraryItems.notes],
     bookingUrl = this[ItineraryItems.bookingUrl],
+    links = this[ItineraryItems.links],
     source = this[ItineraryItems.itemSource],
     sortOrder = this[ItineraryItems.sortOrder],
     createdAt = this[ItineraryItems.createdAt].toTimestamp(),
@@ -110,6 +111,7 @@ fun ResultRow.toExpenseDto(
     splits: List<ExpenseSplitDto> = emptyList(),
     payers: List<ExpensePayerDto> = emptyList(),
     items: List<ExpenseItemDto> = emptyList(),
+    receipts: Map<java.util.UUID, String> = emptyMap(),
 ) = ExpenseDto(
     id = this[Expenses.id].toString(),
     tripId = this[Expenses.tripId].toString(),
@@ -133,6 +135,7 @@ fun ResultRow.toExpenseDto(
     itemsSplit = this[Expenses.itemsSplit],
     fxSource = this[Expenses.fxSource],
     fxDate = this[Expenses.fxDate]?.toKotlinLocalDate(),
+    receiptDocumentId = receipts[this[Expenses.id]],
     createdAt = this[Expenses.createdAt].toTimestamp(),
     updatedAt = this[Expenses.updatedAt].toTimestamp(),
     deletedAt = this[Expenses.deletedAt]?.toTimestamp(),

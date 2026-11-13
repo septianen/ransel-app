@@ -1,6 +1,7 @@
 package app.ransel.server.service
 
 import app.ransel.server.AppConfig
+import app.ransel.server.db.Expenses
 import app.ransel.server.db.ItineraryItems
 import app.ransel.server.db.TripDocuments
 import app.ransel.server.db.TripMembers
@@ -31,6 +32,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.or
@@ -99,7 +101,10 @@ class DocumentService(private val config: AppConfig) {
             if (TripDocuments.select(TripDocuments.id).where { TripDocuments.id eq id }.any()) throw app.ransel.server.plugins.conflict("Document id already exists")
             // the trip row is locked so two uploads cannot both squeeze under the limit
             Trips.selectAll().where { Trips.id eq tripId }.forUpdate().single()
-            val used = usedBytes(tripId)
+            // a receipt photo replaces the one the expense had: its bytes do not count against the limit
+            val expense = receiptExpense(tripId, meta.expenseId)
+            val replaced = expense?.let { liveReceipt(it) }
+            val used = usedBytes(tripId) - (replaced?.get(TripDocuments.sizeBytes) ?: 0L)
             if (used + bytes.size > MAX_TRIP_DOCUMENT_BYTES) {
                 throw ApiException(
                     HttpStatusCode.PayloadTooLarge, ErrorCode.STORAGE_FULL, "This trip has no room for more files",
@@ -107,12 +112,21 @@ class DocumentService(private val config: AppConfig) {
                 )
             }
             val item = itineraryItem(tripId, meta.itineraryItemId)
+            replaced?.let { old ->
+                val now = Instant.now()
+                TripDocuments.update({ TripDocuments.id eq old[TripDocuments.id] }) { it[deletedAt] = now; it[fileRemovedAt] = now }
+                Files.deleteIfExists(fileOf(tripId, old[TripDocuments.id]))
+            }
             write(target, bytes)
             insert(
-                id, tripId, callerMemberId(tripId, userId), meta.title, meta.category, DocumentKind.FILE,
-                fileName = cleanName(fileName), mime = mime, size = bytes.size.toLong(), item = item,
+                id, tripId, callerMemberId(tripId, userId), meta.title,
+                // the wire category of a receipt stays OTHER: the app groups by `expenseId` (apps from before the group parse the list)
+                if (expense != null) DocumentCategory.OTHER else meta.category, DocumentKind.FILE,
+                fileName = cleanName(fileName), mime = mime, size = bytes.size.toLong(), item = item, expense = expense,
             )
-            added(tripId, userId, id)
+            // the expense carries `receiptDocumentId`: moving its updatedAt makes sync deliver the change
+            expense?.let { touchExpense(it) }
+            if (expense == null) added(tripId, userId, id)
             load(id)
         }
     }
@@ -145,7 +159,29 @@ class DocumentService(private val config: AppConfig) {
                 it[fileRemovedAt] = now
             }
             Files.deleteIfExists(fileOf(tripId, docId))
+            // a receipt photo and its expense go together (spec "Foto struk": confirmed in the app before this call)
+            row[TripDocuments.expenseId]?.let { expense ->
+                Expenses.update({ (Expenses.id eq expense) and Expenses.deletedAt.isNull() }) { it[deletedAt] = now }
+            }
         }
+    }
+
+    /** A live expense of this trip for a receipt photo, or a validation error. */
+    private fun receiptExpense(tripId: UUID, raw: String?): UUID? {
+        raw ?: return null
+        val id = runCatching { UUID.fromString(raw) }.getOrNull()
+        val ok = id != null && Expenses.select(Expenses.id)
+            .where { (Expenses.id eq id) and (Expenses.tripId eq tripId) and Expenses.deletedAt.isNull() }.any()
+        requireValid(if (ok) emptyMap() else mapOf("expenseId" to "NOT_IN_TRIP"))
+        return id
+    }
+
+    private fun liveReceipt(expenseId: UUID): ResultRow? =
+        TripDocuments.selectAll().where { (TripDocuments.expenseId eq expenseId) and TripDocuments.deletedAt.isNull() }.singleOrNull()
+
+    private fun touchExpense(expenseId: UUID) {
+        // any write fires the updated_at trigger; the column is set to itself so nothing else changes
+        Expenses.update({ Expenses.id eq expenseId }) { it.update(note, note) }
     }
 
     /** A link that works for 15 minutes without a bearer (path relative to the API base, like place photos). */
@@ -214,6 +250,7 @@ class DocumentService(private val config: AppConfig) {
         mime = this[TripDocuments.mime],
         sizeBytes = this[TripDocuments.sizeBytes],
         itineraryItemId = this[TripDocuments.itineraryItemId]?.toString(),
+        expenseId = this[TripDocuments.expenseId]?.toString(),
         uploadedByMemberId = this[TripDocuments.uploadedByMemberId].toString(),
         uploadedByName = this[TripMembers.displayName] ?: getOrNull(Users.displayName).orEmpty(),
         createdAt = this[TripDocuments.createdAt].toTimestamp(),
@@ -226,7 +263,7 @@ class DocumentService(private val config: AppConfig) {
 
     private fun insert(
         id: UUID, tripId: UUID, memberId: UUID, title: String, category: DocumentCategory, kind: DocumentKind,
-        url: String? = null, fileName: String? = null, mime: String? = null, size: Long? = null, item: UUID?,
+        url: String? = null, fileName: String? = null, mime: String? = null, size: Long? = null, item: UUID?, expense: UUID? = null,
     ) {
         TripDocuments.insert {
             it[TripDocuments.id] = id
@@ -239,6 +276,7 @@ class DocumentService(private val config: AppConfig) {
             it[TripDocuments.mime] = mime
             it[sizeBytes] = size
             it[itineraryItemId] = item
+            it[expenseId] = expense
             it[uploadedByMemberId] = memberId
         }
     }
@@ -312,6 +350,17 @@ class DocumentService(private val config: AppConfig) {
                 it[uploadedByMemberId] = memberId
             }
         }
+
+        /** The expense was deleted: its receipt photo goes too (the file leaves the disk with the daily purge; the space is free at once). */
+        internal fun detachReceipt(expenseId: UUID) {
+            TripDocuments.update({ (TripDocuments.expenseId eq expenseId) and TripDocuments.deletedAt.isNull() }) { it[deletedAt] = Instant.now() }
+        }
+
+        /** The live receipt photo of each expense, for `ExpenseDto.receiptDocumentId`. */
+        internal fun receiptsOf(expenseIds: Collection<UUID>): Map<UUID, String> =
+            if (expenseIds.isEmpty()) emptyMap() else TripDocuments.select(TripDocuments.id, TripDocuments.expenseId)
+                .where { (TripDocuments.expenseId inList expenseIds) and TripDocuments.deletedAt.isNull() }
+                .associate { it[TripDocuments.expenseId]!! to it[TripDocuments.id].toString() }
 
         internal fun cleanName(name: String): String =
             name.substringAfterLast('/').substringAfterLast('\\').filter { it >= ' ' && it != '"' }.trim().take(120).ifBlank { "document" }

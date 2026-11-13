@@ -62,9 +62,14 @@ data class ExplorePreferencesState(
     val destinationPlace: TripPlaceDto? = null,
     /** Country, local currency and zone of the picked destination (new trip). */
     val locale: app.ransel.shared.domain.TripLocale? = null,
-    /** An existing trip without dates ("Tanggal belum pasti") has none; a new trip always has both. */
+    /** An existing trip without dates ("Tanggal belum pasti") has none; a new trip starts with both. */
     val startDate: LocalDate?,
     val endDate: LocalDate?,
+    /**
+     * New trip only: "Tanggal belum pasti" (owner, 13 Nov 2026). The dates above are kept while it is on, so turning it
+     * off shows them again, but the trip is created without dates and the chips are the general ones (no month).
+     */
+    val datesUndecided: Boolean = false,
     /** null = follow the default "Trip ke <destination>". */
     val tripName: String? = null,
     val priceLevel: PriceLevel = PriceLevel.MEDIUM,
@@ -86,7 +91,8 @@ data class ExplorePreferencesState(
     val days: Int get() = if (startDate != null && endDate != null) startDate.daysUntil(endDate) + 1 else 0
     val hasDates: Boolean get() = startDate != null && endDate != null
     val hasInterest: Boolean get() = interests.isNotEmpty() || extraInterests.isNotEmpty()
-    val tripReady: Boolean get() = destination.isNotBlank() && (if (newTrip) startDate != null && endDate != null && endDate >= startDate else !loading)
+    val tripReady: Boolean get() = destination.isNotBlank() &&
+        (if (newTrip) datesUndecided || (startDate != null && endDate != null && endDate >= startDate) else !loading)
     val canSearch: Boolean get() = tripReady && hasInterest
 }
 
@@ -95,8 +101,9 @@ sealed interface ExplorePreferencesEvent {
     data object StartFailed : ExplorePreferencesEvent
 }
 
-private data class SuggestionsQuery(val tripId: String?, val destination: String, val month: String, val debounce: Boolean, val nonce: Int) {
-    val key: String get() = "${tripId.orEmpty()}|${destination.trim().lowercase()}|$month"
+/** [month] null = a new trip without dates: the server answers with the general chips of the destination. */
+private data class SuggestionsQuery(val tripId: String?, val destination: String, val month: String?, val debounce: Boolean, val nonce: Int) {
+    val key: String get() = "${tripId.orEmpty()}|${destination.trim().lowercase()}|${month.orEmpty()}"
 }
 
 internal fun LocalDate.monthKey(): String = "$year-${monthNumber.toString().padStart(2, '0')}"
@@ -174,7 +181,8 @@ class ExplorePreferencesViewModel(
 
     private fun requestSuggestions(debounce: Boolean) {
         val s = _state.value
-        val query = SuggestionsQuery(tripId, s.destination, (s.startDate ?: today()).monthKey(), debounce, nonce++)
+        val month = if (tripId == null && s.datesUndecided) null else (s.startDate ?: today()).monthKey()
+        val query = SuggestionsQuery(tripId, s.destination, month, debounce, nonce++)
         // Blur right after the debounce already loaded this exact query: nothing to do.
         if (!debounce && query.key == lastKey) return
         queries.value = query
@@ -252,6 +260,13 @@ class ExplorePreferencesViewModel(
         if (monthChanged) requestSuggestions(debounce = false)
     }
 
+    /** The "Tanggal belum pasti" switch of a new trip: the general chips load (or the dated ones again). */
+    fun setDatesUndecided(value: Boolean) {
+        if (_state.value.datesUndecided == value) return
+        _state.update { it.copy(datesUndecided = value) }
+        requestSuggestions(debounce = false)
+    }
+
     fun setTripName(value: String) = _state.update { it.copy(tripName = value.take(80)) }
     fun setPriceLevel(level: PriceLevel) {
         priceTouched = true
@@ -297,8 +312,9 @@ class ExplorePreferencesViewModel(
                 val created = runCatching {
                     trips.create(
                         CreateTripRequest(
-                            id = id, title = title, destination = s.destination.trim(), startDate = s.startDate,
-                            endDate = s.endDate, baseCurrency = preferences.observe().first().defaultCurrency,
+                            id = id, title = title, destination = s.destination.trim(),
+                            startDate = s.startDate.takeIf { !s.datesUndecided }, endDate = s.endDate.takeIf { !s.datesUndecided },
+                            baseCurrency = preferences.observe().first().defaultCurrency,
                             destinationPlace = s.destinationPlace,
                             countryCode = s.locale?.countryCode, localCurrency = s.locale?.localCurrency, timeZone = s.locale?.timeZone,
                         ),
@@ -319,7 +335,8 @@ class ExplorePreferencesViewModel(
                 ExploreSession(
                     ExploreForm(
                         tripId = id, tripTitle = title, destination = s.destination.trim(),
-                        startDate = s.startDate, endDate = s.endDate,
+                        startDate = s.startDate.takeIf { !(tripId == null && s.datesUndecided) },
+                        endDate = s.endDate.takeIf { !(tripId == null && s.datesUndecided) },
                         priceLevel = s.priceLevel, interests = s.interests, extraInterests = s.extraInterests,
                         style = s.style, notes = s.notes,
                     ),

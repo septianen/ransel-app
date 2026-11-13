@@ -190,8 +190,9 @@ class SyncService {
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) })
         val payers = ExpenseService.loadPayers(expenseRows.map { it[Expenses.id] })
         val expenseItems = ExpenseService.loadItems(expenseRows.map { it[Expenses.id] })
+        val receipts = DocumentService.receiptsOf(expenseRows.map { it[Expenses.id] })
         val expenses = expenseRows.map {
-            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), expenseItems[it[Expenses.id]].orEmpty())
+            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), expenseItems[it[Expenses.id]].orEmpty(), receipts)
         }
 
         val settlements = if (allTripIds.isEmpty()) emptyList() else Settlements.selectAll()
@@ -303,8 +304,8 @@ class SyncService {
         val asSent = ItineraryItemInput(
             id = dto.id, dayDate = dto.dayDate, startTime = dto.startTime, endTime = dto.endTime, title = dto.title,
             category = dto.category, placeName = dto.placeName, placeId = dto.placeId, lat = dto.lat, lng = dto.lng,
-            durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, source = dto.source,
-            sortOrder = dto.sortOrder,
+            durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, links = dto.links,
+            source = dto.source, sortOrder = dto.sortOrder,
         )
         val problems = ItineraryService.validate(asSent)
         if (problems.isNotEmpty()) throw validation(problems)
@@ -326,9 +327,10 @@ class SyncService {
         } else {
             if (existing[ItineraryItems.tripId] != tripId) throw conflict("Item belongs to another trip")
             requireNewer(dto.updatedAt, existing[ItineraryItems.updatedAt])
+            val kept = existing[ItineraryItems.links]
             ItineraryItems.update({ ItineraryItems.id eq id }) {
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
-                ItineraryService.fill(it, input)
+                ItineraryService.fill(it, input, kept)
             }
         }
     }
@@ -481,6 +483,8 @@ class SyncService {
         ExpenseService.replaceSplits(id, input.splits)
         ExpenseService.replacePayers(id, input.payers)
         ExpenseService.replaceItems(id, input.items)
+        // a deleted expense takes its receipt photo with it
+        if (dto.deletedAt != null) DocumentService.detachReceipt(id)
         // Only a new expense notifies (or an estimate that became a payment); a retry or another edit does not.
         val wasEstimate = existing?.get(Expenses.isEstimate) == true
         if (dto.deletedAt == null && !input.isEstimate && (existing == null || wasEstimate)) Notify.emit { expenseAdded(tripId, id, userId) }

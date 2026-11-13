@@ -30,6 +30,7 @@ val mobileDataModule = module {
     single<ItineraryRepository> { RoomItineraryRepository(get<RanselDatabase>()) }
     single<PackingRepository> { RoomPackingRepository(get<RanselDatabase>()) }
     single<PersonalItemRepository> { RoomPersonalItemRepository(get<RanselDatabase>(), currentUserId(get())) }
+    single<app.ransel.data.repository.ReceiptPhotoRepository> { app.ransel.data.local.RoomReceiptPhotoRepository(get<RanselDatabase>()) }
     single<ExpenseRepository> { RoomExpenseRepository(get<RanselDatabase>(), currentUserId(get())) }
     single<PreferencesRepository> { RoomPreferencesRepository(get<RanselDatabase>()) }
 

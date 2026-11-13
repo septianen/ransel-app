@@ -101,11 +101,10 @@ class AdminFormat(
         return "${months.getOrNull(monthNumber - 1) ?: monthNumber.toString().padStart(2, '0')} $year"
     }
 
-    /** "20.25" (WIB) for the time of a row of today. */
+    /** "20:25" (WIB) for the time of a row of today. */
     fun time(instant: Instant): String {
         val t = instant.toLocalDateTime(Wib)
-        val sep = if (groupSeparator == ".") "." else ":"
-        return "${t.hour.toString().padStart(2, '0')}$sep${t.minute.toString().padStart(2, '0')}"
+        return "${t.hour.toString().padStart(2, '0')}:${t.minute.toString().padStart(2, '0')}"
     }
 
     /** "Nov" for a month of the year, 1–12. */
@@ -122,11 +121,10 @@ class AdminFormat(
 
     fun date(instant: Instant): String = date(instant.toLocalDateTime(Wib).date)
 
-    /** "16 Okt, 20.25" (Indonesian uses a dot between hours and minutes). */
+    /** "16 Okt, 20:25": a colon between hours and minutes in both languages (owner, 13 Nov 2026). */
     fun dateTime(instant: Instant): String {
         val t: LocalDateTime = instant.toLocalDateTime(Wib)
-        val sep = if (groupSeparator == ".") "." else ":"
-        return "${t.day} ${month(t.date)}, ${t.hour.toString().padStart(2, '0')}$sep${t.minute.toString().padStart(2, '0')}"
+        return "${t.day} ${month(t.date)}, ${t.hour.toString().padStart(2, '0')}:${t.minute.toString().padStart(2, '0')}"
     }
 
     /** "20–23 Nov 2026", "28 Sep – 2 Okt 2026", across years in full. */

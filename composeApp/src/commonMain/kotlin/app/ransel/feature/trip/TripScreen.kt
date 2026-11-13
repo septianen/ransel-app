@@ -77,7 +77,7 @@ fun TripScreen(
     onMembers: () -> Unit,
     onExplore: () -> Unit,
     onAddActivity: (dayDate: String?) -> Unit,
-    onEditActivity: (itemId: String) -> Unit,
+    onOpenActivity: (itemId: String) -> Unit,
     /** "Isi lokasi" on the day's mini map: the activity's form with the place picker open. */
     onFillLocation: ((itemId: String) -> Unit)? = null,
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
@@ -225,7 +225,7 @@ fun TripScreen(
                             refreshKey = refreshCount,
                         )
                         TripTab.ITINERARY -> ItineraryTab(
-                            current, onAddActivity, onEditActivity,
+                            current, onAddActivity, onOpenActivity,
                             onFillLocation = onFillLocation,
                             onExplore = if (signedIn) onExplore else null,
                             // The place text lives on the server: guests have no account to ask it with.
@@ -240,6 +240,7 @@ fun TripScreen(
                             onSeeAllTransactions = onOpenAllTransactions,
                             openBalances = openBalances,
                             onBalancesOpened = onBalancesOpened,
+                            onManageDocuments = { onOpenDocuments(false) },
                         )
                     }
                 } else if (answer != null) {

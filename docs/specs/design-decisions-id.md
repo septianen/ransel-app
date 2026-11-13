@@ -115,7 +115,7 @@ Fase 1–5 sudah lengkap. Yang tersisa adalah layar pendukung yang muncul dari k
 - Destinasi berupa text field biasa (bukan dropdown); Tanggal field terpisah yang membuka DateRangePicker. Keduanya terisi dari trip, dengan keterangan trip tujuan di bawahnya.
 - Kartu swipe digeser horizontal tanpa dimiringkan, dengan outline + label (SIMPAN magenta, LEWATI abu).
 - Jelajah **wajib masuk**. Tamu yang membuka tab Jelajah melihat layar ajakan masuk (bukan form); setelah masuk, trip di perangkat dipindah ke akun. Fitur lain tetap bisa tanpa akun.
-- Kuota 10 pencarian per user per hari, terisi lagi 00.00.
+- Kuota 10 pencarian per user per hari, terisi lagi 00:00.
 - Jelajah selalu terikat ke satu trip (tidak ada "tempat disimpan tanpa trip"). User yang sudah masuk tapi belum punya trip melihat layar "Buat trip dulu".
 - Web: tidak ada opsi "Pakai tanpa akun dulu" di layar Masuk dan tidak ada banner offline; kalau koneksi putus tampil state error koneksi.
 

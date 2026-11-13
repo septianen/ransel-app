@@ -176,7 +176,7 @@ class InMemoryItineraryRepository(private val store: InMemoryStore) : ItineraryR
                 id = input.id, tripId = tripId, dayDate = input.dayDate, startTime = input.startTime,
                 endTime = input.endTime, title = input.title, category = input.category, placeName = input.placeName,
                 placeId = input.placeId, lat = input.lat, lng = input.lng, durationMin = input.durationMin,
-                notes = input.notes, bookingUrl = input.bookingUrl, source = input.source, sortOrder = input.sortOrder,
+                notes = input.notes, bookingUrl = input.bookingUrl, links = input.links, source = input.source, sortOrder = input.sortOrder,
                 createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
             )
             if (existing == null) list + item else list.map { if (it.id == input.id) item else it }

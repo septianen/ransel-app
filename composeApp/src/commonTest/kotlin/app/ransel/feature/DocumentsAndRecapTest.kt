@@ -14,6 +14,12 @@ import app.ransel.data.remote.createApiHttpClient
 import app.ransel.feature.documents.DocumentsEvent
 import app.ransel.feature.documents.DocumentsViewModel
 import app.ransel.feature.documents.PickedFile
+import app.ransel.feature.documents.viewer.PhotoLoad
+import app.ransel.data.repository.InMemoryReceiptPhotoRepository
+import app.ransel.data.repository.ReceiptUploadStatus
+import app.ransel.feature.expenses.ExpensesViewModel
+import app.ransel.feature.expenses.receipt.ReceiptAttachment
+import app.ransel.feature.expenses.receipt.ReceiptImage
 import app.ransel.feature.recap.RecapViewModel
 import app.ransel.platform.DeviceFiles
 import app.ransel.shared.dto.AuthSessionDto
@@ -73,11 +79,16 @@ private class FakeFiles : DeviceFiles {
     val opened = mutableListOf<String>()
     override val keepsFiles = true
     override suspend fun has(name: String) = name in saved
+    override suspend fun read(name: String) = saved[name]
     override suspend fun save(name: String, bytes: ByteArray) { saved[name] = bytes }
     override suspend fun open(name: String) { opened += name }
     override suspend fun delete(name: String) { saved.remove(name) }
     override suspend fun share(fileName: String, bytes: ByteArray) = Unit
 }
+
+private fun receiptDoc(id: String, expenseId: String) = """{"id":"$id","tripId":"t1","title":"Warung Made","category":"OTHER","kind":"FILE","fileName":"struk.jpg","mime":"image/jpeg","sizeBytes":3,"expenseId":"$expenseId","uploadedByMemberId":"m","uploadedByName":"Ayu","createdAt":"2026-10-26T00:00:00Z"}"""
+
+private fun photoDoc(id: String) = """{"id":"$id","tripId":"t1","title":"Foto $id","category":"TRAVEL","kind":"FILE","fileName":"$id.jpg","mime":"image/jpeg","sizeBytes":3,"uploadedByMemberId":"m","uploadedByName":"Ayu","createdAt":"2026-10-26T00:00:00Z"}"""
 
 private const val DOC = """{"id":"d1","tripId":"t1","title":"Tiket pesawat","category":"TRAVEL","kind":"FILE","fileName":"tiket.pdf","mime":"application/pdf","sizeBytes":3,"uploadedByMemberId":"m","uploadedByName":"Ayu","createdAt":"2026-10-26T00:00:00Z"}"""
 
@@ -88,19 +99,23 @@ class DocumentsAndRecapTest {
 
     private val requests = MutableStateFlow<List<String>>(emptyList())
     private var offline = false
+    private var unreachable = false
+    private var withPhotos = false
+    private var withReceipt = false
 
     private fun api() = RanselApi(
         createApiHttpClient(
             MockEngine { request ->
                 val path = request.url.encodedPath
                 requests.update { it + "${request.method.value} $path" }
+                if (unreachable) error("no signal")
                 when {
                     offline -> respondError(HttpStatusCode.ServiceUnavailable)
                     path.endsWith("/download") -> respond("""{"data":{"url":"/files/documents/d1?exp=1&sig=x","expiresAt":"2099-01-01T00:00:00Z"}}""", HttpStatusCode.OK, json)
                     path.startsWith("/api/v1/files/") -> respond(byteArrayOf(37, 80, 68), HttpStatusCode.OK)
                     path.endsWith("/documents") && request.method == HttpMethod.Post ->
                         respond("""{"data":${DOC.replace("d1", "d2")}}""", HttpStatusCode.Created, json)
-                    path.endsWith("/documents") -> respond("""{"data":{"items":[$DOC],"usedBytes":3}}""", HttpStatusCode.OK, json)
+                    path.endsWith("/documents") -> respond("""{"data":{"items":[$DOC${if (withPhotos) ",${photoDoc("d3")},${photoDoc("d4")}" else ""}${if (withReceipt) ",${receiptDoc("r1", "e1")},${photoDoc("d5").replace("TRAVEL", "OTHER")}" else ""}],"usedBytes":3}}""", HttpStatusCode.OK, json)
                     path.endsWith("/trip-templates") -> respond(
                         """{"data":[{"id":"tt","name":"Bali","dayCount":2,"items":[{"dayIndex":1,"title":"Pantai"},{"dayIndex":5,"title":"Jauh"}],"packing":[{"category":"OTHER","name":"Kompor","quantity":2}],"createdAt":"2026-10-26T00:00:00Z"}]}""",
                         HttpStatusCode.OK, json,
@@ -111,6 +126,63 @@ class DocumentsAndRecapTest {
         ),
         origin = "http://api.test",
     )
+
+    @Test
+    fun thePhotoViewerListsThePhotosOfAGroupAndKeepsWhatItLoadsForUseWithoutSignal() = runTest {
+        withPhotos = true
+        val files = FakeFiles()
+        val vm = DocumentsViewModel("t1", api(), InMemoryPreferencesRepository(), files, InMemoryItineraryRepository(InMemoryStore()), signedIn())
+        eventually { !vm.state.value.loading }
+        val docs = vm.state.value.documents
+        assertEquals(false, vm.isPhoto(docs.first { it.id == "d1" }), "a PDF opens in another app")
+        val request = vm.viewerFor(docs.first { it.id == "d4" })
+        assertEquals(listOf("d3", "d4"), request.photos.map { it.id }, "only the photos of the group")
+        assertEquals(1, request.startIndex)
+
+        assertTrue(vm.photoLoader.load(request.photos[0]) is PhotoLoad.Ready)
+        assertTrue("d3.jpg" in files.saved, "kept on the phone once opened")
+        unreachable = true
+        assertTrue(vm.photoLoader.load(request.photos[0]) is PhotoLoad.Ready, "opens without a signal")
+        assertEquals(PhotoLoad.Offline, vm.photoLoader.load(request.photos[1]), "not kept and no signal")
+        unreachable = false
+        offline = true
+        assertEquals(PhotoLoad.Failed, vm.photoLoader.load(request.photos[1]), "the server answered with an error")
+    }
+
+    @Test
+    fun receiptPhotosHaveTheirOwnGroupAndOneViewerWithTheAmountOfTheExpense() = runTest {
+        withReceipt = true
+        val store = InMemoryStore()
+        val spent = Instant.parse("2026-11-20T05:00:00Z")
+        val repo = app.ransel.data.fake.InMemoryExpenseRepository(store)
+        repo.save("t1", app.ransel.shared.dto.ExpenseInput(id = "e1", amountMinor = 845_000, currency = "IDR", spentAt = spent))
+        // the in-memory repository keeps the id the caller gave
+        val vm = DocumentsViewModel("t1", api(), InMemoryPreferencesRepository(), FakeFiles(), InMemoryItineraryRepository(store), signedIn(), repo)
+        eventually { !vm.state.value.loading && vm.state.value.expenses.isNotEmpty() }
+        val state = vm.state.value
+        assertEquals(listOf("r1"), state.receipts.map { it.id })
+        assertTrue(state.byCategory.flatMap { it.second }.none { it.id == "r1" }, "a receipt is not in the groups of the other documents")
+        assertEquals(listOf("d1", "d5"), state.byCategory.flatMap { it.second }.map { it.id }.filter { it in setOf("d1", "d5") }.sorted())
+
+        val request = vm.viewerFor(state.receipts.single(), "Struk · ditambahkan %s")
+        assertEquals(listOf("r1"), request.photos.map { it.id }, "only receipts, not the other photo of the same wire category")
+        assertEquals(app.ransel.ui.format.formatMoney(845_000, "IDR"), request.photos.single().title)
+        assertEquals("Struk · ditambahkan Ayu", request.photos.single().subtitle)
+        assertEquals("e1", vm.expenseOf("r1"))
+        assertEquals(null, vm.expenseOf("d5"))
+    }
+
+    @Test
+    fun theGestureHintShowsOnTheFirstThreeOpenings() = runTest {
+        val prefs = InMemoryPreferencesRepository()
+        val vm = DocumentsViewModel("t1", api(), prefs, FakeFiles(), InMemoryItineraryRepository(InMemoryStore()), signedIn())
+        repeat(3) {
+            assertTrue(vm.viewerHintDue())
+            vm.viewerOpened()
+            assertEquals((it + 1).toString(), prefs.getString(DocumentsViewModel.HINT_KEY))
+        }
+        assertEquals(false, vm.viewerHintDue())
+    }
 
     @Test
     fun documentsAreKeptOnThePhoneAndListedOffline() = runTest {
@@ -165,5 +237,30 @@ class DocumentsAndRecapTest {
         eventually { recap.state.value.recap != null }
         assertEquals(3, recap.state.value.recap?.days)
         recap.viewModelScope.cancel()
+    }
+
+    @Test
+    fun anExpenseSavedWithAPhotoKeepsItOnThePhoneUntilTheSyncSendsIt() = runTest {
+        val store = InMemoryStore()
+        val photos = InMemoryReceiptPhotoRepository()
+        val trip = app.ransel.shared.dto.TripDto(
+            id = "t1", ownerId = "u1", title = "Bali", destination = "Bali", startDate = LocalDate(2026, 11, 20), endDate = LocalDate(2026, 11, 23),
+            baseCurrency = "IDR", createdAt = Instant.parse("2026-10-26T00:00:00Z"), updatedAt = Instant.parse("2026-10-26T00:00:00Z"),
+        )
+        val vm = ExpensesViewModel(trip, app.ransel.data.fake.InMemoryExpenseRepository(store), api(), signedIn(), InMemoryPreferencesRepository(), receipts = photos)
+        assertTrue(vm.receiptsSupported)
+        val input = app.ransel.shared.dto.ExpenseInput(id = "e9", amountMinor = 50_000, currency = "IDR", spentAt = Instant.parse("2026-11-20T05:00:00Z"))
+        vm.save(input, ReceiptAttachment(ReceiptImage(byteArrayOf(1, 2, 3), "image/jpeg"), "Warung Made"))
+        eventually { vm.queuedReceipts.value.containsKey("e9") }
+        val queued = vm.queuedReceipts.value.getValue("e9")
+        assertEquals("Warung Made", queued.title)
+        assertEquals(ReceiptUploadStatus.WAITING, queued.status)
+
+        // an edit without a new photo leaves the waiting one alone; "Simpan tanpa foto" drops it, the expense stays
+        vm.save(input.copy(note = "makan malam"))
+        assertTrue(vm.queuedReceipts.value.containsKey("e9"))
+        vm.discardReceipt("e9")
+        eventually { vm.queuedReceipts.value.isEmpty() }
+        assertEquals(listOf("e9"), store.expenses.value.map { it.id })
     }
 }

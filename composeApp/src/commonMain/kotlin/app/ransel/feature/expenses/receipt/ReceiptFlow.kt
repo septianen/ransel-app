@@ -109,7 +109,9 @@ import ransel.composeapp.generated.resources.receipt_reading_2
 import ransel.composeapp.generated.resources.receipt_reading_3
 import ransel.composeapp.generated.resources.receipt_reading_4
 import ransel.composeapp.generated.resources.receipt_reading_description
+import org.koin.compose.koinInject
 import ransel.composeapp.generated.resources.receipt_result_hint
+import ransel.composeapp.generated.resources.receipt_photo_default_title
 import ransel.composeapp.generated.resources.receipt_result_title
 import ransel.composeapp.generated.resources.receipt_retry
 import ransel.composeapp.generated.resources.receipt_tip
@@ -165,7 +167,7 @@ fun ReceiptFlow(
     trip: TripDto,
     members: List<TripMemberDto>,
     myMemberId: String?,
-    onSave: (app.ransel.shared.dto.ExpenseInput) -> Unit,
+    onSave: (app.ransel.shared.dto.ExpenseInput, ReceiptAttachment?) -> Unit,
     onDismiss: () -> Unit,
     onManual: () -> Unit = onDismiss,
     viewModel: ReceiptViewModel = koinViewModel(key = "receipt-${trip.id}-${remember { newId() }}") { parametersOf(trip) },
@@ -198,7 +200,7 @@ fun ReceiptFlow(
                 extrasApplied = true
             }
         }
-        ReceiptResult(form, trip, members, myMemberId, onSave, onDismiss)
+        ReceiptResult(form, trip, members, myMemberId, s.image, onSave, onDismiss)
         return
     }
     AdaptiveSheet(onDismiss = onDismiss) {
@@ -270,11 +272,14 @@ private fun ReceiptResult(
     trip: TripDto,
     members: List<TripMemberDto>,
     myMemberId: String?,
-    onSave: (app.ransel.shared.dto.ExpenseInput) -> Unit,
+    image: ReceiptImage,
+    onSave: (app.ransel.shared.dto.ExpenseInput, ReceiptAttachment?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
     val dates = rememberDateFormatter()
+    val keepPhoto = koinInject<app.ransel.data.repository.ReceiptPhotoRepository>().supported
+    val defaultTitle = stringResource(Res.string.receipt_photo_default_title, dates.dayMonth(form.date ?: today()))
     val currency = form.draft.currency
     val foreign = !currency.equals(trip.baseCurrency, ignoreCase = true)
     var rateText by remember { mutableStateOf("") }
@@ -301,7 +306,11 @@ private fun ReceiptResult(
                     val tz = TimeZone.currentSystemDefault()
                     val time = now().toLocalDateTime(tz).time
                     val spentAt = LocalDateTime(form.date ?: today(), time).toInstant(tz)
-                    onSave(form.toInput(newId(), spentAt, if (foreign) rateText.trim().replace(',', '.') else null))
+                    // the photo that was read is kept with the expense, in "Dokumen trip" → "Struk" (phones; the web has no queue yet)
+                    onSave(
+                        form.toInput(newId(), spentAt, if (foreign) rateText.trim().replace(',', '.') else null),
+                        ReceiptAttachment(image, form.place.trim().ifEmpty { defaultTitle }.take(80)),
+                    )
                 },
                 enabled = form.canSave && (!foreign || (rate != null && rate > 0.0)),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -320,6 +329,7 @@ private fun ReceiptResult(
             Symbol(Symbols.autoAwesome, size = 18.dp, filled = true, tint = scheme.onTertiaryContainer)
             Text(stringResource(Res.string.receipt_result_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onTertiaryContainer)
         }
+        if (keepPhoto) ReceiptScanCard(image)
         IrisTextField(label = stringResource(Res.string.receipt_place), value = form.place, onValueChange = { form.place = it })
         // the day the AI read; tap to fix it. The year shows when it is not the trip's, so a misread stands out.
         val day = form.date ?: today()
