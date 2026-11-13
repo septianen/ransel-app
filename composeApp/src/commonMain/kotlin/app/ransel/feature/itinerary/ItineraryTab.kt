@@ -82,12 +82,14 @@ import app.ransel.ui.category.tileColor
 import app.ransel.shared.model.Category
 import app.ransel.feature.itinerary.map.unlocatedCount
 import app.ransel.feature.itinerary.map.miniMapSupported
+import app.ransel.feature.itinerary.map.storedMiniMapOpen
 import app.ransel.feature.itinerary.map.mapPinsOf
 import app.ransel.feature.itinerary.map.firstUnlocated
+import app.ransel.feature.itinerary.map.isMiniMapOpen
 import app.ransel.feature.itinerary.map.PinBadge
 import app.ransel.feature.itinerary.map.MiniMapSection
 import app.ransel.feature.itinerary.map.MapPin
-import app.ransel.feature.itinerary.map.MINI_MAP_COLLAPSED_KEY
+import app.ransel.feature.itinerary.map.MINI_MAP_OPEN_KEY
 import app.ransel.data.repository.PreferencesRepository
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.luminance
@@ -306,8 +308,9 @@ private fun ItineraryContent(
     // the day's mini map: pins numbered among the activities that have a place; the pin tapped is highlighted in the list
     val scope = rememberCoroutineScope()
     val prefs: PreferencesRepository = koinInject()
-    var mapCollapsed by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { mapCollapsed = prefs.getString(MINI_MAP_COLLAPSED_KEY) == "1" }
+    // closed until the user opens it: nothing of the map is built before that
+    var mapOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { mapOpen = isMiniMapOpen(prefs.getString(MINI_MAP_OPEN_KEY)) }
     var selectedPinId by rememberSaveable(day) { mutableStateOf<String?>(null) }
     val rowRequesters = remember(day) { mutableMapOf<String, BringIntoViewRequester>() }
     val pinColors = Category.entries.associateWith { category ->
@@ -378,11 +381,11 @@ private fun ItineraryContent(
                         pins = pins,
                         unlocated = unlocatedCount(items),
                         selectedId = selectedPin,
-                        collapsed = mapCollapsed,
+                        collapsed = !mapOpen,
                         dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
                         onToggleCollapsed = {
-                            mapCollapsed = !mapCollapsed
-                            scope.launch { prefs.putString(MINI_MAP_COLLAPSED_KEY, if (mapCollapsed) "1" else null) }
+                            mapOpen = !mapOpen
+                            scope.launch { prefs.putString(MINI_MAP_OPEN_KEY, storedMiniMapOpen(mapOpen)) }
                         },
                         onPinClick = { id ->
                             selectedPinId = id

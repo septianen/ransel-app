@@ -1395,7 +1395,7 @@
     <!-- Mini map of a day in the itinerary -->
     <string name="mini_map_description">Peta hari ini, %1$d lokasi</string>
     <string name="mini_map_open_in_maps">Buka di Google Maps</string>
-    <string name="mini_map_collapsed_title">Peta · %1$d lokasi</string>
+    <string name="mini_map_collapsed_title">Lihat peta · %1$d lokasi</string>
     <string name="mini_map_collapse">Lipat peta</string>
     <string name="mini_map_expand">Tampilkan peta</string>
     <string name="mini_map_partial">%1$d aktivitas belum punya lokasi ·</string>

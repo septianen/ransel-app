@@ -1407,7 +1407,7 @@
     <!-- Mini map of a day in the itinerary -->
     <string name="mini_map_description">Map of today, %1$d places</string>
     <string name="mini_map_open_in_maps">Open in Google Maps</string>
-    <string name="mini_map_collapsed_title">Map · %1$d places</string>
+    <string name="mini_map_collapsed_title">View map · %1$d places</string>
     <string name="mini_map_collapse">Fold the map</string>
     <string name="mini_map_expand">Show the map</string>
     <string name="mini_map_partial">%1$d activities have no location ·</string>

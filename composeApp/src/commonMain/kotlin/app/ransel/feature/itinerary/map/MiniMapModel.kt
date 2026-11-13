@@ -46,5 +46,14 @@ fun googleMapsUrl(pin: MapPin): String = "https://www.google.com/maps/search/?ap
 /** What the map shows while it loads before it gives up and shows the "failed" card (spec state 5 to 6). */
 const val MINI_MAP_LOAD_TIMEOUT_MILLIS = 8_000L
 
-/** Preference key (per device, not per trip) for the folded bar. */
-const val MINI_MAP_COLLAPSED_KEY = "mini_map_collapsed"
+/** Preference key (per device, not per trip): "1" once the user has opened the map. Never set = closed. */
+const val MINI_MAP_OPEN_KEY = "mini_map_open"
+
+/**
+ * The map starts closed and is only built when the user opens it (owner, 13 Nov 2026), so a day's list opens fast and the
+ * Maps SDK is not started for people who never look at it. After an opening the choice is remembered on the device.
+ */
+fun isMiniMapOpen(stored: String?): Boolean = stored == "1"
+
+/** What to store for the choice: "1" when open, nothing when closed (the default). */
+fun storedMiniMapOpen(open: Boolean): String? = if (open) "1" else null
