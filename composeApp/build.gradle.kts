@@ -124,6 +124,8 @@ kotlin {
             implementation(libs.firebase.analytics)
             implementation(libs.firebase.crashlytics)
             implementation(libs.androidx.activity.compose)
+            // the day's mini map in the itinerary
+            implementation(libs.maps.compose)
             // one coarse fix for "Gunakan lokasi saat ini"
             implementation(libs.play.services.location)
             // "Lanjutkan dengan Google": Credential Manager's Google sheet
@@ -191,8 +193,17 @@ android {
     namespace = "app.ransel"
     compileSdk = 36
 
+    // Google Maps SDK key for Android (restricted to our package names and signing certificates, so it may sit in the
+    // APK): the MAPS_API_KEY_ANDROID environment variable (a GitHub secret on CI) or MAPS_API_KEY in secrets.properties
+    // (git-ignored). Without it the app still builds and the mini map shows its "failed to load" card.
+    val mapsApiKey = providers.environmentVariable("MAPS_API_KEY_ANDROID").orNull?.takeIf { it.isNotBlank() }
+        ?: rootProject.file("secrets.properties").takeIf { it.exists() }?.let { file ->
+            Properties().apply { file.inputStream().use { load(it) } }.getProperty("MAPS_API_KEY")
+        }.orEmpty()
+
     defaultConfig {
         applicationId = "app.ransel"
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
         minSdk = 24
         targetSdk = 36
         versionCode = ranselVersionCode.toInt()

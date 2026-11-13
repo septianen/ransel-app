@@ -77,6 +77,23 @@ import app.ransel.shared.domain.reorder
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.ui.category.itineraryLabel
+import org.koin.compose.koinInject
+import app.ransel.ui.category.tileColor
+import app.ransel.shared.model.Category
+import app.ransel.feature.itinerary.map.unlocatedCount
+import app.ransel.feature.itinerary.map.miniMapSupported
+import app.ransel.feature.itinerary.map.mapPinsOf
+import app.ransel.feature.itinerary.map.firstUnlocated
+import app.ransel.feature.itinerary.map.PinBadge
+import app.ransel.feature.itinerary.map.MiniMapSection
+import app.ransel.feature.itinerary.map.MapPin
+import app.ransel.feature.itinerary.map.MINI_MAP_COLLAPSED_KEY
+import app.ransel.data.repository.PreferencesRepository
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.layout.offset
 import app.ransel.ui.components.CategoryIcon
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.dashedBorder
@@ -152,6 +169,8 @@ fun ItineraryTab(
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
     /** Opens a poll (the DATE poll card of a trip without dates); null hides the card. */
     onOpenPoll: ((pollId: String) -> Unit)? = null,
+    /** "Isi lokasi" on the day's mini map: the activity's form with the place picker open; null hides the buttons. */
+    onFillLocation: ((itemId: String) -> Unit)? = null,
     // the days come from the trip's dates: new dates (a decided DATE poll, Edit trip) make a new ViewModel
     viewModel: ItineraryViewModel = koinViewModel(key = "itinerary-${trip.id}-${trip.startDate}-${trip.endDate}") { parametersOf(trip) },
 ) {
@@ -213,6 +232,7 @@ fun ItineraryTab(
                 onExplore = if (canEdit) onExplore else null,
                 viewModel = viewModel,
                 onOpenPoll = onOpenPoll,
+                onFillLocation = onFillLocation,
             )
         }
         SnackbarHost(
@@ -249,6 +269,7 @@ private fun ItineraryContent(
     onExplore: (() -> Unit)?,
     viewModel: ItineraryViewModel,
     onOpenPoll: ((String) -> Unit)? = null,
+    onFillLocation: ((String) -> Unit)? = null,
 ) {
     if (state.undated) {
         // no days yet: the date poll, a line about it and the ideas; the + adds an unscheduled idea
@@ -281,6 +302,23 @@ private fun ItineraryContent(
     val day = state.selectedDay
     val items = state.selectedItems
     val ids = items.map { it.id }
+
+    // the day's mini map: pins numbered among the activities that have a place; the pin tapped is highlighted in the list
+    val scope = rememberCoroutineScope()
+    val prefs: PreferencesRepository = koinInject()
+    var mapCollapsed by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { mapCollapsed = prefs.getString(MINI_MAP_COLLAPSED_KEY) == "1" }
+    var selectedPinId by rememberSaveable(day) { mutableStateOf<String?>(null) }
+    val rowRequesters = remember(day) { mutableMapOf<String, BringIntoViewRequester>() }
+    val pinColors = Category.entries.associateWith { category ->
+        val accent = category.tileColor()
+        // white on the accent, dark on a light one (the yellow shopping pin)
+        accent.toArgb() to (if (accent.luminance() > 0.45f) Color.Black else Color.White).toArgb()
+    }
+    val pins = mapPinsOf(items) { pinColors.getValue(it) }
+    val pinsById = pins.associateBy { it.itemId }
+    val selectedPin = selectedPinId?.takeIf { it in pinsById }
+    val firstMissing = firstUnlocated(items)
 
     val from = ids.indexOf(drag.draggingId)
     val hovered = drag.hoveredChip
@@ -335,6 +373,28 @@ private fun ItineraryContent(
                 if (drag.isDragging) {
                     DragHint()
                 }
+                if (day != null && miniMapSupported) {
+                    MiniMapSection(
+                        pins = pins,
+                        unlocated = unlocatedCount(items),
+                        selectedId = selectedPin,
+                        collapsed = mapCollapsed,
+                        dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f,
+                        onToggleCollapsed = {
+                            mapCollapsed = !mapCollapsed
+                            scope.launch { prefs.putString(MINI_MAP_COLLAPSED_KEY, if (mapCollapsed) "1" else null) }
+                        },
+                        onPinClick = { id ->
+                            selectedPinId = id
+                            scope.launch { rowRequesters[id]?.bringIntoView() }
+                        },
+                        onFillLocation = if (canEdit && onFillLocation != null && firstMissing != null) {
+                            { onFillLocation(firstMissing.id) }
+                        } else {
+                            null
+                        },
+                    )
+                }
                 if (day != null) {
                     DaySection(
                         heading = stringResource(
@@ -350,6 +410,9 @@ private fun ItineraryContent(
                         canEdit = canEdit,
                         onExplore = onExplore,
                         emptyTitle = stringResource(Res.string.itinerary_empty_title, state.selectedIndex + 1),
+                        pinsById = pinsById,
+                        selectedPinId = selectedPin,
+                        rowRequesters = rowRequesters,
                     )
                 }
             }
@@ -511,6 +574,9 @@ private fun DaySection(
     canEdit: Boolean,
     onExplore: (() -> Unit)?,
     emptyTitle: String,
+    pinsById: Map<String, MapPin>,
+    selectedPinId: String?,
+    rowRequesters: MutableMap<String, BringIntoViewRequester>,
 ) {
     val finish by rememberUpdatedState(onFinish)
     val itemIds by rememberUpdatedState(items.map { it.id })
@@ -564,6 +630,11 @@ private fun DaySection(
                 translationY = if (isDragging) drag.deltaY else animatedShift,
                 drag = drag,
                 onClick = { onEdit(item.id) },
+                pin = pinsById[item.id],
+                // a "–" badge on the rest only when the day has some pins (spec), in every state of the map
+                showPinBadge = pinsById.isNotEmpty() && miniMapSupported,
+                selected = item.id == selectedPinId,
+                requester = remember(item.id) { rowRequesters.getOrPut(item.id) { BringIntoViewRequester() } },
             )
         }
     }
@@ -580,6 +651,10 @@ private fun TimelineRow(
     translationY: Float,
     drag: DayDragState,
     onClick: () -> Unit,
+    pin: MapPin?,
+    showPinBadge: Boolean,
+    selected: Boolean,
+    requester: BringIntoViewRequester,
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val minutes = durationMinutes(shownStart, shownEnd) ?: item.durationMin
@@ -599,6 +674,7 @@ private fun TimelineRow(
         Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
+            .bringIntoViewRequester(requester)
             .zIndex(if (dragging) 1f else 0f)
             .graphicsLayer { this.translationY = translationY }
             .onGloballyPositioned { if (!drag.isDragging) drag.rowBounds[item.id] = it.boundsInRoot() },
@@ -627,6 +703,14 @@ private fun TimelineRow(
                 .weight(1f)
                 .padding(bottom = if (isLast) 0.dp else 16.dp)
                 .then(
+                    if (selected && !dragging) {
+                        // the row of the pin that was tapped on the map
+                        Modifier.clip(IrisShape.lg).background(MaterialTheme.colorScheme.primaryContainer).padding(horizontal = 6.dp, vertical = 4.dp)
+                    } else {
+                        Modifier
+                    },
+                )
+                .then(
                     if (dragging) {
                         Modifier
                             .clip(IrisShape.lg)
@@ -640,7 +724,10 @@ private fun TimelineRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CategoryIcon(item.category)
+            Box {
+                CategoryIcon(item.category)
+                if (showPinBadge) PinBadge(pin, Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-4).dp))
+            }
             Column(Modifier.weight(1f)) {
                 Text(
                     item.title,

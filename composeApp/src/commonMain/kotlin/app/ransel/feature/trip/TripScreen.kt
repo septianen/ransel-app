@@ -78,6 +78,8 @@ fun TripScreen(
     onExplore: () -> Unit,
     onAddActivity: (dayDate: String?) -> Unit,
     onEditActivity: (itemId: String) -> Unit,
+    /** "Isi lokasi" on the day's mini map: the activity's form with the place picker open. */
+    onFillLocation: ((itemId: String) -> Unit)? = null,
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
     /** Opens one voting round, from "Perlu tindakanmu" or the Group tab's lists (the OWNER sees the result of a closed round). */
     onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
@@ -224,6 +226,7 @@ fun TripScreen(
                         )
                         TripTab.ITINERARY -> ItineraryTab(
                             current, onAddActivity, onEditActivity,
+                            onFillLocation = onFillLocation,
                             onExplore = if (signedIn) onExplore else null,
                             // The place text lives on the server: guests have no account to ask it with.
                             onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,

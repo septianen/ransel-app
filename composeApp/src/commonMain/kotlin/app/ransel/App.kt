@@ -803,6 +803,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
             onExplore = { navController.openExplore(route.tripId, signedIn()) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
+            onFillLocation = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null, openPlace = true)) },
             onOpenPlaceDetail = { placeId, name, currency ->
                 navController.navigate(PlaceDetailRoute(placeId, fromItinerary = true, name = name, currency = currency))
             },
@@ -914,6 +915,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
             tripId = route.tripId,
             itemId = route.itemId,
             initialDay = route.dayDate,
+            openPlaceOnStart = route.openPlace,
             onClose = { navController.popBackStack() },
         )
     }

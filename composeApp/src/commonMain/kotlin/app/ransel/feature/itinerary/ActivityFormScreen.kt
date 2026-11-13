@@ -89,6 +89,8 @@ fun ActivityFormScreen(
     initialDay: String?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Open the place picker once the form has loaded ("Isi lokasi" on the mini map). */
+    openPlaceOnStart: Boolean = false,
     viewModel: ActivityFormViewModel = koinViewModel(key = "activity-form-$tripId-${itemId ?: "new"}") {
         parametersOf(tripId, itemId, initialDay)
     },
@@ -100,6 +102,14 @@ fun ActivityFormScreen(
     var pickingTime by rememberSaveable { mutableStateOf<TimeTarget?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     var pickingPlace by rememberSaveable { mutableStateOf(false) }
+    var placeOpenedOnStart by rememberSaveable { mutableStateOf(false) }
+    // after the load, so the picker starts with the place text the activity already has
+    LaunchedEffect(state.loading) {
+        if (openPlaceOnStart && !state.loading && !placeOpenedOnStart) {
+            placeOpenedOnStart = true
+            pickingPlace = true
+        }
+    }
     val dates = rememberDateFormatter()
 
     FormScaffold(

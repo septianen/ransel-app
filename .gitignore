@@ -17,3 +17,4 @@ keystore.properties
 
 # Firebase config of an environment (see deploy/README.md)
 composeApp/google-services.json
+secrets.properties
