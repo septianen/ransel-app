@@ -91,6 +91,7 @@ fun ExpenseEntity.toDto() = ExpenseDto(
     splits = splitsJson.toSplits(),
     isEstimate = isEstimate, items = itemsJson.toItems(), itemsSplit = itemsJson.toItems().itemsDecideSplits(),
     fxSource = fxSource?.let { s -> FxSource.entries.firstOrNull { it.name == s } }, fxDate = fxDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+    receiptDocumentId = receiptDocumentId,
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
 
@@ -128,7 +129,7 @@ fun ExpenseDto.toEntity() = ExpenseEntity(
     category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
     paidByMemberId = paidByMemberId, splitsJson = splits.toSplitsJson(), payersJson = payers.toPayersJson(),
     isEstimate = isEstimate, itemsJson = items.toItemsJson(),
-    fxSource = fxSource?.name, fxDate = fxDate?.toString(),
+    fxSource = fxSource?.name, fxDate = fxDate?.toString(), receiptDocumentId = receiptDocumentId,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
 )

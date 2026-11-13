@@ -123,8 +123,8 @@ fun AllTransactionsScreen(
         ExpenseSheet(
             trip = trip,
             existing = existing,
-            onSave = {
-                viewModel.save(it)
+            onSave = { input, _ ->
+                viewModel.save(input)
                 editing = null
             },
             onDelete = {

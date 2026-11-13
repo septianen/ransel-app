@@ -240,6 +240,7 @@ fun TripScreen(
                             onSeeAllTransactions = onOpenAllTransactions,
                             openBalances = openBalances,
                             onBalancesOpened = onBalancesOpened,
+                            onManageDocuments = { onOpenDocuments(false) },
                         )
                     }
                 } else if (answer != null) {

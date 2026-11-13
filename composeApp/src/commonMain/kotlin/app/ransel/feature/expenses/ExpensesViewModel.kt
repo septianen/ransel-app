@@ -1,6 +1,10 @@
 package app.ransel.feature.expenses
 
 import app.ransel.shared.domain.memberIdFor
+import app.ransel.data.repository.NoReceiptPhotos
+import app.ransel.data.repository.PendingReceipt
+import app.ransel.data.repository.ReceiptPhotoRepository
+import app.ransel.feature.expenses.receipt.ReceiptAttachment
 import app.ransel.data.analytics.Analytics
 import app.ransel.data.analytics.AnalyticsEvent
 import app.ransel.data.analytics.NoAnalytics
@@ -120,7 +124,15 @@ class ExpensesViewModel(
     private val session: SessionManager,
     private val preferences: PreferencesRepository? = null,
     private val analytics: Analytics = NoAnalytics,
+    private val receipts: ReceiptPhotoRepository = NoReceiptPhotos,
 ) : ViewModel() {
+    /** Phones attach receipt photos (kept until the sync sends them); the web does not yet. */
+    val receiptsSupported: Boolean get() = receipts.supported
+
+    /** Photos still on the phone for this trip's expenses, by expense id: waiting, failed, or refused (storage full). */
+    val queuedReceipts: StateFlow<Map<String, PendingReceipt>> =
+        receipts.observe(trip.id).stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
     /** Members of the trip; empty for guests, offline, or before the first answer (the tab then behaves as solo). */
     private val _members = MutableStateFlow<List<TripMemberDto>>(emptyList())
     val members: StateFlow<List<TripMemberDto>> = _members.asStateFlow()
@@ -295,10 +307,12 @@ class ExpensesViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ExpensesUiState())
 
-    fun save(input: ExpenseInput) {
+    fun save(input: ExpenseInput, photo: ReceiptAttachment? = null) {
         val before = state.value.groups.flatMap { it.items }.firstOrNull { it.id == input.id }
         viewModelScope.launch {
             repository.save(trip.id, input)
+            // the expense is saved first; the photo goes up after it, once the expense is on the server
+            if (photo != null && receipts.supported) receipts.attach(trip.id, input.id, photo.title, photo.image)
             // the balances move when a paid estimate becomes a payment
             if (before?.isEstimate == true) refreshAfterMoneyChange()
         }
@@ -315,5 +329,14 @@ class ExpensesViewModel(
 
     fun delete(expenseId: String) {
         viewModelScope.launch { repository.delete(trip.id, expenseId) }
+    }
+
+    fun retryReceipt(expenseId: String) {
+        viewModelScope.launch { receipts.retry(expenseId) }
+    }
+
+    /** "Simpan tanpa foto": the expense stays, the photo that could not go up is dropped. */
+    fun discardReceipt(expenseId: String) {
+        viewModelScope.launch { receipts.discard(expenseId) }
     }
 }

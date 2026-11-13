@@ -125,6 +125,30 @@ interface ExpenseDao {
 }
 
 @Dao
+interface PendingReceiptDao {
+    @Query("SELECT * FROM pending_receipts WHERE tripId = :tripId")
+    fun observe(tripId: String): Flow<List<PendingReceiptEntity>>
+
+    @Query("SELECT * FROM pending_receipts WHERE status = 'WAITING' ORDER BY createdAt")
+    suspend fun waiting(): List<PendingReceiptEntity>
+
+    @Query("SELECT * FROM pending_receipts WHERE expenseId = :expenseId")
+    suspend fun get(expenseId: String): PendingReceiptEntity?
+
+    @Upsert
+    suspend fun put(entity: PendingReceiptEntity)
+
+    @Query("UPDATE pending_receipts SET status = :status, attempts = :attempts WHERE expenseId = :expenseId")
+    suspend fun setStatus(expenseId: String, status: String, attempts: Int)
+
+    @Query("DELETE FROM pending_receipts WHERE expenseId = :expenseId")
+    suspend fun delete(expenseId: String)
+
+    @Query("DELETE FROM pending_receipts")
+    suspend fun deleteAll()
+}
+
+@Dao
 interface PreferenceDao {
     @Query("SELECT * FROM preferences")
     fun observeAll(): Flow<List<PreferenceEntity>>

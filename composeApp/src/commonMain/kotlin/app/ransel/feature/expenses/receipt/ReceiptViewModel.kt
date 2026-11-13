@@ -23,7 +23,8 @@ sealed interface ReceiptStep {
     data object Pick : ReceiptStep
     data object Reading : ReceiptStep
     /** What was read; the result form takes over from here. */
-    data class Draft(val draft: ReceiptDraftDto) : ReceiptStep
+    /** [image] is the photo that was read: it is kept with the expense when Simpan is pressed. */
+    data class Draft(val draft: ReceiptDraftDto, val image: ReceiptImage) : ReceiptStep
     /** [code] is an `ErrorCode` (RECEIPT_UNREADABLE, INSUFFICIENT_CREDITS, FILE_TOO_LARGE, a network code, ...). */
     data class Failed(val code: String) : ReceiptStep
 }
@@ -56,7 +57,7 @@ class ReceiptViewModel(
             _step.value = when (val result = api.parseReceipt(trip.id, image.bytes, image.mimeType)) {
                 is ApiResult.Success -> {
                     credits.update(result.value.credits)
-                    ReceiptStep.Draft(result.value)
+                    ReceiptStep.Draft(result.value, image)
                 }
                 is ApiResult.Failure -> ReceiptStep.Failed(result.error.code)
             }

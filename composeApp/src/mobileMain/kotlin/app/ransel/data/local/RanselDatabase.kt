@@ -17,12 +17,14 @@ import kotlinx.coroutines.IO // Dispatchers.IO is an extension outside the JVM
         PersonalItemEntity::class,
         ExpenseEntity::class,
         PreferenceEntity::class,
+        PendingReceiptEntity::class,
     ],
     // Squashed to 1 on 3 Nov 2026 before the first store release (owner); earlier builds must be reinstalled.
     // From here on, raise the version with an AutoMigration for every schema change.
     // v2 (13 Nov 2026): `itinerary_items.linksJson` (links of an activity).
-    version = 2,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    // v3 (13 Nov 2026): `expenses.receiptDocumentId` and the `pending_receipts` table (receipt photos waiting to upload).
+    version = 3,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3)],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
 abstract class RanselDatabase : RoomDatabase() {
@@ -32,6 +34,7 @@ abstract class RanselDatabase : RoomDatabase() {
     abstract fun personalItemDao(): PersonalItemDao
     abstract fun expenseDao(): ExpenseDao
     abstract fun preferenceDao(): PreferenceDao
+    abstract fun pendingReceiptDao(): PendingReceiptDao
     abstract fun syncDao(): SyncDao
 }
 
