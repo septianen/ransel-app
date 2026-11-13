@@ -125,4 +125,52 @@ class ItineraryRoutesTest {
         assertEquals(1, summary.str("unscheduledCount")?.toInt())
         assertEquals(0, summary.str("activityCount")?.toInt())
     }
+
+    private fun JsonObject.linkList() = this["links"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
+
+    @Test
+    fun linksAreNormalizedDedupedAndMirrorTheFirstOneInBookingUrl() = apiTest {
+        val trip = newTrip()
+        val id = UUID.randomUUID().toString()
+        val body = itemJson(id).dropLast(1) + ""","links":["tiket.com/hotel/x"," https://www.instagram.com/kuta ","https://tiket.com/hotel/x"]}"""
+        val created = post("/trips/$trip/itinerary", body)
+        assertEquals(HttpStatusCode.Created, created.status)
+        val item = created.data().jsonObject
+        assertEquals(listOf("https://tiket.com/hotel/x", "https://www.instagram.com/kuta"), item.linkList())
+        assertEquals("https://tiket.com/hotel/x", item.str("bookingUrl"))
+
+        // a list is the whole truth: [] clears everything, bookingUrl with it
+        val cleared = put("/trips/$trip/itinerary/$id", itemJson(id).dropLast(1) + ""","links":[]}""").data().jsonObject
+        assertEquals(emptyList(), cleared.linkList())
+        assertNull(cleared["bookingUrl"]?.takeIf { it.toString() != "null" })
+    }
+
+    @Test
+    fun anAppFromBeforeTheListKeepsTheOtherLinksWhenItSavesAnotherField() = apiTest {
+        val trip = newTrip()
+        val id = UUID.randomUUID().toString()
+        post("/trips/$trip/itinerary", itemJson(id).dropLast(1) + ""","links":["https://a.example/1","https://b.example/2","https://c.example/3"]}""")
+
+        // old app: no `links`, only bookingUrl, here replaced by another address
+        val edited = put("/trips/$trip/itinerary/$id", itemJson(id, title = "Renamed").dropLast(1) + ""","bookingUrl":"https://new.example/x"}""").data().jsonObject
+        assertEquals(listOf("https://new.example/x", "https://b.example/2", "https://c.example/3"), edited.linkList())
+
+        // old app that clears its single link field (no bookingUrl, no list): only the first link goes
+        val cleared = put("/trips/$trip/itinerary/$id", itemJson(id, title = "Renamed again")).data().jsonObject
+        assertEquals(listOf("https://b.example/2", "https://c.example/3"), cleared.linkList())
+        assertEquals("https://b.example/2", cleared.str("bookingUrl"))
+    }
+
+    @Test
+    fun tooManyOrBrokenLinksAreRejected() = apiTest {
+        val trip = newTrip()
+        val six = (1..6).joinToString(",") { "\"https://x.example/$it\"" }
+        val tooMany = post("/trips/$trip/itinerary", itemJson().dropLast(1) + ""","links":[$six]}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, tooMany.status)
+        assertEquals("TOO_MANY", tooMany.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("links"))
+
+        val broken = post("/trips/$trip/itinerary", itemJson().dropLast(1) + ""","links":["https://ok.example","not a link"]}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, broken.status)
+        assertEquals("INVALID", broken.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("links[1]"))
+    }
 }
