@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -141,9 +142,19 @@ private fun PreferencesForm(
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         if (state.newTrip) {
-            Text(stringResource(Res.string.explore_new_trip_body), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+            Text(
+                stringResource(if (state.datesUndecided) Res.string.explore_new_trip_body_undecided else Res.string.explore_new_trip_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurfaceVariant,
+            )
             destinationField()
-            DatesField(state, onClick = { showDates = true })
+            // hidden, not disabled, while the dates are undecided (150 ms); turning it off shows the same dates again
+            androidx.compose.animation.AnimatedVisibility(
+                visible = !state.datesUndecided,
+                enter = androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(150)),
+                exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(150)),
+            ) { DatesField(state, onClick = { showDates = true }) }
+            DatesUndecidedRow(state.datesUndecided, vm::setDatesUndecided)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 IrisTextField(
                     label = stringResource(Res.string.explore_new_trip_name),
@@ -235,7 +246,9 @@ private fun PreferencesForm(
                 )
             }
             val credits by rememberCredits()
-            val footnote = if (state.newTrip) stringResource(Res.string.explore_new_trip_footnote)
+            val footnote = if (state.newTrip) {
+                stringResource(if (state.datesUndecided) Res.string.explore_new_trip_footnote_undecided else Res.string.explore_new_trip_footnote)
+            }
             else credits?.costs?.search?.takeIf { it > 0 }?.let { stringResource(Res.string.explore_credits_use, it) }
             if (footnote != null) Text(
                 footnote,
@@ -281,6 +294,31 @@ private fun TripCard(state: ExplorePreferencesState, onChange: () -> Unit) {
             )
         }
         TextButton(onClick = onChange) { Text(stringResource(Res.string.explore_change_trip), fontWeight = FontWeight.Bold) }
+    }
+}
+
+/** "Tanggal belum pasti": one switch row; the date poll is started later from the overview (no poll setup here). */
+@Composable
+private fun DatesUndecidedRow(checked: Boolean, onChange: (Boolean) -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 70.dp)
+            .clip(IrisShape.lg)
+            .background(scheme.surfaceContainer)
+            .border(1.dp, scheme.outlineVariant, IrisShape.lg)
+            // one element for a screen reader: the title and the hint with the switch state
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(Res.string.explore_dates_undecided_title), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(Res.string.explore_dates_undecided_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        }
+        androidx.compose.material3.Switch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -360,7 +398,11 @@ private fun InterestsSection(state: ExplorePreferencesState, vm: ExplorePreferen
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(stringResource(Res.string.explore_interests), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
-            Text(stringResource(Res.string.explore_interests_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            Text(
+                stringResource(if (state.newTrip && state.datesUndecided) Res.string.explore_interests_hint_general else Res.string.explore_interests_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+            )
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Interest.entries.forEach { interest ->
