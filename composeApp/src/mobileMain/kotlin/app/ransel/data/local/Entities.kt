@@ -68,6 +68,8 @@ data class ItineraryItemEntity(
     val durationMin: Int?,
     val notes: String?,
     val bookingUrl: String?,
+    /** The links as a JSON array (DB v2); null = the row is from before the list, [bookingUrl] is its only link. */
+    val linksJson: String? = null,
     val source: String,
     val sortOrder: Double,
     val createdAt: Long,

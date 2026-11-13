@@ -54,7 +54,7 @@ fun UnscheduledPlacesScreen(
             items.forEach { item ->
                 UnscheduledRow(
                     item = item,
-                    onOpen = if (canEdit) ({ onOpen(item) }) else null,
+                    onOpen = { onOpen(item) },
                     onSchedule = if (canEdit) ({ onSchedule(item) }) else null,
                 )
             }

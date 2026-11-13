@@ -162,7 +162,7 @@ class Phase1FlowTests {
         rule.setContent {
             IrisTheme {
                 ItineraryTab(
-                    trip = trip, onAddActivity = {}, onEditActivity = {},
+                    trip = trip, onAddActivity = {}, onOpenActivity = {},
                     viewModel = ItineraryViewModel(trip, itinerary, prefs),
                 )
             }

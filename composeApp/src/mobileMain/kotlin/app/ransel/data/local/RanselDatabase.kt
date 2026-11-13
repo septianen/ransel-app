@@ -1,5 +1,6 @@
 package app.ransel.data.local
 
+import androidx.room3.AutoMigration
 import androidx.room3.ConstructedBy
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
@@ -19,7 +20,9 @@ import kotlinx.coroutines.IO // Dispatchers.IO is an extension outside the JVM
     ],
     // Squashed to 1 on 3 Nov 2026 before the first store release (owner); earlier builds must be reinstalled.
     // From here on, raise the version with an AutoMigration for every schema change.
-    version = 1,
+    // v2 (13 Nov 2026): `itinerary_items.linksJson` (links of an activity).
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
 abstract class RanselDatabase : RoomDatabase() {

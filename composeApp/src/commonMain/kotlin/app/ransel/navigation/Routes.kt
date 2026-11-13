@@ -37,6 +37,9 @@ import kotlinx.serialization.Serializable
 @Serializable data class EditTripRoute(val tripId: String)
 @Serializable data class RecapRoute(val tripId: String)
 
+/** "Detail aktivitas": the read-only screen of one activity (links, notes); its Edit button opens [ActivityFormRoute]. */
+@Serializable data class ActivityDetailRoute(val tripId: String, val itemId: String)
+
 /**
  * Add (`itemId == null`) or edit an activity. [dayDate] is an ISO date preselecting the day. [openPlace] opens the place
  * picker as soon as the form is ready ("Isi lokasi" on the day's mini map).
