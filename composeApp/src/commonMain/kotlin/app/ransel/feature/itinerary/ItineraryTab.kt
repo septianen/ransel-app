@@ -164,7 +164,7 @@ import ransel.composeapp.generated.resources.reorder_unchanged
 fun ItineraryTab(
     trip: TripDto,
     onAddActivity: (dayDate: String?) -> Unit,
-    onEditActivity: (itemId: String) -> Unit,
+    onOpenActivity: (itemId: String) -> Unit,
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
     /** Opens the saved detail of an AI place (design `ItineraryLihatDetail`); null hides the info buttons. */
@@ -229,7 +229,7 @@ fun ItineraryTab(
                 onReorder = viewModel::onReorder,
                 onMoveToDay = viewModel::moveToDay,
                 onAddActivity = { onAddActivity(state.selectedDay?.toString()) },
-                onEditActivity = onEditActivity,
+                onOpenActivity = onOpenActivity,
                 canEdit = canEdit,
                 onExplore = if (canEdit) onExplore else null,
                 viewModel = viewModel,
@@ -266,7 +266,7 @@ private fun ItineraryContent(
     onReorder: (LocalDate, Int, Int) -> Unit,
     onMoveToDay: (String, LocalDate) -> Unit,
     onAddActivity: () -> Unit,
-    onEditActivity: (String) -> Unit,
+    onOpenActivity: (String) -> Unit,
     canEdit: Boolean,
     onExplore: (() -> Unit)?,
     viewModel: ItineraryViewModel,
@@ -281,7 +281,7 @@ private fun ItineraryContent(
                 datePoll = state.datePoll?.takeIf { onOpenPoll != null },
                 datePollMine = state.datePoll?.createdByMemberId?.let { it == viewModel.myMemberId } == true,
                 onOpenPoll = { id -> onOpenPoll?.invoke(id) },
-                onOpenItem = if (canEdit) ({ onEditActivity(it.id) }) else null,
+                onOpenItem = { onOpenActivity(it.id) },
             )
             if (canEdit) {
                 IconFab(
@@ -361,7 +361,7 @@ private fun ItineraryContent(
                     UnscheduledBox(
                         items = state.unscheduled,
                         onSeeAll = { showUnscheduled = true },
-                        onOpen = if (canEdit) ({ onEditActivity(it.id) }) else null,
+                        onOpen = { onOpenActivity(it.id) },
                         onSchedule = if (canEdit) ({ scheduleItemId = it.id }) else null,
                         onAutoSchedule = if (canEdit && state.unscheduled.size >= 2) {
                             {
@@ -409,7 +409,7 @@ private fun ItineraryContent(
                         target = target,
                         from = from,
                         onFinish = ::finishDrag,
-                        onEdit = onEditActivity,
+                        onEdit = onOpenActivity,
                         canEdit = canEdit,
                         onExplore = onExplore,
                         emptyTitle = stringResource(Res.string.itinerary_empty_title, state.selectedIndex + 1),
@@ -450,7 +450,7 @@ private fun ItineraryContent(
             // the form is another screen: close the list first, or it would stay on top of it
             onOpen = {
                 showUnscheduled = false
-                onEditActivity(it.id)
+                onOpenActivity(it.id)
             },
             onSchedule = { scheduleItemId = it.id },
             onAutoSchedule = if (canEdit && state.unscheduled.size >= 2) {

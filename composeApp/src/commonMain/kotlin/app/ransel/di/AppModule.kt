@@ -125,6 +125,7 @@ val commonModule: Module = module {
     viewModel { params -> PollViewModel(params.get<String>(0), params.get<String>(1), get(), get(), get()) }
     viewModel { params -> CreatePollViewModel(params.get(), params.get(), get(), get()) }
     viewModel { params -> app.ransel.feature.itinerary.PlacePickerViewModel(params.get<String>(), get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.itinerary.ActivityDetailViewModel(params.get<String>(0), params.get<String>(1), get(), get()) }
     viewModel { params -> ActivityFormViewModel(
             tripId = params.get<String>(0),
             itemId = params.get<String?>(1),

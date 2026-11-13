@@ -343,5 +343,5 @@ class ItineraryViewModel(
 fun ItineraryItemDto.toInput() = ItineraryItemInput(
     id = id, dayDate = dayDate, startTime = startTime, endTime = endTime, title = title, category = category,
     placeName = placeName, placeId = placeId, lat = lat, lng = lng, durationMin = durationMin, notes = notes,
-    bookingUrl = bookingUrl, source = source, sortOrder = sortOrder,
+    bookingUrl = bookingUrl, links = links, source = source, sortOrder = sortOrder,
 )
