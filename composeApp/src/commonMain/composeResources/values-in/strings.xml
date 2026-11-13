@@ -1391,6 +1391,20 @@
     <string name="place_category_transport">Transportasi</string>
     <string name="place_category_attraction">Tempat wisata</string>
     <string name="place_category_other">Lainnya</string>
+
+    <!-- Mini map of a day in the itinerary -->
+    <string name="mini_map_description">Peta hari ini, %1$d lokasi</string>
+    <string name="mini_map_open_in_maps">Buka di Google Maps</string>
+    <string name="mini_map_collapsed_title">Peta · %1$d lokasi</string>
+    <string name="mini_map_collapse">Lipat peta</string>
+    <string name="mini_map_expand">Tampilkan peta</string>
+    <string name="mini_map_partial">%1$d aktivitas belum punya lokasi ·</string>
+    <string name="mini_map_add_location">Isi lokasi</string>
+    <string name="mini_map_empty_title">Isi lokasi aktivitas untuk lihat di peta</string>
+    <string name="mini_map_failed_title">Peta gagal dimuat</string>
+    <string name="mini_map_failed_body">Daftar aktivitas tetap bisa dipakai</string>
+    <string name="mini_map_retry">Coba lagi</string>
+    <string name="mini_map_badge">Lokasi nomor %1$d</string>
     <string name="near_title">Cari dekat mana?</string>
     <string name="near_pick">Pilih</string>
     <string name="near_current">Lokasi saat ini</string>

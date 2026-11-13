@@ -56,6 +56,11 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="trip_activity" />
+        <!-- Google Maps SDK for the itinerary's mini map. The key is restricted to our package names and signing
+             certificates; it comes from the build (MAPS_API_KEY_ANDROID), never from git. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
         <!-- Analytics never reads the advertising ID (the permission is removed above as well) -->
         <meta-data
             android:name="google_analytics_adid_collection_enabled"

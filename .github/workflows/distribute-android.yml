@@ -141,6 +141,8 @@ jobs:
           RANSEL_KEYSTORE_PASSWORD: ${{ secrets.RANSEL_KEYSTORE_PASSWORD }}
           RANSEL_KEY_ALIAS: ${{ secrets.RANSEL_KEY_ALIAS }}
           RANSEL_KEY_PASSWORD: ${{ secrets.RANSEL_KEY_PASSWORD }}
+          # Maps SDK key for the itinerary's mini map (restricted by package and SHA-1; read by composeApp/build.gradle.kts)
+          MAPS_API_KEY_ANDROID: ${{ secrets.MAPS_API_KEY_ANDROID }}
         run: |
           # versionName / versionCode are version.properties. This job does not bump them.
           # The release AAB (Play) is built only when BUILD_TYPE=release, which only the Release workflow sets.

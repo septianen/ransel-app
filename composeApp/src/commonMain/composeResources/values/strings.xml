@@ -1403,6 +1403,20 @@
     <string name="place_category_transport">Transport</string>
     <string name="place_category_attraction">Attraction</string>
     <string name="place_category_other">Other</string>
+
+    <!-- Mini map of a day in the itinerary -->
+    <string name="mini_map_description">Map of today, %1$d places</string>
+    <string name="mini_map_open_in_maps">Open in Google Maps</string>
+    <string name="mini_map_collapsed_title">Map · %1$d places</string>
+    <string name="mini_map_collapse">Fold the map</string>
+    <string name="mini_map_expand">Show the map</string>
+    <string name="mini_map_partial">%1$d activities have no location ·</string>
+    <string name="mini_map_add_location">Add location</string>
+    <string name="mini_map_empty_title">Add a location to see activities on the map</string>
+    <string name="mini_map_failed_title">Map failed to load</string>
+    <string name="mini_map_failed_body">Your activity list still works</string>
+    <string name="mini_map_retry">Try again</string>
+    <string name="mini_map_badge">Location number %1$d</string>
     <string name="near_title">Search near where?</string>
     <string name="near_pick">Pick</string>
     <string name="near_current">Current location</string>
