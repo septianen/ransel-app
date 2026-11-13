@@ -262,7 +262,7 @@ fun sizeText(bytes: Long): String = when {
 private fun activityText(item: ItineraryItemDto, tripStart: LocalDate?): String? {
     val day = item.dayDate ?: return null
     val number = tripStart?.daysUntil(day)?.plus(1) ?: return null
-    val time = item.startTime?.let { "${it.hour.toString().padStart(2, '0')}.${it.minute.toString().padStart(2, '0')}" }
+    val time = item.startTime?.let { "${it.hour.toString().padStart(2, '0')}:${it.minute.toString().padStart(2, '0')}" }
     return listOfNotNull(stringResource(Res.string.itinerary_day_chip, number), time).joinToString(", ")
 }
 

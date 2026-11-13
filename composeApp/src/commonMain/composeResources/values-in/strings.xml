@@ -220,7 +220,7 @@
     <string name="action_edit_trip">Edit trip</string>
 
     <!-- Time and duration -->
-    <string name="time_separator">.</string>
+    <string name="time_separator">:</string>
     <string name="duration_hours">%1$d jam</string>
     <string name="duration_minutes">%1$d mnt</string>
     <string name="duration_hours_minutes">%1$d jam %2$d mnt</string>
@@ -248,7 +248,7 @@
     <string name="itinerary_schedule_change">Ubah</string>
     <string name="itinerary_schedule_after">Setelah %1$s, aktivitas terakhir</string>
     <string name="itinerary_schedule_start_of_day">Hari masih kosong, mulai jam standar</string>
-    <string name="itinerary_schedule_note">Otomatis ditaruh di akhir hari. Hari yang masih kosong mulai pukul 09.00.</string>
+    <string name="itinerary_schedule_note">Otomatis ditaruh di akhir hari. Hari yang masih kosong mulai pukul 09:00.</string>
     <string name="itinerary_schedule_to_day">Jadwalkan ke Hari %1$d</string>
     <string name="itinerary_duration_label">durasi %1$s</string>
 
@@ -845,7 +845,7 @@
     <string name="credits_title">Kredit</string>
     <string name="credits_balance_label">Kreditmu</string>
     <string name="credits_unit">kredit</string>
-    <string name="credits_free_today">Jatah gratis hari ini: %1$d dari %2$d. Terisi lagi 00.00 WIB.</string>
+    <string name="credits_free_today">Jatah gratis hari ini: %1$d dari %2$d. Terisi lagi 00:00 WIB.</string>
     <string name="credits_costs">Biaya (kredit): pencarian baru %1$d</string>
     <string name="credits_voucher_title">Punya kode voucher?</string>
     <string name="credits_voucher_label">Kode voucher</string>
@@ -883,8 +883,8 @@
     <string name="explore_credits_left">%1$d kredit tersisa</string>
     <string name="explore_credits_use">Pencarian ini memakai %1$d kredit.</string>
     <string name="swipe_credits_title">Kreditmu tidak cukup</string>
-    <string name="swipe_credits_body">Ini butuh %1$d kredit dan kamu punya %2$d. Jatah gratis terisi lagi 00.00 WIB, atau tambah kredit dengan kode voucher.</string>
-    <string name="swipe_credits_body_generic">Kreditmu tidak cukup untuk pencarian ini. Jatah gratis terisi lagi 00.00 WIB, atau tambah kredit dengan kode voucher.</string>
+    <string name="swipe_credits_body">Ini butuh %1$d kredit dan kamu punya %2$d. Jatah gratis terisi lagi 00:00 WIB, atau tambah kredit dengan kode voucher.</string>
+    <string name="swipe_credits_body_generic">Kreditmu tidak cukup untuk pencarian ini. Jatah gratis terisi lagi 00:00 WIB, atau tambah kredit dengan kode voucher.</string>
     <string name="swipe_credits_action">Tambah kredit</string>
 
     <!-- Notifikasi -->
@@ -926,7 +926,7 @@
     <string name="notification_settings_expenses">Pengeluaran dan pelunasan</string>
     <string name="notification_settings_expenses_hint">Pengeluaran bersama yang melibatkanmu, dan pembayaran yang ditandai lunas.</string>
     <string name="notification_settings_reminders">Pengingat</string>
-    <string name="notification_settings_reminders_hint">Packing malam sebelum berangkat (18.00) dan 30 menit sebelum aktivitas.</string>
+    <string name="notification_settings_reminders_hint">Packing malam sebelum berangkat (18:00) dan 30 menit sebelum aktivitas.</string>
     <string name="notification_settings_footnote">Kamu tidak dikabari tentang hal yang kamu lakukan sendiri. Jam pengingat memakai waktu Indonesia Barat (WIB).</string>
     <string name="notification_settings_off_title">Notifikasi dimatikan di ponsel</string>
     <string name="notification_settings_off_body">Kamu tetap menerima semuanya di kotak Notifikasi, tapi tidak lewat pop-up.</string>
@@ -1500,7 +1500,7 @@
     <string name="member_list_send_button">Kirim ke %1$d anggota</string>
     <string name="member_list_sent">Daftar terkirim</string>
     <string name="member_list_offline">Daftar anggota perlu koneksi internet.</string>
-    <string name="deadline_time">%1$s %2$s.%3$s</string>
+    <string name="deadline_time">%1$s %2$s:%3$s</string>
     <string name="notification_member_joined_link">%1$s bergabung lewat link</string>
     <string name="guest_sign_in">Masuk</string>
     <string name="guest_poll_asks">%1$s minta pilihanmu · %2$s</string>
@@ -1662,7 +1662,7 @@
     <string name="form_discard_keep">Lanjut isi</string>
     <string name="itinerary_auto_button">Jadwalkan otomatis</string>
     <string name="itinerary_auto_title">Jadwalkan otomatis?</string>
-    <string name="itinerary_auto_body">%1$d tempat akan dijadwalkan ke Hari %2$s, antara 09.00 dan 20.00. Kegiatan yang sudah ada tidak berubah.</string>
+    <string name="itinerary_auto_body">%1$d tempat akan dijadwalkan ke Hari %2$s, antara 09:00 dan 20:00. Kegiatan yang sudah ada tidak berubah.</string>
     <string name="itinerary_auto_left">%1$d tempat tidak muat dan tetap di Belum dijadwalkan.</string>
     <string name="itinerary_auto_none">Tidak ada tempat yang muat di sisa hari. Tambah hari atau kurangi kegiatan dulu.</string>
     <string name="itinerary_auto_confirm">Jadwalkan</string>
