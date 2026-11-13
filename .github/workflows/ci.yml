@@ -1,9 +1,10 @@
 name: CI
 
-# Pull requests into develop. Tests only: the same job as "Deploy server", without the rollout.
+# Pull requests into develop, and into an integration branch (integration/**). Tests only: the same job as "Deploy server",
+# without the rollout.
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop, "integration/**"]
     paths:
       - "server/**"
       - "shared/**"
