@@ -6,7 +6,11 @@ import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PackingRepository
+import app.ransel.data.repository.PendingReceipt
 import app.ransel.data.repository.PersonalItemRepository
+import app.ransel.data.repository.ReceiptPhotoRepository
+import app.ransel.data.repository.ReceiptUploadStatus
+import app.ransel.feature.expenses.receipt.ReceiptImage
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.repository.buildTripSummary
@@ -267,9 +271,12 @@ class RoomExpenseRepository(
     override suspend fun save(tripId: String, input: ExpenseInput) {
         val dao = db.expenseDao()
         val stamp = now().toMillis()
-        val created = dao.get(input.id)?.createdAt ?: stamp
+        val existing = dao.get(input.id)
+        val created = existing?.createdAt ?: stamp
         dao.upsert(
             ExpenseEntity(
+                // an edit never touches the photo: only the server's answer sets (or clears) it
+                receiptDocumentId = existing?.receiptDocumentId,
                 id = input.id, tripId = tripId, amountMinor = input.amountMinor, currency = input.currency,
                 fxRateToBase = input.fxRateToBase, category = input.category.name,
                 paymentMethod = input.paymentMethod.name, note = input.note?.trim()?.ifEmpty { null },
@@ -288,8 +295,36 @@ class RoomExpenseRepository(
 
     override suspend fun delete(tripId: String, expenseId: String) {
         db.expenseDao().softDelete(expenseId, now().toMillis())
+        // a photo still waiting to upload has no expense to belong to any more
+        db.pendingReceiptDao().delete(expenseId)
     }
 }
+
+/** Receipt photos kept in Room until the sync step sends them ([SyncCoordinator.uploadReceipts]). */
+class RoomReceiptPhotoRepository(private val db: RanselDatabase) : ReceiptPhotoRepository {
+    override val supported = true
+
+    override fun observe(tripId: String): Flow<Map<String, PendingReceipt>> =
+        db.pendingReceiptDao().observe(tripId).map { rows -> rows.associate { it.expenseId to it.toPending() } }
+
+    override suspend fun attach(tripId: String, expenseId: String, title: String, image: ReceiptImage) {
+        db.pendingReceiptDao().put(
+            PendingReceiptEntity(expenseId, tripId, title, image.mimeType, image.bytes, ReceiptUploadStatus.WAITING.name, 0, now().toMillis()),
+        )
+    }
+
+    override suspend fun retry(expenseId: String) {
+        db.pendingReceiptDao().setStatus(expenseId, ReceiptUploadStatus.WAITING.name, 0)
+    }
+
+    override suspend fun discard(expenseId: String) {
+        db.pendingReceiptDao().delete(expenseId)
+    }
+}
+
+internal fun PendingReceiptEntity.toPending() = PendingReceipt(
+    expenseId, title, bytes, mimeType, ReceiptUploadStatus.entries.firstOrNull { it.name == status } ?: ReceiptUploadStatus.WAITING,
+)
 
 class RoomPreferencesRepository(private val db: RanselDatabase) : PreferencesRepository {
     override fun observe(): Flow<AppPreferences> = db.preferenceDao().observeAll().map { rows ->

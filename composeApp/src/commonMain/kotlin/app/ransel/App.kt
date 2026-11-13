@@ -850,7 +850,13 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
     }
     page<DocumentsRoute> { entry ->
         val route = entry.toRoute<DocumentsRoute>()
-        app.ransel.feature.documents.DocumentsScreen(tripId = route.tripId, startUpload = route.upload, onBack = { navController.popBackStack() })
+        app.ransel.feature.documents.DocumentsScreen(
+            tripId = route.tripId,
+            startUpload = route.upload,
+            onBack = { navController.popBackStack() },
+            // "Buka pengeluaran" in the viewer of a receipt photo: the trip's Pengeluaran tab
+            onOpenExpenses = { navController.navigate(TripRoute(route.tripId, tab = "EXPENSES")) { popUpTo<TripRoute> { inclusive = true } } },
+        )
     }
     page<app.ransel.navigation.AlbumsRoute> { entry ->
         val route = entry.toRoute<app.ransel.navigation.AlbumsRoute>()

@@ -143,6 +143,24 @@ data class ExpenseEntity(
     /** Where the rate came from, `FxSource` name (DB v8), and the day of the reference rate as ISO text. */
     val fxSource: String? = null,
     val fxDate: String? = null,
+    /** The trip document that is this expense's receipt photo (DB v3); set by the server's answer, never by an edit here. */
+    val receiptDocumentId: String? = null,
+)
+
+/**
+ * A receipt photo kept on the phone until it reaches the server (DB v3): the expense is saved at once, the photo goes up
+ * after the expense has (a document needs the expense on the server). [status] is a `ReceiptUploadStatus` name.
+ */
+@Entity(tableName = "pending_receipts", indices = [Index("tripId")])
+class PendingReceiptEntity(
+    @PrimaryKey val expenseId: String,
+    val tripId: String,
+    val title: String,
+    val mimeType: String,
+    val bytes: ByteArray,
+    val status: String,
+    val attempts: Int = 0,
+    val createdAt: Long,
 )
 
 /** Key/value store for per-device preferences (theme, default currency, ...). Never synced. */
