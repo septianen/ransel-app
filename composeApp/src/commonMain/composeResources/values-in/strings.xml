@@ -762,6 +762,11 @@
     <string name="explore_new_trip_name_hint">Terisi otomatis dari destinasi. Bisa diubah nanti di Edit trip.</string>
     <string name="explore_new_trip_default_name">Trip ke %1$s</string>
     <string name="explore_new_trip_footnote">Trip langsung muncul di Trip saya dengan mata uang default akunmu.</string>
+    <string name="explore_dates_undecided_title">Tanggal belum pasti</string>
+    <string name="explore_dates_undecided_hint">Tentukan nanti. Polling bisa dimulai dari Ringkasan.</string>
+    <string name="explore_new_trip_body_undecided">Isi destinasi, lalu ceritakan seleramu. Tanggal menyusul.</string>
+    <string name="explore_interests_hint_general">umum, tidak musiman</string>
+    <string name="explore_new_trip_footnote_undecided">Trip dibuat tanpa tanggal. Hasil swipe masuk Belum dijadwalkan.</string>
     <string name="explore_search_new_trip">Buat trip dan cari</string>
     <string name="explore_start_failed">Trip belum bisa dibuat. Coba lagi.</string>
     <string name="explore_style">Gaya jalan</string>

@@ -772,6 +772,11 @@
     <string name="explore_new_trip_name_hint">Filled in from the destination. You can change it later in Edit trip.</string>
     <string name="explore_new_trip_default_name">Trip to %1$s</string>
     <string name="explore_new_trip_footnote">The trip appears in My trips right away with your default currency.</string>
+    <string name="explore_dates_undecided_title">Dates not set</string>
+    <string name="explore_dates_undecided_hint">Decide later. You can start a date poll from the Overview.</string>
+    <string name="explore_new_trip_body_undecided">Add a destination, then tell us your taste. Dates come later.</string>
+    <string name="explore_interests_hint_general">general, not seasonal</string>
+    <string name="explore_new_trip_footnote_undecided">The trip is created without dates. Swiped places go to Unscheduled.</string>
     <string name="explore_search_new_trip">Create trip and search</string>
     <string name="explore_start_failed">Could not create the trip. Please try again.</string>
     <string name="explore_style">Travel style</string>
