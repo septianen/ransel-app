@@ -71,7 +71,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | Table | Main columns | Migration (phase) |
 | --- | --- | --- |
 | trips | id, owner\_id, title, destination, start\_date, end\_date (both null = "Tanggal belum pasti", V26), base\_currency, budget\_minor, cover\_url | V1 (1–2) |
-| itinerary\_items | id, trip\_id, day\_date (null = unscheduled), start\_time, end\_time, title, category, place\_name, place\_id, lat, lng, duration\_min (AI estimate), notes, booking\_url, source (MANUAL/AI), sort\_order DOUBLE | V1 (1–2) |
+| itinerary\_items | id, trip\_id, day\_date (null = unscheduled), start\_time, end\_time, title, category, place\_name, place\_id, lat, lng, duration\_min (AI estimate), notes, booking\_url (the first link, kept for apps from before the list), links jsonb (up to 5 normalized web addresses), source (MANUAL/AI), sort\_order DOUBLE | V1 (1–2), V6 (links) |
 | packing\_items | id, trip\_id, category, name, quantity, is\_packed, sort\_order | V1 (1–2) |
 | packing\_templates | id, owner\_id (null = built-in), name, items JSONB; shared\_trip\_id added in V3 | V1, V3 |
 | expenses | id, trip\_id, amount\_minor, currency, fx\_rate\_to\_base, category, payment\_method, note, spent\_at, paid\_by\_member\_id (V15; was paid\_by\_user\_id); **V18:** is\_estimate (paid\_from\_kitty dropped in V24) | V1 (1–2), V15, V18, V24 |
