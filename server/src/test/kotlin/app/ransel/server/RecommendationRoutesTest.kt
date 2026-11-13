@@ -13,6 +13,7 @@ import app.ransel.server.ai.PlacesQuotaException
 import app.ransel.server.ai.PlacesClient
 import app.ransel.shared.model.Category
 import io.ktor.client.statement.readRawBytes
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -572,6 +573,31 @@ class RecommendationRoutesTest {
             val noBudget = level(null)
             assertNull(noBudget["suggestedPriceLevel"])
             assertTrue(noBudget.getValue("interests").jsonArray.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun suggestionsWithoutAMonthUseTheNeutralMonthOfATripWithoutDates() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            val neutral = app.ransel.server.ai.UndatedTrip.month()
+            val general = get("/explore/suggestions?destination=Kyoto")
+            assertEquals(HttpStatusCode.OK, general.status, general.bodyAsText())
+            assertEquals(listOf("Diving", "Pura laut", "Sawah terasering"), general.data().jsonObject.getValue("interests").jsonArray.map { it.jsonPrimitive.content })
+            assertEquals(1, llm.interestCalls.get())
+
+            // the same answer is what a trip without dates reads, and what a request for that month reads
+            get("/explore/suggestions?destination=%20kyoto%20&month=$neutral")
+            assertEquals(1, llm.interestCalls.get(), "no month and the neutral month share one cache entry")
+            // another month is another entry, as before
+            get("/explore/suggestions?destination=Kyoto&month=2000-01")
+            assertEquals(2, llm.interestCalls.get())
+
+            // a month that is sent must still be valid, empty included
+            assertEquals("VALIDATION_FAILED", get("/explore/suggestions?destination=Kyoto&month=").errorCode())
+            assertEquals("VALIDATION_FAILED", get("/explore/suggestions?destination=Kyoto&month=2026-13").errorCode())
+            // and a destination is still needed
+            assertEquals("VALIDATION_FAILED", get("/explore/suggestions").errorCode())
         }
     }
 
