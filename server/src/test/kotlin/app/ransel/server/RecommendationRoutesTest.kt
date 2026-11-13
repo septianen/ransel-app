@@ -600,6 +600,12 @@ class RecommendationRoutesTest {
             var waited = 0
             while (llm.interestCalls.get() == 0 && waited++ < 50) kotlinx.coroutines.delay(100)
             assertEquals(1, llm.interestCalls.get(), "creating a trip asks for its destination interests in the background")
+            // the fake counts a call when it starts, the cache row is written a moment later: wait for the row, or the
+            // request below can beat the background job to the cache and ask again (a flaky 2 on a busy CI runner)
+            waited = 0
+            while (TestDb.column("SELECT count(*) FROM explore_suggestions_cache").single() == "0" && waited++ < 50) {
+                kotlinx.coroutines.delay(100)
+            }
             get("/explore/suggestions?destination=Flores&month=2026-11")
             assertEquals(1, llm.interestCalls.get(), "and the form then reads them from the cache")
         }
