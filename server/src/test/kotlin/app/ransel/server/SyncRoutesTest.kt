@@ -68,8 +68,10 @@ private fun item(
     sort: Double = 1.0,
     updatedAt: Instant = Clock.System.now(),
     deletedAt: Instant? = null,
+    links: List<String>? = null,
+    bookingUrl: String? = null,
 ) = ItineraryItemDto(
-    id = id, tripId = tripId, dayDate = day,
+    id = id, tripId = tripId, dayDate = day, links = links, bookingUrl = bookingUrl,
     startTime = day?.let { LocalTime(10, 0) }, endTime = day?.let { LocalTime(11, 0) },
     title = title, category = Category.ATTRACTION, sortOrder = sort,
     createdAt = Clock.System.now(), updatedAt = updatedAt, deletedAt = deletedAt,
@@ -122,6 +124,22 @@ class SyncRoutesTest {
         assertEquals("CONFLICT", stale.rejected.single().code)
 
         assertEquals("Phone edit", pull().changes.itineraryItems.single().title)
+    }
+
+    @Test
+    fun linksTravelWithTheItemAndAnOlderAppDoesNotWipeTheOthers() = apiTest {
+        val tripId = id()
+        val itemId = id()
+        push(SyncChanges(trips = listOf(trip(tripId)), itineraryItems = listOf(item(tripId, itemId, links = listOf("tiket.com/a", "https://b.example/2")))))
+        val pulled = pull().changes.itineraryItems.single()
+        assertEquals(listOf("https://tiket.com/a", "https://b.example/2"), pulled.links)
+        assertEquals("https://tiket.com/a", pulled.bookingUrl)
+
+        // an app from before the list: no `links`, its single field still holds the first address
+        push(SyncChanges(itineraryItems = listOf(item(tripId, itemId, title = "Old app edit", bookingUrl = "https://tiket.com/a", updatedAt = Clock.System.now() + 1.minutes))))
+        val after = pull().changes.itineraryItems.single()
+        assertEquals("Old app edit", after.title)
+        assertEquals(listOf("https://tiket.com/a", "https://b.example/2"), after.links)
     }
 
     @Test

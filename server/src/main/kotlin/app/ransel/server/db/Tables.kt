@@ -226,7 +226,9 @@ object ItineraryItems : Table("itinerary_items") {
     val lng = double("lng").nullable()
     val durationMin = integer("duration_min").nullable()
     val notes = text("notes").nullable()
+    /** The first link, kept for apps from before the list; [links] is the truth (V6). */
     val bookingUrl = text("booking_url").nullable()
+    val links = jsonb<List<String>>("links", Json)
     val itemSource = enumerationByName<ItemSource>("source", 16)
     val sortOrder = double("sort_order")
     val createdAt = timestamp("created_at")

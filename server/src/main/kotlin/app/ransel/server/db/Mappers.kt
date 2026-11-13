@@ -60,6 +60,7 @@ fun ResultRow.toItineraryItemDto() = ItineraryItemDto(
     durationMin = this[ItineraryItems.durationMin],
     notes = this[ItineraryItems.notes],
     bookingUrl = this[ItineraryItems.bookingUrl],
+    links = this[ItineraryItems.links],
     source = this[ItineraryItems.itemSource],
     sortOrder = this[ItineraryItems.sortOrder],
     createdAt = this[ItineraryItems.createdAt].toTimestamp(),

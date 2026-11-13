@@ -15,6 +15,7 @@ import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
 import app.ransel.server.plugins.validationFailed
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.domain.cleanActivityLinks
 import app.ransel.shared.domain.maxPollOptions
 import app.ransel.shared.domain.validateDatePollOptions
 import app.ransel.shared.domain.POLL_REMINDER_BEFORE
@@ -790,7 +791,11 @@ object PollService {
             it[ItineraryItems.category] = category
             it[placeName] = option[PollOptions.label]
             it[placeId] = option[PollOptions.placeId]
-            it[bookingUrl] = option[PollOptions.url]
+            // the option's link is the activity's first link; text that is not a web address stays in the old field only
+            val optionLink = option[PollOptions.url]
+            val cleaned = cleanActivityLinks(listOfNotNull(optionLink))
+            it[links] = cleaned
+            it[bookingUrl] = cleaned.firstOrNull() ?: optionLink
             it[itemSource] = ItemSource.MANUAL
             it[sortOrder] = last + 1.0
             if (day != null && time != null && dayFits(tripId, day)) {
