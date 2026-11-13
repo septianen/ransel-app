@@ -6,6 +6,7 @@ import app.ransel.shared.dto.ExpenseItemDto
 import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PersonalItemDto
@@ -58,6 +59,7 @@ fun ItineraryItemEntity.toDto() = ItineraryItemDto(
     startTime = startTime?.let(LocalTime::parse), endTime = endTime?.let(LocalTime::parse),
     title = title, category = enumOr(category, Category.OTHER), placeName = placeName, placeId = placeId,
     lat = lat, lng = lng, durationMin = durationMin, notes = notes, bookingUrl = bookingUrl,
+    links = linksJson.toLinks(),
     source = enumOr(source, ItemSource.MANUAL), sortOrder = sortOrder,
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
@@ -108,6 +110,7 @@ fun ItineraryItemDto.toEntity() = ItineraryItemEntity(
     id = id, tripId = tripId, dayDate = dayDate?.toString(), startTime = startTime?.toString(),
     endTime = endTime?.toString(), title = title, category = category.name, placeName = placeName,
     placeId = placeId, lat = lat, lng = lng, durationMin = durationMin, notes = notes, bookingUrl = bookingUrl,
+    linksJson = links.toLinksJson(),
     source = source.name, sortOrder = sortOrder,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
@@ -160,3 +163,12 @@ fun List<ExpenseSplitDto>.toSplitsJson(): String? =
 
 fun String?.toSplits(): List<ExpenseSplitDto> =
     if (isNullOrEmpty()) emptyList() else runCatching { ApiJson.decodeFromString(splitsSerializer, this) }.getOrDefault(emptyList())
+
+private val linksSerializer = ListSerializer(String.serializer())
+
+/** The links of an activity as stored in `linksJson`; null (an app from before the list, or an older server) stays null. */
+internal fun List<String>?.toLinksJson(): String? = this?.let { ApiJson.encodeToString(linksSerializer, it) }
+
+internal fun String?.toLinks(): List<String>? =
+    this?.let { runCatching { ApiJson.decodeFromString(linksSerializer, it) }.getOrNull() }
+

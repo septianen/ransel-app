@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.shared.domain.activityDurationMinutes
+import app.ransel.shared.domain.activityLinks
 import app.ransel.shared.domain.endsNextDay
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
@@ -47,7 +48,8 @@ data class ActivityFormState(
     val lat: Double? = null,
     val lng: Double? = null,
     val notes: String = "",
-    val bookingUrl: String = "",
+    /** The "Link" rows (spec "Banyak link di aktivitas"); empty rows are dropped when saving. */
+    val links: LinkDraft = LinkDraft(),
     val showErrors: Boolean = false,
     val saving: Boolean = false,
 ) {
@@ -97,7 +99,8 @@ class ActivityFormViewModel(
                         title = item.title, category = item.category, day = item.dayDate?.takeIf { days.isNotEmpty() },
                         start = item.startTime, end = item.endTime, placeName = item.placeName.orEmpty(),
                         placeId = item.placeId, lat = item.lat, lng = item.lng,
-                        notes = item.notes.orEmpty(), bookingUrl = item.bookingUrl.orEmpty(),
+                        notes = item.notes.orEmpty(),
+                        links = LinkDraft.of(item.activityLinks(), legacyText = item.bookingUrl),
                     )
                 }
             }
@@ -129,11 +132,13 @@ class ActivityFormViewModel(
     fun onPlaceCleared() = _state.update { it.copy(placeName = "", placeSecondary = null, placeId = null, lat = null, lng = null) }
 
     fun onNotes(v: String) = _state.update { it.copy(notes = v) }
-    fun onBooking(v: String) = _state.update { it.copy(bookingUrl = v) }
+    fun onLinkChange(key: Int, v: String) = _state.update { it.copy(links = it.links.change(key, v)) }
+    fun onLinkRemove(key: Int) = _state.update { it.copy(links = it.links.remove(key)) }
+    fun onLinkAdd() = _state.update { it.copy(links = it.links.add()) }
 
     fun save() {
         val s = _state.value
-        if (s.saving) return
+        if (s.saving || !s.links.canSave) return
         if (s.title.isBlank()) {
             _state.update { it.copy(showErrors = true) }
             return
@@ -148,6 +153,7 @@ class ActivityFormViewModel(
             val unchanged = previous != null && previous.dayDate == s.day && previous.startTime == startTime
             val sortOrder = if (unchanged) previous!!.sortOrder else sortOrderForStart(siblings, startTime)
             val scheduled = s.day != null
+            val savedLinks = s.links.links()
             itinerary.save(
                 tripId,
                 ItineraryItemInput(
@@ -165,7 +171,9 @@ class ActivityFormViewModel(
                     lng = s.lng.takeIf { s.placeName.isNotBlank() && s.placeHasPoint },
                     durationMin = s.durationMin ?: previous?.durationMin,
                     notes = s.notes.trim().ifEmpty { null },
-                    bookingUrl = s.bookingUrl.trim().ifEmpty { null },
+                    // the list is the whole truth (empty = no link); bookingUrl stays the first one for apps from before the list
+                    bookingUrl = savedLinks.firstOrNull(),
+                    links = savedLinks,
                     source = previous?.source ?: ItemSource.MANUAL,
                     sortOrder = sortOrder,
                 ),

@@ -106,6 +106,7 @@ import androidx.navigation.toRoute
 import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.feature.home.HomeScreen
+import app.ransel.feature.itinerary.ActivityDetailScreen
 import app.ransel.feature.itinerary.ActivityFormScreen
 import app.ransel.feature.home.TripSection
 import app.ransel.feature.trip.TripScreen
@@ -125,6 +126,7 @@ import app.ransel.feature.notifications.NotificationSettingsScreen
 import app.ransel.feature.notifications.NotificationsScreen
 import app.ransel.data.notification.PushRegistrar
 import app.ransel.feature.credits.CreditsScreen
+import app.ransel.navigation.ActivityDetailRoute
 import app.ransel.navigation.ActivityFormRoute
 import app.ransel.navigation.ComponentGalleryRoute
 import app.ransel.navigation.CreateTripRoute
@@ -802,7 +804,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
             onMembers = { navController.navigate(MembersRoute(route.tripId)) },
             onExplore = { navController.openExplore(route.tripId, signedIn()) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
-            onEditActivity = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null)) },
+            onOpenActivity = { id -> navController.navigate(ActivityDetailRoute(route.tripId, id)) },
             onFillLocation = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null, openPlace = true)) },
             onOpenPlaceDetail = { placeId, name, currency ->
                 navController.navigate(PlaceDetailRoute(placeId, fromItinerary = true, name = name, currency = currency))
@@ -907,6 +909,15 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
             onLeft = { navController.popBackStack<TripRoute>(inclusive = true) },
             // The owner has nobody to hand the trip to: the trip settings hold "Hapus trip".
             onDeleteTrip = { navController.navigate(EditTripRoute(route.tripId)) },
+        )
+    }
+    page<ActivityDetailRoute> { entry ->
+        val route = entry.toRoute<ActivityDetailRoute>()
+        ActivityDetailScreen(
+            tripId = route.tripId,
+            itemId = route.itemId,
+            onBack = { navController.popBackStack() },
+            onEdit = { navController.navigate(ActivityFormRoute(route.tripId, route.itemId, null)) },
         )
     }
     page<ActivityFormRoute> { entry ->

@@ -146,7 +146,8 @@ class RoomItineraryRepository(private val db: RanselDatabase) : ItineraryReposit
                 startTime = input.startTime?.toString(), endTime = input.endTime?.toString(),
                 title = input.title.trim(), category = input.category.name, placeName = input.placeName,
                 placeId = input.placeId, lat = input.lat, lng = input.lng, durationMin = input.durationMin,
-                notes = input.notes, bookingUrl = input.bookingUrl, source = input.source.name,
+                notes = input.notes, bookingUrl = input.bookingUrl, linksJson = input.links.toLinksJson(),
+                source = input.source.name,
                 sortOrder = input.sortOrder, createdAt = created, updatedAt = stamp, deletedAt = null,
             ),
         )

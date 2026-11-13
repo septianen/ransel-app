@@ -303,8 +303,8 @@ class SyncService {
         val asSent = ItineraryItemInput(
             id = dto.id, dayDate = dto.dayDate, startTime = dto.startTime, endTime = dto.endTime, title = dto.title,
             category = dto.category, placeName = dto.placeName, placeId = dto.placeId, lat = dto.lat, lng = dto.lng,
-            durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, source = dto.source,
-            sortOrder = dto.sortOrder,
+            durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, links = dto.links,
+            source = dto.source, sortOrder = dto.sortOrder,
         )
         val problems = ItineraryService.validate(asSent)
         if (problems.isNotEmpty()) throw validation(problems)
@@ -326,9 +326,10 @@ class SyncService {
         } else {
             if (existing[ItineraryItems.tripId] != tripId) throw conflict("Item belongs to another trip")
             requireNewer(dto.updatedAt, existing[ItineraryItems.updatedAt])
+            val kept = existing[ItineraryItems.links]
             ItineraryItems.update({ ItineraryItems.id eq id }) {
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
-                ItineraryService.fill(it, input)
+                ItineraryService.fill(it, input, kept)
             }
         }
     }
