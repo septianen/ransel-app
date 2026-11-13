@@ -1849,4 +1849,14 @@
     <string name="tour_expenses_body">Catat pengeluaran lewat +. Di Saldo, RANSEL menghitung siapa bayar ke siapa dengan transfer paling sedikit.</string>
     <string name="tour_swipe_title">Geser kartunya</string>
     <string name="tour_swipe_body">Kanan untuk simpan ke Belum dijadwalkan, kiri untuk lewati.</string>
+    <string name="photo_viewer_position">%1$d dari %2$d</string>
+    <string name="photo_viewer_description">Foto %1$d dari %2$d, %3$s</string>
+    <string name="photo_viewer_not_saved">Belum tersimpan di HP</string>
+    <string name="photo_viewer_not_saved_body">Sambungkan internet untuk membuka foto ini.</string>
+    <string name="photo_viewer_failed">Foto gagal dimuat</string>
+    <string name="photo_viewer_retry">Coba lagi</string>
+    <string name="photo_viewer_hint">Geser untuk foto lain · cubit atau ketuk dua kali untuk zoom</string>
+    <string name="photo_viewer_zoom_in">Perbesar</string>
+    <string name="photo_viewer_zoom_out">Perkecil</string>
+    <string name="photo_viewer_decimal">,</string>
 </resources>

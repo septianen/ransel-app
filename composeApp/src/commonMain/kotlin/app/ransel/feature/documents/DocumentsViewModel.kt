@@ -7,6 +7,9 @@ import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PreferencesRepository
+import app.ransel.feature.documents.viewer.PhotoLoad
+import app.ransel.feature.documents.viewer.PhotoLoader
+import app.ransel.feature.documents.viewer.ViewerPhoto
 import app.ransel.platform.DeviceFiles
 import app.ransel.shared.dto.CreateDocumentRequest
 import app.ransel.shared.dto.ItineraryItemDto
@@ -55,6 +58,9 @@ sealed interface DocumentsEvent {
     data object Added : DocumentsEvent
     data object Deleted : DocumentsEvent
 }
+
+/** The photos of one group of "Dokumen trip" for the full-screen viewer, and which one was tapped. */
+class ViewerRequest(val photos: List<ViewerPhoto>, val startIndex: Int)
 
 /** A file picked to upload. */
 class PickedFile(val name: String, val bytes: ByteArray)
@@ -184,6 +190,48 @@ class DocumentsViewModel(
         }
     }
 
+    /** A document that opens in the in-app photo viewer: an uploaded image (PDF and other types open in another app). */
+    fun isPhoto(doc: TripDocumentDto) = doc.kind == DocumentKind.FILE && doc.mime?.startsWith("image/") == true
+
+    /** The viewer for [doc]: the photos of its group in the order of the list (spec "Viewer foto layar penuh"). */
+    fun viewerFor(doc: TripDocumentDto): ViewerRequest {
+        val photos = _state.value.documents.filter { it.category == doc.category && isPhoto(it) }
+        return ViewerRequest(photos.map(::viewerPhoto), photos.indexOfFirst { it.id == doc.id }.coerceAtLeast(0))
+    }
+
+    private fun viewerPhoto(doc: TripDocumentDto) = ViewerPhoto(doc.id, heading = doc.title, title = doc.title, subtitle = doc.uploadedByName)
+
+    /** What the viewer shows: the copy kept on the phone, else a download (kept for the next time on phones). */
+    val photoLoader = PhotoLoader { photo ->
+        val doc = _state.value.documents.firstOrNull { it.id == photo.id } ?: return@PhotoLoader PhotoLoad.Failed
+        val name = fileName(doc)
+        if (files.keepsFiles) files.read(name)?.let { return@PhotoLoader PhotoLoad.Ready(it) }
+        val link = when (val result = api.documentDownload(tripId, doc.id)) {
+            is ApiResult.Success -> result.value.url
+            is ApiResult.Failure -> return@PhotoLoader if (result.error.status == null) PhotoLoad.Offline else PhotoLoad.Failed
+        }
+        when (val bytes = api.downloadBytes(link)) {
+            is ApiResult.Success -> {
+                if (files.keepsFiles) {
+                    files.save(name, bytes.value)
+                    _state.update { it.copy(kept = it.kept + doc.id) }
+                }
+                PhotoLoad.Ready(bytes.value)
+            }
+            is ApiResult.Failure -> if (bytes.error.status == null) PhotoLoad.Offline else PhotoLoad.Failed
+        }
+    }
+
+    /** The gesture hint shows on the first [HINT_OPENINGS] openings of the viewer (a counter on this device). */
+    suspend fun viewerHintDue(): Boolean = (preferences.getString(HINT_KEY)?.toIntOrNull() ?: 0) < HINT_OPENINGS
+
+    fun viewerOpened() {
+        viewModelScope.launch {
+            val count = preferences.getString(HINT_KEY)?.toIntOrNull() ?: 0
+            if (count < HINT_OPENINGS) preferences.putString(HINT_KEY, (count + 1).toString())
+        }
+    }
+
     private fun problem(code: String) {
         viewModelScope.launch { events.send(DocumentsEvent.Problem(code)) }
     }
@@ -193,6 +241,8 @@ class DocumentsViewModel(
 
     companion object {
         const val OPEN_FAILED = "OPEN_FAILED"
+        const val HINT_KEY = "photo_viewer_hint_count"
+        const val HINT_OPENINGS = 3
         const val LINK = "LINK"
         const val TITLE = "TITLE"
         private val listSerializer = ListSerializer(TripDocumentDto.serializer())
