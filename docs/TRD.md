@@ -93,7 +93,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | member\_lists, member\_list\_items, member\_list\_recipients; packing\_items.assignee\_member\_id | the owner's members' packing list (one per trip, `version`), its lines, its chosen recipients; who brings a Bersama item | V21 |
 | guest\_sessions; polls.share\_code | guest page: token hash per browser and member; a poll's guest link | V22 |
 | users.avatar\_url, image files | profile photos (V31) and trip covers (`trips.cover_url`, set by the server only) as JPEG files on the VPS disk (`IMAGES_DIR`) | V31 |
-| trip\_documents, trip\_templates | documents (FILE on the VPS disk or LINK) and trip templates (itinerary by day number + packing) | V23 |
+| trip\_documents, trip\_templates | documents (FILE on the VPS disk or LINK; `expense_id` (V7) makes a photo the receipt of one expense, one live photo per expense, deleted together with it) and trip templates (itinerary by day number + packing) | V23 |
 | recommendation\_cache | query\_hash, destination, response JSONB, model, hit\_count, expires\_at | V4 (5) |
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
 | credit\_wallets, credit\_daily, credit\_ledger | wallet balance per user (created with the signup grant), free credits used per WIB day, append-only ledger (SPEND/SIGNUP\_GRANT/VOUCHER/TOPUP/...) | V8 (5) |
