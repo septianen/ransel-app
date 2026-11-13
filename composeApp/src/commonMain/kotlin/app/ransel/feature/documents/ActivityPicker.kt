@@ -149,7 +149,7 @@ private fun ActivityPickerContent(
                             Text(item.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             item.startTime?.let { t ->
                                 Text(
-                                    "${t.hour.toString().padStart(2, '0')}.${t.minute.toString().padStart(2, '0')}",
+                                    "${t.hour.toString().padStart(2, '0')}:${t.minute.toString().padStart(2, '0')}",
                                     style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
                                 )
                             }

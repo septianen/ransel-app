@@ -361,7 +361,7 @@
     <string name="settings_credits_title">Kredit AI</string>
     <string name="settings_credits_subtitle">Berlaku untuk semua pengguna; saldo yang sudah ada tidak berubah</string>
     <string name="settings_signup_grant">Bonus saat daftar</string>
-    <string name="settings_daily_free">Gratis per hari (reset 00.00 WIB)</string>
+    <string name="settings_daily_free">Gratis per hari (reset 00:00 WIB)</string>
     <string name="settings_cost_search">Biaya pencarian baru</string>
     <string name="settings_cost_next_batch">Biaya batch berikutnya</string>
     <string name="settings_cost_place_detail">Biaya bangun ulang detail tempat</string>

@@ -12,7 +12,7 @@ import ransel.composeapp.generated.resources.duration_hours_minutes
 import ransel.composeapp.generated.resources.duration_minutes
 import ransel.composeapp.generated.resources.time_separator
 
-/** "09.00" (Indonesian) / "09:00" (English): separator comes from `time_separator`. */
+/** "09:00" in both languages (owner, 13 Nov 2026): the separator comes from `time_separator`. */
 @Composable
 fun formatTime(time: LocalTime): String {
     val separator = stringResource(Res.string.time_separator)
