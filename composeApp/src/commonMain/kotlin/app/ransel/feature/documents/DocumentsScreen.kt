@@ -73,6 +73,7 @@ import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.launch
+import app.ransel.feature.documents.viewer.PhotoViewer
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 import org.jetbrains.compose.resources.StringResource
@@ -97,6 +98,9 @@ fun DocumentsScreen(
     val trip by trips.observeTrip(tripId).collectAsState(initial = null)
     var adding by remember { mutableStateOf(startUpload) }
     var sheetProblem by remember { mutableStateOf<String?>(null) }
+    var viewerRequest by remember { mutableStateOf<ViewerRequest?>(null) }
+    var viewerHint by remember { mutableStateOf(false) }
+    LaunchedEffect(viewerRequest != null) { if (viewerRequest != null) viewerHint = viewModel.viewerHintDue() }
     val snackbar = remember { SnackbarHostState() }
     val uriHandler = LocalUriHandler.current
     LaunchedEffect(viewModel) {
@@ -123,13 +127,24 @@ fun DocumentsScreen(
             myMemberId = viewModel.myMemberId,
             isOwner = current?.myRole == TripRole.OWNER,
             onBack = onBack,
-            onOpen = viewModel::open,
+            onOpen = { doc -> if (viewModel.isPhoto(doc)) viewerRequest = viewModel.viewerFor(doc) else viewModel.open(doc) },
             onDelete = viewModel::delete,
         )
         if (canAdd && !state.fromDevice) {
             IconFab(Symbols.add, label = stringResource(Res.string.documents_add), onClick = { sheetProblem = null; adding = true }, modifier = Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(16.dp))
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp)) { UndoSnackbar(message = it.visuals.message) }
+    }
+    viewerRequest?.let { request ->
+        PhotoViewer(
+            photos = request.photos,
+            startIndex = request.startIndex,
+            loader = viewModel.photoLoader,
+            onClose = { viewerRequest = null },
+            prefetch = viewModel.keepsFiles,
+            showHint = viewerHint,
+            onHintShown = viewModel::viewerOpened,
+        )
     }
     if (adding && canAdd) {
         AddDocumentSheet(

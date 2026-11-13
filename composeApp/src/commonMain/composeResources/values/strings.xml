@@ -1882,4 +1882,14 @@
     <string name="tour_expenses_body">Add expenses with +. Balances works out who pays whom in the fewest transfers.</string>
     <string name="tour_swipe_title">Swipe the card</string>
     <string name="tour_swipe_body">Right saves it to Unscheduled, left skips it.</string>
+    <string name="photo_viewer_position">%1$d of %2$d</string>
+    <string name="photo_viewer_description">Photo %1$d of %2$d, %3$s</string>
+    <string name="photo_viewer_not_saved">Not saved on this phone</string>
+    <string name="photo_viewer_not_saved_body">Connect to the internet to open this photo.</string>
+    <string name="photo_viewer_failed">Photo failed to load</string>
+    <string name="photo_viewer_retry">Try again</string>
+    <string name="photo_viewer_hint">Swipe for other photos · pinch or double-tap to zoom</string>
+    <string name="photo_viewer_zoom_in">Zoom in</string>
+    <string name="photo_viewer_zoom_out">Zoom out</string>
+    <string name="photo_viewer_decimal">.</string>
 </resources>
