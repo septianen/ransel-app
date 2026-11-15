@@ -32,8 +32,12 @@ actual val miniMapSupported: Boolean = true
 
 private const val PIN_DP = 28f
 private const val PIN_SELECTED_DP = 36f
-private const val SINGLE_PIN_ZOOM = 15f
-private const val FIT_PADDING_DP = 32
+/** One pin: a little wider than before (was 15), so the "Buka di Google Maps" chip never sits on it. */
+private const val SINGLE_PIN_ZOOM = 14.5f
+/** More room around the pins than before (was 32 dp): the chip bottom right and the collapse button top right cover that corner of the 160 dp strip. */
+private const val FIT_PADDING_DP = 48
+/** After fitting several pins the camera steps back half a zoom level, so pins near an edge end up clear of the chip. */
+private const val FIT_ZOOM_OUT = 0.5f
 private const val SELECT_ANIMATION_MILLIS = 200
 
 /** No pan, zoom, rotate, tilt, toolbar or compass: the strip only takes taps on pins, so it never holds back the list's scroll. */
@@ -82,6 +86,7 @@ actual fun MiniMapCanvas(
                 CameraUpdateFactory.newLatLngBounds(bounds, fitPaddingPx)
             }
             cameraPositionState.move(update)
+            if (pins.size > 1) cameraPositionState.move(CameraUpdateFactory.zoomBy(-FIT_ZOOM_OUT))
         }
     }
     // a row was picked in the list: the map moves to its pin
