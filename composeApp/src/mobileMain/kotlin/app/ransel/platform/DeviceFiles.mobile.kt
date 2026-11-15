@@ -9,6 +9,7 @@ import io.github.vinceglb.filekit.dialogs.openFileWithDefaultApplication
 import io.github.vinceglb.filekit.dialogs.shareFile
 import io.github.vinceglb.filekit.div
 import io.github.vinceglb.filekit.exists
+import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.filesDir
 import io.github.vinceglb.filekit.write
 
@@ -19,6 +20,11 @@ private object MobileDeviceFiles : DeviceFiles {
     private fun folder(): PlatformFile = FileKit.filesDir / "documents"
 
     override suspend fun has(name: String) = (folder() / name).exists()
+
+    override suspend fun read(name: String): ByteArray? {
+        val file = folder() / name
+        return if (file.exists()) file.readBytes() else null
+    }
 
     override suspend fun save(name: String, bytes: ByteArray) {
         folder().createDirectories()

@@ -4,8 +4,10 @@ import app.ransel.feature.itinerary.map.MapPin
 import app.ransel.feature.itinerary.map.firstUnlocated
 import app.ransel.feature.itinerary.map.googleMapsUrl
 import app.ransel.feature.itinerary.map.hasMapPoint
+import app.ransel.feature.itinerary.map.isMiniMapOpen
 import app.ransel.feature.itinerary.map.mapPinsOf
 import app.ransel.feature.itinerary.map.pinToOpen
+import app.ransel.feature.itinerary.map.storedMiniMapOpen
 import app.ransel.feature.itinerary.map.unlocatedCount
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.model.Category
@@ -71,5 +73,17 @@ class MiniMapModelTest {
         val url = googleMapsUrl(pins[1])
         assertEquals("https://www.google.com/maps/search/?api=1&query=-8.6,115.3", url)
         assertFalse("dir" in url, "a place, never directions (navigation is a PRD non-goal)")
+    }
+
+    @Test
+    fun theMapIsClosedUntilTheUserOpensItAndTheChoiceIsRemembered() {
+        assertFalse(isMiniMapOpen(null), "never set: closed, so no map is built")
+        assertFalse(isMiniMapOpen(""))
+        assertFalse(isMiniMapOpen("0"))
+        assertTrue(isMiniMapOpen("1"))
+        assertEquals("1", storedMiniMapOpen(true))
+        assertNull(storedMiniMapOpen(false), "closing again goes back to the default")
+        assertTrue(isMiniMapOpen(storedMiniMapOpen(true)))
+        assertFalse(isMiniMapOpen(storedMiniMapOpen(false)))
     }
 }

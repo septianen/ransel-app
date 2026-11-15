@@ -28,11 +28,11 @@ import kotlin.test.assertTrue
 private fun JsonObject.str(key: String) = getValue(key).jsonPrimitive.content
 
 /** A multipart upload as the signed-in account. */
-private suspend fun Api.upload(tripId: String, id: String, bytes: ByteArray, name: String = "tiket.pdf", mime: String = "application/pdf", title: String = "Tiket pesawat CGK–DPS"): HttpResponse =
+private suspend fun Api.upload(tripId: String, id: String, bytes: ByteArray, name: String = "tiket.pdf", mime: String = "application/pdf", title: String = "Tiket pesawat CGK–DPS", expenseId: String? = null): HttpResponse =
     client.submitFormWithBinaryData(
         url = "/api/v1/trips/$tripId/documents",
         formData = formData {
-            append("meta", """{"id":"$id","title":"$title","category":"TRAVEL"}""", Headers.build { append(HttpHeaders.ContentType, "application/json") })
+            append("meta", """{"id":"$id","title":"$title","category":"TRAVEL"${if (expenseId != null) ""","expenseId":"$expenseId"""" else ""}}""", Headers.build { append(HttpHeaders.ContentType, "application/json") })
             append("file", bytes, Headers.build {
                 append(HttpHeaders.ContentType, mime)
                 append(HttpHeaders.ContentDisposition, "filename=\"$name\"")
@@ -165,5 +165,76 @@ class DocumentRoutesTest {
         scheduler.tick(at("2026-11-25", "09:00"))
         val recaps = get("/notifications").data().jsonObject.getValue("items").jsonArray.map { it.jsonObject }.filter { it.str("type") == "RECAP_READY" }
         assertEquals(1, recaps.size, "once, however many mornings pass")
+    }
+}
+
+/** Receipt photos (card "foto struk"): a document that belongs to one expense. */
+class ReceiptPhotoRoutesTest {
+    private val photo = byteArrayOf(-1, -40, -1, -32, 1, 2, 3, 4)
+
+    private suspend fun Api.expense(trip: String): String = UUID.randomUUID().toString().also {
+        val created = post("/trips/$trip/expenses", """{"id":"$it","amountMinor":845000,"currency":"IDR","category":"FOOD","spentAt":"2026-11-20T05:00:00Z","splits":[]}""")
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+    }
+
+    private suspend fun Api.expenses(trip: String) = get("/trips/$trip/expenses").data().jsonArray.map { it.jsonObject }
+
+    @Test
+    fun aPhotoBecomesTheReceiptOfItsExpenseAndStaysOtherOnTheWire() = apiTest {
+        val (trip, _, _) = docTrip()
+        val expense = expense(trip)
+        val doc = UUID.randomUUID().toString()
+        val created = upload(trip, doc, photo, name = "struk.jpg", mime = "image/jpeg", title = "Warung Made", expenseId = expense)
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        val body = created.data().jsonObject
+        assertEquals(expense, body.str("expenseId"))
+        assertEquals("OTHER", body.str("category"), "apps from before the group parse the list")
+
+        assertEquals(doc, expenses(trip).single().str("receiptDocumentId"))
+        assertEquals(expense, get("/trips/$trip/documents").data().jsonObject.getValue("items").jsonArray.single().jsonObject.str("expenseId"))
+    }
+
+    @Test
+    fun aNewPhotoReplacesTheOldOneAndFreesItsSpace() = apiTest {
+        val (trip, _, _) = docTrip()
+        val expense = expense(trip)
+        val first = UUID.randomUUID().toString()
+        val second = UUID.randomUUID().toString()
+        upload(trip, first, photo, name = "a.jpg", mime = "image/jpeg", expenseId = expense)
+        val bigger = photo + ByteArray(100)
+        assertEquals(HttpStatusCode.Created, upload(trip, second, bigger, name = "b.jpg", mime = "image/jpeg", expenseId = expense).status)
+
+        val list = get("/trips/$trip/documents").data().jsonObject
+        assertEquals(listOf(second), list.getValue("items").jsonArray.map { it.jsonObject.str("id") })
+        assertEquals(bigger.size.toString(), list.str("usedBytes"))
+        assertEquals(second, expenses(trip).single().str("receiptDocumentId"))
+    }
+
+    @Test
+    fun deletingTheDocumentDeletesTheExpenseAndTheOtherWayRound() = apiTest {
+        val (trip, _, _) = docTrip()
+        val e1 = expense(trip)
+        val d1 = UUID.randomUUID().toString()
+        upload(trip, d1, photo, name = "a.jpg", mime = "image/jpeg", expenseId = e1)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/$trip/documents/$d1").status)
+        assertTrue(expenses(trip).none { it.str("id") == e1 }, "the expense went with its photo")
+
+        val e2 = expense(trip)
+        val d2 = UUID.randomUUID().toString()
+        upload(trip, d2, photo, name = "b.jpg", mime = "image/jpeg", expenseId = e2)
+        assertEquals(HttpStatusCode.NoContent, delete("/trips/$trip/expenses/$e2").status)
+        val list = get("/trips/$trip/documents").data().jsonObject
+        assertTrue(list.getValue("items").jsonArray.isEmpty(), "the photo went with its expense")
+        assertEquals("0", list.str("usedBytes"))
+    }
+
+    @Test
+    fun anExpenseOfAnotherTripIsRefused() = apiTest {
+        val (other, _, _) = docTrip()
+        val foreign = expense(other)
+        val (trip, _, _) = docTrip()
+        val refused = upload(trip, UUID.randomUUID().toString(), photo, name = "a.jpg", mime = "image/jpeg", expenseId = foreign)
+        assertEquals(HttpStatusCode.UnprocessableEntity, refused.status)
+        assertEquals("NOT_IN_TRIP", refused.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("expenseId"))
     }
 }

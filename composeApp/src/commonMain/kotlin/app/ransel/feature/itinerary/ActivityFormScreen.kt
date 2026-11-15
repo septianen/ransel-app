@@ -30,8 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.model.Category
@@ -53,7 +51,6 @@ import kotlinx.datetime.LocalTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.activity_booking
 import ransel.composeapp.generated.resources.activity_category
 import ransel.composeapp.generated.resources.activity_day
 import ransel.composeapp.generated.resources.activity_day_unscheduled
@@ -118,7 +115,7 @@ fun ActivityFormScreen(
         onBack = onClose,
         saveLabel = stringResource(Res.string.activity_save),
         onSave = viewModel::save,
-        saveEnabled = !state.loading,
+        saveEnabled = !state.loading && state.links.canSave,
         saving = state.saving,
     ) {
         IrisTextField(
@@ -249,14 +246,11 @@ fun ActivityFormScreen(
             onValueChange = viewModel::onNotes,
             singleLine = false,
         )
-        IrisTextField(
-            label = stringResource(Res.string.activity_booking),
-            labelSuffix = stringResource(Res.string.trip_optional),
-            value = state.bookingUrl,
-            onValueChange = viewModel::onBooking,
-            leadingSymbol = Symbols.link,
-            placeholder = "https://",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        ActivityLinksSection(
+            draft = state.links,
+            onChange = viewModel::onLinkChange,
+            onRemove = viewModel::onLinkRemove,
+            onAdd = viewModel::onLinkAdd,
         )
 
         if (state.isEditing) {

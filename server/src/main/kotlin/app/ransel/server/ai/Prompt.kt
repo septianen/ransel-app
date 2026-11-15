@@ -13,10 +13,10 @@ object Prompt {
         "priceLevel":0-4,"costUsd":number or null,"suggestedDurationMin":minutes,"lat":number,"lng":number,
         "about":"1 to 2 short sentences in Indonesian, at most 35 words",
         "highlights":["up to 2 short practical tips in Indonesian, 8 words each"],
-        "openingHours":[{"label":"Setiap hari","hours":"08.00 – 18.00"}],
+        "openingHours":[{"label":"Setiap hari","hours":"08:00 – 18:00"}],
         "bestTime":"short phrase in Indonesian, for example Pagi sebelum jam 9"}]}
         about, highlights, openingHours and bestTime: only what you are fairly sure of. openingHours are the typical hours
-        (group days that share hours, at most 3 lines, 24-hour clock with dots); use [] when you do not know them and
+        (group days that share hours, at most 3 lines, 24-hour clock with colons (08:00)); use [] when you do not know them and
         null for about or bestTime when unsure. Never invent facts.
         Use category FOOD for restaurants, cafes and street food; ATTRACTION for sights, nature and activities.
         costUsd is the typical cost per person in US dollars: one meal for food, the ticket for an attraction, one
@@ -73,7 +73,7 @@ object Prompt {
     fun detailSystem(): String = """
         You are a travel planner. Reply with a single JSON object and nothing else, in exactly this shape:
         {"about":"2 to 3 sentences in Indonesian about the place","highlights":["up to 3 short practical tips in Indonesian"],
-        "openingHours":[{"label":"Setiap hari","hours":"08.00 – 18.00"}],"bestTime":"short phrase in Indonesian","costUsd":number or null}
+        "openingHours":[{"label":"Setiap hari","hours":"08:00 – 18:00"}],"bestTime":"short phrase in Indonesian","costUsd":number or null}
         Only what you are fairly sure of: use [] for openingHours you do not know (typical hours, at most 3 lines, 24-hour
         clock with dots), null for about, bestTime or costUsd when unsure. costUsd is the typical cost per person in US
         dollars, null when free. Never invent facts.

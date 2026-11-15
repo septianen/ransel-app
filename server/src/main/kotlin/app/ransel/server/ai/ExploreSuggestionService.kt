@@ -70,9 +70,11 @@ class ExploreSuggestionService(
         }
         val place = destination?.trim().orEmpty()
         if (place.isEmpty() || place.length > MAX_DESTINATION) throw validationFailed(mapOf("destination" to "REQUIRED"))
-        if (month == null || !MONTH.matches(month)) throw validationFailed(mapOf("month" to "INVALID"))
-        val guide = guide(place, month, language)
-        return ExploreSuggestionsResponse(interests = curated(place, month, language, guide?.interests.orEmpty()))
+        // no month = a trip that has no dates yet: the same neutral month every undated trip uses (UndatedTrip)
+        if (month != null && !MONTH.matches(month)) throw validationFailed(mapOf("month" to "INVALID"))
+        val forMonth = month ?: UndatedTrip.month()
+        val guide = guide(place, forMonth, language)
+        return ExploreSuggestionsResponse(interests = curated(place, forMonth, language, guide?.interests.orEmpty()))
     }
 
     /** The price edges for a destination and month, from the cache or one short LLM call; null when unavailable. */

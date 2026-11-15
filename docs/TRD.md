@@ -71,7 +71,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | Table | Main columns | Migration (phase) |
 | --- | --- | --- |
 | trips | id, owner\_id, title, destination, start\_date, end\_date (both null = "Tanggal belum pasti", V26), base\_currency, budget\_minor, cover\_url | V1 (1–2) |
-| itinerary\_items | id, trip\_id, day\_date (null = unscheduled), start\_time, end\_time, title, category, place\_name, place\_id, lat, lng, duration\_min (AI estimate), notes, booking\_url, source (MANUAL/AI), sort\_order DOUBLE | V1 (1–2) |
+| itinerary\_items | id, trip\_id, day\_date (null = unscheduled), start\_time, end\_time, title, category, place\_name, place\_id, lat, lng, duration\_min (AI estimate), notes, booking\_url (the first link, kept for apps from before the list), links jsonb (up to 5 normalized web addresses), source (MANUAL/AI), sort\_order DOUBLE | V1 (1–2), V6 (links) |
 | packing\_items | id, trip\_id, category, name, quantity, is\_packed, sort\_order | V1 (1–2) |
 | packing\_templates | id, owner\_id (null = built-in), name, items JSONB; shared\_trip\_id added in V3 | V1, V3 |
 | expenses | id, trip\_id, amount\_minor, currency, fx\_rate\_to\_base, category, payment\_method, note, spent\_at, paid\_by\_member\_id (V15; was paid\_by\_user\_id); **V18:** is\_estimate (paid\_from\_kitty dropped in V24) | V1 (1–2), V15, V18, V24 |
@@ -93,7 +93,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | member\_lists, member\_list\_items, member\_list\_recipients; packing\_items.assignee\_member\_id | the owner's members' packing list (one per trip, `version`), its lines, its chosen recipients; who brings a Bersama item | V21 |
 | guest\_sessions; polls.share\_code | guest page: token hash per browser and member; a poll's guest link | V22 |
 | users.avatar\_url, image files | profile photos (V31) and trip covers (`trips.cover_url`, set by the server only) as JPEG files on the VPS disk (`IMAGES_DIR`) | V31 |
-| trip\_documents, trip\_templates | documents (FILE on the VPS disk or LINK) and trip templates (itinerary by day number + packing) | V23 |
+| trip\_documents, trip\_templates | documents (FILE on the VPS disk or LINK; `expense_id` (V7) makes a photo the receipt of one expense, one live photo per expense, deleted together with it) and trip templates (itinerary by day number + packing) | V23 |
 | recommendation\_cache | query\_hash, destination, response JSONB, model, hit\_count, expires\_at | V4 (5) |
 | recommendation\_feedback | trip\_id, user\_id, place\_id, place\_name, category, action (LIKE/SKIP) | V4 (5) |
 | credit\_wallets, credit\_daily, credit\_ledger | wallet balance per user (created with the signup grant), free credits used per WIB day, append-only ledger (SPEND/SIGNUP\_GRANT/VOUCHER/TOPUP/...) | V8 (5) |

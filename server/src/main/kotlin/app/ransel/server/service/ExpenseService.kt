@@ -96,6 +96,7 @@ object ExpenseService {
         transaction {
             load(tripId, expenseId)
             Expenses.update({ Expenses.id eq expenseId }) { it[deletedAt] = Instant.now() }
+            DocumentService.detachReceipt(expenseId)
         }
     }
 
@@ -166,8 +167,9 @@ object ExpenseService {
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) })
         val payers = loadPayers(rows.map { it[Expenses.id] })
         val items = loadItems(rows.map { it[Expenses.id] })
+        val receipts = DocumentService.receiptsOf(rows.map { it[Expenses.id] })
         return rows.map {
-            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), items[it[Expenses.id]].orEmpty())
+            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), items[it[Expenses.id]].orEmpty(), receipts)
         }
     }
 
@@ -193,7 +195,7 @@ object ExpenseService {
         val splits = ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq expenseId }
             .map { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) }
             .sortedBy { it.memberId }
-        return row.toExpenseDto(splits, loadPayers(listOf(expenseId))[expenseId].orEmpty(), loadItems(listOf(expenseId))[expenseId].orEmpty())
+        return row.toExpenseDto(splits, loadPayers(listOf(expenseId))[expenseId].orEmpty(), loadItems(listOf(expenseId))[expenseId].orEmpty(), DocumentService.receiptsOf(listOf(expenseId)))
     }
 
     internal fun replaceItems(expenseId: UUID, items: List<ExpenseItemDto>) {

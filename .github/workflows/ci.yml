@@ -1,9 +1,10 @@
 name: CI
 
-# Pull requests into develop. Tests only: the same job as "Deploy server", without the rollout.
+# Pull requests into develop, and into an integration branch (integration/**). Tests only: the same job as "Deploy server",
+# without the rollout.
 on:
   pull_request:
-    branches: [develop]
+    branches: [develop, "integration/**"]
     paths:
       - "server/**"
       - "shared/**"
@@ -50,7 +51,7 @@ jobs:
       - name: App update and Karung tests
         run: |
           export CHROME_BIN="$(which google-chrome)"
-          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --tests app.ransel.feature.AppUpdateTest --tests app.ransel.feature.SoftUpdateDialogTest --tests app.ransel.feature.PlacePickerViewModelTest --tests app.ransel.feature.ActivityFormPlaceTest --tests app.ransel.feature.MiniMapModelTest :adminApp:wasmJsBrowserTest --no-daemon
+          ./gradlew :composeApp:testDebugUnitTest --tests app.ransel.feature.ReceiptTest --tests app.ransel.feature.AppUpdateTest --tests app.ransel.feature.SoftUpdateDialogTest --tests app.ransel.feature.PlacePickerViewModelTest --tests app.ransel.feature.ActivityFormPlaceTest --tests app.ransel.feature.MiniMapModelTest --tests app.ransel.feature.ZoomTest --tests app.ransel.feature.DocumentsAndRecapTest --tests app.ransel.feature.ActivityLinksTest --tests app.ransel.feature.LinkDraftTest :adminApp:wasmJsBrowserTest --no-daemon
           python3 - <<'PY'
           import glob, xml.etree.ElementTree as ET
           files = glob.glob('composeApp/build/test-results/testDebugUnitTest/TEST-app.ransel.feature.AppUpdateTest.xml')

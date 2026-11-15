@@ -46,6 +46,8 @@ data class ExpenseDto(
     val fxSource: FxSource? = null,
     /** The day of the reference rate that was used (DAILY), which may be earlier than the expense when that day had none. */
     val fxDate: LocalDate? = null,
+    /** The trip document that is this expense's receipt photo, if it has one. Set by the server; ignored when sent. */
+    val receiptDocumentId: String? = null,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
     val deletedAt: Timestamp? = null,

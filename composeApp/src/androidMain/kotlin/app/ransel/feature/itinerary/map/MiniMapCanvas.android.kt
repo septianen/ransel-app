@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,7 +34,15 @@ actual val miniMapSupported: Boolean = true
 private const val PIN_DP = 28f
 private const val PIN_SELECTED_DP = 36f
 private const val SINGLE_PIN_ZOOM = 15f
-private const val FIT_PADDING_DP = 32
+
+/**
+ * The safe zone of pins (spec "Mini peta", 15 Nov 2026), in dp from the edge of the 160 dp strip: left 40, top 32, right 56,
+ * bottom 64. The chip "Buka di Google Maps" (bottom right), the collapse button (top right) and the Google logo
+ * (bottom left) sit in the margins. `newLatLngBounds` only takes one padding, so the margins are the map's content padding
+ * ([CONTENT_PADDING], which also lifts the logo clear of the chip row) plus a small even padding around the pins.
+ */
+private const val FIT_PADDING_DP = 16
+private val CONTENT_PADDING = PaddingValues(start = 24.dp, top = 16.dp, end = 40.dp, bottom = 48.dp)
 private const val SELECT_ANIMATION_MILLIS = 200
 
 /** No pan, zoom, rotate, tilt, toolbar or compass: the strip only takes taps on pins, so it never holds back the list's scroll. */
@@ -96,6 +105,7 @@ actual fun MiniMapCanvas(
     GoogleMap(
         modifier = modifier,
         cameraPositionState = cameraPositionState,
+        contentPadding = CONTENT_PADDING,
         contentDescription = description,
         properties = properties,
         uiSettings = StripUiSettings,

@@ -1047,7 +1047,7 @@
   {
    "key": "credits_free_today",
    "area": "credits",
-   "id": "Jatah gratis hari ini: %1$d dari %2$d. Terisi lagi 00.00 WIB.",
+   "id": "Jatah gratis hari ini: %1$d dari %2$d. Terisi lagi 00:00 WIB.",
    "en": "Free today: %1$d of %2$d. Refills at 00:00 WIB."
   },
   {
@@ -3573,7 +3573,7 @@
   {
    "key": "itinerary_auto_body",
    "area": "itinerary",
-   "id": "%1$d tempat akan dijadwalkan ke Hari %2$s, antara 09.00 dan 20.00. Kegiatan yang sudah ada tidak berubah.",
+   "id": "%1$d tempat akan dijadwalkan ke Hari %2$s, antara 09:00 dan 20:00. Kegiatan yang sudah ada tidak berubah.",
    "en": "%1$d places will be scheduled on Day %2$s, between 9:00 AM and 8:00 PM. Activities already planned stay as they are."
   },
   {
@@ -3747,7 +3747,7 @@
   {
    "key": "itinerary_schedule_note",
    "area": "itinerary",
-   "id": "Otomatis ditaruh di akhir hari. Hari yang masih kosong mulai pukul 09.00.",
+   "id": "Otomatis ditaruh di akhir hari. Hari yang masih kosong mulai pukul 09:00.",
    "en": "Placed at the end of the day automatically. An empty day starts at 09:00."
   },
   {
@@ -5049,7 +5049,7 @@
   {
    "key": "notification_settings_reminders_hint",
    "area": "notification",
-   "id": "Packing malam sebelum berangkat (18.00) dan 30 menit sebelum aktivitas.",
+   "id": "Packing malam sebelum berangkat (18:00) dan 30 menit sebelum aktivitas.",
    "en": "Packing the evening before departure (18:00) and 30 minutes before an activity."
   },
   {
@@ -7845,13 +7845,13 @@
   {
    "key": "swipe_credits_body",
    "area": "swipe",
-   "id": "Ini butuh %1$d kredit dan kamu punya %2$d. Jatah gratis terisi lagi 00.00 WIB, atau tambah kredit dengan kode voucher.",
+   "id": "Ini butuh %1$d kredit dan kamu punya %2$d. Jatah gratis terisi lagi 00:00 WIB, atau tambah kredit dengan kode voucher.",
    "en": "This needs %1$d credits and you have %2$d. The free daily credits refill at 00:00 WIB, or add credits with a voucher code."
   },
   {
    "key": "swipe_credits_body_generic",
    "area": "swipe",
-   "id": "Kreditmu tidak cukup untuk pencarian ini. Jatah gratis terisi lagi 00.00 WIB, atau tambah kredit dengan kode voucher.",
+   "id": "Kreditmu tidak cukup untuk pencarian ini. Jatah gratis terisi lagi 00:00 WIB, atau tambah kredit dengan kode voucher.",
    "en": "You do not have enough credits for this search. The free daily credits refill at 00:00 WIB, or add credits with a voucher code."
   },
   {

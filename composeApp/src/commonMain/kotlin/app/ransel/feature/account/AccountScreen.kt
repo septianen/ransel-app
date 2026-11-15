@@ -497,10 +497,10 @@ private fun ProfileRow(name: String, email: String, avatarUrl: String?, busy: Bo
     }
 }
 
-/** "14.32" in the device's time zone (the app writes times as HH.mm, like the design). */
+/** "14:32" in the device's time zone (the app writes times as HH:mm in both languages, owner 13 Nov 2026). */
 private fun formatClock(instant: kotlin.time.Instant): String {
     val t = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${t.hour.toString().padStart(2, '0')}.${t.minute.toString().padStart(2, '0')}"
+    return "${t.hour.toString().padStart(2, '0')}:${t.minute.toString().padStart(2, '0')}"
 }
 
 @Composable

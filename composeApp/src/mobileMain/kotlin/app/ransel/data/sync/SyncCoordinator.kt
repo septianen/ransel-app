@@ -16,7 +16,11 @@ import app.ransel.data.local.toEntity
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.local.RejectedRow
 import app.ransel.data.remote.RanselApi
+import app.ransel.data.repository.ReceiptUploadStatus
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.dto.CreateDocumentRequest
+import app.ransel.shared.model.DocumentCategory
+import app.ransel.util.newId
 import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncRejection
@@ -49,6 +53,7 @@ private const val MAX_PUSH_ROWS = 500
 private const val PULL_TRIPS_PER_PAGE = 20
 private const val PERIOD_SECONDS = 60L
 private const val DEBOUNCE_MILLIS = 1_500L
+private const val MAX_RECEIPT_ATTEMPTS = 3
 
 /**
  * Offline-first sync (docs/TRD.md "Offline-first sync"): push every PENDING row, then pull what changed
@@ -177,6 +182,8 @@ class SyncCoordinator(
                 Pulled.INCOMPLETE -> Unit
                 Pulled.DONE -> if (full) dropRejected()
             }
+            // receipt photos go after their expenses; the server then moves the expense, so pull once more for `receiptDocumentId`
+            if (uploadReceipts()) pull(false)
             if (_offline.value) {
                 // The connection came back: tell the user what went out.
                 _offline.value = false
@@ -190,6 +197,41 @@ class SyncCoordinator(
     }
 
     private class PushResult(val needsFullPull: Boolean)
+
+    /**
+     * Sends the receipt photos kept on the phone whose expense is on the server (a document needs it). Offline: stays
+     * waiting. The trip's storage full: [ReceiptUploadStatus.FULL] (the expense keeps its place without a photo). Other
+     * failures are tried [MAX_RECEIPT_ATTEMPTS] times, then [ReceiptUploadStatus.FAILED] until the user taps "Coba lagi".
+     * A retry after a lost answer makes a second document with the same expense: the server replaces the first.
+     * Returns true when a photo went up.
+     */
+    private suspend fun uploadReceipts(): Boolean {
+        val dao = db.pendingReceiptDao()
+        var sent = false
+        for (photo in dao.waiting()) {
+            val expense = db.expenseDao().get(photo.expenseId)
+            if (expense == null || expense.deletedAt != null) {
+                dao.delete(photo.expenseId)
+                continue
+            }
+            if (expense.syncState != SyncState.SYNCED) continue
+            val meta = CreateDocumentRequest(id = newId(), title = photo.title, category = DocumentCategory.OTHER, expenseId = photo.expenseId)
+            val extension = when (photo.mimeType) { "image/png" -> "png"; "image/webp" -> "webp"; else -> "jpg" }
+            when (val result = api.uploadDocument(photo.tripId, meta, "struk-${photo.expenseId}.$extension", photo.mimeType, photo.bytes)) {
+                is ApiResult.Success -> {
+                    dao.delete(photo.expenseId)
+                    sent = true
+                }
+                is ApiResult.Failure -> when {
+                    result.error.status == null -> return sent
+                    result.error.code == ErrorCode.STORAGE_FULL -> dao.setStatus(photo.expenseId, ReceiptUploadStatus.FULL.name, photo.attempts + 1)
+                    photo.attempts + 1 >= MAX_RECEIPT_ATTEMPTS -> dao.setStatus(photo.expenseId, ReceiptUploadStatus.FAILED.name, photo.attempts + 1)
+                    else -> dao.setStatus(photo.expenseId, ReceiptUploadStatus.WAITING.name, photo.attempts + 1)
+                }
+            }
+        }
+        return sent
+    }
 
     /** Sends pending rows in batches. Null = offline (nothing more is attempted). */
     private suspend fun push(): PushResult? {
@@ -400,6 +442,7 @@ class SyncCoordinator(
             dao.clearPersonal()
             dao.clearExpenses()
             dao.clearTrips()
+            db.pendingReceiptDao().deleteAll()
             db.preferenceDao().remove(LAST_SYNC_KEY)
             db.preferenceDao().remove(DROPPED_KEY)
         }

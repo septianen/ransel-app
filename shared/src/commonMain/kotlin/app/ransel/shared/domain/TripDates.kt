@@ -35,7 +35,7 @@ fun ItineraryItemDto.toUnscheduledInput(): ItineraryItemInput {
     return ItineraryItemInput(
         id = id, dayDate = null, startTime = null, endTime = null, title = title, category = category,
         placeName = placeName, placeId = placeId, lat = lat, lng = lng,
-        durationMin = durationMin ?: minutes, notes = notes, bookingUrl = bookingUrl, source = source,
+        durationMin = durationMin ?: minutes, notes = notes, bookingUrl = bookingUrl, links = links, source = source,
         sortOrder = sortOrder,
     )
 }

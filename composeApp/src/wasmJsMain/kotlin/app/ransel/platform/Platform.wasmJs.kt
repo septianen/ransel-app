@@ -41,6 +41,7 @@ actual val platformModule: Module = module {
     single<PackingRepository> { RemotePackingRepository(get()) }
     single<app.ransel.data.repository.PersonalItemRepository> { app.ransel.data.remote.RemotePersonalItemRepository(get()) }
     single<ExpenseRepository> { RemoteExpenseRepository(get()) }
+    single<app.ransel.data.repository.ReceiptPhotoRepository> { app.ransel.data.repository.NoReceiptPhotos }
     single<PreferencesRepository> { LocalStoragePreferencesRepository() }
 }
 

@@ -81,7 +81,7 @@ val commonModule: Module = module {
     viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get(), if (params.values.getOrNull(1) == true) get() else null) }
     viewModel { params -> app.ransel.feature.packing.GroupPackingViewModel(params.get(), get(), get(), get(), get()) }
     viewModel { params -> TripSidePanelViewModel(params.get(), get(), get()) }
-    viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get(), get(), get()) }
+    viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.expenses.receipt.ReceiptViewModel(params.get(), get(), get(), get()) }
     viewModel { app.ransel.feature.account.PaymentMethodsViewModel(get(), get()) }
     viewModel { app.ransel.feature.destination.DestinationPickerViewModel(get(), get(), get()) }
@@ -91,7 +91,7 @@ val commonModule: Module = module {
     viewModel { app.ransel.feature.account.DeleteAccountViewModel(get(), get(), get(), get(), get()) }
     viewModelOf(::ChangePasswordViewModel)
     viewModel { params -> app.ransel.feature.recap.RecapViewModel(params.get(), get(), get(), get(), get(), get()) }
-    viewModel { params -> app.ransel.feature.documents.DocumentsViewModel(params.get(), get(), get(), get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.documents.DocumentsViewModel(params.get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.albums.AlbumsViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.albums.AlbumGalleryViewModel(params.get(), get()) }
     viewModel { params -> app.ransel.feature.guest.GuestPageViewModel(params.get(), get(), get(), get()) }
@@ -125,6 +125,7 @@ val commonModule: Module = module {
     viewModel { params -> PollViewModel(params.get<String>(0), params.get<String>(1), get(), get(), get()) }
     viewModel { params -> CreatePollViewModel(params.get(), params.get(), get(), get()) }
     viewModel { params -> app.ransel.feature.itinerary.PlacePickerViewModel(params.get<String>(), get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.itinerary.ActivityDetailViewModel(params.get<String>(0), params.get<String>(1), get(), get()) }
     viewModel { params -> ActivityFormViewModel(
             tripId = params.get<String>(0),
             itemId = params.get<String?>(1),

@@ -127,6 +127,18 @@ import ransel.composeapp.generated.resources.expenses_record
 import ransel.composeapp.generated.resources.itinerary_close
 import ransel.composeapp.generated.resources.itinerary_day_chip
 import app.ransel.ui.components.calendar.RanselDatePickerDialog
+import ransel.composeapp.generated.resources.expense_delete_with_photo_body
+import ransel.composeapp.generated.resources.expense_delete_with_photo_title
+import ransel.composeapp.generated.resources.receipt_photo_unreadable
+import ransel.composeapp.generated.resources.receipt_photo_default_title
+import app.ransel.ui.components.ConfirmDialog
+import app.ransel.platform.deviceFiles
+import app.ransel.feature.expenses.receipt.ReceiptPhotoUi
+import app.ransel.feature.expenses.receipt.ReceiptPhotoSection
+import app.ransel.feature.expenses.receipt.ReceiptImage
+import app.ransel.feature.expenses.receipt.ReceiptAttachment
+import app.ransel.feature.documents.viewer.DocumentPhotoSource
+import app.ransel.data.repository.PendingReceipt
 
 /** Record (existing == null) or edit an expense (design "Catat pengeluaran"). */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,13 +146,20 @@ import app.ransel.ui.components.calendar.RanselDatePickerDialog
 fun ExpenseSheet(
     trip: TripDto,
     existing: ExpenseDto?,
-    onSave: (ExpenseInput) -> Unit,
+    onSave: (ExpenseInput, ReceiptAttachment?) -> Unit,
     onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
     /** Trip members (empty = solo: no paid-by / split section). */
     members: List<TripMemberDto> = emptyList(),
     myMemberId: String? = null,
     api: RanselApi = koinInject(),
+    /** Phones only: the "Foto struk" section shows (the web has no queue for the photo yet). */
+    receiptsSupported: Boolean = false,
+    /** The photo of this expense that is still on the phone (waiting, failed, storage full), if any. */
+    queuedReceipt: PendingReceipt? = null,
+    onRetryReceipt: () -> Unit = {},
+    onDiscardReceipt: () -> Unit = {},
+    onManageDocuments: (() -> Unit)? = null,
 ) {
     val tz = remember(trip.timeZone) { trip.zone() }
     val dates = rememberDateFormatter()
@@ -222,6 +241,12 @@ fun ExpenseSheet(
         else -> split == null || split.isValid(amountMinor, currency)
     }
 
+    var pickedPhoto by remember { mutableStateOf<ReceiptImage?>(null) }
+    var photoUnreadable by remember { mutableStateOf(false) }
+    val receiptTitle = stringResource(Res.string.receipt_photo_default_title, dates.dayMonth(date))
+    var confirmDelete by remember { mutableStateOf(false) }
+    val photoSource = remember(trip.id) { DocumentPhotoSource(trip.id, api, deviceFiles()) }
+
     fun save() {
         if (itemSplit != null && !itemSplit.commitEdit()) return
         val amount = if (itemSplit != null) {
@@ -287,12 +312,13 @@ fun ExpenseSheet(
                 items = keptItems,
                 itemsSplit = itemsSplit,
             ),
+            pickedPhoto?.let { ReceiptAttachment(it, receiptTitle) },
         )
     }
 
     // what the form started with, to ask "Buang perubahan?" only when something changed
     val initial = remember { listOf(currency, amountText, category, note, date, method, rateText, perItem, itemSplit?.snapshot()) to split?.snapshot() }
-    val dirty = initial != (listOf(currency, amountText, category, note, date, method, rateText, perItem, itemSplit?.snapshot()) to split?.snapshot())
+    val dirty = initial != (listOf(currency, amountText, category, note, date, method, rateText, perItem, itemSplit?.snapshot()) to split?.snapshot()) || pickedPhoto != null
     val dayNumber = trip.startDate?.daysUntil(date)?.plus(1) ?: 0
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -331,7 +357,7 @@ fun ExpenseSheet(
             }
             if (onDelete != null) {
                 TextButton(
-                    onClick = onDelete,
+                    onClick = { if (existing?.receiptDocumentId != null || queuedReceipt != null) confirmDelete = true else onDelete() },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) {
@@ -496,6 +522,40 @@ fun ExpenseSheet(
             value = note,
             onValueChange = { note = it },
         )
+
+        if (receiptsSupported) {
+            val photoState = when {
+                pickedPhoto != null -> ReceiptPhotoUi.Picked(pickedPhoto!!)
+                queuedReceipt != null -> ReceiptPhotoUi.Queued(queuedReceipt)
+                existing?.receiptDocumentId != null -> ReceiptPhotoUi.Saved(existing.receiptDocumentId!!)
+                else -> ReceiptPhotoUi.None
+            }
+            ReceiptPhotoSection(
+                state = photoState,
+                title = existing?.note?.takeIf { it.isNotBlank() } ?: receiptTitle,
+                source = photoSource,
+                onPick = { pickedPhoto = it; photoUnreadable = false },
+                onUnreadable = { photoUnreadable = true },
+                onRetry = onRetryReceipt,
+                onDiscardQueued = onDiscardReceipt,
+                onManageDocuments = onManageDocuments,
+            )
+            if (photoUnreadable) {
+                Text(stringResource(Res.string.receipt_photo_unreadable), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+        }
+        if (confirmDelete) {
+            ConfirmDialog(
+                title = stringResource(Res.string.expense_delete_with_photo_title),
+                body = stringResource(Res.string.expense_delete_with_photo_body),
+                confirmLabel = stringResource(Res.string.expense_delete),
+                dismissLabel = stringResource(Res.string.action_cancel),
+                onConfirm = { confirmDelete = false; onDelete?.invoke() },
+                onDismiss = { confirmDelete = false },
+                destructive = true,
+                symbol = Symbols.delete,
+            )
+        }
 
         if (existing?.isEstimate == true) {
             Row(

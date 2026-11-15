@@ -86,7 +86,7 @@ class ReminderScheduler(private val config: AppConfig, private val notifications
         }
     }
 
-    /** "Rekap siap": from 09.00 WIB the day after a trip ended (within a week, so a late deploy still sends it once). */
+    /** "Rekap siap": from 09:00 WIB the day after a trip ended (within a week, so a late deploy still sends it once). */
     private fun recaps(local: LocalDateTime) {
         if (local.hour < RECAP_HOUR) return
         val today = local.toLocalDate()

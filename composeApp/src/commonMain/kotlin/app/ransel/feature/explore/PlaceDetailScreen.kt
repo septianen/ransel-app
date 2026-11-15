@@ -514,7 +514,7 @@ private val PreviewInfo = PlaceDetailInfo(
     address = "Jl. Air Terjun Tegenungan, Kemenuh, Sukawati, Gianyar, Bali",
     about = "Air terjun setinggi sekitar 15 meter di dekat Ubud dengan kolam alami untuk berenang.",
     highlights = listOf("Paling sepi di pagi hari sebelum jam 9.", "Bawa baju ganti dan sandal anti selip."),
-    openingHours = listOf(OpeningHoursLine("Setiap hari", "08.00 – 18.00")),
+    openingHours = listOf(OpeningHoursLine("Setiap hari", "08:00 – 18:00")),
     estimatedCostMinor = 25_000,
     costCurrency = "IDR",
 )
