@@ -265,6 +265,20 @@ class PlaceRoutesTest {
     }
 
     @Test
+    fun aDestinationSuggestionNeverIsAnAirportButAnActivityMayBe() {
+        fun body(vararg types: String) = """{"suggestions":[{"placePrediction":{"placeId":"p","types":[${types.joinToString(",") { "\"$it\"" }}],
+            "structuredFormat":{"mainText":{"text":"Bandara"},"secondaryText":{"text":"Y"}}}},
+            {"placePrediction":{"placeId":"q","types":["locality","political"],"structuredFormat":{"mainText":{"text":"Kota"},"secondaryText":{"text":"Y"}}}}]}"""
+
+        // a place Google tags as an airport next to a destination-like type is left out of the destination list
+        val destination = GooglePlaceSearch.parseAutocomplete(body("tourist_attraction", "airport"))
+        assertEquals(listOf("q"), destination.map { it.placeId })
+        assertEquals(listOf("q"), GooglePlaceSearch.parseAutocomplete(body("international_airport")).map { it.placeId })
+        // the activity field ("Tempat") still finds airports: a flight is an activity
+        assertEquals(listOf("p", "q"), GooglePlaceSearch.parseAutocomplete(body("airport"), PlaceSearchScope.ACTIVITY).map { it.placeId })
+    }
+
+    @Test
     fun guestsSearchPlacesWithoutAnAccountInBothScopes() {
         val search = FakePlaceSearch()
         apiTest(ai = AiServices(QuietLlm, NoPlacesClient, search)) {
