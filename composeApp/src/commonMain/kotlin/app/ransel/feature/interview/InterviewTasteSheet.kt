@@ -37,6 +37,7 @@ import ransel.composeapp.generated.resources.explore_price_mid_example
 import ransel.composeapp.generated.resources.explore_price_relative
 import ransel.composeapp.generated.resources.explore_price_title
 import ransel.composeapp.generated.resources.explore_special_title
+import ransel.composeapp.generated.resources.interview_price_from_budget
 import ransel.composeapp.generated.resources.interview_save
 import ransel.composeapp.generated.resources.interview_taste_general
 import ransel.composeapp.generated.resources.interview_taste_sheet_counter
@@ -82,6 +83,9 @@ internal fun TasteSheet(
     onNotes: (String) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
+    /** The range that is selected while the draft has none: Sedang, or the trip budget's ([priceFromBudget] adds "Dari budget trip"). */
+    defaultPrice: PriceLevel = PriceLevel.MEDIUM,
+    priceFromBudget: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
     AdaptiveSheet(onDismiss = onDismiss) {
@@ -117,13 +121,20 @@ internal fun TasteSheet(
                     Text(stringResource(Res.string.explore_price_title), style = MaterialTheme.typography.labelLarge)
                     Text(stringResource(Res.string.explore_price_relative), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
                 }
+                if (priceFromBudget && draft.priceLevel == null) {
+                    Text(
+                        stringResource(Res.string.interview_price_from_budget),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = scheme.tertiary,
+                    )
+                }
                 // "Sedang" is the start of a trip without a budget; the card of the effective range is the selected one
                 PriceLevel.entries.forEach { level ->
                     ChoiceRow(
                         symbol = priceSymbol(level),
                         label = level.signs() + " " + stringResource(level.labelRes),
                         effect = stringResource(level.exampleRes),
-                        selected = draft.effectivePriceLevel == level,
+                        selected = (draft.priceLevel ?: defaultPrice) == level,
                         onClick = { onPrice(level) },
                     )
                 }

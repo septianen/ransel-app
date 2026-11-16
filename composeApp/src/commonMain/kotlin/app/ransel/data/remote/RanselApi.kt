@@ -585,6 +585,10 @@ class RanselApi(
         destination: String? = null,
         month: String? = null,
         language: String? = null,
+        /** The budget of a trip that is not saved yet (one person, [budgetDays] days): the answer carries `suggestedPriceLevel`. */
+        budgetMinor: Long? = null,
+        budgetCurrency: String? = null,
+        budgetDays: Int? = null,
     ): ApiResult<ExploreSuggestionsResponse> = call(
         HttpMethod.Get,
         ApiRoutes.EXPLORE_SUGGESTIONS,
@@ -592,6 +596,9 @@ class RanselApi(
             tripId?.let { parameter("tripId", it) }
             destination?.let { parameter("destination", it) }
             month?.let { parameter("month", it) }
+            budgetMinor?.let { parameter("budgetMinor", it) }
+            budgetCurrency?.let { parameter("currency", it) }
+            budgetDays?.let { parameter("days", it) }
             language?.let { header(HttpHeaders.AcceptLanguage, it) }
         },
     ) { it.body<ApiResponse<ExploreSuggestionsResponse>>().data }

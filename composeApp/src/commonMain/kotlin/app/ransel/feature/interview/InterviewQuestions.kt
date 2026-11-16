@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
 import app.ransel.feature.destination.DestinationChoice
-import app.ransel.feature.destination.DestinationField
+import app.ransel.feature.destination.InlineDestinationSearch
 import app.ransel.feature.destination.DestinationPicker
 import app.ransel.feature.explore.label
 import app.ransel.feature.tripform.TripDateRangePicker
@@ -205,6 +205,7 @@ internal val TravelStyle.hintRes: StringResource
 internal fun DestinationQuestion(
     state: InterviewUiState,
     onDestination: (DestinationChoice) -> Unit,
+    onClearDestination: () -> Unit,
     onDates: (kotlinx.datetime.LocalDate, kotlinx.datetime.LocalDate) -> Unit,
     onUndecided: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -215,13 +216,14 @@ internal fun DestinationQuestion(
     var showDates by remember { mutableStateOf(false) }
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         QuestionTitle(stringResource(Res.string.interview_destination_title), null)
-        DestinationField(
-            label = "",
-            value = state.destinationName,
-            onPicked = onDestination,
-            modifier = ScreenPadding,
-            picked = state.destinationChoice?.place != null,
+        // the suggestions sit under the field on this screen (spec 1572903, 1a-1b), not in the full-screen picker
+        InlineDestinationSearch(
+            selectedName = state.destinationName,
+            pinFilled = state.destinationChoice?.place != null,
             placeholder = stringResource(Res.string.interview_destination_hint),
+            onPicked = onDestination,
+            onCleared = onClearDestination,
+            modifier = ScreenPadding,
         )
         if (state.destinationChoice != null || answers.destination != null) {
             if (!answers.datesUndecided) {

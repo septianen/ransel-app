@@ -124,7 +124,7 @@ val commonModule: Module = module {
     }
     viewModelOf(::ExploreTripPickerViewModel)
     viewModel { params -> ExplorePreferencesViewModel(params.get(), get(), get(), get(), get()) }
-    viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get(), get()) }
+    viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> PlaceDetailViewModel(params.get(), get(), get()) }
     single { VotingStore() }
     viewModel { params -> VoteViewModel(params[0], params[1], params[2], get(), get(), get(), get(), get(), get(), get()) }

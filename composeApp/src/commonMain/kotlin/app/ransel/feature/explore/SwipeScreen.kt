@@ -54,6 +54,10 @@ import app.ransel.content.getString
 import app.ransel.content.stringResource
 import app.ransel.data.explore.ExploreCard
 import app.ransel.data.explore.ExploreSession
+import app.ransel.data.explore.ExploreForm
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import app.ransel.ui.motion.rememberReduceMotion
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -125,7 +129,15 @@ fun SwipeScreen(
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface).statusBarsPadding().background(MaterialTheme.colorScheme.surfaceContainer)) {
         when (val s = state) {
             SwipeUiState.Empty -> Unit
-            SwipeUiState.Loading -> LoadingContent(onClose, onChangePreferences)
+            SwipeUiState.Loading ->
+                if (created && viewModel.searchForm != null) {
+                    SearchingContent(
+                        form = viewModel.searchForm!!,
+                        onCancel = { viewModel.cancelSearch(); onOpenItinerary(tripId) },
+                    )
+                } else {
+                    LoadingContent(onClose, onChangePreferences)
+                }
             is SwipeUiState.Cards -> CardsContent(
                 session = s.session,
                 onClose = onClose,
@@ -183,6 +195,18 @@ fun SwipeScreen(
                             onSecondary = if (created) ({ onOpenItinerary(tripId) }) else ({ viewModel.discard(); onChangePreferences() }),
                         )
                     }
+                }
+            }
+            is SwipeUiState.VerifyEmail -> StateWithClose(onClose) {
+                TripCreatedCard(created, viewModel.tripTitle, waitsForEmail = true) {
+                    VerifyEmailGate(
+                        email = s.email,
+                        gate = s.gate,
+                        onResend = viewModel::resendVerification,
+                        onCheck = viewModel::checkVerified,
+                        onContinue = if (s.verified) viewModel::retry else null,
+                        onViewTrip = if (created) ({ onOpenItinerary(tripId) }) else null,
+                    )
                 }
             }
             is SwipeUiState.OutOfCredits -> StateWithClose(onClose) {
@@ -273,6 +297,73 @@ private fun SwipeHeader(session: ExploreSession?, destination: String, onClose: 
             }
         }
         if (onTune != null) IconBox(Symbols.tune, stringResource(Res.string.swipe_change_preferences), onTune)
+    }
+}
+
+/**
+ * The loading screen after "Buat trip dan cari" (spec "Memuat setelah Buat trip dan cari"): two steps (the trip is made,
+ * the places are searched), what is being looked for, a progress bar and "Batalkan pencarian" (the trip stays).
+ */
+@Composable
+private fun SearchingContent(form: ExploreForm, onCancel: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val interests = (form.interests.map { stringResource(it.label) } + form.extraInterests).take(3)
+    val style = stringResource(if (form.style == app.ransel.shared.model.TravelStyle.SANTAI) Res.string.explore_style_relaxed else Res.string.explore_style_packed)
+    val searchingFor = stringResource(
+        Res.string.swipe_searching_for_value,
+        interests.joinToString(", "), form.destination, style.lowercase(), stringResource(form.priceLevel.label).lowercase(),
+    )
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconBox(Symbols.close, stringResource(Res.string.swipe_cancel_search), onCancel)
+            Text(stringResource(Res.string.swipe_searching_bar), style = MaterialTheme.typography.titleLarge)
+        }
+        Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            // the "capybara-running-phone" art is not in the app yet: the cave cart of the other loading screen stands in
+            androidx.compose.foundation.Image(painterResource(Res.drawable.ic_exploring_cave_cart), contentDescription = null, modifier = Modifier.size(140.dp))
+            Text(
+                stringResource(Res.string.swipe_searching_title),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
+                color = scheme.onSurface,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            Column(
+                Modifier.fillMaxWidth().clip(IrisShape.lg).border(1.dp, scheme.outlineVariant, IrisShape.lg).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Symbol(Symbols.checkCircle, size = 22.dp, tint = scheme.primary, filled = true)
+                    Text(stringResource(Res.string.swipe_step_created, form.tripTitle), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = scheme.onSurface)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.5.dp, color = scheme.primary)
+                    Text(stringResource(Res.string.swipe_step_searching), style = MaterialTheme.typography.titleSmall, color = scheme.onSurfaceVariant)
+                }
+            }
+            Column(
+                Modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.surfaceContainer).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(stringResource(Res.string.swipe_searching_for), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+                Text(searchingFor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = scheme.onSurface)
+            }
+            if (rememberReduceMotion()) {
+                androidx.compose.material3.LinearProgressIndicator(progress = { 0.3f }, Modifier.fillMaxWidth(), color = scheme.primary, trackColor = scheme.surfaceContainerHigh)
+            } else {
+                androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth(), color = scheme.primary, trackColor = scheme.surfaceContainerHigh)
+            }
+            Text(stringResource(Res.string.swipe_searching_hint), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+        }
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            androidx.compose.material3.TextButton(onClick = onCancel, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(Res.string.swipe_cancel_search), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = scheme.onSurface)
+            }
+            Text(stringResource(Res.string.swipe_cancel_search_note), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+        }
     }
 }
 
