@@ -282,7 +282,7 @@ class SyncService {
         Trips.update({ Trips.id eq id }) {
             TripService.placeUpdate(it, dto.destinationPlace, nameChanged = existing[Trips.destination] != dto.destination)
             TripService.localeUpdate(it, dto.countryCode, dto.localCurrency, dto.timeZone, nameChanged = existing[Trips.destination] != dto.destination)
-            TripService.interviewUpdate(it, dto.origin, dto.departureMode, dto.localTransport, dto.mainTravelMode)
+            TripService.interviewUpdate(it, dto.origin, dto.departureMode, dto.localTransport, dto.mainTravelMode, dto.replaceTravelAnswers)
             it[title] = dto.title.trim()
             it[destination] = dto.destination
             it[startDate] = dto.startDate?.toJavaLocalDate()
