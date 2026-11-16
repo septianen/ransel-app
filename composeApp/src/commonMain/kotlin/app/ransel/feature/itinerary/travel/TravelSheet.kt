@@ -45,6 +45,7 @@ import app.ransel.shared.domain.mapsMode
 import app.ransel.shared.domain.travelMinutesFor
 import app.ransel.shared.model.MainTravelMode
 import app.ransel.ui.components.AdaptiveSheet
+import app.ransel.ui.components.SelectedChoice
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
@@ -71,8 +72,8 @@ import ransel.composeapp.generated.resources.travel_transit_note_title
 /**
  * The sheet that opens from a capsule (spec "Perjalanan antar tempat V1", section 2): the modes to look at, the trip's main
  * mode (changeable by an owner or editor) and "Buka rute di Google Maps". Choosing a mode here only changes the Maps link:
- * nothing is saved and the capsule stays as it was. Selected rows use the neutral look of the interview ("Alt A") until the
- * owner decides (Benn, 16 Nov).
+ * nothing is saved and the capsule stays as it was. Selected cards are purple like the interview's ([SelectedChoice], owner,
+ * 16 Nov 2026).
  */
 @Composable
 fun TravelSheet(
@@ -264,9 +265,9 @@ private fun ModeCard(
         modifier
             .heightIn(min = 72.dp)
             .clip(IrisShape.lg)
-            .background(if (selected) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface)
+            .background(if (selected) SelectedChoice.fill else MaterialTheme.colorScheme.surface)
             .border(
-                if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface)
+                if (selected) BorderStroke(SelectedChoice.BorderWidth, SelectedChoice.border)
                 else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 IrisShape.lg,
             )
@@ -345,9 +346,9 @@ private fun MainModeRow(
                             .weight(1f)
                             .heightIn(min = 48.dp)
                             .clip(IrisShape.lg)
-                            .background(if (selected) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface)
+                            .background(if (selected) SelectedChoice.fill else MaterialTheme.colorScheme.surface)
                             .border(
-                                if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface)
+                                if (selected) BorderStroke(SelectedChoice.BorderWidth, SelectedChoice.border)
                                 else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                 IrisShape.lg,
                             )
