@@ -3,6 +3,7 @@ package app.ransel.shared.domain
 import app.ransel.shared.dto.TripOriginDto
 import app.ransel.shared.model.DepartureMode
 import app.ransel.shared.model.Interest
+import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.LocalTransport
 import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.TravelStyle
@@ -34,8 +35,15 @@ data class InterviewTaste(
     val interests: Set<Interest> = emptySet(),
     val extraInterests: Set<String> = emptySet(),
     val style: TravelStyle? = null,
+    /** The price range of the "Ubah seleramu" sheet; null = not chosen, which means [PriceLevel.MEDIUM] ([effectivePriceLevel]). */
+    val priceLevel: PriceLevel? = null,
+    /** The free note of the sheet, at most [TASTE_NOTES_MAX] characters. */
+    val notes: String = "",
 ) {
-    val isEmpty: Boolean get() = interests.isEmpty() && extraInterests.isEmpty() && style == null
+    val isEmpty: Boolean get() = interests.isEmpty() && extraInterests.isEmpty() && style == null && priceLevel == null && notes.isBlank()
+
+    /** What the search uses: the chosen range, else Sedang (a trip without a budget starts there, spec 16 Nov). */
+    val effectivePriceLevel: PriceLevel get() = priceLevel ?: PriceLevel.MEDIUM
 
     /** Jelajah needs at least one interest, the style alone is not enough. */
     val hasInterest: Boolean get() = interests.isNotEmpty() || extraInterests.isNotEmpty()
@@ -152,6 +160,20 @@ fun InterviewAnswers.toggleExtraInterest(label: String): InterviewAnswers =
     copy(taste = taste.copy(extraInterests = taste.extraInterests.toggle(label)))
 
 fun InterviewAnswers.withStyle(style: TravelStyle?): InterviewAnswers = copy(taste = taste.copy(style = style))
+
+/** The note of Explore's server rule: 500 characters at most (`TOO_LONG` beyond). */
+const val TASTE_NOTES_MAX = 500
+
+fun InterviewAnswers.withPriceLevel(level: PriceLevel?): InterviewAnswers = copy(taste = taste.copy(priceLevel = level))
+
+/** The note, cut at [TASTE_NOTES_MAX]. */
+fun InterviewAnswers.withNotes(notes: String): InterviewAnswers = copy(taste = taste.copy(notes = notes.take(TASTE_NOTES_MAX)))
+
+/**
+ * The "Ubah seleramu" sheet may be saved when it still has an interest: Jelajah cannot search without one (message "Pilih
+ * minimal satu minat untuk pencarian.").
+ */
+fun InterviewTaste.canSaveFromSheet(): Boolean = hasInterest
 
 private fun <T> Set<T>.toggle(item: T): Set<T> = if (item in this) this - item else this + item
 
