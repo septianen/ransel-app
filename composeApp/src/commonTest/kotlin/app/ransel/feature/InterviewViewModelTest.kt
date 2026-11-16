@@ -87,6 +87,24 @@ class InterviewViewModelTest {
     }
 
     @Test
+    fun anAdministrativeCityIsShownAndStoredWithoutThePrefix() = runTest {
+        val store = InMemoryStore()
+        val vm = vm(store = store)
+        vm.onDestinationPicked(DestinationChoice("Administrasi Jakarta Pusat", TripPlaceDto("p-jkp", -6.1805, 106.8284), "ID", "Asia/Jakarta"))
+        vm.onDates(LocalDate(2026, 12, 20), LocalDate(2026, 12, 22))
+        assertEquals("Jakarta Pusat", vm.state.value.destinationName)
+        assertEquals("Trip ke Jakarta Pusat", vm.state.value.tripName)
+        vm.next()
+        vm.onOriginPicked(DestinationChoice("Kota Administrasi Jakarta Barat", TripPlaceDto("p-jkt", -6.1683, 106.7589), "ID", "Asia/Jakarta"))
+        assertEquals("Jakarta Barat", vm.state.value.answers.origin?.name)
+        vm.skipInterview()
+        vm.create()
+        val created = eventually { store.trips.value.singleOrNull() }
+        assertEquals("Jakarta Pusat", created.destination)
+        assertEquals("Jakarta Barat", created.origin?.name)
+    }
+
+    @Test
     fun theCreatedEventSaysWhetherTheUserIsSignedIn() = runTest {
         val vm = vm()
         vm.layar1()

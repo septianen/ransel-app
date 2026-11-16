@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +32,8 @@ import app.ransel.feature.destination.DestinationField
 import app.ransel.feature.destination.DestinationPicker
 import app.ransel.feature.explore.label
 import app.ransel.feature.tripform.TripDateRangePicker
+import app.ransel.platform.LocationFix
+import app.ransel.platform.rememberLocationProvider
 import app.ransel.shared.domain.DepartureBand
 import app.ransel.shared.domain.departureBand
 import app.ransel.shared.domain.departureOptions
@@ -49,6 +52,23 @@ import app.ransel.ui.theme.IrisShape
 import app.ransel.util.today
 import org.jetbrains.compose.resources.StringResource
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.interview_departure_effect_car_ferry
+import ransel.composeapp.generated.resources.interview_departure_effect_ferry
+import ransel.composeapp.generated.resources.interview_departure_effect_plane_island
+import ransel.composeapp.generated.resources.interview_departure_effect_plane
+import ransel.composeapp.generated.resources.interview_departure_effect_train
+import ransel.composeapp.generated.resources.interview_departure_effect_bus
+import ransel.composeapp.generated.resources.interview_departure_effect_shuttle
+import ransel.composeapp.generated.resources.interview_departure_effect_drive
+import ransel.composeapp.generated.resources.interview_origin_location_failed
+import ransel.composeapp.generated.resources.interview_origin_locating
+import ransel.composeapp.generated.resources.interview_origin_denied_settings
+import ransel.composeapp.generated.resources.interview_origin_denied_body
+import ransel.composeapp.generated.resources.interview_origin_location_denied
+import ransel.composeapp.generated.resources.interview_origin_location_effect
+import ransel.composeapp.generated.resources.interview_origin_location
+import ransel.composeapp.generated.resources.interview_after_note_undecided
+import ransel.composeapp.generated.resources.interview_after_note_sub
 import ransel.composeapp.generated.resources.explore_special_title
 import ransel.composeapp.generated.resources.explore_style_packed_hint
 import ransel.composeapp.generated.resources.explore_style_relaxed_hint
@@ -244,7 +264,14 @@ internal fun DestinationQuestion(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Symbol(Symbols.info, size = 18.dp, tint = scheme.onSurfaceVariant)
-                    Text(stringResource(Res.string.interview_after_note), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+                    Column {
+                        Text(stringResource(Res.string.interview_after_note), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = scheme.onSurface)
+                        Text(
+                            stringResource(if (answers.datesUndecided) Res.string.interview_after_note_undecided else Res.string.interview_after_note_sub),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
@@ -266,19 +293,27 @@ internal fun DestinationQuestion(
 
 // ── W1 ───────────────────────────────────────────────────────────────────────
 
-/** "Berangkat dari mana?": the last city, or search one (the picker also offers the current location, which is not saved). */
+/**
+ * "Berangkat dari mana?" (spec section 2): the last city, "Gunakan lokasi saat ini" (only the city is found, nothing is saved)
+ * and "Cari kota lain". A refused permission shows the banner and greys the location row; offline or a guest greys it too.
+ */
 @Composable
 internal fun OriginQuestion(
     state: InterviewUiState,
     onPickLast: (TripOriginDto) -> Unit,
     onPicked: (DestinationChoice) -> Unit,
+    onUseLocation: (suspend () -> LocationFix) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var picker by remember { mutableStateOf(false) }
+    val provider = rememberLocationProvider()
     val origin = state.answers.origin
     val last = state.lastOrigin
+    val denied = state.location == OriginLocation.Denied
+    val canLocate = state.signedIn && !state.offline && !denied
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         QuestionTitle(stringResource(Res.string.interview_origin_title), stringResource(Res.string.interview_origin_subtitle))
+        if (denied) LocationDeniedBanner(onOpenSettings = provider.openSettings, modifier = ScreenPadding)
         Column(ScreenPadding, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (last != null) {
                 ChoiceRow(Symbols.schedule, last.name, stringResource(Res.string.interview_origin_last_effect), selected = origin == last, onClick = { onPickLast(last) })
@@ -286,6 +321,19 @@ internal fun OriginQuestion(
             if (origin != null && origin != last) {
                 ChoiceRow(Symbols.locationOn, origin.name, stringResource(Res.string.interview_origin_picked), selected = true, onClick = { picker = true })
             }
+            ChoiceRow(
+                Symbols.explore,
+                stringResource(Res.string.interview_origin_location),
+                when {
+                    denied -> stringResource(Res.string.interview_origin_location_denied)
+                    state.location == OriginLocation.Locating -> stringResource(Res.string.interview_origin_locating)
+                    state.location == OriginLocation.Failed -> stringResource(Res.string.interview_origin_location_failed)
+                    else -> stringResource(Res.string.interview_origin_location_effect)
+                },
+                selected = false,
+                enabled = canLocate,
+                onClick = { onUseLocation(provider.request) },
+            )
             ChoiceRow(
                 Symbols.search,
                 stringResource(Res.string.interview_origin_search),
@@ -306,7 +354,38 @@ internal fun OriginQuestion(
     }
 }
 
+/** "Izin lokasi dimatikan": the banner of the existing destination picker (spec "State lain"), with "Buka pengaturan" where the platform has settings. */
+@Composable
+private fun LocationDeniedBanner(onOpenSettings: (() -> Unit)?, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    // the look of the destination picker's "Izin lokasi dimatikan" banner
+    Column(
+        modifier.fillMaxWidth().clip(IrisShape.lg).background(scheme.surfaceContainerLow).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Symbol(Symbols.warning, size = 20.dp, tint = scheme.error)
+            Text(stringResource(Res.string.interview_origin_location_denied), style = MaterialTheme.typography.titleSmall)
+        }
+        Text(stringResource(Res.string.interview_origin_denied_body), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+        if (onOpenSettings != null) {
+            androidx.compose.material3.OutlinedButton(onClick = onOpenSettings) { Text(stringResource(Res.string.interview_origin_denied_settings)) }
+        }
+    }
+}
+
 // ── W2 ───────────────────────────────────────────────────────────────────────
+
+/** The one line under a W2 answer (mockups s24-1 and s24-2). */
+private fun departureEffectRes(mode: DepartureMode, otherIsland: Boolean): StringResource = when (mode) {
+    DepartureMode.OWN_MOTORCYCLE -> Res.string.interview_departure_effect_drive
+    DepartureMode.OWN_CAR -> if (otherIsland) Res.string.interview_departure_effect_car_ferry else Res.string.interview_departure_effect_drive
+    DepartureMode.TRAVEL_SHUTTLE -> Res.string.interview_departure_effect_shuttle
+    DepartureMode.BUS -> Res.string.interview_departure_effect_bus
+    DepartureMode.TRAIN -> Res.string.interview_departure_effect_train
+    DepartureMode.PLANE -> if (otherIsland) Res.string.interview_departure_effect_plane_island else Res.string.interview_departure_effect_plane
+    DepartureMode.FERRY -> Res.string.interview_departure_effect_ferry
+}
 
 /** "Ke {destinasi} naik apa?": the choices follow the distance; an own vehicle says what it changes. */
 @Composable
@@ -328,9 +407,20 @@ internal fun DepartureQuestion(state: InterviewUiState, onChoose: (DepartureMode
                 ChoiceRow(
                     mode.symbol,
                     stringResource(mode.labelRes),
-                    stringResource(if (isOwnVehicle(mode)) Res.string.interview_departure_effect_own else Res.string.interview_departure_effect_other),
+                    stringResource(departureEffectRes(mode, answers.departureBand() == DepartureBand.OTHER_ISLAND)),
                     selected = answers.departure == mode,
                     onClick = { onChoose(mode) },
+                )
+            }
+        }
+        // an own vehicle: no rental suggestions in this trip and W3 is skipped
+        if (isOwnVehicle(answers.departure)) {
+            Row(ScreenPadding, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Symbol(Symbols.info, size = 16.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(Res.string.interview_departure_effect_own),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
