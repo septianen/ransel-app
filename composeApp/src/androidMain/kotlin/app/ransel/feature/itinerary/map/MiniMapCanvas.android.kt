@@ -17,6 +17,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.Dot
+import com.google.android.gms.maps.model.Gap
+import com.google.android.gms.maps.model.JointType
+import com.google.android.gms.maps.model.RoundCap
+import androidx.compose.ui.graphics.Color
+import com.google.maps.android.compose.Polyline
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
@@ -44,6 +50,11 @@ private const val SINGLE_PIN_ZOOM = 15f
 private const val FIT_PADDING_DP = 16
 private val CONTENT_PADDING = PaddingValues(start = 24.dp, top = 16.dp, end = 40.dp, bottom = 48.dp)
 private const val SELECT_ANIMATION_MILLIS = 200
+
+/** The straight lines: 2.5 dp, dots 6 dp apart for walking; a time pill needs 72 dp of line on screen (spec). */
+private const val LINE_WIDTH_DP = 2.5f
+private const val LINE_GAP_DP = 6f
+private const val LABEL_MIN_SEGMENT_DP = 72f
 
 /** No pan, zoom, rotate, tilt, toolbar or compass: the strip only takes taps on pins, so it never holds back the list's scroll. */
 private val StripUiSettings = MapUiSettings(
@@ -73,6 +84,8 @@ actual fun MiniMapCanvas(
     onPinClick: (itemId: String) -> Unit,
     onLoaded: () -> Unit,
     modifier: Modifier,
+    segments: List<MapSegment>,
+    lineStyle: MapLineStyle?,
 ) {
     val density = LocalDensity.current
     val cameraPositionState = rememberCameraPositionState()
@@ -116,6 +129,44 @@ actual fun MiniMapCanvas(
             onLoaded()
         },
     ) {
+        // the straight lines under the pins, and the time pills on the ones long enough to hold them
+        if (lineStyle != null) {
+            // reading the camera makes the pills follow the zoom (a pill is hidden under 72 dp of line)
+            val camera = cameraPositionState.position
+            val projection = if (loaded) cameraPositionState.projection else null
+            segments.forEach { segment ->
+                val from = LatLng(segment.fromLat, segment.fromLng)
+                val to = LatLng(segment.toLat, segment.toLng)
+                Polyline(
+                    points = listOf(from, to),
+                    color = Color(lineStyle.line),
+                    width = LINE_WIDTH_DP * density.density,
+                    pattern = if (segment.walking) listOf(Dot(), Gap(LINE_GAP_DP * density.density)) else null,
+                    jointType = JointType.ROUND,
+                    startCap = RoundCap(),
+                    endCap = RoundCap(),
+                    zIndex = 0f,
+                )
+                val label = segment.label
+                val longEnough = projection?.let {
+                    val a = it.toScreenLocation(from)
+                    val b = it.toScreenLocation(to)
+                    kotlin.math.hypot((a.x - b.x).toDouble(), (a.y - b.y).toDouble()) >= LABEL_MIN_SEGMENT_DP * density.density
+                } ?: false
+                if (label != null && longEnough && camera.zoom > 0f) {
+                    val icon = remember(label, lineStyle, density.density) { labelIcon(label, lineStyle, density) }
+                    Marker(
+                        state = rememberUpdatedMarkerState(position = LatLng((from.latitude + to.latitude) / 2, (from.longitude + to.longitude) / 2)),
+                        icon = icon,
+                        anchor = Offset(0.5f, 0.5f),
+                        zIndex = 0.5f,
+                        contentDescription = null,
+                        // a pill is not a control: nothing happens on a tap
+                        onClick = { true },
+                    )
+                }
+            }
+        }
         pins.forEach { pin ->
             val selected = pin.itemId == selectedId
             // bitmaps are made here, inside the map's content, where the Maps SDK is ready (not before)
@@ -134,6 +185,33 @@ actual fun MiniMapCanvas(
             )
         }
     }
+}
+
+/** The time pill at the middle of a line: surface fill, a thin outline-variant border, the time in on-surface (24 dp high). */
+private fun labelIcon(text: String, style: MapLineStyle, density: Density): BitmapDescriptor {
+    val d = density.density
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    paint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    paint.textSize = 12 * d
+    val width = (paint.measureText(text) + 20 * d).toInt()
+    val height = (24 * d).toInt()
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val rect = android.graphics.RectF(0.5f * d, 0.5f * d, width - 0.5f * d, height - 0.5f * d)
+    val radius = height / 2f
+    paint.style = Paint.Style.FILL
+    paint.color = style.pillFill
+    canvas.drawRoundRect(rect, radius, radius, paint)
+    paint.style = Paint.Style.STROKE
+    paint.strokeWidth = 1 * d
+    paint.color = style.pillBorder
+    canvas.drawRoundRect(rect, radius, radius, paint)
+    paint.style = Paint.Style.FILL
+    paint.color = style.pillText
+    paint.textAlign = Paint.Align.CENTER
+    val baseline = height / 2f - (paint.descent() + paint.ascent()) / 2f
+    canvas.drawText(text, width / 2f, baseline, paint)
+    return BitmapDescriptorFactory.fromBitmap(bitmap)
 }
 
 /** A round numbered pin: category color, white ring, the number on top; the selected one is bigger with a green ring. */
