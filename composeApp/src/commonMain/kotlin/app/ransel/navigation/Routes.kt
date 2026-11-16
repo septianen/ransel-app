@@ -37,6 +37,9 @@ import kotlinx.serialization.Serializable
 
 /** "Rekap trip". */
 @Serializable data class EditTripRoute(val tripId: String)
+
+/** One answer of the section "Perjalanan" of Edit trip: [row] is a `TravelRow` name (ORIGIN, DEPARTURE or LOCAL_TRANSPORT). */
+@Serializable data class TripAnswerRoute(val tripId: String, val row: String)
 @Serializable data class RecapRoute(val tripId: String)
 
 /** "Detail aktivitas": the read-only screen of one activity (links, notes); its Edit button opens [ActivityFormRoute]. */

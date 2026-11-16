@@ -240,23 +240,13 @@ class InterviewViewModel(
         if (!s.signedIn || s.offline || s.location == OriginLocation.Locating) return
         _state.update { it.copy(location = OriginLocation.Locating) }
         viewModelScope.launch {
-            val next = when (val fix = request()) {
-                is LocationFix.Failed -> if (fix.code == ErrorCode.LOCATION_DENIED) OriginLocation.Denied else OriginLocation.Failed
-                is LocationFix.Found -> when (val result = api.reverseGeocode(fix.lat, fix.lng)) {
-                    is ApiResult.Success -> {
-                        // the widest level is the city or regency; the ones before it are districts
-                        val area = result.value.areas.lastOrNull { it.kind == PlaceKind.CITY || it.kind == PlaceKind.REGENCY }
-                            ?: result.value.areas.lastOrNull()
-                        if (area == null) {
-                            OriginLocation.Failed
-                        } else {
-                            val place = area.placeId?.let { (api.place(it, null) as? ApiResult.Success)?.value }
-                            pickOrigin(TripOriginDto(cityDisplayName(area.name), place?.lat, place?.lng, area.placeId, place?.countryCode))
-                            OriginLocation.Idle
-                        }
-                    }
-                    is ApiResult.Failure -> OriginLocation.Failed
+            val next = when (val found = findOriginCity(api, request)) {
+                is OriginFound.City -> {
+                    pickOrigin(found.origin)
+                    OriginLocation.Idle
                 }
+                OriginFound.Denied -> OriginLocation.Denied
+                OriginFound.Failed -> OriginLocation.Failed
             }
             _state.update { it.copy(location = next) }
         }

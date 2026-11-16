@@ -119,6 +119,12 @@ class ExploreSessionStore(
 
     fun taste(tripId: String): ExploreForm? = tastes.value[tripId]
 
+    /** Takes a trip's Seleramu back out ("Urungkan" of the first one set in Edit trip). */
+    suspend fun clearTaste(tripId: String) {
+        tastes.update { it - tripId }
+        preferences.putString(TASTES_KEY, if (tastes.value.isEmpty()) null else ApiJson.encodeToString(TASTES_SERIALIZER, tastes.value))
+    }
+
     /** Keeps [session] as the unfinished search of its trip, replacing an earlier one of the same trip. */
     suspend fun save(session: ExploreSession) {
         _sessions.update { it + (session.form.tripId to session) }

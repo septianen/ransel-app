@@ -260,6 +260,7 @@ fun ItineraryTab(
                 onOpenActivity = onOpenActivity,
                 canEdit = canEdit,
                 mainMode = trip.effectiveMainTravelMode(),
+                ownVehicle = app.ransel.shared.domain.isOwnVehicle(trip.departureMode),
                 destination = trip.destination,
                 onExplore = if (canEdit) onExplore else null,
                 viewModel = viewModel,
@@ -299,6 +300,7 @@ private fun ItineraryContent(
     onOpenActivity: (String) -> Unit,
     canEdit: Boolean,
     mainMode: MainTravelMode,
+    ownVehicle: Boolean,
     destination: String,
     onExplore: (() -> Unit)?,
     viewModel: ItineraryViewModel,
@@ -580,6 +582,7 @@ private fun ItineraryContent(
                 model = TravelCapsuleModel(items[index], items[index + 1], shown.leg, shown.warning),
                 mainMode = mainMode,
                 canChangeMainMode = canEdit,
+                ownVehicle = ownVehicle,
                 // the sheet stays open and shows its own "Urungkan" snackbar
                 onChangeMainMode = viewModel::changeMainMode,
                 onDismiss = { openLeg = null },

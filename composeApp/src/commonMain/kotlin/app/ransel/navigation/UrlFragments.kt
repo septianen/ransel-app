@@ -32,6 +32,7 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     is AlbumsRoute -> "trips/${enc(route.tripId)}/albums"
     is AlbumGalleryRoute -> "trips/${enc(route.tripId)}/albums/${enc(route.albumId)}"
     is EditTripRoute -> "trips/${enc(route.tripId)}/edit"
+    is TripAnswerRoute -> "trips/${enc(route.tripId)}/edit"
     is RecapRoute -> "trips/${enc(route.tripId)}/recap"
     is ActivityFormRoute -> "trips/${enc(route.tripId)}/activity"
     is ActivityDetailRoute -> "trips/${enc(route.tripId)}/activity/${enc(route.itemId)}"
@@ -129,6 +130,7 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(AlbumsRoute::class) -> entry.toRoute<AlbumsRoute>()
         d.hasRoute(AlbumGalleryRoute::class) -> entry.toRoute<AlbumGalleryRoute>()
         d.hasRoute(EditTripRoute::class) -> entry.toRoute<EditTripRoute>()
+        d.hasRoute(TripAnswerRoute::class) -> entry.toRoute<TripAnswerRoute>()
         d.hasRoute(RecapRoute::class) -> entry.toRoute<RecapRoute>()
         d.hasRoute(ActivityFormRoute::class) -> entry.toRoute<ActivityFormRoute>()
         d.hasRoute(ActivityDetailRoute::class) -> entry.toRoute<ActivityDetailRoute>()

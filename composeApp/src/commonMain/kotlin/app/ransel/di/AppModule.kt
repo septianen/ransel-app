@@ -99,6 +99,17 @@ val commonModule: Module = module {
     viewModel { params -> app.ransel.feature.albums.AlbumGalleryViewModel(params.get(), get()) }
     viewModel { params -> app.ransel.feature.guest.GuestPageViewModel(params.get(), get(), get(), get()) }
     single { CreditsStore() }
+    single { app.ransel.data.travel.TravelAnswerChanges() }
+    viewModel { params ->
+        app.ransel.feature.tripform.travel.TripAnswerViewModel(
+            params.get<String>(0), app.ransel.shared.domain.TravelRow.valueOf(params.get<String>(1)), get(), get<RanselApi>(), get<SessionManager>(), get(), get(),
+        )
+    }
+    viewModel { params ->
+        app.ransel.feature.tripform.travel.TripTravelViewModel(
+            params.get<String>(0), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get(), get(),
+        )
+    }
     single { PushRegistration(get(), get(), get()) }
     single { NotificationsStore() }
     single { NotificationTarget() }
