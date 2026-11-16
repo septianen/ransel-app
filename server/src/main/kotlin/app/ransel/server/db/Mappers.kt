@@ -42,9 +42,7 @@ fun ResultRow.toTripDto(role: Role) = TripDto(
     localCurrency = this[Trips.localCurrency],
     timeZone = this[Trips.timeZone],
     origin = this[Trips.originName]?.let { name ->
-        val lat = this[Trips.originLat]
-        val lng = this[Trips.originLng]
-        if (lat == null || lng == null) null else TripOriginDto(name, lat, lng, this[Trips.originPlaceId], this[Trips.originCountryCode])
+        TripOriginDto(name, this[Trips.originLat], this[Trips.originLng], this[Trips.originPlaceId], this[Trips.originCountryCode])
     },
     departureMode = this[Trips.departureMode],
     localTransport = this[Trips.localTransport],

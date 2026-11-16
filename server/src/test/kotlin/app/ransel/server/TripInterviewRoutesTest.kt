@@ -94,6 +94,19 @@ class TripInterviewRoutesTest {
     }
 
     @Test
+    fun aCityTypedAsTextIsAnOriginWithoutAPoint() = apiTest {
+        val id = UUID.randomUUID().toString()
+        val created = post("/trips", tripJson(id).dropLast(1) + ""","origin":{"name":"Desa Sukamaju"},"departureMode":"BUS"}""")
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        val origin = get("/trips/$id").data().jsonObject.getValue("trip").jsonObject.getValue("origin").jsonObject
+        assertEquals("Desa Sukamaju", origin.str("name"))
+        assertNull(origin.str("lat"))
+        assertNull(origin.str("lng"))
+        val half = post("/trips", tripJson().dropLast(1) + ""","origin":{"name":"Sini","lat":1.0}}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, half.status)
+    }
+
+    @Test
     fun anUnknownAnswerIsRefusedAtTheDoor() = apiTest {
         val response = post("/trips", tripJson().dropLast(1) + ""","departureMode":"ROCKET"}""")
         assertTrue(response.status.value in 400..422, "refused, not stored and not a server error: ${response.status}")

@@ -15,8 +15,9 @@ ALTER TABLE trips
     ADD CONSTRAINT trips_origin_name_check CHECK (origin_name IS NULL OR (length(btrim(origin_name)) >= 1 AND length(origin_name) <= 120)),
     ADD CONSTRAINT trips_origin_lat_check CHECK (origin_lat IS NULL OR (origin_lat >= -90 AND origin_lat <= 90)),
     ADD CONSTRAINT trips_origin_lng_check CHECK (origin_lng IS NULL OR (origin_lng >= -180 AND origin_lng <= 180)),
-    -- a name and a point come together (like itinerary_latlng_pair): half an origin is no origin
-    ADD CONSTRAINT trips_origin_complete CHECK ((origin_name IS NULL) = (origin_lat IS NULL) AND (origin_lat IS NULL) = (origin_lng IS NULL)),
+    -- the point is both or neither (like itinerary_latlng_pair), and only an origin with a name has one
+    ADD CONSTRAINT trips_origin_latlng_pair CHECK ((origin_lat IS NULL) = (origin_lng IS NULL)),
+    ADD CONSTRAINT trips_origin_point_needs_name CHECK (origin_name IS NOT NULL OR (origin_lat IS NULL AND origin_place_id IS NULL AND origin_country_code IS NULL)),
     ADD CONSTRAINT trips_origin_place_id_check CHECK (origin_place_id IS NULL OR (length(btrim(origin_place_id)) >= 1 AND length(origin_place_id) <= 300)),
     ADD CONSTRAINT trips_departure_mode_check CHECK (departure_mode IS NULL OR departure_mode IN
         ('OWN_MOTORCYCLE', 'OWN_CAR', 'TRAVEL_SHUTTLE', 'BUS', 'TRAIN', 'PLANE', 'FERRY')),

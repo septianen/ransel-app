@@ -48,9 +48,7 @@ fun TripEntity.toDto() = TripDto(
 
 private fun TripEntity.tripOrigin(): TripOriginDto? {
     val name = originName ?: return null
-    val lat = originLat ?: return null
-    val lng = originLng ?: return null
-    return TripOriginDto(name, lat, lng, originPlaceId, originCountryCode)
+    return TripOriginDto(name, originLat, originLng, originPlaceId, originCountryCode)
 }
 
 /** The interview answers as sent: what a new trip, and a trip pulled from the server, stores. */
