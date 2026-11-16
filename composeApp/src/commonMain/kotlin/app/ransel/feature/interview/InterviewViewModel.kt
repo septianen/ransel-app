@@ -20,6 +20,7 @@ import app.ransel.shared.domain.InterviewDestination
 import app.ransel.shared.domain.InterviewDoor
 import app.ransel.shared.domain.InterviewStep
 import app.ransel.shared.domain.canContinue
+import app.ransel.shared.domain.cityDisplayName
 import app.ransel.shared.domain.canSkip
 import app.ransel.shared.domain.currencyDecimals
 import app.ransel.shared.domain.hasAnything
@@ -40,7 +41,10 @@ import app.ransel.shared.domain.withDestination
 import app.ransel.shared.domain.withLocalTransport
 import app.ransel.shared.domain.withOrigin
 import app.ransel.shared.domain.withStyle
+import app.ransel.platform.LocationFix
 import app.ransel.shared.dto.CreateTripRequest
+import app.ransel.shared.dto.PlaceKind
+import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.TripOriginDto
 import app.ransel.shared.model.DepartureMode
 import app.ransel.shared.model.Interest
@@ -69,6 +73,14 @@ sealed interface KhasState {
     data class Loaded(val interests: List<String>, val destination: String) : KhasState
 }
 
+/** W1's "Gunakan lokasi saat ini": nothing yet, looking for the city, refused by the user, or it did not work. */
+sealed interface OriginLocation {
+    data object Idle : OriginLocation
+    data object Locating : OriginLocation
+    data object Denied : OriginLocation
+    data object Failed : OriginLocation
+}
+
 /** What the interview shows: one of the questions, or the summary. */
 sealed interface InterviewScreen {
     data class Question(val step: InterviewStep) : InterviewScreen
@@ -90,6 +102,7 @@ data class InterviewUiState(
     val lastOrigin: TripOriginDto? = null,
     /** The "Khas <destination>" chips of W4. */
     val khas: KhasState = KhasState.Hidden,
+    val location: OriginLocation = OriginLocation.Idle,
     /** What the user typed as the trip's name; null = "Trip ke <destination>". */
     val customName: String? = null,
     /** The Indonesian or English "Trip ke %s", set by the screen (the view model holds no strings). */
@@ -144,7 +157,7 @@ class InterviewViewModel(
         viewModelScope.launch {
             val currency = preferences.observe().first().defaultCurrency
             val newest = trips.observeTrips().first().firstOrNull { it.origin != null }
-            _state.update { it.copy(currency = currency, lastOrigin = newest?.origin) }
+            _state.update { it.copy(currency = currency, lastOrigin = newest?.origin?.let { o -> o.copy(name = cityDisplayName(o.name)) }) }
         }
         viewModelScope.launch { sync.offline.collect { off -> _state.update { it.copy(offline = off) } } }
     }
@@ -166,7 +179,7 @@ class InterviewViewModel(
      * on the old one are reconciled with them.
      */
     fun onDestinationPicked(choice: DestinationChoice) {
-        val destination = InterviewDestination(choice.name, choice.place?.placeId, choice.place?.lat, choice.place?.lng, choice.countryCode)
+        val destination = InterviewDestination(cityDisplayName(choice.name), choice.place?.placeId, choice.place?.lat, choice.place?.lng, choice.countryCode)
         _state.update { s ->
             val facts = interviewCityFacts(s.answers.origin, destination.name)
             s.copy(
@@ -186,8 +199,40 @@ class InterviewViewModel(
     fun onDatesUndecided(value: Boolean) = change { a, _ -> a.withDatesUndecided(value) }
 
     fun onOriginPicked(choice: DestinationChoice) = pickOrigin(
-        TripOriginDto(choice.name, choice.place?.lat, choice.place?.lng, choice.place?.placeId, choice.countryCode),
+        TripOriginDto(cityDisplayName(choice.name), choice.place?.lat, choice.place?.lng, choice.place?.placeId, choice.countryCode),
     )
+
+    /**
+     * W1's "Gunakan lokasi saat ini": one coarse fix, turned into a city by /places/reverse. Only the city's name and centre
+     * are kept, never the fix itself (spec). Needs internet and an account, like the destination picker's button.
+     */
+    fun useCurrentLocation(request: suspend () -> LocationFix) {
+        val api = api ?: return
+        val s = _state.value
+        if (!s.signedIn || s.offline || s.location == OriginLocation.Locating) return
+        _state.update { it.copy(location = OriginLocation.Locating) }
+        viewModelScope.launch {
+            val next = when (val fix = request()) {
+                is LocationFix.Failed -> if (fix.code == ErrorCode.LOCATION_DENIED) OriginLocation.Denied else OriginLocation.Failed
+                is LocationFix.Found -> when (val result = api.reverseGeocode(fix.lat, fix.lng)) {
+                    is ApiResult.Success -> {
+                        // the widest level is the city or regency; the ones before it are districts
+                        val area = result.value.areas.lastOrNull { it.kind == PlaceKind.CITY || it.kind == PlaceKind.REGENCY }
+                            ?: result.value.areas.lastOrNull()
+                        if (area == null) {
+                            OriginLocation.Failed
+                        } else {
+                            val place = area.placeId?.let { (api.place(it, null) as? ApiResult.Success)?.value }
+                            pickOrigin(TripOriginDto(cityDisplayName(area.name), place?.lat, place?.lng, area.placeId, place?.countryCode))
+                            OriginLocation.Idle
+                        }
+                    }
+                    is ApiResult.Failure -> OriginLocation.Failed
+                }
+            }
+            _state.update { it.copy(location = next) }
+        }
+    }
 
     fun pickOrigin(origin: TripOriginDto) {
         _state.update { s ->

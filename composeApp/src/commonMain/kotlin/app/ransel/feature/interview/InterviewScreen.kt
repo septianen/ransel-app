@@ -83,6 +83,7 @@ import ransel.composeapp.generated.resources.interview_summary_taste
 import ransel.composeapp.generated.resources.interview_summary_taste_value
 import ransel.composeapp.generated.resources.interview_summary_title
 import app.ransel.feature.explore.label
+import ransel.composeapp.generated.resources.interview_destination_bottom_note
 
 /**
  * "Buat trip" as a short interview (spec "Wawancara Buat trip" 16 Nov 2026): Layar 1, W1–W4, then a summary. One route; the
@@ -161,7 +162,7 @@ private fun InterviewContent(state: InterviewUiState, viewModel: InterviewViewMo
                 InterviewStep.DESTINATION -> DestinationQuestion(
                     state, viewModel::onDestinationPicked, viewModel::onDates, viewModel::onDatesUndecided,
                 )
-                InterviewStep.ORIGIN -> OriginQuestion(state, onPickLast = viewModel::pickOrigin, onPicked = viewModel::onOriginPicked)
+                InterviewStep.ORIGIN -> OriginQuestion(state, onPickLast = viewModel::pickOrigin, onPicked = viewModel::onOriginPicked, onUseLocation = viewModel::useCurrentLocation)
                 InterviewStep.DEPARTURE -> DepartureQuestion(state, viewModel::chooseDeparture)
                 InterviewStep.LOCAL_TRANSPORT -> LocalTransportQuestion(state, viewModel::chooseLocalTransport)
                 InterviewStep.TASTE -> TasteQuestion(state, viewModel::toggleInterest, viewModel::toggleExtraInterest, viewModel::chooseStyle)
@@ -179,6 +180,7 @@ private fun InterviewContent(state: InterviewUiState, viewModel: InterviewViewMo
                 primaryLabel = label,
                 primaryEnabled = canContinue(door, step, answers),
                 onPrimary = viewModel::next,
+                note = if (step == InterviewStep.DESTINATION && !editing) stringResource(Res.string.interview_destination_bottom_note) else null,
                 skipLabel = if (!editing && canSkip(door, step)) stringResource(Res.string.interview_skip) else null,
                 onSkip = viewModel::skip,
             )

@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -146,6 +147,8 @@ internal fun ChoiceRow(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /** false = greyed to 38 % and not tappable ("Gunakan lokasi saat ini" without a permission or offline). */
+    enabled: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
     val border = if (selected) BorderStroke(SelectedChoice.BorderWidth, SelectedChoice.border) else BorderStroke(1.dp, scheme.outlineVariant)
@@ -153,10 +156,11 @@ internal fun ChoiceRow(
         modifier
             .fillMaxWidth()
             .heightIn(min = 68.dp)
+            .alpha(if (enabled) 1f else 0.38f)
             .clip(IrisShape.lg)
             .background(if (selected) SelectedChoice.fill else scheme.surface)
             .border(border, IrisShape.lg)
-            .clickable(role = Role.RadioButton, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .semantics { this.selected = selected; this.role = Role.RadioButton; contentDescription = if (effect != null) "$label, $effect" else label }
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
