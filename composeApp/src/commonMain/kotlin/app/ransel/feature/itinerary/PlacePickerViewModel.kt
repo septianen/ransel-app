@@ -11,6 +11,8 @@ import app.ransel.platform.LocationFix
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.domain.PLACE_QUERY_MIN
 import app.ransel.shared.domain.normalizeSearch
+import app.ransel.shared.domain.placeCityOf
+import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.dto.PlaceSearchScope
 import app.ransel.shared.dto.PlaceSuggestionDto
 import app.ransel.util.newId
@@ -38,6 +40,9 @@ data class PlaceChoice(
     val lat: Double? = null,
     val lng: Double? = null,
     val fromSuggestion: Boolean = false,
+    /** What the place is and its city (see `ItineraryItemDto.placeKind`); null = not known (typed text). */
+    val kind: PlaceKind? = null,
+    val city: String? = null,
 ) {
     val hasPoint: Boolean get() = lat != null && lng != null
 }
@@ -138,7 +143,7 @@ class PlacePickerViewModel(
                 .sortedByDescending { it.updatedAt }
                 .map { item ->
                     val day = item.dayDate?.let { d -> start?.let { s -> s.daysUntil(d) + 1 } }?.takeIf { it >= 1 }
-                    UsedPlace(PlaceChoice(item.placeName.orEmpty(), null, item.placeId, item.lat, item.lng), day)
+                    UsedPlace(PlaceChoice(item.placeName.orEmpty(), null, item.placeId, item.lat, item.lng, kind = item.placeKind, city = item.placeCity), day)
                 }
                 // one row per place: the same placeId, or the same name when there is no point
                 .distinctBy { it.choice.placeId ?: normalizeSearch(it.choice.name) }
@@ -199,7 +204,7 @@ class PlacePickerViewModel(
     fun pickSuggestion(suggestion: PlaceSuggestionDto) {
         val placeId = suggestion.placeId
         if (placeId == null) {
-            finish(PlaceChoice(suggestion.name, suggestion.secondary, fromSuggestion = true))
+            finish(PlaceChoice(suggestion.name, suggestion.secondary, fromSuggestion = true, kind = suggestion.kind, city = placeCityOf(suggestion.kind, suggestion.name, suggestion.secondary)))
             return
         }
         if (_state.value.resolving) return
@@ -207,7 +212,12 @@ class PlacePickerViewModel(
         viewModelScope.launch {
             val place = (api.place(placeId, sessionToken, PlaceSearchScope.ACTIVITY) as? ApiResult.Success)?.value
             _state.update { it.copy(resolving = false) }
-            finish(PlaceChoice(suggestion.name, suggestion.secondary, place?.placeId, place?.lat, place?.lng, fromSuggestion = true))
+            finish(
+                PlaceChoice(
+                    suggestion.name, suggestion.secondary, place?.placeId, place?.lat, place?.lng, fromSuggestion = true,
+                    kind = suggestion.kind, city = placeCityOf(suggestion.kind, suggestion.name, suggestion.secondary),
+                ),
+            )
         }
     }
 
@@ -230,7 +240,13 @@ class PlacePickerViewModel(
                             _state.update { it.copy(location = LocationState.Failed(ErrorCode.PLACES_UNAVAILABLE)) }
                         } else {
                             _state.update { it.copy(location = LocationState.Idle) }
-                            finish(PlaceChoice(aroundLabel.replace("%s", area.name), area.secondary, null, fix.lat, fix.lng))
+                            // the device's own point: a point on the map whatever the area around it is called
+                            finish(
+                                PlaceChoice(
+                                    aroundLabel.replace("%s", area.name), area.secondary, null, fix.lat, fix.lng,
+                                    kind = PlaceKind.AREA, city = placeCityOf(PlaceKind.AREA, area.name, area.secondary),
+                                ),
+                            )
                         }
                     }
                     is ApiResult.Failure -> _state.update { it.copy(location = LocationState.Failed(result.error.code)) }

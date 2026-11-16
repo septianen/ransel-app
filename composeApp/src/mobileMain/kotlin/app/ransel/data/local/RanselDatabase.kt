@@ -23,8 +23,13 @@ import kotlinx.coroutines.IO // Dispatchers.IO is an extension outside the JVM
     // From here on, raise the version with an AutoMigration for every schema change.
     // v2 (13 Nov 2026): `itinerary_items.linksJson` (links of an activity).
     // v3 (13 Nov 2026): `expenses.receiptDocumentId` and the `pending_receipts` table (receipt photos waiting to upload).
-    version = 4,
-    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4)],
+    // v4 (16 Nov 2026): the trip interview answers (`trips.origin*`, `departureMode`, `localTransport`, `mainTravelMode`).
+    // v5 (16 Nov 2026): `itinerary_items.placeKind` and `placeCity` (point or area, and its city).
+    version = 5,
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5),
+    ],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
 abstract class RanselDatabase : RoomDatabase() {
