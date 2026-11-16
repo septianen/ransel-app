@@ -577,6 +577,29 @@ class RecommendationRoutesTest {
     }
 
     @Test
+    fun suggestionsOfATripNotSavedYetUseTheBudgetOfTheRequest() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places), fx = FakeFx) {
+            suspend fun level(query: String) = get("/explore/suggestions?destination=Lombok&month=2026-11$query").data().jsonObject
+
+            // 5.000.000 over 4 days for one person = 1.250.000 a day = about $78, between $30 and $90
+            val medium = level("&budgetMinor=5000000&currency=IDR&days=4")
+            assertEquals("MEDIUM", medium.str("suggestedPriceLevel"))
+            assertEquals("1250000", medium.str("budgetPerPersonPerDayMinor"))
+            assertEquals("LOW", level("&budgetMinor=1000000&currency=IDR&days=4").str("suggestedPriceLevel"))
+            assertEquals("HIGH", level("&budgetMinor=20000000&currency=IDR&days=4").str("suggestedPriceLevel"))
+
+            // no budget, or a budget without a currency: the chips only, never an error
+            assertNull(level("")["suggestedPriceLevel"])
+            val noCurrency = level("&budgetMinor=5000000&days=4")
+            assertNull(noCurrency["suggestedPriceLevel"])
+            assertTrue(noCurrency.getValue("interests").jsonArray.isNotEmpty())
+            // no days = a trip without dates: the neutral length every undated trip uses
+            assertTrue(level("&budgetMinor=5000000&currency=IDR").containsKey("suggestedPriceLevel"))
+        }
+    }
+
+    @Test
     fun suggestionsWithoutAMonthUseTheNeutralMonthOfATripWithoutDates() {
         val (llm, places) = fakes()
         apiTest(ai = AiServices(llm, places)) {
