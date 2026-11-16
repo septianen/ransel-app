@@ -67,12 +67,12 @@ import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.*
 
 /**
- * Explore step 2 (design `PreferensiAI`, `JelajahTripBaru`): the form for one trip. [tripId] null = a new trip whose
- * destination and dates are asked here (step 2b). [onChangeTrip] is the "Ganti" button back to step 1.
+ * Explore step 2 (design `PreferensiAI`): the form for one existing trip. A new trip is made by the interview (spec "Wawancara
+ * Buat trip"), not here. [onChangeTrip] is the "Ganti" button back to step 1.
  */
 @Composable
 fun ExplorePreferencesScreen(
-    tripId: String?,
+    tripId: String,
     onBack: () -> Unit,
     onChangeTrip: () -> Unit,
     onOpenSwipe: (tripId: String) -> Unit,
@@ -81,12 +81,6 @@ fun ExplorePreferencesScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
-    LaunchedEffect(viewModel) {
-        viewModel.eventFlow.collect { event ->
-            if (event is ExplorePreferencesEvent.StartFailed) snackbar.showSnackbar(getString(Res.string.explore_start_failed))
-        }
-    }
-    val defaultName = stringResource(Res.string.explore_new_trip_default_name, state.destination.trim())
     Box(modifier.fillMaxSize()) {
         // Full screen (no bottom bar): clear the system navigation bar too.
         // imePadding: the keyboard shrinks the scrolling form instead of covering the focused field.
@@ -96,7 +90,7 @@ fun ExplorePreferencesScreen(
                     Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
                 }
                 Text(
-                    stringResource(if (state.newTrip) Res.string.explore_new_trip_title else Res.string.explore_prefs_title),
+                    stringResource(Res.string.explore_prefs_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                 )
@@ -104,7 +98,7 @@ fun ExplorePreferencesScreen(
             if (state.loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
             } else {
-                PreferencesForm(state, viewModel, defaultName, onChangeTrip) { viewModel.start(defaultName, onOpenSwipe) }
+                PreferencesForm(state, viewModel, onChangeTrip) { viewModel.start(onOpenSwipe) }
             }
         }
         SnackbarHost(
@@ -120,12 +114,10 @@ fun ExplorePreferencesScreen(
 private fun PreferencesForm(
     state: ExplorePreferencesState,
     vm: ExplorePreferencesViewModel,
-    defaultName: String,
     onChangeTrip: () -> Unit,
     onSearch: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    var showDates by remember { mutableStateOf(false) }
     val destinationError = stringResource(Res.string.field_error_required).takeIf { state.showErrors && state.destination.isBlank() }
     val destinationField: @Composable () -> Unit = {
         DestinationField(
@@ -141,30 +133,7 @@ private fun PreferencesForm(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        if (state.newTrip) {
-            Text(
-                stringResource(if (state.datesUndecided) Res.string.explore_new_trip_body_undecided else Res.string.explore_new_trip_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = scheme.onSurfaceVariant,
-            )
-            destinationField()
-            // hidden, not disabled, while the dates are undecided (150 ms); turning it off shows the same dates again
-            androidx.compose.animation.AnimatedVisibility(
-                visible = !state.datesUndecided,
-                enter = androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(150)),
-                exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(150)),
-            ) { DatesField(state, onClick = { showDates = true }) }
-            DatesUndecidedRow(state.datesUndecided, vm::setDatesUndecided)
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                IrisTextField(
-                    label = stringResource(Res.string.explore_new_trip_name),
-                    value = state.tripName ?: defaultName,
-                    onValueChange = vm::setTripName,
-                    leadingSymbol = Symbols.edit,
-                )
-                Text(stringResource(Res.string.explore_new_trip_name_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-            }
-        } else {
+        run {
             TripCard(state, onChangeTrip)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 // Prefilled from the trip; another place here explores it without changing the trip.
@@ -222,7 +191,7 @@ private fun PreferencesForm(
             singleLine = false,
         )
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (!state.newTrip && state.memberCount >= 2) {
+            if (state.memberCount >= 2) {
                 // Design `PreferensiAIGrup`: on a shared trip the results are voted on (design icon how_to_vote is not in the subset).
                 Row(
                     Modifier.fillMaxWidth().clip(IrisShape.md).background(scheme.secondaryContainer).padding(12.dp),
@@ -240,16 +209,13 @@ private fun PreferencesForm(
             ) {
                 Symbol(Symbols.autoAwesome, filled = true, tint = scheme.onPrimary)
                 Text(
-                    stringResource(if (state.newTrip) Res.string.explore_search_new_trip else Res.string.explore_search),
+                    stringResource(Res.string.explore_search),
                     Modifier.padding(start = 8.dp),
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
             val credits by rememberCredits()
-            val footnote = if (state.newTrip) {
-                stringResource(if (state.datesUndecided) Res.string.explore_new_trip_footnote_undecided else Res.string.explore_new_trip_footnote)
-            }
-            else credits?.costs?.search?.takeIf { it > 0 }?.let { stringResource(Res.string.explore_credits_use, it) }
+            val footnote = credits?.costs?.search?.takeIf { it > 0 }?.let { stringResource(Res.string.explore_credits_use, it) }
             if (footnote != null) Text(
                 footnote,
                 Modifier.fillMaxWidth(),
@@ -261,15 +227,6 @@ private fun PreferencesForm(
                 Text(stringResource(Res.string.explore_interest_required), style = MaterialTheme.typography.bodySmall, color = scheme.error)
             }
         }
-    }
-    if (showDates) {
-        TripDateRangePicker(
-            start = state.startDate ?: app.ransel.util.today(),
-            end = state.endDate ?: state.startDate ?: app.ransel.util.today(),
-            onConfirm = { s, e -> vm.setDates(s, e); showDates = false },
-            onDismiss = { showDates = false },
-            earliest = app.ransel.util.today(),
-        )
     }
 }
 
@@ -294,55 +251,6 @@ private fun TripCard(state: ExplorePreferencesState, onChange: () -> Unit) {
             )
         }
         TextButton(onClick = onChange) { Text(stringResource(Res.string.explore_change_trip), fontWeight = FontWeight.Bold) }
-    }
-}
-
-/** "Tanggal belum pasti": one switch row; the date poll is started later from the overview (no poll setup here). */
-@Composable
-private fun DatesUndecidedRow(checked: Boolean, onChange: (Boolean) -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 70.dp)
-            .clip(IrisShape.lg)
-            .background(scheme.surfaceContainer)
-            .border(1.dp, scheme.outlineVariant, IrisShape.lg)
-            // one element for a screen reader: the title and the hint with the switch state
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(Res.string.explore_dates_undecided_title), style = MaterialTheme.typography.titleSmall)
-            Text(stringResource(Res.string.explore_dates_undecided_hint), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-        }
-        androidx.compose.material3.Switch(checked = checked, onCheckedChange = null)
-    }
-}
-
-@Composable
-private fun DatesField(state: ExplorePreferencesState, onClick: () -> Unit) {
-    val scheme = MaterialTheme.colorScheme
-    val dates = rememberDateFormatter()
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(stringResource(Res.string.explore_dates), style = MaterialTheme.typography.labelLarge)
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .clip(IrisShape.md)
-                .border(1.dp, scheme.outline, IrisShape.md)
-                .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Symbol(Symbols.calendarMonth, tint = scheme.onSurfaceVariant)
-            Text(dates.tripRange(state.startDate, state.endDate), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-            Text(pluralStringResource(Res.plurals.explore_days, state.days, state.days), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
-        }
     }
 }
 
@@ -399,7 +307,7 @@ private fun InterestsSection(state: ExplorePreferencesState, vm: ExplorePreferen
         Row(verticalAlignment = Alignment.Bottom) {
             Text(stringResource(Res.string.explore_interests), Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)
             Text(
-                stringResource(if (state.newTrip && state.datesUndecided) Res.string.explore_interests_hint_general else Res.string.explore_interests_hint),
+                stringResource(Res.string.explore_interests_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = scheme.onSurfaceVariant,
             )

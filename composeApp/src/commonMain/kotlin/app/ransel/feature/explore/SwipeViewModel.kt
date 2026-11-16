@@ -66,6 +66,9 @@ class SwipeViewModel(
 
     private var session: ExploreSession? = null
 
+    /** The trip of this search, for "Trip {nama} sudah dibuat." after "Buat trip dan cari". */
+    val tripTitle: String? get() = store.session(tripId)?.form?.tripTitle
+
     init {
         val saved = store.session(tripId)
         if (saved == null) _state.value = SwipeUiState.Empty

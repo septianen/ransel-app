@@ -96,6 +96,8 @@ fun SwipeScreen(
     onOpenCredits: () -> Unit,
     onOpenRound: (tripId: String, roundId: String) -> Unit,
     modifier: Modifier = Modifier,
+    /** The trip was just made by "Buat trip dan cari": a search that cannot run says that the trip exists, and offers it. */
+    created: Boolean = false,
     viewModel: SwipeViewModel = koinViewModel(key = "swipe-$tripId") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -169,30 +171,34 @@ fun SwipeScreen(
                         onPrimary = onHome,
                     )
                 } else {
-                    FullScreenState(
-                        title = stringResource(Res.string.swipe_error_title),
-                        body = stringResource(Res.string.swipe_error_body),
-                        illustration = painterResource(Res.drawable.ic_confuse),
-                        errorCode = s.failure.code.takeIf { it != ErrorCode.INTERNAL_ERROR } ?: ErrorCode.AI_UNAVAILABLE,
-                        primaryLabel = stringResource(Res.string.state_retry),
-                        onPrimary = viewModel::retry,
-                        secondaryLabel = stringResource(Res.string.swipe_change_preferences),
-                        onSecondary = { viewModel.discard(); onChangePreferences() },
-                    )
+                    TripCreatedCard(created, viewModel.tripTitle, waitsForEmail = s.failure.code == ErrorCode.EMAIL_NOT_VERIFIED) {
+                        FullScreenState(
+                            title = stringResource(Res.string.swipe_error_title),
+                            body = stringResource(Res.string.swipe_error_body),
+                            illustration = painterResource(Res.drawable.ic_confuse),
+                            errorCode = s.failure.code.takeIf { it != ErrorCode.INTERNAL_ERROR } ?: ErrorCode.AI_UNAVAILABLE,
+                            primaryLabel = stringResource(Res.string.state_retry),
+                            onPrimary = viewModel::retry,
+                            secondaryLabel = if (created) stringResource(Res.string.swipe_view_trip) else stringResource(Res.string.swipe_change_preferences),
+                            onSecondary = if (created) ({ onOpenItinerary(tripId) }) else ({ viewModel.discard(); onChangePreferences() }),
+                        )
+                    }
                 }
             }
             is SwipeUiState.OutOfCredits -> StateWithClose(onClose) {
-                FullScreenState(
-                    title = stringResource(Res.string.swipe_credits_title),
-                    body = if (s.cost != null && s.available != null) stringResource(Res.string.swipe_credits_body, s.cost, s.available)
-                    else stringResource(Res.string.swipe_credits_body_generic),
-                    illustration = painterResource(Res.drawable.ic_confuse),
-                    errorCode = ErrorCode.INSUFFICIENT_CREDITS,
-                    primaryLabel = stringResource(Res.string.swipe_credits_action),
-                    onPrimary = onOpenCredits,
-                    secondaryLabel = stringResource(Res.string.swipe_back_home),
-                    onSecondary = onHome,
-                )
+                TripCreatedCard(created, viewModel.tripTitle, waitsForEmail = false) {
+                    FullScreenState(
+                        title = stringResource(Res.string.swipe_credits_title),
+                        body = if (s.cost != null && s.available != null) stringResource(Res.string.swipe_credits_body, s.cost, s.available)
+                        else stringResource(Res.string.swipe_credits_body_generic),
+                        illustration = painterResource(Res.drawable.ic_confuse),
+                        errorCode = ErrorCode.INSUFFICIENT_CREDITS,
+                        primaryLabel = stringResource(Res.string.swipe_credits_action),
+                        onPrimary = onOpenCredits,
+                        secondaryLabel = if (created) stringResource(Res.string.swipe_view_trip) else stringResource(Res.string.swipe_back_home),
+                        onSecondary = if (created) ({ onOpenItinerary(tripId) }) else onHome,
+                    )
+                }
             }
         }
         SnackbarHost(
@@ -200,6 +206,30 @@ fun SwipeScreen(
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 96.dp, start = 16.dp, end = 16.dp),
             snackbar = { data -> UndoSnackbar(data.visuals.message, actionLabel = data.visuals.actionLabel, onAction = { data.performAction() }) },
         )
+    }
+}
+
+/** "Trip {nama} sudah dibuat." above a state of a search that could not run (spec "State lain"); [content] is that state. */
+@Composable
+private fun TripCreatedCard(created: Boolean, title: String?, waitsForEmail: Boolean, content: @Composable () -> Unit) {
+    if (!created || title == null) {
+        content()
+        return
+    }
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(IrisShape.lg).background(MaterialTheme.colorScheme.surfaceContainer).padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Symbol(Symbols.checkCircle, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
+            Text(
+                stringResource(if (waitsForEmail) Res.string.swipe_trip_created_verify else Res.string.swipe_trip_created, title),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Box(Modifier.weight(1f)) { content() }
     }
 }
 

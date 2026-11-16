@@ -86,6 +86,12 @@ class ExploreSessionStore(
     /** Unfinished searches by trip id. */
     val sessions: StateFlow<Map<String, ExploreSession>> = _sessions.asStateFlow()
 
+    /**
+     * The "Seleramu" of each trip (the interview's W4 and the "Ubah seleramu" sheet): per trip, per device, never synced. It
+     * is what the form starts with, so "Cari dengan seleraku" needs no typing.
+     */
+    private val tastes = MutableStateFlow<Map<String, ExploreForm>>(emptyMap())
+
     init {
         scope.launch {
             // An unreadable session is dropped (the user starts a new search), but it should not happen: report it.
@@ -93,6 +99,9 @@ class ExploreSessionStore(
                 ?: legacySession()
             // whatever was saved while this was loading is newer than what was on disk
             if (!saved.isNullOrEmpty()) _sessions.update { saved + it }
+            val savedTastes = runCatching { preferences.getString(TASTES_KEY)?.let { ApiJson.decodeFromString(TASTES_SERIALIZER, it) } }
+                .onFailure(crashes::record).getOrNull()
+            if (!savedTastes.isNullOrEmpty()) tastes.update { savedTastes + it }
         }
     }
 
@@ -100,7 +109,15 @@ class ExploreSessionStore(
 
     /** The form of the session that was just dropped ("Ubah preferensi"), so the next form starts with the same answers. */
     private var lastForm: ExploreForm? = null
-    fun takeLastForm(tripId: String): ExploreForm? = lastForm?.takeIf { it.tripId == tripId }.also { lastForm = null }
+    fun takeLastForm(tripId: String): ExploreForm? = lastForm?.takeIf { it.tripId == tripId }.also { lastForm = null } ?: tastes.value[tripId]
+
+    /** The Seleramu of a trip made in the interview; replaces the earlier one of the trip. */
+    suspend fun saveTaste(form: ExploreForm) {
+        tastes.update { it + (form.tripId to form) }
+        preferences.putString(TASTES_KEY, ApiJson.encodeToString(TASTES_SERIALIZER, tastes.value))
+    }
+
+    fun taste(tripId: String): ExploreForm? = tastes.value[tripId]
 
     /** Keeps [session] as the unfinished search of its trip, replacing an earlier one of the same trip. */
     suspend fun save(session: ExploreSession) {
@@ -132,7 +149,9 @@ class ExploreSessionStore(
 
     private companion object {
         const val KEY = "explore_sessions"
+        const val TASTES_KEY = "explore_tastes"
         const val LEGACY_KEY = "explore_session"
         val SERIALIZER = MapSerializer(String.serializer(), ExploreSession.serializer())
+        val TASTES_SERIALIZER = MapSerializer(String.serializer(), ExploreForm.serializer())
     }
 }

@@ -54,7 +54,8 @@ import kotlinx.serialization.Serializable
 )
 
 /** Explore credits: balance, voucher, packs, history (opened from Account and from the out-of-credits state). */
-@Serializable data object CreditsRoute
+/** [tripId] set = opened from "Tambah kredit" of a search that waits: the screen says what is needed and offers "Lanjut mencari". */
+@Serializable data class CreditsRoute(val tripId: String? = null)
 /** Account → Info pembayaran. */
 @Serializable data object DeleteAccountRoute
 /** Account → Ubah password. Full screen; confirm is checked here, the server only sees current + new. */
@@ -92,7 +93,8 @@ import kotlinx.serialization.Serializable
 )
 
 /** Swipe through the recommendations of the unfinished Explore session of [tripId] (a user can have one per trip). */
-@Serializable data class SwipeRoute(val tripId: String)
+/** [created] = the trip was just made by "Buat trip dan cari": a failed search says that the trip exists. */
+@Serializable data class SwipeRoute(val tripId: String, val created: Boolean = false)
 
 /**
  * Full-screen detail of a recommended place. From a swipe card the card is read from the Explore session and the

@@ -611,13 +611,19 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
             onPickTrip = { navController.navigate(ExplorePreferencesRoute(it)) },
-            onNewTrip = { navController.navigate(ExplorePreferencesRoute(null)) },
+            // "Trip baru": the interview (Layar 1 to the summary "Buat trip dan cari"), not a form of its own
+            onNewTrip = { navController.navigate(InterviewRoute(InterviewDoor.EXPLORE.name)) },
             onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
         )
     }
     page<ExplorePreferencesRoute> { entry ->
         val route = entry.toRoute<ExplorePreferencesRoute>()
-        ExplorePreferencesScreen(
+        if (route.tripId == null) {
+            // the old "trip baru" form is gone: an old link or a stored route opens the interview of Jelajah instead
+            LaunchedEffect(Unit) {
+                navController.navigate(InterviewRoute(InterviewDoor.EXPLORE.name)) { popUpTo<ExplorePreferencesRoute> { inclusive = true } }
+            }
+        } else ExplorePreferencesScreen(
             tripId = route.tripId,
             onBack = { navController.popBackStack() },
             // "Ganti": back to the picker, whichever way the form was opened (from Home or a trip: switch to the Explore tab).
@@ -647,7 +653,8 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onOpenItinerary = { id ->
                 navController.navigate(TripRoute(id, TripTab.ITINERARY.name)) { popUpTo<SwipeRoute> { inclusive = true } }
             },
-            onOpenCredits = { navController.navigate(CreditsRoute) },
+            onOpenCredits = { navController.navigate(CreditsRoute(swipeRoute.tripId)) },
+            created = swipeRoute.created,
             onHome = {
                 navController.navigate(HomeRoute) {
                     popUpTo(navController.graph.findStartDestination().id)
@@ -717,8 +724,14 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             },
         )
     }
-    page<CreditsRoute> {
-        CreditsScreen(onBack = { navController.popBackStack() })
+    page<CreditsRoute> { entry ->
+        val route = entry.toRoute<CreditsRoute>()
+        CreditsScreen(
+            tripId = route.tripId,
+            onBack = { navController.popBackStack() },
+            // "Lanjut mencari": the search that waited runs again from the session the interview kept
+            onContinueSearch = { id -> navController.navigate(SwipeRoute(id)) { popUpTo<CreditsRoute> { inclusive = true } } },
+        )
     }
     page<DeleteAccountRoute> {
         app.ransel.feature.account.DeleteAccountScreen(onBack = { navController.popBackStack() })
@@ -756,7 +769,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
         val passwordChanged by accountEntry.savedStateHandle.getStateFlow("passwordChanged", false).collectAsState()
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
-            onOpenCredits = { navController.navigate(CreditsRoute) },
+            onOpenCredits = { navController.navigate(CreditsRoute()) },
             onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenNotifications = { navController.navigate(NotificationSettingsRoute) },
             onDeleteAccount = { navController.navigate(DeleteAccountRoute) },
@@ -959,6 +972,8 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
         InterviewScreen(
             door = InterviewDoor.valueOf(route.door),
             onLeave = { navController.popBackStack() },
+            // "Buat trip dan cari": the swipe screen takes over; Back from it leads to where Jelajah was opened
+            onCreatedAndSearch = { id -> navController.navigate(SwipeRoute(id, created = true)) { popUpTo<InterviewRoute> { inclusive = true } } },
             onCreated = { id, signedIn ->
                 // Replace the interview with the new trip (on Ringkasan) so Back returns to where the user came from.
                 navController.navigate(TripRoute(id)) { popUpTo<InterviewRoute> { inclusive = true } }
@@ -1078,7 +1093,9 @@ private fun androidx.compose.animation.AnimatedContentTransitionScope<NavBackSta
 /** Opens a bottom tab, keeping each tab's own back stack and scroll position. */
 /** Explore's preferences step, or sign-in for a guest (Explore needs an account; a guest's search only failed). */
 private fun NavHostController.openExplore(tripId: String?, signedIn: Boolean) {
-    if (signedIn) navigate(ExplorePreferencesRoute(tripId)) else navigate(SignInRoute) { launchSingleTop = true }
+    if (!signedIn) navigate(SignInRoute) { launchSingleTop = true }
+    else if (tripId == null) navigate(InterviewRoute(InterviewDoor.EXPLORE.name))
+    else navigate(ExplorePreferencesRoute(tripId))
 }
 
 private fun NavHostController.openTab(tab: MainTab) {
