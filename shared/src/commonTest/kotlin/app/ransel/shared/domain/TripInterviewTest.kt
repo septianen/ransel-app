@@ -128,6 +128,15 @@ class TripInterviewTest {
         val medan = TripOriginDto("Medan", 3.5952, 98.6722, countryCode = "ID")
         assertEquals(DepartureBand.LONG, band(medan, -5.45 to 105.2667))
         assertEquals(DepartureMode.PLANE, departureOptions(DepartureBand.LONG, false).first())
+        // Benn, 16 Nov: Pesawat, Kereta (when both cities have a station), Mobil sendiri, Bus
+        assertEquals(
+            listOf(DepartureMode.PLANE, DepartureMode.OWN_CAR, DepartureMode.BUS),
+            departureOptions(DepartureBand.LONG, trainBetweenCities = false),
+        )
+        assertEquals(
+            listOf(DepartureMode.PLANE, DepartureMode.TRAIN, DepartureMode.OWN_CAR, DepartureMode.BUS),
+            departureOptions(DepartureBand.LONG, trainBetweenCities = true),
+        )
     }
 
     @Test
