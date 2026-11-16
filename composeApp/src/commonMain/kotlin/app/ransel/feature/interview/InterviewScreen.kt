@@ -289,6 +289,7 @@ private fun SummaryValueRow(label: String, value: String, filled: Boolean, onCli
 }
 
 /** "Dari Subang · Motor sendiri": the city opens W1, the way of going opens W2. Abroad there is no W2. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, viewModel: InterviewViewModel) {
     val scheme = MaterialTheme.colorScheme
@@ -302,24 +303,32 @@ private fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, viewMo
         )
         return
     }
+    // one card like the other rows: a tap anywhere opens W1 (the city); the way of going, when there is one, opens W2
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(IrisShape.lg).border(1.dp, scheme.outlineVariant, IrisShape.lg).padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(IrisShape.lg)
+            .border(1.dp, scheme.outlineVariant, IrisShape.lg)
+            .clickable(role = Role.Button) { viewModel.edit(InterviewStep.ORIGIN) }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(stringResource(Res.string.interview_summary_departure), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     stringResource(Res.string.interview_summary_from, origin.name),
-                    Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { viewModel.edit(InterviewStep.ORIGIN) }.padding(end = 6.dp),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = scheme.onSurface,
                 )
                 if (departure != null && !answers.isOverseas()) {
                     Text(
                         "· " + stringResource(departure.labelRes),
-                        Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { viewModel.edit(InterviewStep.DEPARTURE) },
+                        Modifier.clickable(role = Role.Button) { viewModel.edit(InterviewStep.DEPARTURE) },
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = scheme.onSurface,
                     )
                 }
             }
