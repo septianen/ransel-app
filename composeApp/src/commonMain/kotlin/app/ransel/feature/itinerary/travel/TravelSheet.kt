@@ -37,7 +37,16 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.rememberCoroutineScope
+import app.ransel.content.getString
 import app.ransel.content.stringResource
+import app.ransel.ui.components.UndoSnackbar
+import kotlinx.coroutines.launch
+import ransel.composeapp.generated.resources.travel_main_changed
+import ransel.composeapp.generated.resources.travel_undo
 import app.ransel.shared.domain.LegKind
 import app.ransel.shared.domain.MapsPoint
 import app.ransel.shared.domain.mapsDirectionsUrl
@@ -88,6 +97,22 @@ fun TravelSheet(
     val auto = leg.kind
     var chosen by rememberSaveable(model.from.id, model.to.id) { mutableStateOf(auto) }
     var changing by rememberSaveable { mutableStateOf(false) }
+    // "Moda utama diubah ke Mobil." + "Urungkan" shows inside the sheet, which stays open
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    fun changeMainMode(mode: MainTravelMode) {
+        val previous = mainMode
+        onChangeMainMode(mode)
+        scope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            val result = snackbar.showSnackbar(
+                message = getString(Res.string.travel_main_changed, getString(mainModeStringRes(mode))),
+                actionLabel = getString(Res.string.travel_undo),
+            )
+            // back to what the capsules used (an explicit value: a stored mode cannot be cleared in V1)
+            if (result == SnackbarResult.ActionPerformed) onChangeMainMode(previous)
+        }
+    }
     val uriHandler = LocalUriHandler.current
     val colors = IrisTheme.warning
 
@@ -170,7 +195,7 @@ fun TravelSheet(
                     onToggle = { changing = !changing },
                     onPick = {
                         changing = false
-                        if (it != mainMode) onChangeMainMode(it)
+                        if (it != mainMode) changeMainMode(it)
                     },
                 )
                 if (chosen == LegKind.PUBLIC_TRANSPORT) {
@@ -218,6 +243,10 @@ fun TravelSheet(
                 }
             }
         }
+        SnackbarHost(
+            hostState = snackbar,
+            snackbar = { data -> UndoSnackbar(data.visuals.message, actionLabel = data.visuals.actionLabel, onAction = { data.performAction() }) },
+        )
     }
 }
 

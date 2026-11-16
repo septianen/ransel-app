@@ -117,7 +117,7 @@ import app.ransel.feature.itinerary.travel.RouteTodaySheet
 import app.ransel.feature.itinerary.travel.TravelCapsule
 import app.ransel.feature.itinerary.travel.TravelCapsuleModel
 import app.ransel.feature.itinerary.travel.TravelSheet
-import app.ransel.feature.itinerary.travel.mainModeStringRes
+import app.ransel.feature.itinerary.travel.legSymbol
 import app.ransel.feature.itinerary.travel.travelGapText
 import app.ransel.feature.itinerary.travel.travelMinutesText
 import app.ransel.shared.domain.LegDisplay
@@ -185,8 +185,6 @@ import ransel.composeapp.generated.resources.reorder_title
 import ransel.composeapp.generated.resources.map_intercity
 import ransel.composeapp.generated.resources.map_intercity_no_time
 import ransel.composeapp.generated.resources.reorder_unchanged
-import ransel.composeapp.generated.resources.travel_main_changed
-import ransel.composeapp.generated.resources.travel_undo
 import ransel.composeapp.generated.resources.travel_until
 
 /** Itinerary tab of a trip: day chips, the day's timeline (drag to reorder), Unscheduled box, FAB. */
@@ -236,14 +234,6 @@ fun ItineraryTab(
                         actionLabel = undoLabel,
                     )
                     if (result == SnackbarResult.ActionPerformed) viewModel.undoAutoSchedule(event.restore)
-                }
-                is ItineraryEvent.MainModeChanged -> {
-                    val result = snackbar.showSnackbar(
-                        message = getString(Res.string.travel_main_changed, getString(mainModeStringRes(event.mode))),
-                        actionLabel = getString(Res.string.travel_undo),
-                    )
-                    // back to what the capsules used (an explicit value: a stored mode cannot be cleared in V1)
-                    if (result == SnackbarResult.ActionPerformed) viewModel.changeMainMode(event.previous, event.mode, announce = false)
                 }
                 is ItineraryEvent.MovedToDay -> {
                     val result = snackbar.showSnackbar(
@@ -387,6 +377,7 @@ private fun ItineraryContent(
             segment.from.lat!!, segment.from.lng!!, segment.to.lat!!, segment.to.lng!!,
             walking = segment.leg.kind == LegKind.WALK,
             label = segment.leg.minutes?.let { "±" + travelMinutesText(it) },
+            symbol = legSymbol(segment.leg.kind),
         )
     }
     val lineScheme = MaterialTheme.colorScheme
@@ -589,10 +580,8 @@ private fun ItineraryContent(
                 model = TravelCapsuleModel(items[index], items[index + 1], shown.leg, shown.warning),
                 mainMode = mainMode,
                 canChangeMainMode = canEdit,
-                onChangeMainMode = { mode ->
-                    openLeg = null
-                    viewModel.changeMainMode(mode, previous = mainMode)
-                },
+                // the sheet stays open and shows its own "Urungkan" snackbar
+                onChangeMainMode = viewModel::changeMainMode,
                 onDismiss = { openLeg = null },
             )
         } else {

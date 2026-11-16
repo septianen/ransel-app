@@ -96,8 +96,6 @@ sealed interface ItineraryEvent {
     data class MovedToDay(val dayNumber: Int, val restore: ItineraryItemInput) : ItineraryEvent
     /** "5 tempat dijadwalkan" + Undo. [restore] are the places as they were (unscheduled). */
     data class AutoScheduled(val count: Int, val leftOver: Int, val restore: List<ItineraryItemInput>) : ItineraryEvent
-    /** "Moda utama diubah ke Mobil." + Urungkan: [previous] is what the capsules used before. */
-    data class MainModeChanged(val mode: MainTravelMode, val previous: MainTravelMode) : ItineraryEvent
 }
 
 class ItineraryViewModel(
@@ -171,9 +169,10 @@ class ItineraryViewModel(
 
     /**
      * The travel sheet's "Ubah": the trip's main mode, which sets the speed of every motorbike or car capsule. Saved like any
-     * trip edit (local first, synced to the others). [previous] is the mode the capsules used, for "Urungkan".
+     * trip edit (local first, synced to the others). The Travel sheet shows "Moda utama diubah ke Mobil." with "Urungkan"
+     * itself, so it stays open (spec 1572938, 2b).
      */
-    fun changeMainMode(mode: MainTravelMode, previous: MainTravelMode, announce: Boolean = true) {
+    fun changeMainMode(mode: MainTravelMode) {
         val trips = trips ?: return
         viewModelScope.launch {
             val live = trips.observeTrip(trip.id).first() ?: return@launch
@@ -185,7 +184,6 @@ class ItineraryViewModel(
                     mainTravelMode = mode,
                 ),
             )
-            if (announce) events.send(ItineraryEvent.MainModeChanged(mode, previous))
         }
     }
 

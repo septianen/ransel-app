@@ -74,6 +74,8 @@ data class MapSegment(
     val toLng: Double,
     val walking: Boolean,
     val label: String?,
+    /** The mode icon in the pill (a `Symbols` glyph: walk, motorbike, car); null = no icon. */
+    val symbol: String? = null,
 )
 
 /** ARGB colours of the lines and their pills, from the theme: line = primary at 85 %, pill = surface, outline-variant, on-surface. */
