@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
 import app.ransel.ui.components.LoadingButton
 import app.ransel.ui.symbols.Symbol
+import app.ransel.ui.components.SelectedChoice
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
 import ransel.composeapp.generated.resources.Res
@@ -50,8 +51,9 @@ import ransel.composeapp.generated.resources.interview_skip_all
 
 /*
  * The pieces of the interview screens (spec "Wawancara Buat trip", components): the step header with its segments, the
- * big choice rows, the interest chips, the style cards and the bottom bar. Selected is "Alt A", neutral: a grey fill, a
- * 2 dp dark border, a dark tile and a check; green is only for the main button and the segments.
+ * big choice rows, the interest chips, the style cards and the bottom bar. Selected is purple ([SelectedChoice], owner,
+ * 16 Nov 2026: a `tertiary-container` fill, a 2 dp `tertiary` border, a `tertiary` tile and check); green is only for the
+ * main button and the segments.
  */
 
 /** The segments and the "X dari Y" of the top of a question; [position] of [total] are filled. [leading] is the X or the back arrow. */
@@ -146,13 +148,13 @@ internal fun ChoiceRow(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val border = if (selected) BorderStroke(2.dp, scheme.onSurface) else BorderStroke(1.dp, scheme.outlineVariant)
+    val border = if (selected) BorderStroke(SelectedChoice.BorderWidth, SelectedChoice.border) else BorderStroke(1.dp, scheme.outlineVariant)
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = 68.dp)
             .clip(IrisShape.lg)
-            .background(if (selected) scheme.surfaceContainer else scheme.surface)
+            .background(if (selected) SelectedChoice.fill else scheme.surface)
             .border(border, IrisShape.lg)
             .clickable(role = Role.RadioButton, onClick = onClick)
             .semantics { this.selected = selected; this.role = Role.RadioButton; contentDescription = if (effect != null) "$label, $effect" else label }
@@ -161,18 +163,18 @@ internal fun ChoiceRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
-            Modifier.size(40.dp).clip(IrisShape.md).background(if (selected) scheme.onSurface else scheme.surfaceContainerHigh),
+            Modifier.size(40.dp).clip(IrisShape.md).background(if (selected) SelectedChoice.accent else scheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {
-            Symbol(symbol, size = 22.dp, tint = if (selected) scheme.surface else scheme.onSurfaceVariant)
+            Symbol(symbol, size = 22.dp, tint = if (selected) SelectedChoice.onAccent else scheme.onSurfaceVariant)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(label, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
             if (effect != null) Text(effect, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
         }
         if (selected) {
-            Box(Modifier.size(22.dp).clip(CircleShape).background(scheme.onSurface), contentAlignment = Alignment.Center) {
-                Symbol(Symbols.check, size = 16.dp, tint = scheme.surface)
+            Box(Modifier.size(22.dp).clip(CircleShape).background(SelectedChoice.accent), contentAlignment = Alignment.Center) {
+                Symbol(Symbols.check, size = 16.dp, tint = SelectedChoice.onAccent)
             }
         } else {
             Box(Modifier.size(21.dp).clip(CircleShape).border(1.5.dp, scheme.outline, CircleShape))
@@ -188,15 +190,15 @@ internal fun InterestChip(label: String, selected: Boolean, onClick: () -> Unit,
         modifier
             .heightIn(min = 48.dp)
             .clip(CircleShape)
-            .background(if (selected) scheme.surfaceContainer else scheme.surface)
-            .border(if (selected) BorderStroke(2.dp, scheme.onSurface) else BorderStroke(1.dp, scheme.outline), CircleShape)
+            .background(if (selected) SelectedChoice.fill else scheme.surface)
+            .border(if (selected) BorderStroke(SelectedChoice.BorderWidth, SelectedChoice.border) else BorderStroke(1.dp, scheme.outline), CircleShape)
             .clickable(role = Role.Checkbox, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        if (selected) Symbol(Symbols.check, size = 16.dp, tint = scheme.onSurface)
+        if (selected) Symbol(Symbols.check, size = 16.dp, tint = SelectedChoice.accent)
         else if (special) Symbol(Symbols.autoAwesome, size = 16.dp, tint = scheme.onSurfaceVariant)
         Text(label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold))
     }
@@ -216,8 +218,8 @@ internal fun StyleCard(label: String, hint: String, selected: Boolean, onClick: 
         modifier
             .heightIn(min = 64.dp)
             .clip(IrisShape.lg)
-            .background(if (selected) scheme.surfaceContainer else scheme.surface)
-            .border(if (selected) BorderStroke(2.dp, scheme.onSurface) else BorderStroke(1.dp, scheme.outlineVariant), IrisShape.lg)
+            .background(if (selected) SelectedChoice.fill else scheme.surface)
+            .border(if (selected) BorderStroke(SelectedChoice.BorderWidth, SelectedChoice.border) else BorderStroke(1.dp, scheme.outlineVariant), IrisShape.lg)
             .clickable(role = Role.RadioButton, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(12.dp),
@@ -227,8 +229,8 @@ internal fun StyleCard(label: String, hint: String, selected: Boolean, onClick: 
             Text(hint, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
         }
         if (selected) {
-            Box(Modifier.align(Alignment.TopEnd).size(20.dp).clip(CircleShape).background(scheme.onSurface), contentAlignment = Alignment.Center) {
-                Symbol(Symbols.check, size = 14.dp, tint = scheme.surface)
+            Box(Modifier.align(Alignment.TopEnd).size(20.dp).clip(CircleShape).background(SelectedChoice.accent), contentAlignment = Alignment.Center) {
+                Symbol(Symbols.check, size = 14.dp, tint = SelectedChoice.onAccent)
             }
         }
     }
