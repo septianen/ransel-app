@@ -111,6 +111,8 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
             budgetMinor = request.budgetMinor, createdAt = stamp, updatedAt = stamp,
             destinationPlace = request.destinationPlace,
             countryCode = request.countryCode, localCurrency = request.localCurrency, timeZone = request.timeZone,
+            origin = request.origin, departureMode = request.departureMode, localTransport = request.localTransport,
+            mainTravelMode = request.mainTravelMode,
         )
         store.trips.update { it + trip }
     }
@@ -144,7 +146,13 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
                     if (sent || it.destination != request.destination) {
                         t.copy(countryCode = request.countryCode, localCurrency = request.localCurrency, timeZone = request.timeZone)
                     } else t
-                }
+                }.copy(
+                    // an answer that is not sent keeps the stored one, like the server
+                    origin = request.origin ?: it.origin,
+                    departureMode = request.departureMode ?: it.departureMode,
+                    localTransport = request.localTransport ?: it.localTransport,
+                    mainTravelMode = request.mainTravelMode ?: it.mainTravelMode,
+                )
             }
         }
     }

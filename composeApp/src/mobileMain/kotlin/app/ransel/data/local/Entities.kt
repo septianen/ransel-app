@@ -50,6 +50,16 @@ data class TripEntity(
     val countryCode: String? = null,
     val localCurrency: String? = null,
     val timeZone: String? = null,
+    /** The "Buat trip" interview's answers (DB v4, server V8): the city the creator leaves from, W2, W3 and the main travel mode. */
+    val originName: String? = null,
+    val originLat: Double? = null,
+    val originLng: Double? = null,
+    val originPlaceId: String? = null,
+    val originCountryCode: String? = null,
+    /** `DepartureMode`, `LocalTransport` and `MainTravelMode` names. */
+    val departureMode: String? = null,
+    val localTransport: String? = null,
+    val mainTravelMode: String? = null,
 )
 
 @Entity(tableName = "itinerary_items", indices = [Index("tripId")])

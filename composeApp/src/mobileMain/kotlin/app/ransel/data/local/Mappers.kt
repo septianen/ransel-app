@@ -17,6 +17,10 @@ import app.ransel.shared.model.Category
 import app.ransel.shared.model.FxSource
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.PackingCategory
+import app.ransel.shared.dto.TripOriginDto
+import app.ransel.shared.model.DepartureMode
+import app.ransel.shared.model.LocalTransport
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.PaymentMethod
 import app.ransel.shared.model.Role
 import kotlinx.datetime.LocalDate
@@ -35,7 +39,37 @@ fun TripEntity.toDto() = TripDto(
     baseCurrency = baseCurrency, budgetMinor = budgetMinor, coverUrl = coverUrl, myRole = enumOr(myRole, Role.OWNER),
     destinationPlace = tripPlace(),
     countryCode = countryCode, localCurrency = localCurrency, timeZone = timeZone,
+    origin = tripOrigin(),
+    departureMode = departureMode?.let { name -> DepartureMode.entries.firstOrNull { it.name == name } },
+    localTransport = localTransport?.let { name -> LocalTransport.entries.firstOrNull { it.name == name } },
+    mainTravelMode = mainTravelMode?.let { name -> MainTravelMode.entries.firstOrNull { it.name == name } },
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
+)
+
+private fun TripEntity.tripOrigin(): TripOriginDto? {
+    val name = originName ?: return null
+    val lat = originLat ?: return null
+    val lng = originLng ?: return null
+    return TripOriginDto(name, lat, lng, originPlaceId, originCountryCode)
+}
+
+/** The interview answers as sent: what a new trip, and a trip pulled from the server, stores. */
+fun TripEntity.withInterview(origin: TripOriginDto?, departure: DepartureMode?, local: LocalTransport?, main: MainTravelMode?) = copy(
+    originName = origin?.name?.trim(), originLat = origin?.lat, originLng = origin?.lng, originPlaceId = origin?.placeId,
+    originCountryCode = origin?.countryCode?.uppercase(),
+    departureMode = departure?.name, localTransport = local?.name, mainTravelMode = main?.name,
+)
+
+/** Same rule as the server: an answer that is not sent keeps the stored one (an older app does not send them; Lewati writes nothing). */
+fun TripEntity.keepingInterview(origin: TripOriginDto?, departure: DepartureMode?, local: LocalTransport?, main: MainTravelMode?) = copy(
+    originName = if (origin != null) origin.name.trim() else originName,
+    originLat = if (origin != null) origin.lat else originLat,
+    originLng = if (origin != null) origin.lng else originLng,
+    originPlaceId = if (origin != null) origin.placeId else originPlaceId,
+    originCountryCode = if (origin != null) origin.countryCode?.uppercase() else originCountryCode,
+    departureMode = departure?.name ?: departureMode,
+    localTransport = local?.name ?: localTransport,
+    mainTravelMode = main?.name ?: mainTravelMode,
 )
 
 private fun TripEntity.tripPlace(): TripPlaceDto? {
@@ -105,7 +139,7 @@ fun TripDto.toEntity() = TripEntity(
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED, myRole = myRole.name,
     countryCode = countryCode, localCurrency = localCurrency, timeZone = timeZone,
-).withPlace(destinationPlace)
+).withPlace(destinationPlace).withInterview(origin, departureMode, localTransport, mainTravelMode)
 
 fun ItineraryItemDto.toEntity() = ItineraryItemEntity(
     id = id, tripId = tripId, dayDate = dayDate?.toString(), startTime = startTime?.toString(),
