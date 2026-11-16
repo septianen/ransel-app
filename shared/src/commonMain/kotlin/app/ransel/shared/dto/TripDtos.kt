@@ -56,6 +56,12 @@ data class TripDto(
      * isOverseas)`, which also gives the default (Motor in Indonesia, Mobil abroad).
      */
     val mainTravelMode: MainTravelMode? = null,
+    /**
+     * true = [origin], [departureMode], [localTransport] and [mainTravelMode] are the whole truth: a null CLEARS the stored
+     * answer. false (default, older apps) = a null keeps it. "Edit trip, Perjalanan" needs it to reset an answer that is no
+     * longer valid ("Cara berangkat direset"). The apps set it on every update and sync push of a trip: they hold all four.
+     */
+    val replaceTravelAnswers: Boolean = false,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
     val deletedAt: Timestamp? = null,
@@ -144,4 +150,10 @@ data class UpdateTripRequest(
     val departureMode: DepartureMode? = null,
     val localTransport: LocalTransport? = null,
     val mainTravelMode: MainTravelMode? = null,
+    /**
+     * true = [origin], [departureMode], [localTransport] and [mainTravelMode] are the whole truth: a null CLEARS the stored
+     * answer. false (default, older apps) = a null keeps it. "Edit trip, Perjalanan" needs it to reset an answer that is no
+     * longer valid ("Cara berangkat direset"). The apps set it on every update and sync push of a trip: they hold all four.
+     */
+    val replaceTravelAnswers: Boolean = false,
 )
