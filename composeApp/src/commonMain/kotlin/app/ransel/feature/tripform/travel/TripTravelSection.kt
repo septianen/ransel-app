@@ -174,6 +174,8 @@ fun TripTravelSection(
             onExtra = viewModel::draftToggleExtra,
             onStyle = viewModel::draftStyle,
             onPrice = viewModel::draftPriceLevel,
+            defaultPrice = state.budgetPriceLevel ?: app.ransel.shared.model.PriceLevel.MEDIUM,
+            priceFromBudget = state.budgetPriceLevel != null,
             onNotes = viewModel::draftNotes,
             onSave = viewModel::saveTasteSheet,
             onDismiss = viewModel::closeTasteSheet,

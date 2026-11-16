@@ -56,7 +56,15 @@ class ExploreSuggestionService(
         val currency: String,
     )
 
-    suspend fun suggestions(userId: UUID, tripId: String?, destination: String?, month: String?, language: String): ExploreSuggestionsResponse {
+    suspend fun suggestions(
+        userId: UUID,
+        tripId: String?,
+        destination: String?,
+        month: String?,
+        language: String,
+        /** A trip that is not saved yet (the interview summary): its budget, in [currency], over [days] days for one person. */
+        budget: DraftBudget? = null,
+    ): ExploreSuggestionsResponse {
         if (tripId != null) {
             val id = runCatching { UUID.fromString(tripId) }.getOrNull() ?: throw validationFailed(mapOf("tripId" to "INVALID_UUID"))
             requireRole(id, userId, Role.VIEWER)
@@ -74,8 +82,16 @@ class ExploreSuggestionService(
         if (month != null && !MONTH.matches(month)) throw validationFailed(mapOf("month" to "INVALID"))
         val forMonth = month ?: UndatedTrip.month()
         val guide = guide(place, forMonth, language)
-        return ExploreSuggestionsResponse(interests = curated(place, forMonth, language, guide?.interests.orEmpty()))
+        val interests = curated(place, forMonth, language, guide?.interests.orEmpty())
+        if (guide == null || budget == null) return ExploreSuggestionsResponse(interests = interests)
+        return withBudget(
+            TripFacts(place, forMonth, budget.days ?: UndatedTrip.DAYS, 1, budget.budgetMinor, budget.currency),
+            guide.copy(interests = interests),
+        )
     }
+
+    /** The budget of a trip the user is still creating; it has one member (the owner). */
+    data class DraftBudget(val budgetMinor: Long, val currency: String, val days: Int?)
 
     /** The price edges for a destination and month, from the cache or one short LLM call; null when unavailable. */
     suspend fun priceGuide(destination: String, month: String, language: String = "id"): PriceGuide? =

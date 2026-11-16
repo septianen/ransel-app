@@ -20,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -257,7 +258,16 @@ private fun GuestState(onSignIn: () -> Unit, onSignUp: () -> Unit, viewModel: Ex
 
 /** Design `JelajahBelumVerifikasi`: signed up, email not verified yet. Explore and the signup credits wait for it. */
 @Composable
-private fun VerifyEmailGate(email: String, gate: VerifyGateState, onResend: () -> Unit, onCheck: () -> Unit) {
+internal fun VerifyEmailGate(
+    email: String,
+    gate: VerifyGateState,
+    onResend: () -> Unit,
+    onCheck: () -> Unit,
+    /** The link was opened and a search waits: "Lanjut mencari" takes the place of the two buttons. */
+    onContinue: (() -> Unit)? = null,
+    /** "Lihat trip", a text link under the buttons (the search of a trip that was just made). */
+    onViewTrip: (() -> Unit)? = null,
+) {
     val scheme = MaterialTheme.colorScheme
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 24.dp),
@@ -301,12 +311,24 @@ private fun VerifyEmailGate(email: String, gate: VerifyGateState, onResend: () -
             Text(text, style = MaterialTheme.typography.bodyMedium, color = color)
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            LoadingButton(onClick = onResend, loading = gate.resending, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Text(stringResource(Res.string.check_email_resend), style = MaterialTheme.typography.titleMedium)
+            if (onContinue != null) {
+                Text(stringResource(Res.string.swipe_verify_done), style = MaterialTheme.typography.bodyMedium, color = scheme.primary)
+                Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(Res.string.credits_continue_search), style = MaterialTheme.typography.titleMedium)
+                }
+            } else {
+                LoadingButton(onClick = onResend, loading = gate.resending, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(Res.string.check_email_resend), style = MaterialTheme.typography.titleMedium)
+                }
+                OutlinedButton(onClick = onCheck, enabled = !gate.checking, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Symbol(Symbols.refresh, size = 20.dp)
+                    Text(stringResource(Res.string.explore_verify_check), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+                }
             }
-            OutlinedButton(onClick = onCheck, enabled = !gate.checking, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Symbol(Symbols.refresh, size = 20.dp)
-                Text(stringResource(Res.string.explore_verify_check), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+            if (onViewTrip != null) {
+                TextButton(onClick = onViewTrip, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(Res.string.swipe_view_trip), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = scheme.onSurface)
+                }
             }
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Symbol(Symbols.info, size = 16.dp, tint = scheme.onSurfaceVariant)

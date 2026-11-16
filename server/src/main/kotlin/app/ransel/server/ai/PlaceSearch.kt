@@ -152,6 +152,7 @@ class GooglePlaceSearch(
         private val json = Json { ignoreUnknownKeys = true }
         val PRIMARY_TYPES = listOf("locality", "administrative_area_level_2", "administrative_area_level_1", "country", "tourist_attraction")
         private const val NEAR_RADIUS_METERS = 50_000.0
+        private val AIRPORT_TYPES = setOf("airport", "international_airport")
 
         fun kindOf(types: List<String>): PlaceKind = when {
             "locality" in types -> PlaceKind.CITY
@@ -205,6 +206,9 @@ class GooglePlaceSearch(
             val root = json.parseToJsonElement(body).jsonObject
             return (root["suggestions"] as? JsonArray).orEmpty().mapNotNull { s ->
                 val p = s.jsonObject["placePrediction"]?.jsonObject ?: return@mapNotNull null
+                // a destination is a place to stay in, never an airport (spec "Wawancara Buat trip" 1b): the primary-type filter
+                // already leaves them out; this also drops a place that Google tags as an airport next to another type
+                if (scope == PlaceSearchScope.DESTINATION && p.strings("types").any { it in AIRPORT_TYPES }) return@mapNotNull null
                 val main = p["structuredFormat"]?.jsonObject?.get("mainText")?.jsonObject ?: return@mapNotNull null
                 PlaceSuggestionDto(
                     placeId = p.str("placeId") ?: return@mapNotNull null,

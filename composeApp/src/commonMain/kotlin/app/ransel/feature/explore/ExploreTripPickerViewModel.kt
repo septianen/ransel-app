@@ -64,7 +64,8 @@ class ExploreTripPickerViewModel(
 ) : ViewModel() {
     /** The guest gate's "Lanjutkan dengan Google". */
     val google = app.ransel.feature.auth.GoogleSignInFlow(auth, viewModelScope, analytics)
-    private val gate = MutableStateFlow(VerifyGateState())
+    private val verifyGate = VerifyGate(auth, sessionManager, viewModelScope)
+    private val gate = verifyGate.state
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val eligible = trips.observeTrips().flatMapLatest { all ->
@@ -100,28 +101,49 @@ class ExploreTripPickerViewModel(
         }
     }
 
-    fun resendVerification() {
-        if (gate.value.resending) return
-        gate.update { it.copy(resending = true, message = null) }
-        viewModelScope.launch {
+    fun resendVerification() = verifyGate.resend()
+
+    /** "Sudah verifikasi": reload the account; the gate disappears by itself once the server says verified. */
+    fun checkVerified() = verifyGate.check()
+}
+
+/**
+ * The buttons of the verify-email gate ("Kirim ulang link", "Sudah verifikasi"): the Jelajah gate and the swipe screen of a
+ * search that waits for the email use the same one. [state] carries what the buttons are doing and the message under them.
+ */
+class VerifyGate(
+    private val auth: AuthRepository,
+    private val sessionManager: SessionManager,
+    private val scope: kotlinx.coroutines.CoroutineScope,
+) {
+    private val _state = MutableStateFlow(VerifyGateState())
+    val state: StateFlow<VerifyGateState> = _state
+
+    val verified: Boolean get() = sessionManager.user?.emailVerified == true
+    val email: String get() = sessionManager.user?.email.orEmpty()
+
+    fun resend() {
+        if (_state.value.resending) return
+        _state.update { it.copy(resending = true, message = null) }
+        scope.launch {
             val result = auth.resendVerificationEmail()
-            gate.update { it.copy(resending = false, message = if (result is ApiResult.Failure) messageOf(result.error) else VerifyGateMessage.SENT) }
+            _state.update { it.copy(resending = false, message = if (result is ApiResult.Failure) messageOf(result.error) else VerifyGateMessage.SENT) }
         }
     }
 
-    /** "Sudah verifikasi": reload the account; the gate disappears by itself once the server says verified. */
-    fun checkVerified() {
-        if (gate.value.checking) return
-        gate.update { it.copy(checking = true, message = null) }
-        viewModelScope.launch {
+    /** Reloads the account; [verified] is true afterwards when the link was opened. */
+    fun check() {
+        if (_state.value.checking) return
+        _state.update { it.copy(checking = true, message = null) }
+        scope.launch {
             val result = auth.refreshUser()
-            val verified = sessionManager.user?.emailVerified == true
-            gate.update {
+            val ok = verified
+            _state.update {
                 it.copy(
                     checking = false,
                     message = when {
                         result is ApiResult.Failure -> messageOf(result.error)
-                        verified -> null
+                        ok -> null
                         else -> VerifyGateMessage.NOT_YET
                     },
                 )

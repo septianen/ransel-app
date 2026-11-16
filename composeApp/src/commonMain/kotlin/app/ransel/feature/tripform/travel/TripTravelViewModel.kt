@@ -42,6 +42,8 @@ data class TripTravelUiState(
     /** The sheet is open and this is its draft. */
     val draft: InterviewTaste? = null,
     val khas: KhasState = KhasState.Hidden,
+    /** The range the trip's budget points to (the server's answer with the chips); null = no budget or not known: Sedang. */
+    val budgetPriceLevel: PriceLevel? = null,
 )
 
 internal fun ExploreForm.toTaste() = InterviewTaste(
@@ -99,7 +101,7 @@ class TripTravelViewModel(
         val before = explore.taste(tripId)
         _state.update { it.copy(taste = draft, draft = null) }
         viewModelScope.launch {
-            explore.saveTaste(draft.toForm(trip))
+            explore.saveTaste(draft.toForm(trip, s.budgetPriceLevel))
             answerChanges.post(AnswerChange(tripId = tripId, row = TravelRow.TASTE, tasteChanged = true, undoTaste = before))
         }
     }
@@ -116,8 +118,14 @@ class TripTravelViewModel(
             val result = withContext(Dispatchers.Default) {
                 withTimeoutOrNull(KHAS_TIMEOUT_MILLIS) { api.exploreSuggestions(tripId = tripId, destination = trip.destination, language = language) }
             }
-            val interests = (result as? ApiResult.Success)?.value?.interests.orEmpty()
-            _state.update { it.copy(khas = if (interests.isEmpty()) KhasState.Hidden else KhasState.Loaded(interests, trip.destination)) }
+            val answer = (result as? ApiResult.Success)?.value
+            val interests = answer?.interests.orEmpty()
+            _state.update {
+                it.copy(
+                    khas = if (interests.isEmpty()) KhasState.Hidden else KhasState.Loaded(interests, trip.destination),
+                    budgetPriceLevel = answer?.suggestedPriceLevel,
+                )
+            }
         }
     }
 
@@ -135,9 +143,10 @@ class TripTravelViewModel(
         }
     }
 
-    private fun InterviewTaste.toForm(trip: TripDto) = ExploreForm(
+    /** The search uses the range the user picked, else the budget's, else Sedang. */
+    private fun InterviewTaste.toForm(trip: TripDto, budgetLevel: PriceLevel?) = ExploreForm(
         tripId = tripId, tripTitle = trip.title, destination = trip.destination, startDate = trip.startDate, endDate = trip.endDate,
-        priceLevel = effectivePriceLevel, interests = interests.toList(), extraInterests = extraInterests.toList().take(5),
+        priceLevel = priceLevel ?: budgetLevel ?: PriceLevel.MEDIUM, interests = interests.toList(), extraInterests = extraInterests.toList().take(5),
         style = style ?: TravelStyle.SANTAI, notes = notes,
     )
 

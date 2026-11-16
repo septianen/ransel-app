@@ -49,6 +49,7 @@ import app.ransel.shared.domain.withLocalTransport
 import app.ransel.shared.domain.withOrigin
 import app.ransel.shared.domain.withStyle
 import app.ransel.platform.LocationFix
+import kotlinx.datetime.daysUntil
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.api.ErrorCode
@@ -121,12 +122,20 @@ data class InterviewUiState(
     /** The Indonesian or English "Trip ke %s", set by the screen (the view model holds no strings). */
     val nameTemplate: String = "%s",
     val budgetDigits: String = "",
+    /** The price range the budget typed on the summary points to (the server's maths); null = no budget, offline or not known. */
+    val budgetPriceLevel: PriceLevel? = null,
     val currency: String = "IDR",
     val leaveDialog: Boolean = false,
     val creating: Boolean = false,
     val createFailed: Boolean = false,
 ) {
     val destinationName: String get() = answers.destination?.name.orEmpty()
+
+    /** What the search uses: the range the user picked, else the one of the budget, else Sedang. */
+    val priceLevel: PriceLevel get() = answers.taste.priceLevel ?: budgetPriceLevel ?: PriceLevel.MEDIUM
+
+    /** The range shown is the budget's ("Dari budget trip"), because the user did not pick one. */
+    val priceFromBudget: Boolean get() = answers.taste.priceLevel == null && budgetPriceLevel != null
     val tripName: String get() = customName ?: nameTemplate.replace("%s", destinationName)
 
     /** The step on screen, or null on the summary. */
@@ -172,6 +181,7 @@ class InterviewViewModel(
     val eventFlow = events.receiveAsFlow()
 
     private var khasJob: Job? = null
+    private var budgetJob: Job? = null
 
     /** The answers before "Mode ubah" opened a row, so Back there puts them back. */
     private var beforeEdit: InterviewAnswers? = null
@@ -285,7 +295,45 @@ class InterviewViewModel(
     }
 
     fun onNameChange(value: String) = _state.update { it.copy(customName = value) }
-    fun onBudgetChange(value: String) = _state.update { it.copy(budgetDigits = value.filter(Char::isDigit).take(12)) }
+    fun onBudgetChange(value: String) {
+        _state.update { it.copy(budgetDigits = value.filter(Char::isDigit).take(12)) }
+        loadBudgetPrice()
+    }
+
+    /** The price range of the budget: asked from the server (it knows the destination's prices and the rates), online and signed in only. */
+    private fun loadBudgetPrice() {
+        budgetJob?.cancel()
+        val s = _state.value
+        val api = api
+        val minor = s.budgetMinor()
+        val destination = s.destinationName.trim()
+        if (door != InterviewDoor.EXPLORE || api == null || !s.signedIn || s.offline || minor == null || minor <= 0 || destination.length < 2) {
+            _state.update { it.copy(budgetPriceLevel = null) }
+            return
+        }
+        budgetJob = viewModelScope.launch {
+            delay(BUDGET_TYPING_MILLIS)
+            val undecided = s.answers.datesUndecided
+            val start = s.answers.startDate
+            val end = s.answers.endDate
+            val days = if (!undecided && start != null && end != null) start.daysUntil(end) + 1 else null
+            val month = if (undecided) null else (start ?: today()).monthKey()
+            val language = preferences.observe().first().language.tag
+            val result = withContext(Dispatchers.Default) {
+                withTimeoutOrNull(KHAS_TIMEOUT_MILLIS) {
+                    api.exploreSuggestions(
+                        destination = destination, month = month, language = language,
+                        budgetMinor = minor, budgetCurrency = s.currency, budgetDays = days,
+                    )
+                }
+            }
+            val level = (result as? ApiResult.Success)?.value?.suggestedPriceLevel
+            _state.update { it.copy(budgetPriceLevel = level) }
+        }
+    }
+
+    private fun InterviewUiState.budgetMinor(): Long? =
+        budgetDigits.takeIf { it.isNotEmpty() }?.toLongOrNull()?.times(pow10(currencyDecimals(currency)))
 
     // ── moving around ───────────────────────────────────────────────────────
 
@@ -316,6 +364,8 @@ class InterviewViewModel(
     private fun goTo(step: InterviewStep?) {
         _state.update { it.copy(screen = if (step == null) InterviewScreen.Summary else InterviewScreen.Question(step)) }
         if (step == InterviewStep.TASTE) loadKhas()
+        // the summary shows the range of the budget: ask again, the destination or the dates may have changed
+        if (step == null) loadBudgetPrice()
     }
 
     /** Back: the question before, the question the summary row opened it from, or the leave dialog on Layar 1. */
@@ -409,7 +459,7 @@ class InterviewViewModel(
         val undecided = s.answers.datesUndecided
         if (!undecided && !s.answers.hasDates) return
         val locale = localeForPlace(s.destinationChoice?.countryCode, s.destinationChoice?.timeZone)
-        val budgetMinor = s.budgetDigits.takeIf { it.isNotEmpty() }?.toLongOrNull()?.times(pow10(currencyDecimals(s.currency)))
+        val budgetMinor = s.budgetMinor()
         _state.update { it.copy(creating = true, createFailed = false) }
         viewModelScope.launch {
             runCatching {
@@ -459,7 +509,7 @@ class InterviewViewModel(
             tripId = tripId, tripTitle = title, destination = destinationName,
             startDate = answers.startDate.takeIf { !answers.datesUndecided },
             endDate = answers.endDate.takeIf { !answers.datesUndecided },
-            priceLevel = taste.effectivePriceLevel,
+            priceLevel = priceLevel,
             interests = taste.interests.toList(),
             // the server takes at most 5 of the destination's own interests
             extraInterests = taste.extraInterests.toList().take(5),
@@ -491,6 +541,7 @@ class InterviewViewModel(
     private companion object {
         /** The spec's 8 s for the chips, wall-clock time. */
         const val KHAS_TIMEOUT_MILLIS = 8_000L
+        const val BUDGET_TYPING_MILLIS = 600L
         const val TRIP_SYNC_WAIT_MILLIS = 10_000L
         const val TRIP_SYNC_POLL_MILLIS = 500L
     }

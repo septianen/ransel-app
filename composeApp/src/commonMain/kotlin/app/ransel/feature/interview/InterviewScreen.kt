@@ -41,6 +41,7 @@ import app.ransel.shared.domain.isOverseas
 import app.ransel.shared.domain.progress
 import app.ransel.shared.domain.steps
 import app.ransel.shared.domain.summaryRows
+import app.ransel.shared.model.PriceLevel
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.dashedBorder
@@ -139,6 +140,8 @@ fun InterviewScreen(
             onExtra = viewModel::draftToggleExtra,
             onStyle = viewModel::draftStyle,
             onPrice = viewModel::draftPriceLevel,
+            defaultPrice = state.budgetPriceLevel ?: PriceLevel.MEDIUM,
+            priceFromBudget = state.budgetPriceLevel != null,
             onNotes = viewModel::draftNotes,
             onSave = viewModel::saveTasteSheet,
             onDismiss = viewModel::closeTasteSheet,
@@ -187,7 +190,7 @@ private fun InterviewContent(state: InterviewUiState, viewModel: InterviewViewMo
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (step) {
                 InterviewStep.DESTINATION -> DestinationQuestion(
-                    state, viewModel::onDestinationPicked, viewModel::onDates, viewModel::onDatesUndecided,
+                    state, viewModel::onDestinationPicked, viewModel::onDestinationCleared, viewModel::onDates, viewModel::onDatesUndecided,
                 )
                 InterviewStep.ORIGIN -> OriginQuestion(state, onPickLast = viewModel::pickOrigin, onPicked = viewModel::onOriginPicked, onUseLocation = viewModel::useCurrentLocation)
                 InterviewStep.DEPARTURE -> DepartureQuestion(state, viewModel::chooseDeparture)
@@ -296,7 +299,7 @@ private fun InterviewSummary(state: InterviewUiState, viewModel: InterviewViewMo
                         val value = listOfNotNull(interests.takeIf { it.isNotEmpty() }, style).joinToString(" · ")
                         if (state.door == InterviewDoor.EXPLORE && filled) {
                             // from Jelajah the row is taller: what the search will use, with "Ubah" for the sheet
-                            val price = taste.effectivePriceLevel
+                            val price = state.priceLevel
                             TasteSummaryRow(
                                 label = stringResource(Res.string.interview_summary_taste),
                                 value = value,

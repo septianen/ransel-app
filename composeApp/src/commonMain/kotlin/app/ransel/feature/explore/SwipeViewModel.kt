@@ -3,6 +3,10 @@ package app.ransel.feature.explore
 import app.ransel.data.analytics.Analytics
 import app.ransel.data.analytics.AnalyticsEvent
 import app.ransel.data.analytics.NoAnalytics
+import app.ransel.data.auth.AuthRepository
+import app.ransel.data.auth.SessionManager
+import app.ransel.data.explore.ExploreForm
+import kotlinx.coroutines.Job
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.explore.ExploreCard
@@ -39,6 +43,11 @@ sealed interface SwipeUiState {
     data class Error(val failure: ApiFailure) : SwipeUiState
     /** [cost] and [available] are credits, null when the server did not say (an older server). */
     data class OutOfCredits(val cost: Int?, val available: Int?) : SwipeUiState
+    /**
+     * The search waits for the account's email: the verify gate with its buttons; once the link was opened ([verified]) the
+     * screen offers "Lanjut mencari" ([SwipeViewModel.retry] runs the search that waited).
+     */
+    data class VerifyEmail(val email: String, val verified: Boolean, val gate: VerifyGateState) : SwipeUiState
     /** No session in the store (opened by mistake): the screen closes. */
     data object Empty : SwipeUiState
 }
@@ -57,6 +66,9 @@ class SwipeViewModel(
     private val itinerary: ItineraryRepository,
     private val credits: CreditsStore = CreditsStore(),
     private val analytics: Analytics = NoAnalytics,
+    /** For the verify gate of a search that waits for the email; null = that failure is the plain error state. */
+    auth: AuthRepository? = null,
+    sessionManager: SessionManager? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow<SwipeUiState>(SwipeUiState.Loading)
     val state: StateFlow<SwipeUiState> = _state.asStateFlow()
@@ -65,11 +77,23 @@ class SwipeViewModel(
     val eventFlow = events.receiveAsFlow()
 
     private var session: ExploreSession? = null
+    private var searchJob: Job? = null
+    private val verify: VerifyGate? = if (auth != null && sessionManager != null) VerifyGate(auth, sessionManager, viewModelScope) else null
+
+    /** What the search is looking for, for the "Sedang dicari" box of the loading screen. */
+    val searchForm: ExploreForm? get() = store.session(tripId)?.form
 
     /** The trip of this search, for "Trip {nama} sudah dibuat." after "Buat trip dan cari". */
     val tripTitle: String? get() = store.session(tripId)?.form?.tripTitle
 
     init {
+        verify?.let { gate ->
+            viewModelScope.launch {
+                gate.state.collect { g ->
+                    _state.update { if (it is SwipeUiState.VerifyEmail) it.copy(gate = g, verified = gate.verified) else it }
+                }
+            }
+        }
         val saved = store.session(tripId)
         if (saved == null) _state.value = SwipeUiState.Empty
         else if (saved.roundId != null) events.trySend(SwipeEvent.OpenRound(tripId, saved.roundId))
@@ -82,7 +106,8 @@ class SwipeViewModel(
     /** First search of a session (counts against the daily quota). */
     private fun search(s: ExploreSession) {
         _state.value = SwipeUiState.Loading
-        viewModelScope.launch {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             when (val result = api.recommend(s.form.toRequest(newSearch = true, exclude = emptyList()))) {
                 is ApiResult.Success -> {
                     result.value.credits?.let(credits::update)
@@ -103,9 +128,12 @@ class SwipeViewModel(
                         publish()
                     }
                 }
-                is ApiResult.Failure -> _state.value =
-                    if (result.error.isOutOfCredits) result.error.toOutOfCredits()
-                    else SwipeUiState.Error(result.error)
+                is ApiResult.Failure -> _state.value = when {
+                    result.error.isOutOfCredits -> result.error.toOutOfCredits()
+                    result.error.code == ErrorCode.EMAIL_NOT_VERIFIED && verify != null ->
+                        SwipeUiState.VerifyEmail(verify.email, verified = verify.verified, gate = verify.state.value)
+                    else -> SwipeUiState.Error(result.error)
+                }
             }
         }
     }
@@ -113,6 +141,15 @@ class SwipeViewModel(
     fun retry() {
         val s = session ?: store.session(tripId) ?: return
         search(s)
+    }
+
+    fun resendVerification() { verify?.resend() }
+    fun checkVerified() { verify?.check() }
+
+    /** "Batalkan pencarian": stops the request and forgets the session; the trip stays (and so does its Seleramu). */
+    fun cancelSearch() {
+        searchJob?.cancel()
+        viewModelScope.launch { store.clear(tripId) }
     }
 
     /** "Ubah preferensi" / finished: drop the session so the form starts fresh (keeps what was saved in the trip). */
