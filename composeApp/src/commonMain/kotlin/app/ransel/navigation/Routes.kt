@@ -65,6 +65,8 @@ import kotlinx.serialization.Serializable
 
 /** Debug only. */
 @Serializable data object ComponentGalleryRoute
+/** Debug only: IRIS motion token playground. */
+@Serializable data object MotionLabRoute
 
 // Auth (Phase 3). Names follow docs/design/README.md "Code name".
 @Serializable data object SignInRoute

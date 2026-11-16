@@ -67,6 +67,33 @@
     <string name="placeholder_account_title">Akun</string>
     <string name="placeholder_body">Layar ini hadir di langkah berikutnya.</string>
     <string name="debug_component_gallery">Galeri komponen (debug)</string>
+    <string name="debug_motion_lab">Motion Lab (debug)</string>
+    <string name="debug_motion_lab_title">Motion Lab</string>
+    <string name="debug_motion_lab_subtitle">Rasakan token gerak IRIS di ponsel ini. Data contoh saja — layar produksi tidak berubah.</string>
+    <string name="debug_motion_lab_back">← Kembali</string>
+    <string name="debug_motion_lab_reduce">Simulasikan kurangi gerak</string>
+    <string name="debug_motion_lab_reduce_hint">Hanya silang-pudar, shimmer diam. Juga mengikuti skala animator sistem / Kurangi gerakan.</string>
+    <string name="debug_motion_lab_crossfade_note">Kurangi gerak aktif: perpindahan spasial jadi silang-pudar, shimmer diam.</string>
+    <string name="debug_motion_lab_section_shared">Kartu trip → detail</string>
+    <string name="debug_motion_lab_card_hint">Ketuk kartu untuk buka dengan elemen bersama. Dengan kurangi gerak, silang-pudar.</string>
+    <string name="debug_motion_lab_trip_title">Akhir pekan Bali</string>
+    <string name="debug_motion_lab_trip_dates">20–22 Nov 2026</string>
+    <string name="debug_motion_lab_detail_activity">09.00 · Tanah Lot</string>
+    <string name="debug_motion_lab_detail_back">Kembali ke kartu</string>
+    <string name="debug_motion_lab_section_shimmer">Kerangka → konten</string>
+    <string name="debug_motion_lab_load">Muat konten</string>
+    <string name="debug_motion_lab_reload">Tampilkan kerangka lagi</string>
+    <string name="debug_motion_lab_content_title">Rencana hari Ubud</string>
+    <string name="debug_motion_lab_content_body">Jalan di teras sawah, lalu makan siang di kota. Itinerary contoh untuk demo ini.</string>
+    <string name="debug_motion_lab_section_press">Umpan tekan</string>
+    <string name="debug_motion_lab_press_hint">Tekan dan tahan: skala plus haptic. Kurangi gerak melewatkan skala.</string>
+    <string name="debug_motion_lab_press_button">Tahan saya</string>
+    <string name="debug_motion_lab_press_card">Tekan kartu trip</string>
+    <string name="debug_motion_lab_section_success">Momen split berhasil</string>
+    <string name="debug_motion_lab_success_hint">Centang muncul dengan haptic. Kurangi gerak menampilkan centang tanpa spring.</string>
+    <string name="debug_motion_lab_check_split">Bagi tagihan</string>
+    <string name="debug_motion_lab_split_done">Split tersimpan</string>
+    <string name="debug_motion_lab_reset_split">Ulang</string>
 
     <!-- Greetings -->
     <string name="greeting_morning">Selamat pagi</string>
