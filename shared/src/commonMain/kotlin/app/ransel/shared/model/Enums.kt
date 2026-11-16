@@ -90,6 +90,29 @@ enum class Interest { NATURE, FOOD, CULTURE, SHOPPING, ADVENTURE, NIGHTLIFE, PHO
 @Serializable
 enum class TravelStyle { SANTAI, PADAT }
 
+/**
+ * "Ke {destinasi} naik apa?" (interview W2, plan "Wawancara Buat trip"): how the trip's creator gets to the destination.
+ * The trip between cities is never given a travel time. OWN_MOTORCYCLE and OWN_CAR are "own vehicle": no rental
+ * suggestion for the trip and no W3 question ([isOwnVehicle] in domain/TripInterview.kt).
+ */
+@Serializable
+enum class DepartureMode { OWN_MOTORCYCLE, OWN_CAR, TRAVEL_SHUTTLE, BUS, TRAIN, PLANE, FERRY }
+
+/**
+ * "Di sana keliling pakai apa?" (interview W3): how the creator gets around at the destination. UNKNOWN = the user
+ * picked "Belum tahu" (an answer, not the same as no answer, which is null on the trip).
+ */
+@Serializable
+enum class LocalTransport { RENT_MOTORCYCLE, RENT_CAR, RIDE_HAILING, PUBLIC_TRANSPORT, TAXI, UNKNOWN }
+
+/**
+ * The trip's main way of moving between places (plan "Perjalanan antar tempat"): sets the speed of the 1–50 km legs
+ * between activities and the Google Maps travel mode. PUBLIC_TRANSPORT has no time estimate (the legs only open Maps in
+ * transit mode). Filled from the interview answers by `mainTravelModeOf`, changeable by an OWNER or EDITOR.
+ */
+@Serializable
+enum class MainTravelMode { MOTORCYCLE, CAR, PUBLIC_TRANSPORT }
+
 /** What an Explore credit was spent on (`CreditLedgerEntryDto.action`). */
 @Serializable
 enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL, RECEIPT }
