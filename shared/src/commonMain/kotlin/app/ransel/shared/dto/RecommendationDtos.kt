@@ -50,7 +50,21 @@ data class RecommendationRequest(
      * Null on a new search; ignored on a solo trip.
      */
     val roundId: String? = null,
+    /**
+     * A UUID the app makes for this search so that it can be cancelled (`DELETE /recommendations/searches/{searchId}`). While
+     * a search with an id runs, a cancel stops it before anything is charged or any round is made: the request answers 409
+     * `SEARCH_CANCELLED`. Null = not cancellable (older apps): it runs to the end like before.
+     */
+    val searchId: String? = null,
 )
+
+/**
+ * DELETE /recommendations/searches/{searchId} → 200. [cancelled] is true when the search was stopped (or had not started yet:
+ * it will answer 409 `SEARCH_CANCELLED` when it arrives) and false when it was already past the point of no return: its
+ * credits are charged and its answer is on the way. Cancelling twice, or an id the server never saw, is fine.
+ */
+@Serializable
+data class CancelSearchResponse(val cancelled: Boolean)
 
 /**
  * GET /explore/suggestions?tripId=[&destination=] (existing trip, role at least VIEWER) or ?destination=&month=YYYY-MM (new trip).
