@@ -6,7 +6,13 @@ import app.ransel.data.analytics.NoAnalytics
 import app.ransel.data.auth.AuthRepository
 import app.ransel.data.auth.SessionManager
 import app.ransel.data.explore.ExploreForm
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.ransel.data.explore.ExploreCard
@@ -32,6 +38,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val CANCEL_TIMEOUT_MILLIS = 5_000L
 
 /** What the swipe screen shows (designs `MemuatRekomendasi`, `Swipe`, `SwipeHabis`, `SwipeError`, `SwipeTidakAda`, `SwipeKuota`). */
 sealed interface SwipeUiState {
@@ -78,6 +86,10 @@ class SwipeViewModel(
 
     private var session: ExploreSession? = null
     private var searchJob: Job? = null
+
+    /** The id the running first search was sent with, so that "Batalkan pencarian" can tell the server to stop it. */
+    private var searchId: String? = null
+    private var cancelledByUser = false
     private val verify: VerifyGate? = if (auth != null && sessionManager != null) VerifyGate(auth, sessionManager, viewModelScope) else null
 
     /** What the search is looking for, for the "Sedang dicari" box of the loading screen. */
@@ -107,8 +119,15 @@ class SwipeViewModel(
     private fun search(s: ExploreSession) {
         _state.value = SwipeUiState.Loading
         searchJob?.cancel()
+        val id = newId()
+        searchId = id
+        cancelledByUser = false
         searchJob = viewModelScope.launch {
-            when (val result = api.recommend(s.form.toRequest(newSearch = true, exclude = emptyList()))) {
+            val result = api.recommend(s.form.toRequest(newSearch = true, exclude = emptyList(), searchId = id))
+            if (searchId == id) searchId = null
+            // the server answers 409 to a search that was cancelled: the user is gone, there is nothing to show
+            if (cancelledByUser && result is ApiResult.Failure && result.error.code == ErrorCode.SEARCH_CANCELLED) return@launch
+            when (result) {
                 is ApiResult.Success -> {
                     result.value.credits?.let(credits::update)
                     val cards = result.value.groups.flatMap { g -> g.items.map { ExploreCard(g.category, it) } }
@@ -148,8 +167,29 @@ class SwipeViewModel(
 
     /** "Batalkan pencarian": stops the request and forgets the session; the trip stays (and so does its Seleramu). */
     fun cancelSearch() {
+        stopSearchOnServer()
         searchJob?.cancel()
         viewModelScope.launch { store.clear(tripId) }
+    }
+
+    /**
+     * Tells the server to stop the running first search, so that it charges nothing and makes no round. Fire and forget: it
+     * must outlive this view model (the screen is usually closing), hence its own scope; one try, the server forgets it later.
+     */
+    @OptIn(DelicateCoroutinesApi::class)
+    internal fun stopSearchOnServer() {
+        val id = searchId ?: return
+        searchId = null
+        cancelledByUser = true
+        GlobalScope.launch(start = CoroutineStart.ATOMIC) {
+            withContext(NonCancellable) { withTimeoutOrNull(CANCEL_TIMEOUT_MILLIS) { api.cancelSearch(id) } }
+        }
+    }
+
+    override fun onCleared() {
+        // leaving the screen while it still loads is a cancel too
+        if (_state.value is SwipeUiState.Loading) stopSearchOnServer()
+        super.onCleared()
     }
 
     /** "Ubah preferensi" / finished: drop the session so the form starts fresh (keeps what was saved in the trip). */
@@ -224,9 +264,9 @@ private fun ApiFailure.toOutOfCredits() = SwipeUiState.OutOfCredits(
     available = details?.get("available")?.toIntOrNull(),
 )
 
-internal fun app.ransel.data.explore.ExploreForm.toRequest(newSearch: Boolean, exclude: List<String>, roundId: String? = null) =
+internal fun app.ransel.data.explore.ExploreForm.toRequest(newSearch: Boolean, exclude: List<String>, roundId: String? = null, searchId: String? = null) =
     RecommendationRequest(
         tripId = tripId, destination = destination.trim().ifEmpty { null }, priceLevel = priceLevel,
         interests = interests, extraInterests = extraInterests, style = style, notes = notes.trim().ifEmpty { null },
-        excludePlaceIds = exclude, newSearch = newSearch, roundId = roundId,
+        excludePlaceIds = exclude, newSearch = newSearch, roundId = roundId, searchId = searchId,
     )
