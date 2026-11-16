@@ -1,5 +1,8 @@
 package app.ransel.shared.dto
 
+import app.ransel.shared.model.DepartureMode
+import app.ransel.shared.model.LocalTransport
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.Role
 import app.ransel.shared.serialization.Timestamp
 import kotlinx.datetime.LocalDate
@@ -42,6 +45,17 @@ data class TripDto(
     val localCurrency: String? = null,
     /** IANA zone of the destination ("Asia/Tokyo"); itinerary times are local to it. Null = the device's zone. */
     val timeZone: String? = null,
+    /** Interview W1: the city the creator leaves from; null = not answered. */
+    val origin: TripOriginDto? = null,
+    /** Interview W2: how the creator gets to the destination; null = not answered or skipped (never asked overseas). */
+    val departureMode: DepartureMode? = null,
+    /** Interview W3: how the creator gets around there; null = not answered or not asked (own vehicle). */
+    val localTransport: LocalTransport? = null,
+    /**
+     * The main way of moving between places. null = not chosen: use `mainTravelModeOf(departureMode, localTransport,
+     * isOverseas)`, which also gives the default (Motor in Indonesia, Mobil abroad).
+     */
+    val mainTravelMode: MainTravelMode? = null,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
     val deletedAt: Timestamp? = null,
@@ -92,6 +106,14 @@ data class CreateTripRequest(
     val countryCode: String? = null,
     val localCurrency: String? = null,
     val timeZone: String? = null,
+    /**
+     * The interview answers and the main travel mode, see [TripDto]. For a request null KEEPS the stored value (an older app
+     * does not send these), so an answer can be replaced but not cleared in V1.
+     */
+    val origin: TripOriginDto? = null,
+    val departureMode: DepartureMode? = null,
+    val localTransport: LocalTransport? = null,
+    val mainTravelMode: MainTravelMode? = null,
 )
 
 /**
@@ -114,4 +136,12 @@ data class UpdateTripRequest(
     val countryCode: String? = null,
     val localCurrency: String? = null,
     val timeZone: String? = null,
+    /**
+     * The interview answers and the main travel mode, see [TripDto]. For a request null KEEPS the stored value (an older app
+     * does not send these), so an answer can be replaced but not cleared in V1.
+     */
+    val origin: TripOriginDto? = null,
+    val departureMode: DepartureMode? = null,
+    val localTransport: LocalTransport? = null,
+    val mainTravelMode: MainTravelMode? = null,
 )
