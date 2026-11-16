@@ -233,3 +233,19 @@ fun InterviewAnswers.summaryRows(): List<Pair<SummaryRow, Boolean>> = buildList 
  */
 fun InterviewAnswers.interviewMainTravelMode(): MainTravelMode? =
     if (departure == null && localTransport == null) null else mainTravelModeOf(departure, localTransport, isOverseas())
+
+// ── City names ──────────────────────────────────────────────────────────────
+
+private val ADMINISTRATIVE_PREFIXES = listOf("kota administrasi ", "kabupaten administrasi ", "administrasi ")
+
+/**
+ * A city as people say it: the built-in region list and Google write the administrative cities of Jakarta as "Administrasi
+ * Jakarta Pusat" or "Kota Administrasi Jakarta Pusat"; the interview shows and stores "Jakarta Pusat" (spec 16 Nov 2026).
+ * Any other name is only trimmed.
+ */
+fun cityDisplayName(name: String): String {
+    val trimmed = name.trim()
+    val lower = trimmed.lowercase()
+    val prefix = ADMINISTRATIVE_PREFIXES.firstOrNull { lower.startsWith(it) } ?: return trimmed
+    return trimmed.substring(prefix.length).trim().ifEmpty { trimmed }
+}

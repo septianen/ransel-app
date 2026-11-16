@@ -82,6 +82,7 @@ class RoomTripRepository(
             createdAt = stamp, updatedAt = stamp, deletedAt = null,
             countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone,
         ).withPlace(request.destinationPlace)
+            .withInterview(request.origin, request.departureMode, request.localTransport, request.mainTravelMode)
         db.tripDao().upsert(entity)
     }
 
@@ -104,7 +105,7 @@ class RoomTripRepository(
                     if (sent || current.destination != request.destination.trim()) {
                         it.copy(countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone)
                     } else it
-                },
+                }.keepingInterview(request.origin, request.departureMode, request.localTransport, request.mainTravelMode),
             )
             // Shortened dates never delete activities: they go back to "Belum dijadwalkan".
             val outside = itemsOutsideRange(

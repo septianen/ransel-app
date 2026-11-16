@@ -24,6 +24,7 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     OnboardingRoute -> "welcome"
     is TripRoute -> "trips/${enc(route.tripId)}" + tabPath(route.tab)
     CreateTripRoute -> "trips/new"
+    is InterviewRoute -> "trips/new"
     is InviteFriendsRoute -> "trips/${enc(route.tripId)}/invite"
     is PollRoute -> "trips/${enc(route.tripId)}/polls/${enc(route.pollId)}"
     is CreatePollRoute -> "trips/${enc(route.tripId)}/polls/new"
@@ -120,6 +121,7 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(OnboardingRoute::class) -> OnboardingRoute
         d.hasRoute(TripRoute::class) -> entry.toRoute<TripRoute>()
         d.hasRoute(CreateTripRoute::class) -> CreateTripRoute
+        d.hasRoute(InterviewRoute::class) -> entry.toRoute<InterviewRoute>()
         d.hasRoute(InviteFriendsRoute::class) -> entry.toRoute<InviteFriendsRoute>()
         d.hasRoute(PollRoute::class) -> entry.toRoute<PollRoute>()
         d.hasRoute(CreatePollRoute::class) -> entry.toRoute<CreatePollRoute>()

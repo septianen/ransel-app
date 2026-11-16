@@ -265,3 +265,22 @@ class InterviewFlowTest {
         assertEquals(MainTravelMode.PUBLIC_TRANSPORT, start(tokyo).withLocalTransport(LocalTransport.PUBLIC_TRANSPORT, none).interviewMainTravelMode())
     }
 }
+
+class CityDisplayNameTest {
+    @kotlin.test.Test
+    fun theAdministrativePrefixOfJakartaGoesAway() {
+        kotlin.test.assertEquals("Jakarta Pusat", cityDisplayName("Administrasi Jakarta Pusat"))
+        kotlin.test.assertEquals("Jakarta Utara", cityDisplayName("Administrasi Jakarta Utara "))
+        kotlin.test.assertEquals("Jakarta Barat", cityDisplayName("Kota Administrasi Jakarta Barat"))
+        kotlin.test.assertEquals("Kepulauan Seribu", cityDisplayName("Kabupaten Administrasi Kepulauan Seribu"))
+        kotlin.test.assertEquals("jakarta selatan", cityDisplayName("administrasi jakarta selatan"), "the case is kept as written")
+    }
+
+    @kotlin.test.Test
+    fun anyOtherNameIsOnlyTrimmed() {
+        kotlin.test.assertEquals("Bandung", cityDisplayName("  Bandung "))
+        kotlin.test.assertEquals("Kota Bandung", cityDisplayName("Kota Bandung"))
+        kotlin.test.assertEquals("Administrasi", cityDisplayName("Administrasi"))
+        kotlin.test.assertEquals("Administrasi", cityDisplayName("Administrasi "))
+    }
+}

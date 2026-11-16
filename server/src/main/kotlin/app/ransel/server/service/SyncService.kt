@@ -22,6 +22,7 @@ import app.ransel.shared.domain.dayFitsTrip
 import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.domain.validateTrip
 import app.ransel.shared.domain.validateTripLocale
+import app.ransel.shared.domain.validateTripOrigin
 import app.ransel.shared.domain.validateTripPlace
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.SYNC_MAX_TRIPS_PER_PAGE
@@ -242,7 +243,7 @@ class SyncService {
     private fun pushTrip(userId: UUID, dto: TripDto) {
         val id = uuid(dto.id, "id")
         val problems = validateTrip(dto.title, dto.startDate, dto.endDate, dto.baseCurrency, dto.budgetMinor) + validateTripPlace(dto.destinationPlace) +
-            validateTripLocale(dto.countryCode, dto.localCurrency, dto.timeZone)
+            validateTripLocale(dto.countryCode, dto.localCurrency, dto.timeZone) + validateTripOrigin(dto.origin)
         if (problems.isNotEmpty()) throw validation(problems)
 
         val existing = Trips.selectAll().where { Trips.id eq id }.singleOrNull()
@@ -258,6 +259,7 @@ class SyncService {
                 it[budgetMinor] = dto.budgetMinor
                 TripService.fillPlace(it, dto.destinationPlace)
                 TripService.fillLocale(it, dto.countryCode, dto.localCurrency, dto.timeZone)
+                TripService.fillInterview(it, dto.origin, dto.departureMode, dto.localTransport, dto.mainTravelMode)
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
@@ -280,6 +282,7 @@ class SyncService {
         Trips.update({ Trips.id eq id }) {
             TripService.placeUpdate(it, dto.destinationPlace, nameChanged = existing[Trips.destination] != dto.destination)
             TripService.localeUpdate(it, dto.countryCode, dto.localCurrency, dto.timeZone, nameChanged = existing[Trips.destination] != dto.destination)
+            TripService.interviewUpdate(it, dto.origin, dto.departureMode, dto.localTransport, dto.mainTravelMode)
             it[title] = dto.title.trim()
             it[destination] = dto.destination
             it[startDate] = dto.startDate?.toJavaLocalDate()

@@ -47,7 +47,7 @@ const val DEPARTURE_MEDIUM_KM = 700.0
 /**
  * How far the origin is from the destination, which decides the W2 choices. [OTHER_ISLAND] is another big island of
  * Indonesia at any distance; [LONG] is one island but over [DEPARTURE_MEDIUM_KM] (the plan's table has no row for it, so
- * it asks for the plane first); [UNKNOWN] = no origin or no destination point to measure.
+ * it asks for the plane first, then the train, own car and bus: owner decision 16 Nov); [UNKNOWN] = no origin or no destination point to measure.
  */
 enum class DepartureBand { UNKNOWN, SHORT, MEDIUM, LONG, OTHER_ISLAND, OVERSEAS }
 
@@ -86,7 +86,7 @@ fun departureOptions(band: DepartureBand, trainBetweenCities: Boolean): List<Dep
         DepartureBand.MEDIUM ->
             listOf(DepartureMode.OWN_CAR) + train + listOf(DepartureMode.BUS, DepartureMode.PLANE, DepartureMode.TRAVEL_SHUTTLE)
         DepartureBand.LONG ->
-            listOf(DepartureMode.PLANE, DepartureMode.OWN_CAR, DepartureMode.BUS) + train
+            listOf(DepartureMode.PLANE) + train + listOf(DepartureMode.OWN_CAR, DepartureMode.BUS)
         DepartureBand.OTHER_ISLAND -> listOf(DepartureMode.PLANE, DepartureMode.FERRY, DepartureMode.OWN_CAR)
         DepartureBand.UNKNOWN -> listOf(
             DepartureMode.OWN_MOTORCYCLE, DepartureMode.OWN_CAR, DepartureMode.TRAVEL_SHUTTLE, DepartureMode.BUS,
