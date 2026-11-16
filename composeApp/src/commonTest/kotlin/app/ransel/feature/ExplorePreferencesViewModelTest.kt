@@ -78,8 +78,8 @@ class ExplorePreferencesViewModelTest {
     private val trips = InMemoryTripRepository(store)
     private val sessions = ExploreSessionStore(InMemoryPreferencesRepository())
 
-    private fun vm(tripId: String?, api: RanselApi) =
-        ExplorePreferencesViewModel(tripId, trips, api, sessions, InMemoryPreferencesRepository(), NoSyncStatus)
+    private fun vm(tripId: String, api: RanselApi) =
+        ExplorePreferencesViewModel(tripId, trips, api, sessions, InMemoryPreferencesRepository())
 
     private suspend fun createBali(budgetMinor: Long? = null) = trips.create(
         CreateTripRequest(
@@ -121,22 +121,6 @@ class ExplorePreferencesViewModelTest {
     }
 
     @Test
-    fun movingTheStartMonthReloadsAndDropsChipsThatNoLongerExist() = runTest {
-        val vm = vm(null, api { url -> if ("month=2027-03" in url) suggestions("Sakura", "Onsen") else suggestions("Onsen", "Anime") })
-        vm.setDestination("Tokyo")
-        vm.setDates(LocalDate(2026, 11, 20), LocalDate(2026, 11, 25))
-        vm.onDestinationBlur()
-        eventually { vm.state.value.suggestions is SuggestionsState.Loaded }
-        vm.toggleExtraInterest("Anime")
-        vm.toggleExtraInterest("Onsen")
-        assertEquals(listOf("Anime", "Onsen"), vm.state.value.extraInterests)
-
-        vm.setDates(LocalDate(2027, 3, 27), LocalDate(2027, 4, 2))
-        eventually { (vm.state.value.suggestions as? SuggestionsState.Loaded)?.interests?.contains("Sakura") == true }
-        assertEquals(listOf("Onsen"), vm.state.value.extraInterests)
-    }
-
-    @Test
     fun theSearchNeedsAtLeastOneCoreOrDestinationInterest() = runTest {
         createBali()
         val vm = vm("t1", api { suggestions("Pantai") })
@@ -172,104 +156,15 @@ class ExplorePreferencesViewModelTest {
         assertFalse(vm.state.value.canSearch)
         vm.setDestination("Solo")
         var ready = false
-        vm.start("unused") { ready = true }
+        vm.start { ready = true }
         eventually { ready }
         assertEquals("Solo", sessions.session("t1")!!.form.destination)
         assertEquals("Yogyakarta", store.trips.value.single().destination, "the trip itself is not changed")
     }
 
-    @Test
-    fun startingANewTripCreatesItAndStoresTheSession() = runTest {
-        val vm = vm(null, api { suggestions("Snorkeling") })
-        vm.setDestination("Lombok")
-        vm.onDestinationBlur()
-        eventually { vm.state.value.suggestions is SuggestionsState.Loaded }
-        vm.toggleExtraInterest("Snorkeling")
-        var ready = false
-        vm.start("Trip ke Lombok") { ready = true }
-        eventually { ready }
 
-        val created = store.trips.value.single()
-        assertEquals("Trip ke Lombok", created.title)
-        assertEquals("Lombok", created.destination)
-        val form = sessions.session(created.id)!!.form
-        assertEquals(created.id, form.tripId)
-        assertEquals(listOf("Snorkeling"), form.extraInterests)
-    }
 
-    @Test
-    fun startingTwiceFromTheSameFormMakesOneTrip() = runTest {
-        val vm = vm(null, api { suggestions("Snorkeling") })
-        vm.setDestination("Lombok")
-        vm.onDestinationBlur()
-        eventually { vm.state.value.suggestions is SuggestionsState.Loaded }
-        vm.toggleExtraInterest("Snorkeling")
-        val ready = mutableListOf<String>()
-        vm.start("Trip ke Lombok") { ready += it }
-        eventually { ready.size == 1 }
-        vm.start("Trip ke Lombok") { ready += it }
-        eventually { ready.size == 2 }
 
-        assertEquals(1, store.trips.value.size, "the second start reuses the trip")
-        assertEquals(ready[0], ready[1])
-    }
 
-    @Test
-    fun aNewTripWithoutDatesAsksForTheGeneralChipsAndNeedsNoDates() = runTest {
-        val vm = vm(null, api { suggestions("Diving", "Pura laut") })
-        vm.setDestination("Flores")
-        vm.setDates(LocalDate(2026, 11, 20), LocalDate(2026, 11, 25))
-        vm.onDestinationBlur()
-        eventually { vm.state.value.suggestions is SuggestionsState.Loaded }
-        assertTrue("month=2026-11" in suggestionCalls.last(), "dated: the month of the start")
 
-        vm.setDatesUndecided(true)
-        eventually { suggestionCalls.size >= 2 }
-        assertFalse("month=" in suggestionCalls.last(), "undecided: no month, so the server gives the general chips: ${suggestionCalls.last()}")
-        assertTrue("destination=Flores" in suggestionCalls.last())
-        assertTrue(vm.state.value.datesUndecided)
-        assertEquals(LocalDate(2026, 11, 20), vm.state.value.startDate, "the dates are kept for when the switch is turned off")
-
-        // no dates are needed to search, and none are needed to be valid
-        vm.toggleInterest(Interest.FOOD)
-        assertTrue(vm.state.value.canSearch)
-
-        vm.setDatesUndecided(false)
-        eventually { suggestionCalls.size >= 3 }
-        assertTrue("month=2026-11" in suggestionCalls.last(), "the dated chips again")
-    }
-
-    @Test
-    fun anUndecidedNewTripIsCreatedWithoutDatesAndTheSessionHasNone() = runTest {
-        val vm = vm(null, api { suggestions("Diving") })
-        vm.setDestination("Flores")
-        vm.setDatesUndecided(true)
-        vm.toggleInterest(Interest.FOOD)
-        var openedTrip: String? = null
-        vm.start("Trip ke Flores") { openedTrip = it }
-        eventually { openedTrip != null }
-
-        val created = store.trips.value.single()
-        assertEquals("Flores", created.destination)
-        assertEquals(null, created.startDate)
-        assertEquals(null, created.endDate)
-        val form = sessions.session(openedTrip!!)!!.form
-        assertEquals(null, form.startDate)
-        assertEquals(null, form.endDate)
-        assertEquals(openedTrip, form.tripId)
-    }
-
-    @Test
-    fun aDatedNewTripStillNeedsItsDatesAndKeepsThem() = runTest {
-        val vm = vm(null, api { suggestions("Diving") })
-        vm.setDestination("Flores")
-        vm.setDates(LocalDate(2026, 12, 1), LocalDate(2026, 12, 4))
-        vm.toggleInterest(Interest.FOOD)
-        assertTrue(vm.state.value.canSearch)
-        var openedTrip: String? = null
-        vm.start("Trip ke Flores") { openedTrip = it }
-        eventually { openedTrip != null }
-        assertEquals(LocalDate(2026, 12, 1), store.trips.value.single().startDate)
-        assertEquals(LocalDate(2026, 12, 4), sessions.session(openedTrip!!)!!.form.endDate)
-    }
 }

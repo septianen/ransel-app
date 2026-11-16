@@ -727,7 +727,6 @@
     <string name="explore_title">Jelajah</string>
     <string name="explore_destination">Destinasi</string>
     <string name="explore_destination_hint">Kota atau daerah, mis. Ubud</string>
-    <string name="explore_dates">Tanggal</string>
     <plurals name="explore_days">
         <item quantity="other">%1$d hari</item>
     </plurals>
@@ -772,19 +771,6 @@
     <string name="explore_special_title">Khas %1$s</string>
     <string name="explore_special_loading">Mencari minat khas %1$s…</string>
     <string name="explore_interest_required">Pilih minimal satu minat.</string>
-    <string name="explore_new_trip_title">Trip baru</string>
-    <string name="explore_new_trip_body">Isi destinasi dan tanggal, lalu ceritakan seleramu. Trip dibuat saat kamu menekan tombol di bawah.</string>
-    <string name="explore_new_trip_name">Nama trip</string>
-    <string name="explore_new_trip_name_hint">Terisi otomatis dari destinasi. Bisa diubah nanti di Edit trip.</string>
-    <string name="explore_new_trip_default_name">Trip ke %1$s</string>
-    <string name="explore_new_trip_footnote">Trip langsung muncul di Trip saya dengan mata uang default akunmu.</string>
-    <string name="explore_dates_undecided_title">Tanggal belum pasti</string>
-    <string name="explore_dates_undecided_hint">Tentukan nanti. Polling bisa dimulai dari Ringkasan.</string>
-    <string name="explore_new_trip_body_undecided">Isi destinasi, lalu ceritakan seleramu. Tanggal menyusul.</string>
-    <string name="explore_interests_hint_general">umum, tidak musiman</string>
-    <string name="explore_new_trip_footnote_undecided">Trip dibuat tanpa tanggal. Hasil swipe masuk Belum dijadwalkan.</string>
-    <string name="explore_search_new_trip">Buat trip dan cari</string>
-    <string name="explore_start_failed">Trip belum bisa dibuat. Coba lagi.</string>
     <string name="explore_style">Gaya jalan</string>
     <string name="explore_style_relaxed">Santai</string>
     <string name="explore_style_packed">Padat</string>
@@ -2072,4 +2058,23 @@
     <string name="interview_departure_effect_plane_island">Paling umum untuk beda pulau</string>
     <string name="interview_departure_effect_ferry">Lewat pelabuhan</string>
     <string name="interview_departure_effect_car_ferry">Naik ferry di tengah jalan</string>
+    <string name="interview_summary_taste_change">Ubah</string>
+    <string name="interview_summary_price">Harga %1$s · %2$s · %3$s</string>
+    <string name="interview_summary_no_note">tanpa catatan</string>
+    <string name="interview_summary_with_note">dengan catatan</string>
+    <string name="interview_create_and_search">Buat trip dan cari · %1$d kredit</string>
+    <string name="interview_create_and_search_unknown">Buat trip dan cari</string>
+    <string name="interview_credits_balance">Saldo %1$d kredit · sisa %2$d setelah mencari</string>
+    <string name="interview_credits_balance_short">Saldo %1$d kredit</string>
+    <string name="interview_create_offline_note">Pencarian butuh internet. Cari lagi dari Jelajah.</string>
+    <string name="interview_taste_sheet_title">Ubah seleramu</string>
+    <string name="interview_taste_sheet_error">Pilih minimal satu minat untuk pencarian.</string>
+    <string name="interview_taste_sheet_counter">%1$d/%2$d</string>
+    <string name="swipe_trip_created">Trip %1$s sudah dibuat.</string>
+    <string name="swipe_trip_created_verify">Trip %1$s sudah dibuat. Pencarian menunggu verifikasi email.</string>
+    <string name="swipe_view_trip">Lihat trip</string>
+    <string name="credits_context_needs">Butuh %1$d kredit untuk mencari di trip %2$s</string>
+    <string name="credits_context_enough">Kreditmu sekarang cukup untuk mencari</string>
+    <string name="credits_continue_search">Lanjut mencari</string>
+    <string name="credits_continue_cost">Memakai %1$d kredit, sisa %2$d.</string>
 </resources>

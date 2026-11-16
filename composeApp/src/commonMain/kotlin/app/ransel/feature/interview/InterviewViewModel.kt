@@ -6,6 +6,11 @@ import app.ransel.data.analytics.Analytics
 import app.ransel.data.analytics.AnalyticsEvent
 import app.ransel.data.analytics.NoAnalytics
 import app.ransel.data.auth.SessionManager
+import app.ransel.data.credit.CreditsStore
+import app.ransel.data.explore.ExploreForm
+import app.ransel.data.explore.ExploreSession
+import app.ransel.data.explore.ExploreSessionStore
+import app.ransel.shared.dto.CreditsDto
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.PreferencesRepository
@@ -19,6 +24,8 @@ import app.ransel.shared.domain.InterviewCityFacts
 import app.ransel.shared.domain.InterviewDestination
 import app.ransel.shared.domain.InterviewDoor
 import app.ransel.shared.domain.InterviewStep
+import app.ransel.shared.domain.InterviewTaste
+import app.ransel.shared.domain.canSaveFromSheet
 import app.ransel.shared.domain.canContinue
 import app.ransel.shared.domain.cityDisplayName
 import app.ransel.shared.domain.canSkip
@@ -48,6 +55,7 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.TripOriginDto
 import app.ransel.shared.model.DepartureMode
 import app.ransel.shared.model.Interest
+import app.ransel.shared.model.PriceLevel
 import app.ransel.shared.model.LocalTransport
 import app.ransel.shared.model.TravelStyle
 import app.ransel.util.newId
@@ -55,6 +63,7 @@ import app.ransel.util.today
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -103,6 +112,10 @@ data class InterviewUiState(
     /** The "Khas <destination>" chips of W4. */
     val khas: KhasState = KhasState.Hidden,
     val location: OriginLocation = OriginLocation.Idle,
+    /** Jelajah summary: the wallet (null = not known yet, or offline). */
+    val credits: CreditsDto? = null,
+    /** "Ubah seleramu": the sheet is open and this is its draft (applied by Simpan, dropped by closing it). */
+    val tasteDraft: InterviewTaste? = null,
     /** What the user typed as the trip's name; null = "Trip ke <destination>". */
     val customName: String? = null,
     /** The Indonesian or English "Trip ke %s", set by the screen (the view model holds no strings). */
@@ -124,6 +137,12 @@ sealed interface InterviewEvent {
     /** The trip is saved: Ajak teman (signed in) and then its Ringkasan, or Ringkasan at once (a guest). */
     data class Created(val tripId: String, val signedIn: Boolean) : InterviewEvent
 
+    /**
+     * From Jelajah ("Buat trip dan cari"): the trip is saved and on the server, its Seleramu is the session of the search; the
+     * swipe screen makes the request (and shows "Kreditmu tidak cukup" or the verify-email gate when it cannot).
+     */
+    data class CreatedAndSearch(val tripId: String) : InterviewEvent
+
     /** Leave the flow without creating anything. */
     data object Leave : InterviewEvent
 }
@@ -141,6 +160,10 @@ class InterviewViewModel(
     private val session: SessionManager?,
     private val sync: SyncStatus = NoSyncStatus,
     private val analytics: Analytics = NoAnalytics,
+    /** The trip's Seleramu goes here (both doors); from Jelajah it is also the session of the search. Null in tests that do not need it. */
+    private val explore: ExploreSessionStore? = null,
+    /** The balance shown on the Jelajah summary ("Saldo 27 kredit · sisa 24 setelah mencari"). */
+    private val creditsStore: CreditsStore? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InterviewUiState(door = door, signedIn = session?.user != null))
     val state: StateFlow<InterviewUiState> = _state.asStateFlow()
@@ -160,6 +183,11 @@ class InterviewViewModel(
             _state.update { it.copy(currency = currency, lastOrigin = newest?.origin?.let { o -> o.copy(name = cityDisplayName(o.name)) }) }
         }
         viewModelScope.launch { sync.offline.collect { off -> _state.update { it.copy(offline = off) } } }
+        if (door == InterviewDoor.EXPLORE && creditsStore != null) {
+            viewModelScope.launch { creditsStore.state.collect { c -> _state.update { it.copy(credits = c) } } }
+            // the balance for "sisa 24 setelah mencari": quietly, nothing is shown when it cannot be had
+            if (api != null && session?.user != null) viewModelScope.launch { creditsStore.refresh(api) }
+        }
     }
 
     fun setNameTemplate(template: String) = _state.update { if (it.nameTemplate == template) it else it.copy(nameTemplate = template) }
@@ -246,6 +274,25 @@ class InterviewViewModel(
     fun toggleInterest(interest: Interest) = change { a, _ -> a.toggleInterest(interest) }
     fun toggleExtraInterest(label: String) = change { a, _ -> a.toggleExtraInterest(label) }
     fun chooseStyle(style: TravelStyle) = change { a, _ -> a.withStyle(style) }
+
+    // ── "Ubah seleramu" (Jelajah summary) ───────────────────────────────────
+
+    fun openTasteSheet() = _state.update { it.copy(tasteDraft = it.answers.taste) }
+    fun closeTasteSheet() = _state.update { it.copy(tasteDraft = null) }
+
+    private fun draft(change: (InterviewTaste) -> InterviewTaste) = _state.update { s -> s.tasteDraft?.let { s.copy(tasteDraft = change(it)) } ?: s }
+    fun draftToggleInterest(interest: Interest) = draft { t -> t.copy(interests = if (interest in t.interests) t.interests - interest else t.interests + interest) }
+    fun draftToggleExtra(label: String) = draft { t -> t.copy(extraInterests = if (label in t.extraInterests) t.extraInterests - label else t.extraInterests + label) }
+    fun draftStyle(style: TravelStyle) = draft { it.copy(style = style) }
+    fun draftPriceLevel(level: PriceLevel) = draft { it.copy(priceLevel = level) }
+    fun draftNotes(value: String) = draft { it.copy(notes = value.take(app.ransel.shared.domain.TASTE_NOTES_MAX)) }
+
+    /** Simpan: the draft becomes this trip's Seleramu (only this trip's, never the account's). It needs an interest. */
+    fun saveTasteSheet() {
+        val taste = _state.value.tasteDraft ?: return
+        if (!taste.canSaveFromSheet()) return
+        _state.update { it.copy(answers = it.answers.copy(taste = taste), tasteDraft = null) }
+    }
 
     fun onNameChange(value: String) = _state.update { it.copy(customName = value) }
     fun onBudgetChange(value: String) = _state.update { it.copy(budgetDigits = value.filter(Char::isDigit).take(12)) }
@@ -395,9 +442,52 @@ class InterviewViewModel(
                     ),
                 )
                 analytics.event(AnalyticsEvent.TripCreated)
-                events.send(InterviewEvent.Created(id, s.signedIn))
+                val title = s.tripName.trim().ifEmpty { destination.name }
+                val form = s.toExploreForm(id, title)
+                // the answers of W4 are the trip's Seleramu on both doors (per trip, per device)
+                if (!s.answers.taste.isEmpty) explore?.saveTaste(form)
+                val canSearch = door == InterviewDoor.EXPLORE && s.signedIn && !s.offline && api != null && explore != null
+                if (canSearch) {
+                    // "Buat trip dan cari": the trip must be on the server before the search; then the swipe screen asks for the cards
+                    awaitOnServer(id)
+                    explore!!.save(ExploreSession(form))
+                    events.send(InterviewEvent.CreatedAndSearch(id))
+                } else {
+                    // from Jelajah offline or as a guest: only the trip (the search is run again from Jelajah); no Ajak teman there
+                    events.send(InterviewEvent.Created(id, signedIn = s.signedIn && door == InterviewDoor.MY_TRIPS))
+                }
             }.onFailure {
                 _state.update { st -> st.copy(creating = false, createFailed = true) }
+            }
+        }
+    }
+
+    /** What the search starts with: the answers of W4 and the sheet, the trip's own destination and dates. */
+    private fun InterviewUiState.toExploreForm(tripId: String, title: String): ExploreForm {
+        val taste = answers.taste
+        return ExploreForm(
+            tripId = tripId, tripTitle = title, destination = destinationName,
+            startDate = answers.startDate.takeIf { !answers.datesUndecided },
+            endDate = answers.endDate.takeIf { !answers.datesUndecided },
+            priceLevel = taste.effectivePriceLevel,
+            interests = taste.interests.toList(),
+            // the server takes at most 5 of the destination's own interests
+            extraInterests = taste.extraInterests.toList().take(5),
+            style = taste.style ?: TravelStyle.SANTAI,
+            notes = taste.notes,
+        )
+    }
+
+    /** Mobile saves locally first: push now and wait until the server knows the trip (the search needs it). */
+    private suspend fun awaitOnServer(id: String) {
+        val api = api ?: return
+        sync.syncNow()
+        withContext(Dispatchers.Default) {
+            withTimeoutOrNull(TRIP_SYNC_WAIT_MILLIS) {
+                while (true) {
+                    if ((api.trips() as? ApiResult.Success)?.value?.any { it.id == id } == true) return@withTimeoutOrNull
+                    delay(TRIP_SYNC_POLL_MILLIS)
+                }
             }
         }
     }
@@ -411,5 +501,7 @@ class InterviewViewModel(
     private companion object {
         /** The spec's 8 s for the chips, wall-clock time. */
         const val KHAS_TIMEOUT_MILLIS = 8_000L
+        const val TRIP_SYNC_WAIT_MILLIS = 10_000L
+        const val TRIP_SYNC_POLL_MILLIS = 500L
     }
 }

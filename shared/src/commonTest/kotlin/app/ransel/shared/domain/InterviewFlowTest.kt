@@ -284,3 +284,36 @@ class CityDisplayNameTest {
         kotlin.test.assertEquals("Administrasi", cityDisplayName("Administrasi "))
     }
 }
+
+class InterviewTasteSheetTest {
+    private val answers = InterviewAnswers()
+
+    @kotlin.test.Test
+    fun theSearchUsesSedangUntilARangeIsChosen() {
+        kotlin.test.assertEquals(app.ransel.shared.model.PriceLevel.MEDIUM, answers.taste.effectivePriceLevel)
+        val high = answers.withPriceLevel(app.ransel.shared.model.PriceLevel.HIGH)
+        kotlin.test.assertEquals(app.ransel.shared.model.PriceLevel.HIGH, high.taste.effectivePriceLevel)
+        kotlin.test.assertEquals(app.ransel.shared.model.PriceLevel.MEDIUM, high.withPriceLevel(null).taste.effectivePriceLevel)
+    }
+
+    @kotlin.test.Test
+    fun theNoteIsCutAtFiveHundredCharacters() {
+        val cut = answers.withNotes("x".repeat(TASTE_NOTES_MAX + 40))
+        kotlin.test.assertEquals(TASTE_NOTES_MAX, cut.taste.notes.length)
+        kotlin.test.assertEquals("Bawa anak", answers.withNotes("Bawa anak").taste.notes)
+    }
+
+    @kotlin.test.Test
+    fun theSheetNeedsAnInterestAndAStyleAloneIsNotEnough() {
+        kotlin.test.assertTrue(!answers.withStyle(app.ransel.shared.model.TravelStyle.SANTAI).taste.canSaveFromSheet())
+        kotlin.test.assertTrue(answers.toggleInterest(app.ransel.shared.model.Interest.FOOD).taste.canSaveFromSheet())
+        kotlin.test.assertTrue(answers.toggleExtraInterest("Kebun teh").taste.canSaveFromSheet())
+    }
+
+    @kotlin.test.Test
+    fun aPriceOrANoteAloneIsAnAnswer() {
+        kotlin.test.assertTrue(answers.taste.isEmpty)
+        kotlin.test.assertTrue(!answers.withPriceLevel(app.ransel.shared.model.PriceLevel.LOW).taste.isEmpty)
+        kotlin.test.assertTrue(!answers.withNotes("hindari trekking").taste.isEmpty)
+    }
+}

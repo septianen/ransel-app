@@ -179,13 +179,13 @@ internal val LocalTransport.symbol: String
         LocalTransport.UNKNOWN -> Symbols.help
     }
 
-private val TravelStyle.labelRes: StringResource
+internal val TravelStyle.labelRes: StringResource
     get() = when (this) {
         TravelStyle.SANTAI -> Res.string.explore_style_relaxed
         TravelStyle.PADAT -> Res.string.explore_style_packed
     }
 
-private val TravelStyle.hintRes: StringResource
+internal val TravelStyle.hintRes: StringResource
     get() = when (this) {
         TravelStyle.SANTAI -> Res.string.explore_style_relaxed_hint
         TravelStyle.PADAT -> Res.string.explore_style_packed_hint
@@ -479,9 +479,6 @@ internal fun TasteQuestion(
         Column(ScreenPadding, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(Res.string.interview_taste_general), style = MaterialTheme.typography.labelLarge)
             ChipFlow { Interest.entries.forEach { InterestChip(stringResource(it.label), it in taste.interests, { onInterest(it) }) } }
-            if (state.door == app.ransel.shared.domain.InterviewDoor.EXPLORE && !taste.hasInterest) {
-                Text(stringResource(Res.string.interview_pick_one), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
-            }
         }
         Column(ScreenPadding, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(Res.string.interview_taste_style), style = MaterialTheme.typography.labelLarge)

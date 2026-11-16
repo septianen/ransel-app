@@ -41,7 +41,7 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     is VotingHistoryRoute -> "trips/${enc(route.tripId)}/votes"
     is AllTransactionsRoute -> "trips/${enc(route.tripId)}/transactions"
     is PlaceDetailRoute -> "place"
-    CreditsRoute -> "account/credits"
+    is CreditsRoute -> "account/credits"
     DeleteAccountRoute -> "account/delete"
     ChangePasswordRoute -> "account/password"
     PaymentMethodsRoute -> "account/payment-methods"
@@ -71,7 +71,7 @@ fun routeForUrlFragment(fragment: String): Any? {
         parts == listOf("trips") -> TripListRoute
         parts == listOf("explore") -> ExploreRoute
         parts == listOf("account") -> AccountRoute
-        parts == listOf("account", "credits") -> CreditsRoute
+        parts == listOf("account", "credits") -> CreditsRoute()
         parts == listOf("account", "payment-methods") -> PaymentMethodsRoute
         parts == listOf("account", "password") -> ChangePasswordRoute
         parts == listOf("notifications") -> NotificationsRoute
@@ -138,7 +138,7 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(VotingHistoryRoute::class) -> entry.toRoute<VotingHistoryRoute>()
         d.hasRoute(AllTransactionsRoute::class) -> entry.toRoute<AllTransactionsRoute>()
         d.hasRoute(PlaceDetailRoute::class) -> PlaceDetailRoute("")
-        d.hasRoute(CreditsRoute::class) -> CreditsRoute
+        d.hasRoute(CreditsRoute::class) -> entry.toRoute<CreditsRoute>()
         d.hasRoute(DeleteAccountRoute::class) -> DeleteAccountRoute
         d.hasRoute(ChangePasswordRoute::class) -> ChangePasswordRoute
         d.hasRoute(PaymentMethodsRoute::class) -> PaymentMethodsRoute

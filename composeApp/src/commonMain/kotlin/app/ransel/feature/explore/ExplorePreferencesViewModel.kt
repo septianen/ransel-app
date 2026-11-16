@@ -49,9 +49,7 @@ sealed interface SuggestionsState {
 data class BudgetNote(val amountMinor: Long, val currency: String)
 
 data class ExplorePreferencesState(
-    /** true = step 2b: the destination, dates and name are asked here and the trip is created on search. */
-    val newTrip: Boolean,
-    /** Existing trip not loaded yet. */
+    /** The trip is not loaded yet. */
     val loading: Boolean,
     val tripTitle: String = "",
     /** The existing trip's own destination (shown on the trip card); the field below starts with it. */
@@ -60,18 +58,9 @@ data class ExplorePreferencesState(
     val destination: String = "",
     /** A new trip's destination picked from the suggestions (stored on the trip). */
     val destinationPlace: TripPlaceDto? = null,
-    /** Country, local currency and zone of the picked destination (new trip). */
-    val locale: app.ransel.shared.domain.TripLocale? = null,
-    /** An existing trip without dates ("Tanggal belum pasti") has none; a new trip starts with both. */
+    /** A trip without dates ("Tanggal belum pasti") has none. */
     val startDate: LocalDate?,
     val endDate: LocalDate?,
-    /**
-     * New trip only: "Tanggal belum pasti" (owner, 13 Nov 2026). The dates above are kept while it is on, so turning it
-     * off shows them again, but the trip is created without dates and the chips are the general ones (no month).
-     */
-    val datesUndecided: Boolean = false,
-    /** null = follow the default "Trip ke <destination>". */
-    val tripName: String? = null,
     val priceLevel: PriceLevel = PriceLevel.MEDIUM,
     val budgetNote: BudgetNote? = null,
     /** The trip has no budget (existing trips only): shows the "Sedang dipilih sebagai awal" note. */
@@ -91,14 +80,8 @@ data class ExplorePreferencesState(
     val days: Int get() = if (startDate != null && endDate != null) startDate.daysUntil(endDate) + 1 else 0
     val hasDates: Boolean get() = startDate != null && endDate != null
     val hasInterest: Boolean get() = interests.isNotEmpty() || extraInterests.isNotEmpty()
-    val tripReady: Boolean get() = destination.isNotBlank() &&
-        (if (newTrip) datesUndecided || (startDate != null && endDate != null && endDate >= startDate) else !loading)
+    val tripReady: Boolean get() = destination.isNotBlank() && !loading
     val canSearch: Boolean get() = tripReady && hasInterest
-}
-
-sealed interface ExplorePreferencesEvent {
-    /** The new trip could not be created. */
-    data object StartFailed : ExplorePreferencesEvent
 }
 
 /** [month] null = a new trip without dates: the server answers with the general chips of the destination. */
@@ -110,34 +93,28 @@ internal fun LocalDate.monthKey(): String = "$year-${monthNumber.toString().padS
 
 private const val SUGGESTIONS_DEBOUNCE_MILLIS = 600L
 private const val SUGGESTIONS_TIMEOUT_MILLIS = 8_000L
-private const val TRIP_SYNC_WAIT_MILLIS = 10_000L
-private const val TRIP_SYNC_POLL_MILLIS = 500L
 
 /**
- * Explore step 2 (spec "Form inputs" and "Destination interests"). [tripId] null = new trip (2b).
+ * Explore step 2 (spec "Form inputs" and "Destination interests") for an existing trip ("Ubah preferensi", "Cari dengan
+ * seleraku"): the form starts with the trip's Seleramu. A new trip is made by the interview ("Buat trip dan cari"), not here.
  * The suggestions load on their own; the search never waits for them.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ExplorePreferencesViewModel(
-    private val tripId: String?,
+    private val tripId: String,
     private val trips: TripRepository,
     private val api: RanselApi,
     private val store: ExploreSessionStore,
     private val preferences: PreferencesRepository,
-    private val sync: SyncStatus,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         ExplorePreferencesState(
-            newTrip = tripId == null,
-            loading = tripId != null,
+            loading = true,
             startDate = today().plus(DatePeriod(days = 14)),
             endDate = today().plus(DatePeriod(days = 18)),
         ),
     )
     val state: StateFlow<ExplorePreferencesState> = _state.asStateFlow()
-
-    private val events = Channel<ExplorePreferencesEvent>(Channel.BUFFERED)
-    val eventFlow = events.receiveAsFlow()
 
     private val queries = MutableStateFlow<SuggestionsQuery?>(null)
     private var nonce = 0
@@ -149,8 +126,8 @@ class ExplorePreferencesViewModel(
         viewModelScope.launch {
             queries.filterNotNull().collectLatest { loadSuggestions(it) }
         }
-        if (tripId != null) viewModelScope.launch { loadTrip(tripId) }
-        if (tripId != null) viewModelScope.launch {
+        viewModelScope.launch { loadTrip(tripId) }
+        viewModelScope.launch {
             val members = api.members(tripId)
             if (members is ApiResult.Success) _state.update { it.copy(memberCount = members.value.size) }
         }
@@ -181,7 +158,7 @@ class ExplorePreferencesViewModel(
 
     private fun requestSuggestions(debounce: Boolean) {
         val s = _state.value
-        val month = if (tripId == null && s.datesUndecided) null else (s.startDate ?: today()).monthKey()
+        val month = (s.startDate ?: today()).monthKey()
         val query = SuggestionsQuery(tripId, s.destination, month, debounce, nonce++)
         // Blur right after the debounce already loaded this exact query: nothing to do.
         if (!debounce && query.key == lastKey) return
@@ -205,7 +182,7 @@ class ExplorePreferencesViewModel(
                     tripId = q.tripId,
                     // With a trip the destination replaces the trip's for the chips; month and budget stay the trip's.
                     destination = q.destination.trim(),
-                    month = if (q.tripId == null) q.month else null,
+                    month = null,
                     language = language,
                 )
             }
@@ -236,17 +213,14 @@ class ExplorePreferencesViewModel(
     // ── form ───────────────────────────────────────────────────────────────
 
     fun setDestination(value: String) {
-        _state.update { it.copy(destination = value.take(200), destinationPlace = null, locale = null) }
+        _state.update { it.copy(destination = value.take(200), destinationPlace = null) }
         requestSuggestions(debounce = true)
     }
 
     /** Picked in the destination picker: the chips load right away. */
     fun pickDestination(choice: DestinationChoice) {
         _state.update {
-            it.copy(
-                destination = choice.name.take(200), destinationPlace = choice.place,
-                locale = app.ransel.shared.domain.localeForPlace(choice.countryCode, choice.timeZone),
-            )
+            it.copy(destination = choice.name.take(200), destinationPlace = choice.place)
         }
         requestSuggestions(debounce = false)
     }
@@ -254,20 +228,6 @@ class ExplorePreferencesViewModel(
     /** The destination field lost focus: load right away if the debounce has not already. */
     fun onDestinationBlur() = requestSuggestions(debounce = false)
 
-    fun setDates(start: LocalDate, end: LocalDate) {
-        val monthChanged = start.monthKey() != _state.value.startDate?.monthKey()
-        _state.update { it.copy(startDate = start, endDate = if (end < start) start else end) }
-        if (monthChanged) requestSuggestions(debounce = false)
-    }
-
-    /** The "Tanggal belum pasti" switch of a new trip: the general chips load (or the dated ones again). */
-    fun setDatesUndecided(value: Boolean) {
-        if (_state.value.datesUndecided == value) return
-        _state.update { it.copy(datesUndecided = value) }
-        requestSuggestions(debounce = false)
-    }
-
-    fun setTripName(value: String) = _state.update { it.copy(tripName = value.take(80)) }
     fun setPriceLevel(level: PriceLevel) {
         priceTouched = true
         _state.update { it.copy(priceLevel = level) }
@@ -283,14 +243,9 @@ class ExplorePreferencesViewModel(
     }
 
     /**
-     * Stores a fresh session (no cards yet); the swipe screen makes the request. A new trip is created first
-     * through the normal trip repository and must reach the server before the search. [defaultName] is the
-     * localized "Trip ke <destination>".
+     * Stores a fresh session (no cards yet) for the trip; the swipe screen makes the request.
      */
-    /** The trip this form made ("Trip baru"); a second start reuses it. */
-    private var createdTripId: String? = null
-
-    fun start(defaultName: String, onReady: (tripId: String) -> Unit) {
+    fun start(onReady: (tripId: String) -> Unit) {
         val s = _state.value
         if (s.starting) return
         if (!s.canSearch) {
@@ -299,65 +254,18 @@ class ExplorePreferencesViewModel(
         }
         _state.update { it.copy(starting = true) }
         viewModelScope.launch {
-            val id: String
-            val title: String
-            val made = createdTripId
-            if (tripId == null && made != null) {
-                // started before from this form: the trip exists, never make a second one
-                id = made
-                title = s.tripName?.trim()?.takeIf { it.isNotEmpty() } ?: defaultName
-            } else if (tripId == null) {
-                id = newId()
-                title = s.tripName?.trim()?.takeIf { it.isNotEmpty() } ?: defaultName
-                val created = runCatching {
-                    trips.create(
-                        CreateTripRequest(
-                            id = id, title = title, destination = s.destination.trim(),
-                            startDate = s.startDate.takeIf { !s.datesUndecided }, endDate = s.endDate.takeIf { !s.datesUndecided },
-                            baseCurrency = preferences.observe().first().defaultCurrency,
-                            destinationPlace = s.destinationPlace,
-                            countryCode = s.locale?.countryCode, localCurrency = s.locale?.localCurrency, timeZone = s.locale?.timeZone,
-                        ),
-                    )
-                }
-                if (created.isFailure) {
-                    _state.update { it.copy(starting = false) }
-                    events.send(ExplorePreferencesEvent.StartFailed)
-                    return@launch
-                }
-                createdTripId = id
-                awaitOnServer(id)
-            } else {
-                id = tripId
-                title = s.tripTitle
-            }
             store.save(
                 ExploreSession(
                     ExploreForm(
-                        tripId = id, tripTitle = title, destination = s.destination.trim(),
-                        startDate = s.startDate.takeIf { !(tripId == null && s.datesUndecided) },
-                        endDate = s.endDate.takeIf { !(tripId == null && s.datesUndecided) },
+                        tripId = tripId, tripTitle = s.tripTitle, destination = s.destination.trim(),
+                        startDate = s.startDate, endDate = s.endDate,
                         priceLevel = s.priceLevel, interests = s.interests, extraInterests = s.extraInterests,
                         style = s.style, notes = s.notes,
                     ),
                 ),
             )
             _state.update { it.copy(starting = false) }
-            onReady(id)
-        }
-    }
-
-    /** Mobile saves locally first: push now and wait until the server knows the trip (the search needs it). */
-    private suspend fun awaitOnServer(id: String) {
-        sync.syncNow()
-        withContext(Dispatchers.Default) {
-            withTimeoutOrNull(TRIP_SYNC_WAIT_MILLIS) {
-                while (true) {
-                    val known = (api.trips() as? ApiResult.Success)?.value?.any { it.id == id } == true
-                    if (known) return@withTimeoutOrNull
-                    delay(TRIP_SYNC_POLL_MILLIS)
-                }
-            }
+            onReady(tripId)
         }
     }
 }
