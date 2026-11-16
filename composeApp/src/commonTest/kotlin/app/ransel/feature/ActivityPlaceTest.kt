@@ -183,7 +183,7 @@ class PlacePickerViewModelTest {
         eventually { vm.state.value.suggestions.isNotEmpty() }
         vm.pickSuggestion(vm.state.value.suggestions.first())
         val choice = vm.picked.first()
-        assertEquals(PlaceChoice("Warung Bajo", "Labuan Bajo", "ChIJ-warung", -8.5, 119.9, fromSuggestion = true), choice)
+        assertEquals(PlaceChoice("Warung Bajo", "Labuan Bajo", "ChIJ-warung", -8.5, 119.9, fromSuggestion = true, kind = app.ransel.shared.dto.PlaceKind.AREA, city = "Labuan Bajo"), choice)
         assertTrue(choice.hasPoint)
 
         val details = requests.value.single { it.startsWith("/api/v1/places/ChIJ-warung") }
@@ -282,7 +282,7 @@ class PlacePickerViewModelTest {
         val vm = picker()
         vm.useLocation("Sekitar %s") { LocationFix.Found(-6.26, 106.81) }
         val choice = vm.picked.first()
-        assertEquals(PlaceChoice("Sekitar Kemang", "Jakarta Selatan", null, -6.26, 106.81), choice)
+        assertEquals(PlaceChoice("Sekitar Kemang", "Jakarta Selatan", null, -6.26, 106.81, kind = app.ransel.shared.dto.PlaceKind.AREA, city = "Jakarta Selatan"), choice)
         assertTrue(choice.hasPoint)
         assertNull(choice.placeId)
         assertEquals(LocationState.Idle, vm.state.value.location)
@@ -353,6 +353,28 @@ class ActivityFormPlaceTest {
         assertEquals("ChIJ-warung", saved.placeId)
         assertEquals(-8.5, saved.lat)
         assertEquals(119.9, saved.lng)
+    }
+
+    @Test
+    fun savingKeepsTheKindAndCityOfThePlaceAndTypingTextOverItClearsThem() = runTest {
+        val vm = form()
+        vm.ready()
+        vm.onPlacePicked(suggestion.copy(kind = app.ransel.shared.dto.PlaceKind.AREA, city = "Labuan Bajo"))
+        vm.save()
+        eventually { store.items.value.isNotEmpty() }
+        val saved = store.items.value.single()
+        assertEquals(app.ransel.shared.dto.PlaceKind.AREA, saved.placeKind)
+        assertEquals("Labuan Bajo", saved.placeCity)
+
+        // opened again, the kind and city are still there; typing text over the place drops them with the point
+        val again = form(saved.id)
+        again.ready()
+        assertEquals("Labuan Bajo", again.state.value.placeCity)
+        again.onPlacePicked(PlaceChoice("Rumah Budi"))
+        again.save()
+        eventually { store.items.value.single().placeName == "Rumah Budi" }
+        assertNull(store.items.value.single().placeKind)
+        assertNull(store.items.value.single().placeCity)
     }
 
     @Test
