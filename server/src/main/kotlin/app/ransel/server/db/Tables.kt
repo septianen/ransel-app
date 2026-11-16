@@ -1,6 +1,7 @@
 package app.ransel.server.db
 
 import app.ransel.shared.dto.InterestChipDto
+import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.model.CategoryKind
 import app.ransel.shared.model.DepartureMode
 import app.ransel.shared.model.LocalTransport
@@ -236,6 +237,9 @@ object ItineraryItems : Table("itinerary_items") {
     val placeId = text("place_id").nullable()
     val lat = double("lat").nullable()
     val lng = double("lng").nullable()
+    /** What the place is and its city, from the suggestion it was picked from (V9). */
+    val placeKind = enumerationByName<PlaceKind>("place_kind", 16).nullable()
+    val placeCity = text("place_city").nullable()
     val durationMin = integer("duration_min").nullable()
     val notes = text("notes").nullable()
     /** The first link, kept for apps from before the list; [links] is the truth (V6). */

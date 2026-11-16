@@ -307,7 +307,7 @@ class SyncService {
         val asSent = ItineraryItemInput(
             id = dto.id, dayDate = dto.dayDate, startTime = dto.startTime, endTime = dto.endTime, title = dto.title,
             category = dto.category, placeName = dto.placeName, placeId = dto.placeId, lat = dto.lat, lng = dto.lng,
-            durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, links = dto.links,
+            placeKind = dto.placeKind, placeCity = dto.placeCity, durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, links = dto.links,
             source = dto.source, sortOrder = dto.sortOrder,
         )
         val problems = ItineraryService.validate(asSent)
