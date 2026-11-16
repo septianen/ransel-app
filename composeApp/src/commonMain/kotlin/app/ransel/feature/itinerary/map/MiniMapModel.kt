@@ -1,5 +1,6 @@
 package app.ransel.feature.itinerary.map
 
+import app.ransel.shared.domain.isMapStop
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.model.Category
 
@@ -21,9 +22,12 @@ data class MapPin(
 /** An activity is on the map when it has both coordinates (the contract keeps them as a pair). */
 fun ItineraryItemDto.hasMapPoint(): Boolean = lat != null && lng != null
 
-/** The pins of a day: [items] in timeline order, numbered among the ones that have a point. */
+/**
+ * The pins of a day: [items] in timeline order, numbered among the stops (a place on the map, except a Perjalanan activity
+ * located in a city, "OTW Bandung": no pin and no number, spec "Perjalanan antar tempat V1").
+ */
 fun mapPinsOf(items: List<ItineraryItemDto>, colorsOf: (Category) -> Pair<Int, Int>): List<MapPin> =
-    items.filter { it.hasMapPoint() }.mapIndexed { index, item ->
+    items.filter { it.isMapStop() }.mapIndexed { index, item ->
         val (color, label) = colorsOf(item.category)
         MapPin(item.id, index + 1, item.lat!!, item.lng!!, item.category, color, label)
     }
@@ -57,3 +61,22 @@ fun isMiniMapOpen(stored: String?): Boolean = stored == "1"
 
 /** What to store for the choice: "1" when open, nothing when closed (the default). */
 fun storedMiniMapOpen(open: Boolean): String? = if (open) "1" else null
+
+/**
+ * A straight line of the strip between two stops (spec "Perjalanan antar tempat V1", section 5). Walking is dotted, motorbike
+ * and car are solid. [label] is the time pill at the middle ("±15 mnt"); null = no pill (a leg too far to guess, or public
+ * transport, which has no estimate).
+ */
+data class MapSegment(
+    val fromLat: Double,
+    val fromLng: Double,
+    val toLat: Double,
+    val toLng: Double,
+    val walking: Boolean,
+    val label: String?,
+    /** The mode icon in the pill (a `Symbols` glyph: walk, motorbike, car); null = no icon. */
+    val symbol: String? = null,
+)
+
+/** ARGB colours of the lines and their pills, from the theme: line = primary at 85 %, pill = surface, outline-variant, on-surface. */
+data class MapLineStyle(val line: Int, val pillFill: Int, val pillBorder: Int, val pillText: Int)

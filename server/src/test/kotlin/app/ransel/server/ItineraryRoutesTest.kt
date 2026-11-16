@@ -44,6 +44,37 @@ class ItineraryRoutesTest {
     }
 
     @Test
+    fun placeKindAndCityAreStoredAndAPutWithoutThemClearsThem() = apiTest {
+        val trip = newTrip()
+        val id = UUID.randomUUID().toString()
+        val withPlace = itemJson(id).dropLast(1) + ""","placeName":"Stasiun Bandung","placeId":"g1","lat":-6.91,"lng":107.6,"placeKind":"AREA","placeCity":"  Bandung "}"""
+        val created = post("/trips/$trip/itinerary", withPlace)
+        assertEquals(HttpStatusCode.Created, created.status)
+        assertEquals("AREA", created.data().jsonObject.str("placeKind"))
+        assertEquals("Bandung", created.data().jsonObject.str("placeCity"))
+        val listed = get("/trips/$trip/itinerary").data().jsonArray.single().jsonObject
+        assertEquals("AREA", listed.str("placeKind"))
+        assertEquals("Bandung", listed.str("placeCity"))
+
+        // a replace without them clears them, like lat and lng (the place was re-picked or typed)
+        val replaced = put("/trips/$trip/itinerary/$id", itemJson(id))
+        assertEquals(HttpStatusCode.OK, replaced.status)
+        assertNull(replaced.data().jsonObject.str("placeKind"))
+        assertNull(replaced.data().jsonObject.str("placeCity"))
+    }
+
+    @Test
+    fun aTooLongCityIsRejectedAndAnUnknownKindIsA400() = apiTest {
+        val trip = newTrip()
+        val long = "x".repeat(121)
+        val tooLong = post("/trips/$trip/itinerary", itemJson().dropLast(1) + ""","placeCity":"$long"}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, tooLong.status)
+        assertEquals("TOO_LONG", tooLong.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("placeCity"))
+        val unknown = post("/trips/$trip/itinerary", itemJson().dropLast(1) + ""","placeKind":"PLANET"}""")
+        assertEquals(HttpStatusCode.BadRequest, unknown.status)
+    }
+
+    @Test
     fun overnightActivityIsAccepted() = apiTest {
         val trip = newTrip()
         val response = post("/trips/$trip/itinerary", itemJson(start = "23:00", end = "01:00"))

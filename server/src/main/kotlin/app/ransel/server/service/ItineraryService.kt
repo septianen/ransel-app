@@ -140,6 +140,8 @@ object ItineraryService {
         it[ItineraryItems.placeId] = body.placeId
         it[ItineraryItems.lat] = body.lat
         it[ItineraryItems.lng] = body.lng
+        it[ItineraryItems.placeKind] = body.placeKind
+        it[ItineraryItems.placeCity] = body.placeCity?.trim()?.takeIf { c -> c.isNotEmpty() }
         it[ItineraryItems.durationMin] = body.durationMin
         it[ItineraryItems.notes] = body.notes
         val links = linksFor(body, kept)
@@ -168,12 +170,16 @@ object ItineraryService {
 
     const val OUTSIDE_TRIP = "OUTSIDE_TRIP"
 
+    /** The column `place_city` holds at most this many characters (V9). */
+    const val PLACE_CITY_MAX = 120
+
     // endTime may be earlier than startTime (ends next day), so there is deliberately no time-order rule.
     internal fun validate(body: ItineraryItemInput): Map<String, String> = buildMap {
         if (body.title.isBlank()) put("title", "REQUIRED")
         if ((body.lat == null) != (body.lng == null)) put("lat", "LAT_LNG_BOTH_OR_NONE")
         if (body.lat != null && body.lat!! !in -90.0..90.0) put("lat", "OUT_OF_RANGE")
         if (body.lng != null && body.lng!! !in -180.0..180.0) put("lng", "OUT_OF_RANGE")
+        if (body.placeCity != null && body.placeCity!!.trim().length > PLACE_CITY_MAX) put("placeCity", "TOO_LONG")
         if (body.durationMin != null && body.durationMin!! <= 0) put("durationMin", "MUST_BE_POSITIVE")
         body.links?.let { putAll(validateActivityLinks(it)) }
     }

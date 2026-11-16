@@ -16,4 +16,6 @@ actual fun MiniMapCanvas(
     onPinClick: (itemId: String) -> Unit,
     onLoaded: () -> Unit,
     modifier: Modifier,
+    segments: List<MapSegment>,
+    lineStyle: MapLineStyle?,
 ) = Unit

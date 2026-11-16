@@ -108,6 +108,31 @@ import app.ransel.ui.format.durationMinutes
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.components.IconFab
 import app.ransel.ui.symbols.Symbols
+import app.ransel.feature.itinerary.map.MapLineStyle
+import app.ransel.feature.itinerary.map.MapSegment
+import app.ransel.feature.itinerary.map.TransferRow
+import app.ransel.feature.itinerary.travel.AddLocationPrompt
+import app.ransel.feature.itinerary.travel.RouteTodayChip
+import app.ransel.feature.itinerary.travel.RouteTodaySheet
+import app.ransel.feature.itinerary.travel.TravelCapsule
+import app.ransel.feature.itinerary.travel.TravelCapsuleModel
+import app.ransel.feature.itinerary.travel.TravelSheet
+import app.ransel.feature.itinerary.travel.legSymbol
+import app.ransel.feature.itinerary.travel.travelGapText
+import app.ransel.feature.itinerary.travel.travelMinutesText
+import app.ransel.shared.domain.LegDisplay
+import app.ransel.shared.domain.LegKind
+import app.ransel.shared.domain.dayCities
+import app.ransel.shared.domain.dayLegs
+import app.ransel.shared.domain.daySegments
+import app.ransel.shared.domain.dayStops
+import app.ransel.shared.domain.defaultDayCity
+import app.ransel.shared.domain.effectiveMainTravelMode
+import app.ransel.shared.domain.hasCoordinates
+import app.ransel.shared.domain.intercityTransfers
+import app.ransel.shared.domain.mapsMode
+import app.ransel.shared.domain.stopsInCity
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
 import kotlinx.coroutines.launch
@@ -157,7 +182,10 @@ import ransel.composeapp.generated.resources.reorder_dont_ask
 import ransel.composeapp.generated.resources.reorder_done
 import ransel.composeapp.generated.resources.reorder_moved
 import ransel.composeapp.generated.resources.reorder_title
+import ransel.composeapp.generated.resources.map_intercity
+import ransel.composeapp.generated.resources.map_intercity_no_time
 import ransel.composeapp.generated.resources.reorder_unchanged
+import ransel.composeapp.generated.resources.travel_until
 
 /** Itinerary tab of a trip: day chips, the day's timeline (drag to reorder), Unscheduled box, FAB. */
 @Composable
@@ -231,6 +259,8 @@ fun ItineraryTab(
                 onAddActivity = { onAddActivity(state.selectedDay?.toString()) },
                 onOpenActivity = onOpenActivity,
                 canEdit = canEdit,
+                mainMode = trip.effectiveMainTravelMode(),
+                destination = trip.destination,
                 onExplore = if (canEdit) onExplore else null,
                 viewModel = viewModel,
                 onOpenPoll = onOpenPoll,
@@ -268,6 +298,8 @@ private fun ItineraryContent(
     onAddActivity: () -> Unit,
     onOpenActivity: (String) -> Unit,
     canEdit: Boolean,
+    mainMode: MainTravelMode,
+    destination: String,
     onExplore: (() -> Unit)?,
     viewModel: ItineraryViewModel,
     onOpenPoll: ((String) -> Unit)? = null,
@@ -322,6 +354,56 @@ private fun ItineraryContent(
     val pinsById = pins.associateBy { it.itemId }
     val selectedPin = selectedPinId?.takeIf { it in pinsById }
     val firstMissing = firstUnlocated(items)
+    // the capsules between the day's activities (spec "Perjalanan antar tempat V1"); the sheet is looked up again on every
+    // change, so a new main mode shows in it at once
+    val legs = remember(items, mainMode) { dayLegs(items, mainMode) }
+    var openLeg by rememberSaveable { mutableStateOf<String?>(null) }
+    var showRoute by rememberSaveable(day) { mutableStateOf(false) }
+    val routeStops = remember(items) { dayStops(items) }
+    // a day in two or more cities: chips pick the city the map shows (default the trip's destination); pin numbers stay the day's
+    val cities = remember(routeStops) { dayCities(routeStops) }
+    var pickedCity by rememberSaveable(day) { mutableStateOf<String?>(null) }
+    val selectedCity = if (cities.size >= 2) {
+        pickedCity?.takeIf { c -> cities.any { it.name == c } } ?: defaultDayCity(cities, destination)
+    } else {
+        null
+    }
+    val mapStops = if (selectedCity != null) stopsInCity(routeStops, selectedCity) else routeStops
+    val shownIds = mapStops.map { it.id }.toSet()
+    val shownPins = pins.filter { it.itemId in shownIds }
+    // the straight lines between pins, with a time pill on the ones that have an estimate
+    val segments = daySegments(mapStops, mainMode).map { segment ->
+        MapSegment(
+            segment.from.lat!!, segment.from.lng!!, segment.to.lat!!, segment.to.lng!!,
+            walking = segment.leg.kind == LegKind.WALK,
+            label = segment.leg.minutes?.let { "±" + travelMinutesText(it) },
+            symbol = legSymbol(segment.leg.kind),
+        )
+    }
+    val lineScheme = MaterialTheme.colorScheme
+    val lineStyle = MapLineStyle(
+        line = lineScheme.primary.copy(alpha = 0.85f).toArgb(),
+        pillFill = lineScheme.surface.toArgb(),
+        pillBorder = lineScheme.outlineVariant.toArgb(),
+        pillText = lineScheme.onSurface.toArgb(),
+    )
+    val transfers = if (cities.size >= 2) {
+        intercityTransfers(items).map { t ->
+            val start = t.item.startTime
+            val end = t.item.endTime
+            val minutes = durationMinutes(start, end)
+            TransferRow(
+                t.item.id,
+                if (start != null && end != null && minutes != null) {
+                    stringResource(Res.string.map_intercity, t.fromCity, t.toCity, formatTime(start), formatTime(end), travelGapText(minutes))
+                } else {
+                    stringResource(Res.string.map_intercity_no_time, t.fromCity, t.toCity)
+                },
+            )
+        }
+    } else {
+        emptyList()
+    }
 
     val from = ids.indexOf(drag.draggingId)
     val hovered = drag.hoveredChip
@@ -378,7 +460,7 @@ private fun ItineraryContent(
                 }
                 if (day != null && miniMapSupported) {
                     MiniMapSection(
-                        pins = pins,
+                        pins = shownPins,
                         unlocated = unlocatedCount(items),
                         selectedId = selectedPin,
                         collapsed = !mapOpen,
@@ -396,6 +478,13 @@ private fun ItineraryContent(
                         } else {
                             null
                         },
+                        segments = segments,
+                        lineStyle = lineStyle,
+                        cities = cities,
+                        selectedCity = selectedCity,
+                        onSelectCity = { pickedCity = it },
+                        transfers = transfers,
+                        onOpenTransfer = { id -> scope.launch { rowRequesters[id]?.bringIntoView() } },
                     )
                 }
                 if (day != null) {
@@ -413,6 +502,10 @@ private fun ItineraryContent(
                         canEdit = canEdit,
                         onExplore = onExplore,
                         emptyTitle = stringResource(Res.string.itinerary_empty_title, state.selectedIndex + 1),
+                        legs = legs,
+                        onOpenLeg = { from, to -> openLeg = "$from|$to" },
+                        onFillLocation = onFillLocation,
+                        onOpenRoute = if (routeStops.size >= 2) ({ showRoute = true }) else null,
                         pinsById = pinsById,
                         selectedPinId = selectedPin,
                         rowRequesters = rowRequesters,
@@ -476,6 +569,32 @@ private fun ItineraryContent(
             },
             onDelete = { confirmDeleteId = toSchedule.id },
             onDismiss = { scheduleItemId = null },
+        )
+    }
+    openLeg?.let { key ->
+        val (fromId, toId) = key.split("|").let { it[0] to it.getOrElse(1) { "" } }
+        val index = items.indexOfFirst { it.id == fromId }
+        val shown = legs.getOrNull(index) as? LegDisplay.Leg
+        if (shown != null && items.getOrNull(index + 1)?.id == toId) {
+            TravelSheet(
+                model = TravelCapsuleModel(items[index], items[index + 1], shown.leg, shown.warning),
+                mainMode = mainMode,
+                canChangeMainMode = canEdit,
+                // the sheet stays open and shows its own "Urungkan" snackbar
+                onChangeMainMode = viewModel::changeMainMode,
+                onDismiss = { openLeg = null },
+            )
+        } else {
+            // the two activities are no longer side by side (reordered or edited behind the sheet)
+            openLeg = null
+        }
+    }
+    if (showRoute && day != null && routeStops.size >= 2) {
+        RouteTodaySheet(
+            dayNumber = state.selectedIndex + 1,
+            allStops = routeStops,
+            mode = mainMode.mapsMode(),
+            onDismiss = { showRoute = false },
         )
     }
     state.unscheduled.firstOrNull { it.id == confirmDeleteId }?.let { doomed ->
@@ -564,6 +683,7 @@ private fun DragHint() {
 
 // ── A day's timeline ─────────────────────────────────────────────────────────
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun DaySection(
     heading: String,
@@ -577,6 +697,10 @@ private fun DaySection(
     canEdit: Boolean,
     onExplore: (() -> Unit)?,
     emptyTitle: String,
+    legs: List<LegDisplay>,
+    onOpenLeg: (fromId: String, toId: String) -> Unit,
+    onFillLocation: ((String) -> Unit)?,
+    onOpenRoute: (() -> Unit)?,
     pinsById: Map<String, MapPin>,
     selectedPinId: String?,
     rowRequesters: MutableMap<String, BringIntoViewRequester>,
@@ -607,7 +731,16 @@ private fun DaySection(
                 }
             },
     ) {
-        SectionHeader(heading, Modifier.padding(bottom = 12.dp))
+        // the day's title and, with two or more stops, "Buka rute hari ini" (it wraps under the title with a big font)
+        androidx.compose.foundation.layout.FlowRow(
+            Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.Center,
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionHeader(heading)
+            if (onOpenRoute != null) RouteTodayChip(onOpenRoute)
+        }
         if (items.isEmpty()) {
             EmptyDay(title = emptyTitle, onExplore = onExplore)
             return@Column
@@ -623,9 +756,13 @@ private fun DaySection(
             val height = drag.rowBounds[drag.draggingId]?.height ?: 0f
             val animatedShift by animateFloatAsState(shift * height, label = "row-shift")
             val slot = previewSlots?.get(item.id)
+            val gap = legs.getOrNull(index)
+            val showGap = gap is LegDisplay.Leg || (gap is LegDisplay.AddLocationPrompt && canEdit)
             TimelineRow(
                 item = item,
                 isLast = index == items.lastIndex,
+                capsuleFollows = showGap,
+                untilTime = (gap as? LegDisplay.Leg)?.takeIf { it.warning != null }?.let { item.endTime },
                 shownStart = slot?.start ?: item.startTime,
                 shownEnd = slot?.end ?: item.endTime,
                 dragging = isDragging,
@@ -639,7 +776,38 @@ private fun DaySection(
                 selected = item.id == selectedPinId,
                 requester = remember(item.id) { rowRequesters.getOrPut(item.id) { BringIntoViewRequester() } },
             )
+            val next = items.getOrNull(index + 1)
+            if (showGap && next != null) {
+                TravelGap {
+                    when (gap) {
+                        is LegDisplay.Leg -> TravelCapsule(
+                            TravelCapsuleModel(item, next, gap.leg, gap.warning),
+                            onClick = { onOpenLeg(item.id, next.id) },
+                        )
+                        is LegDisplay.AddLocationPrompt -> if (onFillLocation != null) {
+                            // the form of the activity that has no place yet, with the place picker open
+                            AddLocationPrompt(onClick = { onFillLocation((if (!item.hasCoordinates()) item else next).id) })
+                        }
+                        else -> Unit
+                    }
+                }
+            }
         }
+    }
+}
+
+/** The row between two activities that holds the capsule: the timeline's rail runs through it, the capsule sits in the title column. */
+@Composable
+private fun TravelGap(content: @Composable () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(Modifier.width(44.dp).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
+        }
+        // under the tile (40 dp) and its gap, like the activity's title
+        Box(Modifier.weight(1f).padding(start = 52.dp, top = 1.dp, bottom = 1.dp)) { content() }
     }
 }
 
@@ -647,6 +815,8 @@ private fun DaySection(
 private fun TimelineRow(
     item: ItineraryItemDto,
     isLast: Boolean,
+    capsuleFollows: Boolean,
+    untilTime: kotlinx.datetime.LocalTime?,
     shownStart: kotlinx.datetime.LocalTime?,
     shownEnd: kotlinx.datetime.LocalTime?,
     dragging: Boolean,
@@ -662,7 +832,8 @@ private fun TimelineRow(
     val primary = MaterialTheme.colorScheme.primary
     val minutes = durationMinutes(shownStart, shownEnd) ?: item.durationMin
     val label = stringResource(item.category.itineraryLabel)
-    val subtitle = when {
+    val untilLabel = untilTime?.let { stringResource(Res.string.travel_until, formatTime(it)) }
+    val baseSubtitle = when {
         dragging && shownStart != null && minutes != null ->
             stringResource(Res.string.itinerary_drag_start, formatTime(shownStart), formatDurationShort(minutes))
         showDuration && minutes != null -> "$label · ${formatDurationShort(minutes)}"
@@ -672,6 +843,8 @@ private fun TimelineRow(
         }
         else -> item.placeName?.takeIf { it.isNotBlank() } ?: label
     }
+    // an activity before a tight capsule says when it ends ("Kuliner · sampai 14.15")
+    val subtitle = if (untilLabel != null && !dragging) "$baseSubtitle · $untilLabel" else baseSubtitle
 
     Row(
         Modifier
@@ -704,7 +877,7 @@ private fun TimelineRow(
         Row(
             Modifier
                 .weight(1f)
-                .padding(bottom = if (isLast) 0.dp else 16.dp)
+                .padding(bottom = if (isLast) 0.dp else if (capsuleFollows) 2.dp else 16.dp)
                 .then(
                     if (selected && !dragging) {
                         // the row of the pin that was tapped on the map

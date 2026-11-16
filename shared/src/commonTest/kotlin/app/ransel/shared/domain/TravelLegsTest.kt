@@ -2,6 +2,9 @@ package app.ransel.shared.domain
 
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PlaceKind
+import app.ransel.shared.dto.TripDto
+import app.ransel.shared.model.DepartureMode
+import app.ransel.shared.model.LocalTransport
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.MainTravelMode
 import kotlinx.datetime.LocalDate
@@ -10,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 private fun item(
@@ -111,6 +115,13 @@ class TravelLegsTest {
     }
 
     @Test
+    fun aWarningOverlapsWhenTheGapIsZeroOrLess() {
+        assertTrue(TravelWarning(gapMinutes = 0, needMinutes = 15).overlaps)
+        assertTrue(TravelWarning(gapMinutes = -10, needMinutes = 15).overlaps)
+        assertTrue(!TravelWarning(gapMinutes = 5, needMinutes = 15).overlaps)
+    }
+
+    @Test
     fun overlappingActivitiesWarnWithANegativeGap() {
         val overlap = farm.copy(startTime = LocalTime.parse("08:30"))
         val warning = (legBetween(hotel, overlap, MainTravelMode.MOTORCYCLE) as LegDisplay.Leg).warning
@@ -195,7 +206,7 @@ class TravelLegsTest {
     }
 
     @Test
-    fun aDayHasOneCapsuleBetweenEachPairAndOnlyPointsGoToMaps() {
+    fun aDayHasOneCapsuleBetweenEachPairAndStopsAreTheActivitiesWithAPlace() {
         val noPlace = item("makan siang", "11:00", "12:00")
         val city = item("Bandung", "12:00", "13:00", -6.9, 107.6, kind = PlaceKind.CITY)
         val day = listOf(hotel, farm, noPlace, city, station)
@@ -206,6 +217,126 @@ class TravelLegsTest {
         assertEquals(LegDisplay.AddLocationPrompt, legs[2])
         assertEquals(LegDisplay.None, legs[3], "after the city centre, before a station: the city is an area")
         assertEquals(emptyList(), dayLegs(listOf(hotel), MainTravelMode.CAR))
-        assertEquals(listOf(MapsPoint(-6.9, 107.6), MapsPoint(-7.0, 107.6), MapsPoint(-6.9147, 107.6021)), dayRoutePoints(day))
+        // an activity with no place is skipped; a city centre is still a stop (only a Perjalanan one in a city is not)
+        assertEquals(
+            listOf(MapsPoint(-6.9, 107.6), MapsPoint(-7.0, 107.6), MapsPoint(-6.9, 107.6), MapsPoint(-6.9147, 107.6021)),
+            dayRoutePoints(day),
+        )
+    }
+
+    @Test
+    fun aPerjalananActivityInACityIsNotAStopButOneAtAStationIs() {
+        val otwBandung = item("OTW Bandung", "09:00", "12:00", -6.9, 107.6, category = Category.TRANSPORT, kind = PlaceKind.CITY)
+        val atStation = item("Kereta", "09:00", "12:00", -6.9147, 107.6021, category = Category.TRANSPORT, kind = PlaceKind.AREA)
+        assertEquals(false, otwBandung.isMapStop())
+        assertEquals(true, atStation.isMapStop())
+        assertEquals(listOf(hotel, atStation), dayStops(listOf(hotel, otwBandung, atStation)))
+    }
+
+    @Test
+    fun theSheetCardsHaveATimePerModeButNoneForTransitOrFar() {
+        assertEquals(15, travelMinutesFor(1.1, LegKind.WALK))
+        assertEquals(5, travelMinutesFor(1.1, LegKind.MOTORCYCLE))
+        assertEquals(10, travelMinutesFor(3.0, LegKind.CAR))
+        assertNull(travelMinutesFor(3.0, LegKind.PUBLIC_TRANSPORT))
+        assertNull(travelMinutesFor(80.0, LegKind.FAR))
+    }
+}
+
+class PlaceCityOfTest {
+    @Test
+    fun aCityOrRegencyIsItsOwnCity() {
+        assertEquals("Bandung", placeCityOf(PlaceKind.CITY, " Bandung ", "Jawa Barat"))
+        assertEquals("Badung", placeCityOf(PlaceKind.REGENCY, "Badung", "Bali"))
+    }
+
+    @Test
+    fun aProvinceOrACountryHasNoCity() {
+        assertEquals(null, placeCityOf(PlaceKind.PROVINCE, "Bali", "Indonesia"))
+        assertEquals(null, placeCityOf(PlaceKind.COUNTRY, "Jepang", null))
+    }
+
+    @Test
+    fun anyOtherPlaceTakesTheFirstPartOfTheSecondLine() {
+        assertEquals("Labuan Bajo", placeCityOf(PlaceKind.AREA, "Hotel Bajo Beach", "Labuan Bajo, Manggarai Barat"))
+        assertEquals("Ubud", placeCityOf(PlaceKind.ATTRACTION, "Monkey Forest", "Ubud"))
+        assertEquals("Ubud", placeCityOf(null, "Warung", " Ubud , Bali"))
+        assertEquals(null, placeCityOf(PlaceKind.AREA, "Warung", null))
+        assertEquals(null, placeCityOf(PlaceKind.AREA, "Warung", " , Bali"))
+    }
+}
+
+class EffectiveMainTravelModeTest {
+    private val trip = TripDto(
+        id = "t", ownerId = "u", title = "x", destination = "Bali", baseCurrency = "IDR",
+        createdAt = kotlin.time.Instant.fromEpochSeconds(0), updatedAt = kotlin.time.Instant.fromEpochSeconds(0),
+    )
+
+    @Test
+    fun theStoredModeWins() {
+        assertEquals(MainTravelMode.CAR, trip.copy(mainTravelMode = MainTravelMode.CAR, departureMode = DepartureMode.OWN_MOTORCYCLE).effectiveMainTravelMode())
+    }
+
+    @Test
+    fun withoutOneTheAnswersDecideThenTheDefault() {
+        assertEquals(MainTravelMode.MOTORCYCLE, trip.effectiveMainTravelMode())
+        assertEquals(MainTravelMode.CAR, trip.copy(countryCode = "JP").effectiveMainTravelMode())
+        assertEquals(MainTravelMode.CAR, trip.copy(departureMode = DepartureMode.OWN_CAR).effectiveMainTravelMode())
+        assertEquals(MainTravelMode.PUBLIC_TRANSPORT, trip.copy(localTransport = LocalTransport.PUBLIC_TRANSPORT).effectiveMainTravelMode())
+    }
+}
+
+class DayMapTest {
+    private fun stop(id: String, lat: Double, lng: Double, city: String?, category: Category = Category.ATTRACTION, kind: PlaceKind? = PlaceKind.AREA) =
+        item(id, lat = lat, lng = lng, category = category, kind = kind).copy(placeCity = city)
+
+    private val sunda = stop("sunda", -6.20, 106.80, "Jakarta")
+    private val gambir = stop("gambir", -6.17, 106.83, "Jakarta", Category.TRANSPORT)
+    private val dago = stop("dago", -6.88, 107.61, "Bandung")
+    private val lembang = stop("lembang", -6.81, 107.62, "Bandung")
+
+    @Test
+    fun linesJoinConsecutiveStopsThatHaveACapsuleBetweenThem() {
+        // after the train station (a Perjalanan activity) there is no capsule, so no line
+        val segments = daySegments(listOf(sunda, gambir, dago, lembang), MainTravelMode.MOTORCYCLE)
+        assertEquals(listOf("sunda" to "gambir", "dago" to "lembang"), segments.map { it.from.id to it.to.id })
+    }
+
+    @Test
+    fun citiesAreCountedInTheOrderTheyFirstAppear() {
+        assertEquals(listOf(DayCity("Jakarta", 2), DayCity("Bandung", 2)), dayCities(listOf(sunda, gambir, dago, lembang)))
+        assertEquals(emptyList(), dayCities(listOf(item("x", lat = 1.0, lng = 1.0))))
+        assertEquals(listOf(DayCity("Bandung", 2)), dayCities(listOf(dago, lembang.copy(placeCity = " bandung "))))
+    }
+
+    @Test
+    fun theDefaultCityIsTheDestinationsElseTheFirst() {
+        val cities = listOf(DayCity("Jakarta", 2), DayCity("Bandung", 2))
+        assertEquals("Bandung", defaultDayCity(cities, "Bandung"))
+        assertEquals("Jakarta", defaultDayCity(cities, "Bali"))
+        assertNull(defaultDayCity(emptyList(), "Bandung"))
+    }
+
+    @Test
+    fun aStopWithoutACityStaysInEveryCity() {
+        val nowhere = item("nowhere", lat = 1.0, lng = 1.0)
+        assertEquals(listOf("dago", "nowhere"), stopsInCity(listOf(sunda, dago, nowhere), "Bandung").map { it.id })
+    }
+
+    @Test
+    fun aPerjalananActivityBetweenTwoCitiesMakesTheTransferRow() {
+        val otw = item("OTW Bandung", "09:00", "12:00", category = Category.TRANSPORT).copy(placeCity = null)
+        val day = listOf(sunda, otw, dago)
+        val transfer = intercityTransfers(day).single()
+        assertEquals("OTW Bandung", transfer.item.id)
+        assertEquals("Jakarta" to "Bandung", transfer.fromCity to transfer.toCity)
+        // the same city twice, or no Perjalanan activity between: no row
+        assertEquals(emptyList(), intercityTransfers(listOf(dago, lembang)))
+        assertEquals(emptyList(), intercityTransfers(listOf(sunda, dago)))
+    }
+
+    @Test
+    fun theTrainStationItselfCanBeTheTransfer() {
+        assertEquals("gambir", intercityTransfers(listOf(sunda, gambir, dago)).single().item.id)
     }
 }

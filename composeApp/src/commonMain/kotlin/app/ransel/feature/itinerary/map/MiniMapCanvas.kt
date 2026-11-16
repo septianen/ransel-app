@@ -26,4 +26,7 @@ expect fun MiniMapCanvas(
     onPinClick: (itemId: String) -> Unit,
     onLoaded: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The straight lines between pins (Android draws them; empty = none) and their colours. */
+    segments: List<MapSegment> = emptyList(),
+    lineStyle: MapLineStyle? = null,
 )

@@ -10,6 +10,7 @@ import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PreferencesRepository
+import app.ransel.data.repository.TripRepository
 import app.ransel.shared.domain.Slot
 import app.ransel.shared.domain.activityDurationMinutes
 import app.ransel.shared.domain.changedSlots
@@ -25,6 +26,8 @@ import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.UpdateTripRequest
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.PollKind
 import app.ransel.util.plusDays
 import app.ransel.util.today
@@ -33,6 +36,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -102,6 +106,8 @@ class ItineraryViewModel(
     /** Polls are server data: the open DATE poll of an undated trip is asked for when signed in (null = never). */
     private val api: RanselApi? = null,
     private val session: SessionManager? = null,
+    /** The trip row, to change its main travel mode from the travel sheet (null = the sheet cannot change it). */
+    private val trips: TripRepository? = null,
 ) : ViewModel() {
     private val datePoll = MutableStateFlow<PollDto?>(null)
     private val selectedDay = MutableStateFlow<LocalDate?>(null)
@@ -158,6 +164,26 @@ class ItineraryViewModel(
         viewModelScope.launch {
             val polls = (api.polls(trip.id) as? ApiResult.Success)?.value ?: return@launch
             datePoll.value = polls.filter { it.kind == PollKind.DATE && it.isOpen }.maxByOrNull { it.createdAt }
+        }
+    }
+
+    /**
+     * The travel sheet's "Ubah": the trip's main mode, which sets the speed of every motorbike or car capsule. Saved like any
+     * trip edit (local first, synced to the others). The Travel sheet shows "Moda utama diubah ke Mobil." with "Urungkan"
+     * itself, so it stays open (spec 1572938, 2b).
+     */
+    fun changeMainMode(mode: MainTravelMode) {
+        val trips = trips ?: return
+        viewModelScope.launch {
+            val live = trips.observeTrip(trip.id).first() ?: return@launch
+            trips.update(
+                trip.id,
+                UpdateTripRequest(
+                    title = live.title, destination = live.destination, startDate = live.startDate, endDate = live.endDate,
+                    baseCurrency = live.baseCurrency, budgetMinor = live.budgetMinor,
+                    mainTravelMode = mode,
+                ),
+            )
         }
     }
 
@@ -342,6 +368,7 @@ class ItineraryViewModel(
 
 fun ItineraryItemDto.toInput() = ItineraryItemInput(
     id = id, dayDate = dayDate, startTime = startTime, endTime = endTime, title = title, category = category,
-    placeName = placeName, placeId = placeId, lat = lat, lng = lng, durationMin = durationMin, notes = notes,
+    placeName = placeName, placeId = placeId, lat = lat, lng = lng, placeKind = placeKind, placeCity = placeCity,
+    durationMin = durationMin, notes = notes,
     bookingUrl = bookingUrl, links = links, source = source, sortOrder = sortOrder,
 )

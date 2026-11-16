@@ -183,7 +183,8 @@ class InMemoryItineraryRepository(private val store: InMemoryStore) : ItineraryR
             val item = ItineraryItemDto(
                 id = input.id, tripId = tripId, dayDate = input.dayDate, startTime = input.startTime,
                 endTime = input.endTime, title = input.title, category = input.category, placeName = input.placeName,
-                placeId = input.placeId, lat = input.lat, lng = input.lng, durationMin = input.durationMin,
+                placeId = input.placeId, lat = input.lat, lng = input.lng, placeKind = input.placeKind, placeCity = input.placeCity,
+                durationMin = input.durationMin,
                 notes = input.notes, bookingUrl = input.bookingUrl, links = input.links, source = input.source, sortOrder = input.sortOrder,
                 createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
             )

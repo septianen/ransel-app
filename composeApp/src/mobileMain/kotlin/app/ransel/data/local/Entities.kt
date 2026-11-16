@@ -75,6 +75,9 @@ data class ItineraryItemEntity(
     val placeId: String?,
     val lat: Double?,
     val lng: Double?,
+    /** `PlaceKind` name of the picked place and its city (v5); null = not known. */
+    val placeKind: String? = null,
+    val placeCity: String? = null,
     val durationMin: Int?,
     val notes: String?,
     val bookingUrl: String?,

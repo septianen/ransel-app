@@ -135,6 +135,7 @@ fun IrisTheme(
     CompositionLocalProvider(
         LocalIrisAccents provides IrisAccents(),
         LocalIrisSpacing provides IrisSpacing(),
+        LocalIrisWarning provides if (dark) IrisWarningDark else IrisWarningLight,
     ) {
         MaterialTheme(
             colorScheme = if (dark) IrisDarkColors else IrisLightColors,
@@ -151,4 +152,6 @@ object IrisTheme {
         @Composable @ReadOnlyComposable get() = LocalIrisAccents.current
     val spacing: IrisSpacing
         @Composable @ReadOnlyComposable get() = LocalIrisSpacing.current
+    val warning: IrisWarning
+        @Composable @ReadOnlyComposable get() = LocalIrisWarning.current
 }

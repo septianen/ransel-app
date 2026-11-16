@@ -42,8 +42,16 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
+import ransel.composeapp.generated.resources.map_travel_caption
+import ransel.composeapp.generated.resources.map_city_chip
+import ransel.composeapp.generated.resources.map_cities_today
+import ransel.composeapp.generated.resources.map_cities_group
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import app.ransel.ui.components.SkeletonCards
 import app.ransel.ui.preview.IrisPreview
+import app.ransel.shared.domain.DayCity
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
@@ -86,8 +94,43 @@ fun MiniMapSection(
     onPinClick: (itemId: String) -> Unit,
     onFillLocation: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    /** The straight lines between pins (spec "Perjalanan antar tempat V1") and the colours they are drawn with. */
+    segments: List<MapSegment> = emptyList(),
+    lineStyle: MapLineStyle? = null,
+    /** A day in two or more cities: one chip each, [selectedCity] on; pins and lines are the selected city's. */
+    cities: List<DayCity> = emptyList(),
+    selectedCity: String? = null,
+    onSelectCity: (String) -> Unit = {},
+    /** "Jakarta → Bandung · OTW 09.00–12.00 · 3 jam" rows under the strip; a tap goes to the Perjalanan activity. */
+    transfers: List<TransferRow> = emptyList(),
+    onOpenTransfer: (itemId: String) -> Unit = {},
 ) {
     if (pins.isEmpty() && unlocated == 0) return
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        if (cities.size >= 2 && selectedCity != null) MiniMapCityChips(cities, selectedCity, onSelectCity)
+        MiniMapBody(
+            pins, unlocated, selectedId, collapsed, dark, onToggleCollapsed, onPinClick, onFillLocation, segments, lineStyle,
+            transfers, onOpenTransfer,
+        )
+    }
+}
+
+@Composable
+private fun MiniMapBody(
+    pins: List<MapPin>,
+    unlocated: Int,
+    selectedId: String?,
+    collapsed: Boolean,
+    dark: Boolean,
+    onToggleCollapsed: () -> Unit,
+    onPinClick: (itemId: String) -> Unit,
+    onFillLocation: (() -> Unit)?,
+    segments: List<MapSegment>,
+    lineStyle: MapLineStyle?,
+    transfers: List<TransferRow>,
+    onOpenTransfer: (itemId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     when {
         pins.isEmpty() -> MiniMapEmptyCard(onFillLocation, modifier)
         collapsed -> MiniMapCollapsedBar(pins.size, onToggleCollapsed, modifier)
@@ -114,12 +157,24 @@ fun MiniMapSection(
                             onPinClick = onPinClick,
                             onLoaded = { phase = MapPhase.LOADED },
                             modifier = canvasModifier,
+                            segments = segments,
+                            lineStyle = lineStyle,
                         )
                     },
                     onOpenInMaps = toOpen?.let { pin -> { uriHandler.openUri(googleMapsUrl(pin)) } },
                     onCollapse = onToggleCollapsed,
                     onRetry = { attempt++ },
                 )
+                // the lines are straight, not roads: said once under the strip while the map is open (spec)
+                if (segments.isNotEmpty() && phase != MapPhase.FAILED) {
+                    Text(
+                        stringResource(Res.string.map_travel_caption),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = (-6).dp),
+                    )
+                }
+                transfers.forEach { row -> IntercityRow(row, onClick = { onOpenTransfer(row.itemId) }) }
                 if (unlocated > 0) MiniMapPartialLine(unlocated, onFillLocation)
             }
         }
@@ -371,5 +426,84 @@ private fun MiniMapStripPreview() = IrisPreview {
         MiniMapPartialLine(2, {})
         MiniMapCollapsedBar(4, {})
         MiniMapEmptyCard({})
+    }
+}
+
+/** What an intercity row says; the text is built by the caller (it needs the strings and the time format). */
+data class TransferRow(val itemId: String, val text: String)
+
+/** "Jakarta → Bandung · OTW 09.00–12.00 · 3 jam": a 40 dp row under the strip, a tap scrolls to the Perjalanan activity. */
+@Composable
+fun IntercityRow(row: TransferRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clip(IrisShape.lg)
+            .background(scheme.surfaceContainer)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Symbol(Symbols.directionsCar, size = 16.dp, tint = scheme.onSurfaceVariant)
+        Text(
+            row.text,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = scheme.onSurface,
+            maxLines = 2,
+        )
+    }
+}
+
+/**
+ * The cities of a day with places in several ("Jakarta · 2"), one picked: the chip look of the day chips (selected = the
+ * primary container with a check). A group of radios for a screen reader.
+ */
+@Composable
+fun MiniMapCityChips(cities: List<DayCity>, selected: String, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val group = stringResource(Res.string.map_cities_group)
+    Row(
+        modifier.fillMaxWidth().semantics { contentDescription = group },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            cities.forEach { city ->
+                val on = city.name == selected
+                val label = stringResource(Res.string.map_city_chip, city.name, city.count)
+                Row(
+                    Modifier
+                        .heightIn(min = 48.dp)
+                        .selectable(selected = on, role = Role.RadioButton) { onSelect(city.name) },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        Modifier
+                            .height(36.dp)
+                            .clip(CircleShape)
+                            .background(if (on) scheme.primaryContainer else scheme.surface)
+                            .border(if (on) 1.5.dp else 1.dp, if (on) scheme.primary else scheme.outlineVariant, CircleShape)
+                            .padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        if (on) Symbol(Symbols.check, size = 16.dp, tint = scheme.onPrimaryContainer)
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (on) FontWeight.Bold else FontWeight.SemiBold),
+                            color = if (on) scheme.onPrimaryContainer else scheme.onSurface,
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            stringResource(Res.string.map_cities_today, cities.size),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = scheme.onSurfaceVariant,
+        )
     }
 }

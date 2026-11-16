@@ -5,6 +5,7 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PackingItemDto
+import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
@@ -70,8 +71,10 @@ private fun item(
     deletedAt: Instant? = null,
     links: List<String>? = null,
     bookingUrl: String? = null,
+    placeKind: PlaceKind? = null,
+    placeCity: String? = null,
 ) = ItineraryItemDto(
-    id = id, tripId = tripId, dayDate = day, links = links, bookingUrl = bookingUrl,
+    id = id, tripId = tripId, dayDate = day, links = links, bookingUrl = bookingUrl, placeKind = placeKind, placeCity = placeCity,
     startTime = day?.let { LocalTime(10, 0) }, endTime = day?.let { LocalTime(11, 0) },
     title = title, category = Category.ATTRACTION, sortOrder = sort,
     createdAt = Clock.System.now(), updatedAt = updatedAt, deletedAt = deletedAt,
@@ -140,6 +143,22 @@ class SyncRoutesTest {
         val after = pull().changes.itineraryItems.single()
         assertEquals("Old app edit", after.title)
         assertEquals(listOf("https://tiket.com/a", "https://b.example/2"), after.links)
+    }
+
+    @Test
+    fun placeKindAndCityTravelWithTheItem() = apiTest {
+        val tripId = id()
+        val itemId = id()
+        push(SyncChanges(trips = listOf(trip(tripId)), itineraryItems = listOf(item(tripId, itemId, placeKind = PlaceKind.CITY, placeCity = "Bandung"))))
+        val pulled = pull().changes.itineraryItems.single()
+        assertEquals(PlaceKind.CITY, pulled.placeKind)
+        assertEquals("Bandung", pulled.placeCity)
+
+        // the same item pushed again without them (a place typed as text) clears them
+        push(SyncChanges(itineraryItems = listOf(item(tripId, itemId, updatedAt = Clock.System.now() + 1.minutes))))
+        val after = pull().changes.itineraryItems.single()
+        assertEquals(null, after.placeKind)
+        assertEquals(null, after.placeCity)
     }
 
     @Test

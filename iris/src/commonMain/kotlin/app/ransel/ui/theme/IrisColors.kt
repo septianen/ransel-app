@@ -125,3 +125,20 @@ data class IrisAccents(
 }
 
 val LocalIrisAccents = staticCompositionLocalOf { IrisAccents() }
+
+/**
+ * The warning role (spec "Perjalanan antar tempat V1", 16 Nov 2026; proposed for IRIS, used as constants until the owner
+ * approves). [warning] is the border only (1.5:1 on the container: never text or a small icon); text and icons on
+ * [warningContainer] are [onWarningContainer] (12.1:1 light, 10.9:1 dark). A warning is always an icon plus words, never colour alone.
+ */
+@Immutable
+data class IrisWarning(
+    val warning: Color,
+    val warningContainer: Color,
+    val onWarningContainer: Color,
+)
+
+val IrisWarningLight = IrisWarning(Color(0xFFFFB800), Color(0xFFFFF1CC), Color(0xFF3D2B00))
+val IrisWarningDark = IrisWarning(Color(0xFFFFB800), Color(0xFF3A2C00), Color(0xFFFFE3A1))
+
+val LocalIrisWarning = staticCompositionLocalOf { IrisWarningLight }

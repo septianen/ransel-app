@@ -12,6 +12,7 @@ import app.ransel.shared.domain.activityLinks
 import app.ransel.shared.domain.endsNextDay
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.ItemSource
@@ -47,6 +48,9 @@ data class ActivityFormState(
     val placeId: String? = null,
     val lat: Double? = null,
     val lng: Double? = null,
+    /** What the picked place is and its city; saved with the activity (V9). Null for typed text. */
+    val placeKind: PlaceKind? = null,
+    val placeCity: String? = null,
     val notes: String = "",
     /** The "Link" rows (spec "Banyak link di aktivitas"); empty rows are dropped when saving. */
     val links: LinkDraft = LinkDraft(),
@@ -99,6 +103,7 @@ class ActivityFormViewModel(
                         title = item.title, category = item.category, day = item.dayDate?.takeIf { days.isNotEmpty() },
                         start = item.startTime, end = item.endTime, placeName = item.placeName.orEmpty(),
                         placeId = item.placeId, lat = item.lat, lng = item.lng,
+                        placeKind = item.placeKind, placeCity = item.placeCity,
                         notes = item.notes.orEmpty(),
                         links = LinkDraft.of(item.activityLinks(), legacyText = item.bookingUrl),
                     )
@@ -124,12 +129,14 @@ class ActivityFormViewModel(
             placeId = choice.placeId,
             lat = choice.lat,
             lng = choice.lng,
+            placeKind = choice.kind,
+            placeCity = choice.city,
             title = if (it.title.isBlank() && choice.fromSuggestion) choice.name else it.title,
         )
     }
 
     /** The X of the field: name, id and point go together. */
-    fun onPlaceCleared() = _state.update { it.copy(placeName = "", placeSecondary = null, placeId = null, lat = null, lng = null) }
+    fun onPlaceCleared() = _state.update { it.copy(placeName = "", placeSecondary = null, placeId = null, lat = null, lng = null, placeKind = null, placeCity = null) }
 
     fun onNotes(v: String) = _state.update { it.copy(notes = v) }
     fun onLinkChange(key: Int, v: String) = _state.update { it.copy(links = it.links.change(key, v)) }
@@ -169,6 +176,8 @@ class ActivityFormViewModel(
                     // a point comes as a pair or not at all (the contract refuses half a point)
                     lat = s.lat.takeIf { s.placeName.isNotBlank() && s.placeHasPoint },
                     lng = s.lng.takeIf { s.placeName.isNotBlank() && s.placeHasPoint },
+                    placeKind = s.placeKind.takeIf { s.placeName.isNotBlank() },
+                    placeCity = s.placeCity.takeIf { s.placeName.isNotBlank() },
                     durationMin = s.durationMin ?: previous?.durationMin,
                     notes = s.notes.trim().ifEmpty { null },
                     // the list is the whole truth (empty = no link); bookingUrl stays the first one for apps from before the list
