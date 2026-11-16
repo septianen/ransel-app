@@ -31,6 +31,7 @@ import app.ransel.feature.members.MembersViewModel
 import app.ransel.feature.packing.PackingTemplatesViewModel
 import app.ransel.feature.packing.PackingViewModel
 import app.ransel.feature.trip.TripSidePanelViewModel
+import app.ransel.feature.interview.InterviewViewModel
 import app.ransel.feature.tripform.TripFormViewModel
 import app.ransel.feature.trips.TripListViewModel
 import app.ransel.data.auth.AuthRepository
@@ -74,6 +75,7 @@ val commonModule: Module = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::TripListViewModel)
     viewModelOf(::AccountViewModel)
+    viewModel { params -> InterviewViewModel(params.get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get()) }
     viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get()) }
     viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get(), get<RanselApi>(), get<SessionManager>()) }
     viewModel { params -> PackingViewModel(params.get(), get(), get()) }

@@ -130,7 +130,9 @@ import app.ransel.navigation.ActivityDetailRoute
 import app.ransel.navigation.ActivityFormRoute
 import app.ransel.navigation.ComponentGalleryRoute
 import app.ransel.navigation.CreateTripRoute
+import app.ransel.navigation.InterviewRoute
 import app.ransel.navigation.InviteFriendsRoute
+import app.ransel.feature.interview.InterviewScreen
 import app.ransel.feature.invite.InviteFriendsScreen
 import app.ransel.navigation.EditTripRoute
 import app.ransel.navigation.ExplorePreferencesRoute
@@ -146,6 +148,7 @@ import app.ransel.feature.voting.VoteViewModel
 import app.ransel.feature.voting.voteViewModelKey
 import app.ransel.feature.explore.toDetailInfo
 import app.ransel.data.explore.ExploreCard
+import app.ransel.shared.domain.InterviewDoor
 import app.ransel.shared.domain.hoursLeft
 import app.ransel.shared.model.Vote
 import kotlin.time.Clock
@@ -495,7 +498,7 @@ private fun RanselNavigation(openSignIn: Boolean = false) {
                 RanselNavigationRail(
                     selected = railSelected,
                     onSelect = navController::openTab,
-                    onCreateTrip = { navController.navigate(CreateTripRoute) },
+                    onCreateTrip = { navController.navigate(InterviewRoute()) },
                 )
             }
             // Each screen applies its own system-bar insets; the four tabs bring their own bottom bar (TabPage), so
@@ -589,7 +592,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
                 }
                 navController.navigate(TripRoute(id, tab.name))
             },
-            onCreateTrip = { navController.navigate(CreateTripRoute) },
+            onCreateTrip = { navController.navigate(InterviewRoute()) },
             onOpenNotifications = { navController.navigate(NotificationsRoute) },
             onOpenRecap = { navController.navigate(RecapRoute(it)) },
             // "Coba": the preferences step on a new trip ("Trip baru"), full screen over Home.
@@ -600,7 +603,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
         TripListScreen(
             modifier = Modifier.statusBarsPadding(),
             onOpenTrip = { navController.navigate(TripRoute(it)) },
-            onCreateTrip = { navController.navigate(CreateTripRoute) },
+            onCreateTrip = { navController.navigate(InterviewRoute()) },
         )
     }
     tabPage<ExploreRoute>(MainTab.EXPLORE, navController) {
@@ -948,6 +951,20 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
                 if (session.state.value is SessionState.SignedIn) navController.navigate(InviteFriendsRoute(id))
             },
             onDeleted = {},
+        )
+    }
+    page<InterviewRoute> { entry ->
+        val route = entry.toRoute<InterviewRoute>()
+        val session: SessionManager = koinInject()
+        InterviewScreen(
+            door = InterviewDoor.valueOf(route.door),
+            onLeave = { navController.popBackStack() },
+            onCreated = { id, signedIn ->
+                // Replace the interview with the new trip (on Ringkasan) so Back returns to where the user came from.
+                navController.navigate(TripRoute(id)) { popUpTo<InterviewRoute> { inclusive = true } }
+                // Ajak teman is for everyone who is signed in (not only group trips); a guest's trip lives on this phone only.
+                if (signedIn && session.state.value is SessionState.SignedIn) navController.navigate(InviteFriendsRoute(id))
+            },
         )
     }
     page<InviteFriendsRoute> { entry ->
