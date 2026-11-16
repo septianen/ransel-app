@@ -183,7 +183,7 @@ class TripInterviewRoutesTest {
             val response = post("/sync", wire.encodeToString(SyncPushRequest(SyncChanges(trips = listOf(dto)))))
             assertEquals(HttpStatusCode.OK, response.status, response.bodyAsText())
         }
-        fun stored() = wire.decodeFromString<app.ransel.shared.api.ApiResponse<SyncPullResponse>>(get("/sync").bodyAsText()).data.changes.trips.single { it.id == id }
+        suspend fun stored() = wire.decodeFromString<app.ransel.shared.api.ApiResponse<SyncPullResponse>>(get("/sync").bodyAsText()).data.changes.trips.single { it.id == id }
         push(trip(now, replace = false, answers = true))
         push(trip(now + 1.minutes, replace = false, answers = false))
         assertEquals(DepartureMode.OWN_MOTORCYCLE, stored().departureMode, "an older app's push keeps them")
