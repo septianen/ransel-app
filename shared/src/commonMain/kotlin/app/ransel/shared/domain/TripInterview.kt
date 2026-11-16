@@ -73,7 +73,8 @@ fun departureBand(origin: TripOriginDto?, destLat: Double?, destLng: Double?, de
 /**
  * The W2 choices, the first one on top. [trainBetweenCities] = both cities have a station (Karung's list); without it
  * the train is not offered. Empty for [DepartureBand.OVERSEAS]: the question is not asked, the plane is understood.
- * [DepartureBand.UNKNOWN] (W1 skipped) offers everything, since nothing can be said about the distance.
+ * [DepartureBand.UNKNOWN] (W1 skipped, or a destination or origin typed as text without a point) offers the whole list in the
+ * default order, the train included whatever the cities are, since nothing can be said about the distance (spec 16 Nov).
  */
 fun departureOptions(band: DepartureBand, trainBetweenCities: Boolean): List<DepartureMode> {
     val train = if (trainBetweenCities) listOf(DepartureMode.TRAIN) else emptyList()
@@ -85,9 +86,10 @@ fun departureOptions(band: DepartureBand, trainBetweenCities: Boolean): List<Dep
         DepartureBand.LONG ->
             listOf(DepartureMode.PLANE, DepartureMode.OWN_CAR, DepartureMode.BUS) + train
         DepartureBand.OTHER_ISLAND -> listOf(DepartureMode.PLANE, DepartureMode.FERRY, DepartureMode.OWN_CAR)
-        DepartureBand.UNKNOWN ->
-            listOf(DepartureMode.OWN_MOTORCYCLE, DepartureMode.OWN_CAR, DepartureMode.TRAVEL_SHUTTLE, DepartureMode.BUS) + train +
-                listOf(DepartureMode.PLANE, DepartureMode.FERRY)
+        DepartureBand.UNKNOWN -> listOf(
+            DepartureMode.OWN_MOTORCYCLE, DepartureMode.OWN_CAR, DepartureMode.TRAVEL_SHUTTLE, DepartureMode.BUS,
+            DepartureMode.TRAIN, DepartureMode.PLANE, DepartureMode.FERRY,
+        )
         DepartureBand.OVERSEAS -> emptyList()
     }
 }
@@ -147,7 +149,7 @@ fun mainTravelModeOf(departure: DepartureMode?, local: LocalTransport?, overseas
 /** The screens of the interview in order: Layar 1 (destination and dates), W1 to W4. */
 enum class InterviewStep { DESTINATION, ORIGIN, DEPARTURE, LOCAL_TRANSPORT, TASTE }
 
-/** Layar 1 plus W1–W4: where "Y" starts. */
+/** Layar 1 plus W1–W4: where "Y" starts and its largest value. */
 val MAX_INTERVIEW_STEPS: Int = InterviewStep.entries.size
 
 /**
@@ -166,16 +168,16 @@ fun interviewSteps(overseas: Boolean, departure: DepartureMode?): List<Interview
 data class InterviewProgress(val position: Int, val total: Int)
 
 /**
- * The indicator on [current]. [total] starts at [MAX_INTERVIEW_STEPS] and only goes down: it is the smaller of the
- * [steps] left and [previousTotal], the Y of the screen before (null on Layar 1). Subang → Bandung by own motorbike reads
- * 1 dari 5, 2 dari 5, 3 dari 5, then 4 dari 4. [position] never passes [total]: a user who goes back and changes an answer so
- * that a step comes back sees two screens "4 dari 4" rather than a Y that grows.
+ * The indicator on [current]: its place among the [steps] that apply to the answers right now. Y is recomputed from the
+ * current answers every time (spec 16 Nov): it goes down when a step stops applying (abroad: W2 gone from Layar 1; own
+ * vehicle: W3 gone when W2 is picked) and comes back up if the user goes back and changes the answer. Subang → Bandung by
+ * own motorbike reads 1 dari 5, 2 dari 5, 3 dari 5 on W2, then 3 dari 4 once it is picked and W4 is 4 dari 4. A [current]
+ * that is no longer among the steps (W3 after W2 became an own vehicle) is shown as the last one.
  */
-fun interviewProgress(steps: List<InterviewStep>, current: InterviewStep, previousTotal: Int?): InterviewProgress {
-    val total = minOf(previousTotal ?: MAX_INTERVIEW_STEPS, steps.size)
+fun interviewProgress(steps: List<InterviewStep>, current: InterviewStep): InterviewProgress {
+    val total = steps.size
     val index = steps.indexOf(current)
-    val position = if (index < 0) total else index + 1
-    return InterviewProgress(position.coerceIn(1, total), total)
+    return InterviewProgress(if (index < 0) total else index + 1, total)
 }
 
 // ── Validation ──────────────────────────────────────────────────────────────

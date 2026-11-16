@@ -134,8 +134,12 @@ class TripInterviewTest {
     fun withoutAnOriginOrADestinationPointTheDistanceIsUnknownAndEverythingIsOffered() {
         assertEquals(DepartureBand.UNKNOWN, band(null, bandung))
         assertEquals(DepartureBand.UNKNOWN, band(subang, null))
-        val options = departureOptions(DepartureBand.UNKNOWN, trainBetweenCities = false)
-        assertEquals(DepartureMode.entries.toSet() - DepartureMode.TRAIN, options.toSet())
+        val expected = listOf(
+            DepartureMode.OWN_MOTORCYCLE, DepartureMode.OWN_CAR, DepartureMode.TRAVEL_SHUTTLE, DepartureMode.BUS,
+            DepartureMode.TRAIN, DepartureMode.PLANE, DepartureMode.FERRY,
+        )
+        assertEquals(expected, departureOptions(DepartureBand.UNKNOWN, trainBetweenCities = false), "the whole list in the default order")
+        assertEquals(expected, departureOptions(DepartureBand.UNKNOWN, trainBetweenCities = true))
     }
 
     @Test
@@ -236,24 +240,22 @@ class TripInterviewTest {
 
     // ── the "X dari Y" indicator ────────────────────────────────────────────
 
-    private fun walk(overseas: Boolean, departure: DepartureMode?): List<String> {
-        var previous: Int? = null
-        val shown = mutableListOf<String>()
-        for (step in InterviewStep.entries) {
-            // the destination is only known to be abroad once Layar 1 is done
-            val steps = interviewSteps(overseas && step != InterviewStep.DESTINATION, departure.takeIf { step.ordinal > InterviewStep.DEPARTURE.ordinal })
-            if (step == InterviewStep.DEPARTURE && overseas) continue
-            if (step == InterviewStep.LOCAL_TRANSPORT && isOwnVehicle(departure)) continue
-            val progress = interviewProgress(steps, step, previous)
-            previous = progress.total
-            shown += "${progress.position} dari ${progress.total}"
-        }
-        return shown
-    }
+    /** The indicator on each screen the user sees, given the answers known at that moment. */
+    private fun walk(overseas: Boolean, departure: DepartureMode?): List<String> =
+        InterviewStep.entries
+            .filter { !(it == InterviewStep.DEPARTURE && overseas) && !(it == InterviewStep.LOCAL_TRANSPORT && isOwnVehicle(departure)) }
+            .map { step ->
+                // W2 is answered on its own screen: before that the answer is not known yet
+                val known = departure.takeIf { step.ordinal > InterviewStep.DEPARTURE.ordinal }
+                val progress = interviewProgress(interviewSteps(overseas, known), step)
+                "${progress.position} dari ${progress.total}"
+            }
 
     @Test
-    fun subangToBandungByOwnMotorcycleReads1of5Then4of4() {
+    fun subangToBandungByOwnMotorcycleReads1of5Then3of5Then4of4() {
         assertEquals(listOf("1 dari 5", "2 dari 5", "3 dari 5", "4 dari 4"), walk(overseas = false, DepartureMode.OWN_MOTORCYCLE))
+        // the moment W2 is picked its own indicator drops to 3 dari 4
+        assertEquals(InterviewProgress(3, 4), interviewProgress(interviewSteps(false, DepartureMode.OWN_MOTORCYCLE), InterviewStep.DEPARTURE))
     }
 
     @Test
@@ -262,19 +264,24 @@ class TripInterviewTest {
     }
 
     @Test
-    fun overseasDropsW2AndStartsAtFive() {
-        assertEquals(listOf("1 dari 5", "2 dari 4", "3 dari 4", "4 dari 4"), walk(overseas = true, null))
+    fun overseasIsFourFromLayar1() {
+        assertEquals(listOf("1 dari 4", "2 dari 4", "3 dari 4", "4 dari 4"), walk(overseas = true, null))
     }
 
     @Test
-    fun theTotalNeverGoesUpEvenWhenAStepComesBack() {
-        val withoutW3 = interviewSteps(overseas = false, DepartureMode.OWN_CAR)
-        val first = interviewProgress(withoutW3, InterviewStep.DEPARTURE, previousTotal = 4)
-        assertEquals(InterviewProgress(3, 4), first)
-        // the user goes back, picks the plane: W3 is back among the steps, the total stays 4 and the position stops at 4
-        val withW3 = interviewSteps(overseas = false, DepartureMode.PLANE)
-        assertEquals(InterviewProgress(4, 4), interviewProgress(withW3, InterviewStep.LOCAL_TRANSPORT, previousTotal = 4))
-        assertEquals(InterviewProgress(4, 4), interviewProgress(withW3, InterviewStep.TASTE, previousTotal = 4))
+    fun theTotalComesBackUpWhenTheUserChangesTheAnswer() {
+        val own = interviewSteps(overseas = false, DepartureMode.OWN_CAR)
+        assertEquals(InterviewProgress(4, 4), interviewProgress(own, InterviewStep.TASTE))
+        // back to W2, picks the plane: W3 is a step again and W4 is 5 dari 5
+        val plane = interviewSteps(overseas = false, DepartureMode.PLANE)
+        assertEquals(InterviewProgress(4, 5), interviewProgress(plane, InterviewStep.LOCAL_TRANSPORT))
+        assertEquals(InterviewProgress(5, 5), interviewProgress(plane, InterviewStep.TASTE))
+    }
+
+    @Test
+    fun aStepThatIsGoneIsShownAsTheLastOne() {
+        val own = interviewSteps(overseas = false, DepartureMode.OWN_CAR)
+        assertEquals(InterviewProgress(4, 4), interviewProgress(own, InterviewStep.LOCAL_TRANSPORT))
     }
 
     // ── validation ──────────────────────────────────────────────────────────
