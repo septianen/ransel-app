@@ -31,6 +31,8 @@ import app.ransel.shared.domain.validateTrip
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.dto.UpdateTripRequest
+import app.ransel.shared.domain.InterviewDestination
+import app.ransel.shared.domain.changeDestination
 import app.ransel.util.newId
 import app.ransel.util.today
 import kotlinx.coroutines.channels.Channel
@@ -94,6 +96,12 @@ data class TripFormState(
     /** An upload or removal is under way. */
     val coverBusy: Boolean = false,
     val coverProblem: PhotoProblem? = null,
+    /**
+     * A new destination made the "Cara berangkat" of the trip impossible (the distance changed): the trip is saved and this is
+     * the answer that was reset, for the dialog "Cara berangkat direset" (spec 1638556, section 3).
+     */
+    val departureReset: app.ransel.shared.model.DepartureMode? = null,
+    /** The trip as it was when the form opened; the answers of the interview are worked out from it when the destination changes. */
 ) {
     val titleError: Boolean get() = showErrors && title.isBlank()
 
@@ -132,6 +140,9 @@ class TripFormViewModel(
     private val events = Channel<TripFormEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
+    /** The trip as it was when the form opened (editing). */
+    private var original: app.ransel.shared.dto.TripDto? = null
+
     init {
         viewModelScope.launch {
             if (tripId == null) {
@@ -143,6 +154,7 @@ class TripFormViewModel(
                 if (trip == null) {
                     _state.update { it.copy(loading = false) }
                 } else {
+                    original = trip
                     val divisor = pow10(currencyDecimals(trip.baseCurrency))
                     _state.update {
                         it.copy(
@@ -235,6 +247,16 @@ class TripFormViewModel(
         viewModelScope.launch { events.send(TripFormEvent.Saved(id)) }
     }
 
+    /** "Pilih cara berangkat": the dialog goes, the form stays under the screen of W2 that opens. */
+    fun clearDepartureReset() = _state.update { it.copy(departureReset = null) }
+
+    /** The dialog "Cara berangkat direset" is closed without choosing: the form is done. */
+    fun acknowledgeDepartureReset() {
+        _state.update { it.copy(departureReset = null) }
+        val id = tripId ?: return
+        viewModelScope.launch { events.send(TripFormEvent.Saved(id)) }
+    }
+
     fun save() {
         val s = _state.value
         if (s.saving) return
@@ -267,6 +289,16 @@ class TripFormViewModel(
                     return@launch
                 }
             } else {
+                val before = original
+                // another destination: the answers of the interview are worked out again (the distance and what the place offers
+                // changed); an answer that is no longer possible is reset, with the dialog "Cara berangkat direset"
+                val travel = if (before != null && s.destination.trim() != before.destination.trim()) {
+                    before.changeDestination(
+                        InterviewDestination(s.destination.trim(), s.destinationPlace?.placeId, s.destinationPlace?.lat, s.destinationPlace?.lng, s.countryCode),
+                    )
+                } else {
+                    null
+                }
                 trips.update(
                     tripId,
                     UpdateTripRequest(
@@ -274,8 +306,18 @@ class TripFormViewModel(
                         endDate = end, baseCurrency = s.currency, budgetMinor = budgetMinor,
                         destinationPlace = s.destinationPlace,
                         countryCode = s.countryCode, localCurrency = s.localCurrency, timeZone = s.timeZone,
+                        origin = travel?.answers?.origin,
+                        departureMode = travel?.answers?.departure,
+                        localTransport = travel?.answers?.localTransport,
+                        mainTravelMode = travel?.mainTravelMode,
+                        replaceTravelAnswers = travel != null,
                     ),
                 )
+                if (travel?.departureReset != null) {
+                    // the form stays so the dialog can be answered; the trip is already saved
+                    _state.update { it.copy(saving = false, departureReset = travel.departureReset) }
+                    return@launch
+                }
             }
             events.send(TripFormEvent.Saved(id))
         }

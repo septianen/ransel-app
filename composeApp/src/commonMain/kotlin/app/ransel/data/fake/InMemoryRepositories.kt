@@ -147,11 +147,11 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
                         t.copy(countryCode = request.countryCode, localCurrency = request.localCurrency, timeZone = request.timeZone)
                     } else t
                 }.copy(
-                    // an answer that is not sent keeps the stored one, like the server
-                    origin = request.origin ?: it.origin,
-                    departureMode = request.departureMode ?: it.departureMode,
-                    localTransport = request.localTransport ?: it.localTransport,
-                    mainTravelMode = request.mainTravelMode ?: it.mainTravelMode,
+                    // an answer that is not sent keeps the stored one, like the server, unless the request holds all four
+                    origin = if (request.replaceTravelAnswers) request.origin else request.origin ?: it.origin,
+                    departureMode = if (request.replaceTravelAnswers) request.departureMode else request.departureMode ?: it.departureMode,
+                    localTransport = if (request.replaceTravelAnswers) request.localTransport else request.localTransport ?: it.localTransport,
+                    mainTravelMode = if (request.replaceTravelAnswers) request.mainTravelMode else request.mainTravelMode ?: it.mainTravelMode,
                 )
             }
         }

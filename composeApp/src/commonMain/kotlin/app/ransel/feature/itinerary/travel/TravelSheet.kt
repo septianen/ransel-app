@@ -68,6 +68,7 @@ import ransel.composeapp.generated.resources.travel_far_warning_note
 import ransel.composeapp.generated.resources.travel_main_car
 import ransel.composeapp.generated.resources.travel_main_mode
 import ransel.composeapp.generated.resources.travel_main_mode_change
+import ransel.composeapp.generated.resources.travel_main_mode_own
 import ransel.composeapp.generated.resources.travel_main_motorcycle
 import ransel.composeapp.generated.resources.travel_open_maps
 import ransel.composeapp.generated.resources.travel_see_in_maps
@@ -91,6 +92,8 @@ fun TravelSheet(
     canChangeMainMode: Boolean,
     onChangeMainMode: (MainTravelMode) -> Unit,
     onDismiss: () -> Unit,
+    /** The trip goes by an own vehicle: the main mode is that vehicle, "Motor · kendaraanmu", and nobody changes it here (spec 1572938 v3). */
+    ownVehicle: Boolean = false,
 ) {
     val leg = model.leg
     val far = leg.kind == LegKind.FAR
@@ -190,7 +193,8 @@ fun TravelSheet(
                 )
                 MainModeRow(
                     mainMode = mainMode,
-                    canChange = canChangeMainMode,
+                    ownVehicle = ownVehicle,
+                    canChange = canChangeMainMode && !ownVehicle,
                     changing = changing,
                     onToggle = { changing = !changing },
                     onPick = {
@@ -338,6 +342,7 @@ private fun ModeCard(
 @Composable
 private fun MainModeRow(
     mainMode: MainTravelMode,
+    ownVehicle: Boolean,
     canChange: Boolean,
     changing: Boolean,
     onToggle: () -> Unit,
@@ -346,7 +351,8 @@ private fun MainModeRow(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                stringResource(Res.string.travel_main_mode, mainModeLabel(mainMode)),
+                if (ownVehicle) stringResource(Res.string.travel_main_mode_own, mainModeLabel(mainMode))
+                else stringResource(Res.string.travel_main_mode, mainModeLabel(mainMode)),
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),

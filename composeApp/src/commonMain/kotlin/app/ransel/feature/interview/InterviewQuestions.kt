@@ -52,6 +52,13 @@ import app.ransel.ui.theme.IrisShape
 import app.ransel.util.today
 import org.jetbrains.compose.resources.StringResource
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.travel_main_motorcycle
+import ransel.composeapp.generated.resources.travel_main_car
+import ransel.composeapp.generated.resources.trip_answer_card_asks
+import ransel.composeapp.generated.resources.trip_answer_card_follows
+import ransel.composeapp.generated.resources.trip_answer_asks_local
+import ransel.composeapp.generated.resources.trip_answer_follows_car
+import ransel.composeapp.generated.resources.trip_answer_follows_motor
 import ransel.composeapp.generated.resources.interview_departure_effect_car_ferry
 import ransel.composeapp.generated.resources.interview_departure_effect_ferry
 import ransel.composeapp.generated.resources.interview_departure_effect_plane_island
@@ -376,6 +383,9 @@ private fun LocationDeniedBanner(onOpenSettings: (() -> Unit)?, modifier: Modifi
 
 // ── W2 ───────────────────────────────────────────────────────────────────────
 
+/** What Edit trip tells "Cara berangkat" about the trip as it is now. */
+internal data class DepartureEdit(val currentIsOwn: Boolean)
+
 /** The one line under a W2 answer (mockups s24-1 and s24-2). */
 private fun departureEffectRes(mode: DepartureMode, otherIsland: Boolean): StringResource = when (mode) {
     DepartureMode.OWN_MOTORCYCLE -> Res.string.interview_departure_effect_drive
@@ -389,7 +399,16 @@ private fun departureEffectRes(mode: DepartureMode, otherIsland: Boolean): Strin
 
 /** "Ke {destinasi} naik apa?": the choices follow the distance; an own vehicle says what it changes. */
 @Composable
-internal fun DepartureQuestion(state: InterviewUiState, onChoose: (DepartureMode) -> Unit, modifier: Modifier = Modifier) {
+internal fun DepartureQuestion(
+    state: InterviewUiState,
+    onChoose: (DepartureMode) -> Unit,
+    modifier: Modifier = Modifier,
+    /**
+     * "Cara berangkat" of Edit trip (spec 1638556, mockups s26-2b/2c): an own vehicle says that getting around follows it, and
+     * when the trip has an own vehicle now, every other way says that getting around is asked next. null = the interview.
+     */
+    edit: DepartureEdit? = null,
+) {
     val answers = state.answers
     val options = answers.departureOptions(state.facts)
     val km = answers.roadDistanceKm()
@@ -407,14 +426,41 @@ internal fun DepartureQuestion(state: InterviewUiState, onChoose: (DepartureMode
                 ChoiceRow(
                     mode.symbol,
                     stringResource(mode.labelRes),
-                    stringResource(departureEffectRes(mode, answers.departureBand() == DepartureBand.OTHER_ISLAND)),
+                    when {
+                        edit != null && mode == DepartureMode.OWN_MOTORCYCLE ->
+                            stringResource(Res.string.trip_answer_follows_motor, state.destinationName)
+                        edit != null && mode == DepartureMode.OWN_CAR && answers.departureBand() != DepartureBand.OTHER_ISLAND ->
+                            stringResource(Res.string.trip_answer_follows_car, state.destinationName)
+                        edit != null && edit.currentIsOwn && !isOwnVehicle(mode) -> stringResource(Res.string.trip_answer_asks_local)
+                        else -> stringResource(departureEffectRes(mode, answers.departureBand() == DepartureBand.OTHER_ISLAND))
+                    },
                     selected = answers.departure == mode,
                     onClick = { onChoose(mode) },
                 )
             }
         }
-        // an own vehicle: no rental suggestions in this trip and W3 is skipped
-        if (isOwnVehicle(answers.departure)) {
+        if (edit != null) {
+            // the card of Edit trip: what the pick will do before it is saved
+            val picked = answers.departure
+            val card = when {
+                picked != null && isOwnVehicle(picked) -> stringResource(
+                    Res.string.trip_answer_card_follows, state.destinationName,
+                    stringResource(if (picked == DepartureMode.OWN_CAR) Res.string.travel_main_car else Res.string.travel_main_motorcycle),
+                )
+                picked != null && edit.currentIsOwn -> stringResource(Res.string.trip_answer_card_asks)
+                else -> null
+            }
+            if (card != null) {
+                Row(
+                    ScreenPadding.clip(IrisShape.lg).background(MaterialTheme.colorScheme.surfaceContainer).padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Symbol(Symbols.info, size = 18.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(card, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        } else if (isOwnVehicle(answers.departure)) {
+            // an own vehicle: no rental suggestions in this trip and W3 is skipped
             Row(ScreenPadding, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Symbol(Symbols.info, size = 16.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(

@@ -44,6 +44,8 @@ fun TripEntity.toDto() = TripDto(
     departureMode = departureMode?.let { name -> DepartureMode.entries.firstOrNull { it.name == name } },
     localTransport = localTransport?.let { name -> LocalTransport.entries.firstOrNull { it.name == name } },
     mainTravelMode = mainTravelMode?.let { name -> MainTravelMode.entries.firstOrNull { it.name == name } },
+    // this device holds all four answers, so a push of this trip may clear one (contract 16 Nov 2026)
+    replaceTravelAnswers = true,
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
 

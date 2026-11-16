@@ -105,7 +105,11 @@ class RoomTripRepository(
                     if (sent || current.destination != request.destination.trim()) {
                         it.copy(countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone)
                     } else it
-                }.keepingInterview(request.origin, request.departureMode, request.localTransport, request.mainTravelMode),
+                }.let {
+                    // the answers as sent when the request says they are all of them (Edit trip, Perjalanan); else a null keeps
+                    if (request.replaceTravelAnswers) it.withInterview(request.origin, request.departureMode, request.localTransport, request.mainTravelMode)
+                    else it.keepingInterview(request.origin, request.departureMode, request.localTransport, request.mainTravelMode)
+                },
             )
             // Shortened dates never delete activities: they go back to "Belum dijadwalkan".
             val outside = itemsOutsideRange(

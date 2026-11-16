@@ -111,7 +111,7 @@ object TripService {
             Trips.update({ Trips.id eq tripId }) {
                 placeUpdate(it, body.destinationPlace, nameChanged = before != body.destination)
                 localeUpdate(it, body.countryCode, body.localCurrency, body.timeZone, nameChanged = before != body.destination)
-                interviewUpdate(it, body.origin, body.departureMode, body.localTransport, body.mainTravelMode)
+                interviewUpdate(it, body.origin, body.departureMode, body.localTransport, body.mainTravelMode, body.replaceTravelAnswers)
                 it[title] = body.title.trim()
                 it[destination] = body.destination
                 it[startDate] = body.startDate?.toJavaLocalDate()
@@ -174,7 +174,8 @@ object TripService {
 
     /**
      * On an update (REST and sync) every answer that is not sent keeps its stored value: an older app does not send them,
-     * and the interview's Lewati never writes anything. An answer can be replaced but not cleared in V1 (contract 16 Nov 2026).
+     * and the interview's Lewati never writes anything. With [replace] (`replaceTravelAnswers`, the apps of "Edit trip,
+     * Perjalanan") the four are the whole truth and a null clears the stored answer (contract 16 Nov 2026).
      */
     internal fun interviewUpdate(
         it: org.jetbrains.exposed.v1.core.statements.UpdateBuilder<*>,
@@ -182,7 +183,9 @@ object TripService {
         departure: DepartureMode?,
         local: LocalTransport?,
         main: MainTravelMode?,
+        replace: Boolean = false,
     ) {
+        if (replace) return fillInterview(it, origin, departure, local, main)
         if (origin != null) fillOrigin(it, origin)
         if (departure != null) it[Trips.departureMode] = departure
         if (local != null) it[Trips.localTransport] = local

@@ -142,4 +142,54 @@ class TripInterviewRoutesTest {
         assertEquals(LocalTransport.UNKNOWN, synced.localTransport)
         assertEquals(MainTravelMode.MOTORCYCLE, synced.mainTravelMode)
     }
+
+    @Test
+    fun anUpdateThatReplacesTheAnswersCanClearOne() = apiTest {
+        val id = UUID.randomUUID().toString()
+        post("/trips", tripJson(id).dropLast(1) + ",$ANSWERS}")
+        // Edit trip: the new starting city makes "Motor sendiri" impossible; the answer is reset, the others stay
+        val body = tripJson(id).replace(""""id":"$id",""", "").dropLast(1) +
+            ""","replaceTravelAnswers":true,"origin":{"name":"Jakarta","lat":-6.2088,"lng":106.8456},"localTransport":"RIDE_HAILING","mainTravelMode":"MOTORCYCLE"}"""
+        assertEquals(HttpStatusCode.OK, put("/trips/$id", body).status)
+        val trip = get("/trips/$id").data().jsonObject.getValue("trip").jsonObject
+        assertEquals("Jakarta", trip.getValue("origin").jsonObject.str("name"))
+        assertNull(trip.str("departureMode"), "cleared")
+        assertEquals("RIDE_HAILING", trip.str("localTransport"))
+        assertNull(trip.str("replaceTravelAnswers") ?.takeIf { it == "true" }, "the flag is a request flag, never stored")
+
+        // all four cleared at once
+        val cleared = tripJson(id).replace(""""id":"$id",""", "").dropLast(1) + ""","replaceTravelAnswers":true}"""
+        assertEquals(HttpStatusCode.OK, put("/trips/$id", cleared).status)
+        val empty = get("/trips/$id").data().jsonObject.getValue("trip").jsonObject
+        assertNull(empty.str("origin"))
+        assertNull(empty.str("localTransport"))
+        assertNull(empty.str("mainTravelMode"))
+    }
+
+    @Test
+    fun aSyncPushThatReplacesTheAnswersClearsToo() = apiTest {
+        val id = UUID.randomUUID().toString()
+        val now = Clock.System.now()
+        fun trip(updatedAt: Instant, replace: Boolean, answers: Boolean) = TripDto(
+            id = id, ownerId = userId, title = "Trip ke Bandung", destination = "Bandung",
+            startDate = LocalDate(2026, 11, 20), endDate = LocalDate(2026, 11, 22), baseCurrency = "IDR",
+            origin = if (answers) TripOriginDto("Subang", -6.5694, 107.7606, countryCode = "ID") else null,
+            departureMode = if (answers) DepartureMode.OWN_MOTORCYCLE else null,
+            mainTravelMode = if (answers) MainTravelMode.MOTORCYCLE else null,
+            replaceTravelAnswers = replace,
+            createdAt = now, updatedAt = updatedAt,
+        )
+        suspend fun push(dto: TripDto) {
+            val response = post("/sync", wire.encodeToString(SyncPushRequest(SyncChanges(trips = listOf(dto)))))
+            assertEquals(HttpStatusCode.OK, response.status, response.bodyAsText())
+        }
+        suspend fun stored() = wire.decodeFromString<app.ransel.shared.api.ApiResponse<SyncPullResponse>>(get("/sync").bodyAsText()).data.changes.trips.single { it.id == id }
+        push(trip(now, replace = false, answers = true))
+        push(trip(now + 1.minutes, replace = false, answers = false))
+        assertEquals(DepartureMode.OWN_MOTORCYCLE, stored().departureMode, "an older app's push keeps them")
+        push(trip(now + 2.minutes, replace = true, answers = false))
+        assertNull(stored().departureMode, "a push that holds all four clears them")
+        assertNull(stored().origin)
+        assertEquals(false, stored().replaceTravelAnswers, "never sent back as true")
+    }
 }

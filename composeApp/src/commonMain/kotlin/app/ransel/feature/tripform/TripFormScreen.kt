@@ -16,6 +16,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -76,6 +78,10 @@ import ransel.composeapp.generated.resources.delete_trip_records
 import ransel.composeapp.generated.resources.delete_trip_title
 import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.error_required
+import app.ransel.feature.interview.labelRes
+import ransel.composeapp.generated.resources.trip_reset_title
+import ransel.composeapp.generated.resources.trip_reset_body_destination
+import ransel.composeapp.generated.resources.trip_reset_action
 import ransel.composeapp.generated.resources.trip_budget
 import ransel.composeapp.generated.resources.trip_cover_description
 import ransel.composeapp.generated.resources.trip_currency
@@ -113,6 +119,8 @@ fun TripFormScreen(
     onSaved: (tripId: String) -> Unit,
     onDeleted: () -> Unit,
     modifier: Modifier = Modifier,
+    /** An answer of the section "Perjalanan" (Edit trip): the screen that changes it. */
+    onOpenTravel: (app.ransel.shared.domain.TravelRow) -> Unit = {},
     viewModel: TripFormViewModel = koinViewModel(key = "trip-form-${tripId ?: "new"}") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
@@ -130,9 +138,11 @@ fun TripFormScreen(
     var showCurrency by rememberSaveable { mutableStateOf(false) }
     val dates = rememberDateFormatter()
     val symbol = currencySymbol(state.currency)
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
 
+    Box(modifier.fillMaxSize()) {
     FormScaffold(
-        modifier = modifier,
+        modifier = Modifier,
         title = stringResource(if (state.isEditing) Res.string.trip_form_edit_title else Res.string.trip_form_create_title),
         onBack = onClose,
         saveLabel = stringResource(
@@ -313,6 +323,11 @@ fun TripFormScreen(
             visualTransformation = ThousandsVisualTransformation,
         )
 
+        if (state.isEditing && tripId != null) {
+            // the answers of the interview, changed in place (spec "Edit trip, ubah jawaban wawancara"); the owner's
+            app.ransel.feature.tripform.travel.TripTravelSection(tripId, snackbar, onOpenTravel)
+        }
+
         if (state.isEditing) {
             TextButton(
                 onClick = viewModel::requestDelete,
@@ -327,6 +342,15 @@ fun TripFormScreen(
                 )
             }
         }
+    }
+
+    androidx.compose.material3.SnackbarHost(
+        hostState = snackbar,
+        modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(16.dp),
+        snackbar = { data ->
+            app.ransel.ui.components.UndoSnackbar(data.visuals.message, actionLabel = data.visuals.actionLabel, onAction = { data.performAction() })
+        },
+    )
     }
 
     if (showDates) {
@@ -377,6 +401,22 @@ fun TripFormScreen(
             onDismiss = { showCurrency = false },
         )
     }
+    state.departureReset?.let { mode ->
+        // a new destination made "Cara berangkat" impossible: the trip is saved, the answer is reset (spec 1638556)
+        app.ransel.ui.components.ConfirmDialog(
+            title = stringResource(Res.string.trip_reset_title),
+            body = stringResource(Res.string.trip_reset_body_destination, stringResource(mode.labelRes)),
+            confirmLabel = stringResource(Res.string.trip_reset_action),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = {
+                viewModel.clearDepartureReset()
+                onOpenTravel(app.ransel.shared.domain.TravelRow.DEPARTURE)
+            },
+            onDismiss = viewModel::acknowledgeDepartureReset,
+            symbol = Symbols.warning,
+        )
+    }
+
     state.deleteSummary?.let { summary ->
         ConfirmDialog(
             title = stringResource(Res.string.delete_trip_title, state.title),
