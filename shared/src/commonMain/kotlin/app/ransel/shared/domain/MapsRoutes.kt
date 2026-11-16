@@ -53,15 +53,16 @@ fun LegKind.mapsMode(mainMode: MainTravelMode): MapsTravelMode = when (this) {
 
 /**
  * One route URL through [points] in order: the first is the origin, the last the destination, the ones between are
- * waypoints. Null for fewer than two points or more than [MAPS_MAX_WAYPOINTS] waypoints (use [mapsDayRouteUrls] to split).
+ * waypoints. [mode] null leaves `travelmode` out and Maps picks one. Null for fewer than two points or more than [MAPS_MAX_WAYPOINTS] waypoints (use [mapsDayRouteUrls] to split).
  */
-fun mapsDirectionsUrl(points: List<MapsPoint>, mode: MapsTravelMode): String? {
+fun mapsDirectionsUrl(points: List<MapsPoint>, mode: MapsTravelMode?): String? {
     if (points.size < 2 || points.size - 2 > MAPS_MAX_WAYPOINTS) return null
     return buildString {
         append("https://www.google.com/maps/dir/?api=1")
         append("&origin=").append(coordinates(points.first()))
         append("&destination=").append(coordinates(points.last()))
-        append("&travelmode=").append(mode.parameter)
+        // no mode (a leg too far to guess): Maps chooses
+        if (mode != null) append("&travelmode=").append(mode.parameter)
         val waypoints = points.subList(1, points.size - 1)
         if (waypoints.isNotEmpty()) append("&waypoints=").append(waypoints.joinToString("%7C") { coordinates(it) })
     }

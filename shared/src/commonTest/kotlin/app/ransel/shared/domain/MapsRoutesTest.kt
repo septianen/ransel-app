@@ -129,4 +129,11 @@ class MapsRoutesTest {
         val url = mapsDirectionsUrl(listOf(p, MapsPoint(p.lat + 1, p.lng)), MapsTravelMode.DRIVING)!!
         return url.substringAfter("origin=").substringBefore("&")
     }
+
+    @Test
+    fun withoutAModeMapsPicksOne() {
+        val url = mapsDirectionsUrl(listOf(MapsPoint(-6.9, 107.6), MapsPoint(-7.3, 112.7)), null)!!
+        assertTrue("travelmode" !in url)
+        assertTrue(url.startsWith("https://www.google.com/maps/dir/?api=1&origin="))
+    }
 }
