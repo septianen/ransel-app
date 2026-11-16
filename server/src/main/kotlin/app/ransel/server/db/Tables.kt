@@ -2,6 +2,9 @@ package app.ransel.server.db
 
 import app.ransel.shared.dto.InterestChipDto
 import app.ransel.shared.model.CategoryKind
+import app.ransel.shared.model.DepartureMode
+import app.ransel.shared.model.LocalTransport
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.ErrorDisplay
 import app.ransel.shared.model.SettingKey
 import app.ransel.shared.model.Category
@@ -89,6 +92,15 @@ object Trips : Table("trips") {
     val countryCode = char("country_code", 2).nullable()
     val localCurrency = char("local_currency", 3).nullable()
     val timeZone = text("time_zone").nullable()
+    /** V8: the interview's city of departure (name, centre, optional Google place id and country) and its answers; all null = not answered. */
+    val originName = text("origin_name").nullable()
+    val originLat = double("origin_lat").nullable()
+    val originLng = double("origin_lng").nullable()
+    val originPlaceId = text("origin_place_id").nullable()
+    val originCountryCode = char("origin_country_code", 2).nullable()
+    val departureMode = enumerationByName<DepartureMode>("departure_mode", 24).nullable()
+    val localTransport = enumerationByName<LocalTransport>("local_transport", 24).nullable()
+    val mainTravelMode = enumerationByName<MainTravelMode>("main_travel_mode", 24).nullable()
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()

@@ -11,6 +11,7 @@ import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.TripOriginDto
 import app.ransel.shared.dto.TripPlaceDto
 import app.ransel.shared.model.Role
 import kotlinx.datetime.toKotlinLocalDate
@@ -40,6 +41,14 @@ fun ResultRow.toTripDto(role: Role) = TripDto(
     countryCode = this[Trips.countryCode],
     localCurrency = this[Trips.localCurrency],
     timeZone = this[Trips.timeZone],
+    origin = this[Trips.originName]?.let { name ->
+        val lat = this[Trips.originLat]
+        val lng = this[Trips.originLng]
+        if (lat == null || lng == null) null else TripOriginDto(name, lat, lng, this[Trips.originPlaceId], this[Trips.originCountryCode])
+    },
+    departureMode = this[Trips.departureMode],
+    localTransport = this[Trips.localTransport],
+    mainTravelMode = this[Trips.mainTravelMode],
     createdAt = this[Trips.createdAt].toTimestamp(),
     updatedAt = this[Trips.updatedAt].toTimestamp(),
     deletedAt = this[Trips.deletedAt]?.toTimestamp(),
