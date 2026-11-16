@@ -250,6 +250,22 @@ fun InterviewAnswers.summaryRows(): List<Pair<SummaryRow, Boolean>> = buildList 
 }
 
 /**
+ * What tapping the summary's "Leaving" / "Berangkat" card opens. The whole card is one control, like the sibling rows:
+ * no origin yet → W1; an overseas trip never asks W2 → W1; otherwise W2 (the origin line on the card can still open W1).
+ */
+fun InterviewAnswers.departureSummaryEditStep(): InterviewStep = when {
+    origin == null || isOverseas() -> InterviewStep.ORIGIN
+    else -> InterviewStep.DEPARTURE
+}
+
+/**
+ * W4's "Khas <destination>" chips come from `GET /explore/suggestions`, which needs a signed-in, online session.
+ * Guests and offline keep the core "Umum" chips only; that is the fallback, not a second generator.
+ */
+fun canLoadDestinationInterests(signedIn: Boolean, offline: Boolean, destination: String): Boolean =
+    signedIn && !offline && destination.trim().length >= 2
+
+/**
  * The main travel mode to store with the trip, or null when neither W2 nor W3 was answered (the default for the
  * destination then applies by itself, see [mainTravelModeOf]).
  */

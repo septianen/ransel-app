@@ -27,6 +27,7 @@ import app.ransel.shared.domain.InterviewStep
 import app.ransel.shared.domain.InterviewTaste
 import app.ransel.shared.domain.canSaveFromSheet
 import app.ransel.shared.domain.canContinue
+import app.ransel.shared.domain.canLoadDestinationInterests
 import app.ransel.shared.domain.cityDisplayName
 import app.ransel.shared.domain.canSkip
 import app.ransel.shared.domain.currencyDecimals
@@ -227,6 +228,7 @@ class InterviewViewModel(
                 khas = KhasState.Hidden,
             )
         }
+        loadKhas()
     }
 
     fun onDestinationCleared() = _state.update {
@@ -419,12 +421,16 @@ class InterviewViewModel(
 
     // ── the Khas chips ──────────────────────────────────────────────────────
 
-    /** Loads the destination's own interests for W4: online and signed in only; any failure just hides the box (offline: core interests). */
+    /**
+     * Loads the destination's own interests for W4 from `GET /explore/suggestions`. Guests, offline, and a missing API
+     * never call it (the "Umum" chips stay); a timeout, 401/403 or empty list hides the Khas box — generic is fallback
+     * only, not a second generator.
+     */
     private fun loadKhas() {
         val s = _state.value
         val api = api ?: return
         val destination = s.destinationName.trim()
-        if (!s.signedIn || s.offline || destination.length < 2) return
+        if (!canLoadDestinationInterests(s.signedIn, s.offline, destination)) return
         if (s.khas is KhasState.Loaded && (s.khas as KhasState.Loaded).destination == destination) return
         khasJob?.cancel()
         _state.update { it.copy(khas = KhasState.Loading) }

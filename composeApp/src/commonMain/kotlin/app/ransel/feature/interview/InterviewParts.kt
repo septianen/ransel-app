@@ -1,9 +1,12 @@
 package app.ransel.feature.interview
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,11 +26,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -37,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
 import app.ransel.ui.components.LoadingButton
+import app.ransel.ui.motion.rememberReduceMotion
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.components.SelectedChoice
 import app.ransel.ui.symbols.Symbols
@@ -56,6 +62,26 @@ import ransel.composeapp.generated.resources.interview_skip_all
  * 16 Nov 2026: a `tertiary-container` fill, a 2 dp `tertiary` border, a `tertiary` tile and check); green is only for the
  * main button and the segments.
  */
+
+/** Summary cards (Destination, Dates, Leaving, …): press scale of the siblings, skipped when Reduce motion is on. */
+internal const val SUMMARY_PRESS_SCALE = 0.97f
+
+@Composable
+internal fun Modifier.summaryCardClickable(onClick: () -> Unit, enabled: Boolean = true): Modifier {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val reduce = rememberReduceMotion()
+    val scale = if (enabled && pressed && !reduce) SUMMARY_PRESS_SCALE else 1f
+    return this
+        .graphicsLayer { scaleX = scale; scaleY = scale }
+        .clickable(
+            enabled = enabled,
+            interactionSource = interaction,
+            indication = LocalIndication.current,
+            role = Role.Button,
+            onClick = onClick,
+        )
+}
 
 /** The segments and the "X dari Y" of the top of a question; [position] of [total] are filled. [leading] is the X or the back arrow. */
 @Composable
