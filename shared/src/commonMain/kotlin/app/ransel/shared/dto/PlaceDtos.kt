@@ -101,13 +101,15 @@ data class TripPlaceDto(
 /**
  * Where the trip's creator starts from (interview W1, "Berangkat dari mana?"): a city, never the GPS fix. Only the name and
  * the city's centre are kept, so "Gunakan lokasi saat ini" stores the area it was turned into ("Subang"), not where the
- * phone was. [countryCode] (ISO 3166-1 alpha-2) tells whether the trip leaves the country; null is treated as Indonesia.
+ * phone was. [lat] and [lng] are both set or both null: null = a city typed as text while offline, with no point on the map
+ * (the distance is then not known). [countryCode] (ISO 3166-1 alpha-2) tells whether the trip leaves the country; null is
+ * treated as Indonesia.
  */
 @Serializable
 data class TripOriginDto(
     val name: String,
-    val lat: Double,
-    val lng: Double,
+    val lat: Double? = null,
+    val lng: Double? = null,
     /** Google place id when it came from a suggestion; null for the built-in region list. */
     val placeId: String? = null,
     val countryCode: String? = null,

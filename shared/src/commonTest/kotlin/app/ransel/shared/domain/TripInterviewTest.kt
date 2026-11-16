@@ -143,6 +143,11 @@ class TripInterviewTest {
     }
 
     @Test
+    fun anOriginTypedAsTextHasNoDistance() {
+        assertEquals(DepartureBand.UNKNOWN, band(TripOriginDto("Desa Sukamaju"), bandung))
+    }
+
+    @Test
     fun withAnUnknownIslandTheDistanceDecides() {
         val batam = TripOriginDto("Batam", 1.0456, 104.0305, countryCode = "ID")
         // Batam to Pekanbaru, same island or not, it is under 700 km: distance says MEDIUM or SHORT
@@ -151,8 +156,8 @@ class TripInterviewTest {
 
     @Test
     fun roadDistanceIsTheStraightLineTimesOnePointThree() {
-        val straight = greatCircleKm(jakarta.lat, jakarta.lng, yogyakarta.first, yogyakarta.second)
-        assertEquals(straight * 1.3, roadKm(jakarta.lat, jakarta.lng, yogyakarta.first, yogyakarta.second), 1e-9)
+        val straight = greatCircleKm(jakarta.lat!!, jakarta.lng!!, yogyakarta.first, yogyakarta.second)
+        assertEquals(straight * 1.3, roadKm(jakarta.lat!!, jakarta.lng!!, yogyakarta.first, yogyakarta.second), 1e-9)
         assertEquals(0.0, greatCircleKm(1.0, 2.0, 1.0, 2.0), 1e-9)
         assertEquals(111.19, greatCircleKm(0.0, 0.0, 1.0, 0.0), 0.1)
     }
@@ -296,5 +301,9 @@ class TripInterviewTest {
         assertEquals(mapOf("origin.coordinates" to "INVALID_COORDINATES"), validateTripOrigin(subang.copy(lng = -181.0)))
         assertEquals(mapOf("origin.countryCode" to "INVALID_COUNTRY"), validateTripOrigin(subang.copy(countryCode = "IDN")))
         assertEquals(mapOf("origin.placeId" to "INVALID_PLACE_ID"), validateTripOrigin(subang.copy(placeId = " ")))
+        // a city typed as text has no point; a point that is half there is wrong
+        assertEquals(emptyMap(), validateTripOrigin(TripOriginDto("Desa Sukamaju")))
+        assertEquals(mapOf("origin.coordinates" to "INVALID_COORDINATES"), validateTripOrigin(subang.copy(lng = null)))
+        assertEquals(mapOf("origin.coordinates" to "INVALID_COORDINATES"), validateTripOrigin(subang.copy(lat = null)))
     }
 }

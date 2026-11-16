@@ -58,11 +58,13 @@ enum class DepartureBand { UNKNOWN, SHORT, MEDIUM, LONG, OTHER_ISLAND, OVERSEAS 
  */
 fun departureBand(origin: TripOriginDto?, destLat: Double?, destLng: Double?, destCountryCode: String?): DepartureBand {
     if (isOverseas(destCountryCode) || (origin != null && isOverseas(origin.countryCode))) return DepartureBand.OVERSEAS
-    if (origin == null || destLat == null || destLng == null) return DepartureBand.UNKNOWN
-    val from = islandOf(origin.lat, origin.lng)
+    val fromLat = origin?.lat
+    val fromLng = origin?.lng
+    if (fromLat == null || fromLng == null || destLat == null || destLng == null) return DepartureBand.UNKNOWN
+    val from = islandOf(fromLat, fromLng)
     val to = islandOf(destLat, destLng)
     if (from != null && to != null && from != to) return DepartureBand.OTHER_ISLAND
-    val km = roadKm(origin.lat, origin.lng, destLat, destLng)
+    val km = roadKm(fromLat, fromLng, destLat, destLng)
     return when {
         km < DEPARTURE_SHORT_KM -> DepartureBand.SHORT
         km <= DEPARTURE_MEDIUM_KM -> DepartureBand.MEDIUM
@@ -189,7 +191,9 @@ fun validateTripOrigin(origin: TripOriginDto?): Map<String, String> = buildMap {
     if (origin == null) return@buildMap
     if (origin.name.isBlank()) put("origin.name", "REQUIRED")
     else if (origin.name.length > TRIP_ORIGIN_NAME_MAX) put("origin.name", "TOO_LONG")
-    if (origin.lat !in -90.0..90.0 || origin.lng !in -180.0..180.0) put("origin.coordinates", "INVALID_COORDINATES")
+    if ((origin.lat == null) != (origin.lng == null) || origin.lat?.let { it !in -90.0..90.0 } == true || origin.lng?.let { it !in -180.0..180.0 } == true) {
+        put("origin.coordinates", "INVALID_COORDINATES")
+    }
     if (origin.countryCode != null && !Regex("^[A-Za-z]{2}$").matches(origin.countryCode)) put("origin.countryCode", "INVALID_COUNTRY")
     if (origin.placeId != null && (origin.placeId.isBlank() || origin.placeId.length > 300)) put("origin.placeId", "INVALID_PLACE_ID")
 }

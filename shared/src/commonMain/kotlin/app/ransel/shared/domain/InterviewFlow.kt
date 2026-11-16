@@ -89,11 +89,12 @@ fun InterviewAnswers.localTransportOptions(facts: InterviewCityFacts): List<Loca
 
 /** "{asal} → {tujuan} · ±{N} km" of W2: the road distance rounded to whole km, null when it is not known or the trip is abroad. */
 fun InterviewAnswers.roadDistanceKm(): Int? {
-    val from = origin ?: return null
+    val fromLat = origin?.lat ?: return null
+    val fromLng = origin.lng ?: return null
     val lat = destination?.lat ?: return null
     val lng = destination.lng ?: return null
     if (isOverseas()) return null
-    return roadKm(from.lat, from.lng, lat, lng).let { kotlin.math.round(it).toInt() }
+    return roadKm(fromLat, fromLng, lat, lng).let { kotlin.math.round(it).toInt() }
 }
 
 // ── Changing an answer ──────────────────────────────────────────────────────
