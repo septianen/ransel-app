@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import app.ransel.ui.pulledUp
 import app.ransel.content.stringResource
 import ransel.composeapp.generated.resources.map_travel_caption
 import ransel.composeapp.generated.resources.map_city_chip
@@ -171,7 +172,8 @@ private fun MiniMapBody(
                         stringResource(Res.string.map_travel_caption),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = (-6).dp),
+                        // closer to the strip than the column's spacing; never a negative padding (Compose crashes on one)
+                        modifier = Modifier.pulledUp(6.dp),
                     )
                 }
                 transfers.forEach { row -> IntercityRow(row, onClick = { onOpenTransfer(row.itemId) }) }
