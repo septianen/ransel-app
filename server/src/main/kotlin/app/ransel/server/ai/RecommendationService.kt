@@ -52,6 +52,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.upsert
+import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 import java.security.MessageDigest
 import java.time.Instant
@@ -85,8 +86,18 @@ class RecommendationService(
     private val rounds: RoundService? = null,
     /** One `ai_search_log` row per search for Karung; null = not logged (tests that do not care). */
     private val searchLog: SearchLog? = null,
+    /** The searches that can be cancelled; one registry for the whole server. */
+    private val searchRegistry: SearchRegistry = SearchRegistry(),
 ) {
     private val log = LoggerFactory.getLogger(RecommendationService::class.java)
+
+    private fun pointOfNoReturn(handle: SearchHandle, stillConnected: () -> Boolean): Boolean {
+        if (!stillConnected()) {
+            handle.cancel()
+            return false
+        }
+        return handle.commit()
+    }
 
     /**
      * Users with a search running. The credit check comes before the LLM call and the charge after it, so parallel
@@ -106,13 +117,40 @@ class RecommendationService(
         }
     }
 
-    suspend fun recommend(userId: UUID, body: RecommendationRequest): RecommendationResponse =
-        oneSearchAtATime(userId) { logged(SearchTrace(AiSearchKind.EXPLORE, userId, body.newSearch)) { recommendNow(userId, body) } }
+    /**
+     * [stillConnected] says whether the app is still there to receive the answer (false once its connection is closed). A
+     * search that can be cancelled (it has a `searchId`) checks it at its point of no return, so a user who is gone is not charged.
+     */
+    suspend fun recommend(userId: UUID, body: RecommendationRequest, stillConnected: () -> Boolean = { true }): RecommendationResponse {
+        val searchId = body.searchId
+            ?: return oneSearchAtATime(userId) { logged(SearchTrace(AiSearchKind.EXPLORE, userId, body.newSearch)) { recommendNow(userId, body, null, stillConnected) } }
+        val handle = searchRegistry.start(userId, searchId)
+        try {
+            return coroutineScope {
+                // the work runs as a child so that a cancel can stop it (the LLM and Places requests with it) without ending the call
+                val work = async {
+                    oneSearchAtATime(userId) { logged(SearchTrace(AiSearchKind.EXPLORE, userId, body.newSearch)) { recommendNow(userId, body, handle, stillConnected) } }
+                }
+                handle.attach(work)
+                try {
+                    work.await()
+                } catch (e: Exception) {
+                    // whatever the stopped work threw on its way out, a search that was cancelled answers "cancelled"
+                    if (handle.cancelled) throw SearchRegistry.cancelled() else throw e
+                }
+            }
+        } finally {
+            handle.finish()
+        }
+    }
+
+    /** "Batalkan pencarian". True = the search was stopped (or will be refused when it arrives); false = it is past the point of no return. */
+    fun cancelSearch(userId: UUID, searchId: String): Boolean = searchRegistry.cancel(userId, searchId)
 
     private suspend fun <T> logged(trace: SearchTrace, block: suspend () -> T): T =
         if (searchLog != null) searchLog.around(trace, block) else block()
 
-    private suspend fun recommendNow(userId: UUID, body: RecommendationRequest): RecommendationResponse {
+    private suspend fun recommendNow(userId: UUID, body: RecommendationRequest, handle: SearchHandle?, stillConnected: () -> Boolean): RecommendationResponse {
         val tripId = runCatching { UUID.fromString(body.tripId) }.getOrNull()
             ?: throw validationFailed(mapOf("tripId" to "INVALID_UUID"))
         validate(body)
@@ -200,6 +238,9 @@ class RecommendationService(
         val items = withPhotoCredits(picked, trip.baseCurrency)
 
         // Nothing to show = nothing charged (owner, 4 Nov 2026): an empty next batch only says the search is used up.
+        // The point of no return of a search that can be cancelled: from here the credits are charged and the round is made.
+        // A cancel (or an app that is gone) before it stops everything; after it the cancel answers "too late".
+        if (handle != null && items.isNotEmpty() && !pointOfNoReturn(handle, stillConnected)) throw SearchRegistry.cancelled()
         val state = if (items.isEmpty()) credits.credits(userId) else try {
             credits.charge(userId, action, tripId.toString())
         } catch (e: ApiException) {
@@ -361,6 +402,8 @@ class RecommendationService(
                             metrics.placesDetailsCalls.incrementAndGet()
                             val details = ai.places.details(id, withPhotoCredit = false) ?: return@withPermit null
                             candidate to details
+                        } catch (e: CancellationException) {
+                            throw e // a cancelled search must stop, not count as a failed call
                         } catch (e: Exception) {
                             synchronized(this@RecommendationService) { failures++ }
                             log.warn("Places lookup failed: {}", e.javaClass.simpleName)
@@ -402,6 +445,8 @@ class RecommendationService(
                 return ai.llm.suggest(query).filter { it.name.isNotBlank() }
             } catch (e: ApiException) {
                 throw e
+            } catch (e: CancellationException) {
+                throw e // a cancelled search must stop, not count as a failed call
             } catch (e: Exception) {
                 metrics.llmFailures.incrementAndGet()
                 last = e
@@ -425,6 +470,8 @@ class RecommendationService(
                             attribution = it.photoAttribution
                             address = it.address ?: address
                         }
+                    } catch (e: CancellationException) {
+                        throw e // a cancelled search must stop, not count as a failed call
                     } catch (e: Exception) {
                         log.warn("Photo credit lookup failed: {}", e.javaClass.simpleName) // a card without a credit is fine
                     }

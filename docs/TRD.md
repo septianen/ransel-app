@@ -230,6 +230,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST ★ | /credits/redeem | Redeem a voucher code | 5 |
 | GET | /explore/suggestions | Destination interests + suggested price level for the Explore form (costs no credits); `tripId`, optionally with `destination` to use another place than the trip's; or `destination` (+ `month`) and, for a trip not saved yet, `budgetMinor` + `currency` + `days` | 5 |
 | POST | /recommendations | AI recommendations from preferences | 5 |
+| DELETE | /recommendations/searches/{searchId} | Cancel the search that was sent with this `searchId`: stops it before the credits are charged and any round is made (`cancelled: false` once past that point) | 5 |
 | POST ★ | /recommendations/feedback | LIKE / SKIP per place | 5 |
 | DELETE ★ | /recommendations/feedback/{tripId}/{placeId} | Undo the last swipe | 5 |
 | GET ★ | /trips/{id}/rounds | Open and recent voting rounds (banner, trip-list dot); any member | 5 |

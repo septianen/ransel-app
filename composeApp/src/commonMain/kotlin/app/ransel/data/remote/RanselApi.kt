@@ -48,6 +48,7 @@ import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
 import app.ransel.shared.dto.BalancesDto
 import app.ransel.shared.dto.ExploreSuggestionsResponse
+import app.ransel.shared.dto.CancelSearchResponse
 import app.ransel.shared.dto.FeedbackRequest
 import app.ransel.shared.dto.PlaceDetailDto
 import app.ransel.shared.dto.RecommendationRequest
@@ -605,6 +606,9 @@ class RanselApi(
 
     suspend fun recommend(request: RecommendationRequest): ApiResult<RecommendationResponse> =
         send(HttpMethod.Post, ApiRoutes.RECOMMENDATIONS, request, timeoutMillis = RECOMMENDATION_TIMEOUT_MILLIS)
+    /** "Batalkan pencarian": asks the server to stop the search that was sent with this `searchId` (see [CancelSearchResponse]). */
+    suspend fun cancelSearch(searchId: String): ApiResult<CancelSearchResponse> =
+        call(HttpMethod.Delete, ApiRoutes.recommendationSearch(searchId)) { it.body<ApiResponse<CancelSearchResponse>>().data }
     suspend fun sendFeedback(request: FeedbackRequest): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.RECOMMENDATION_FEEDBACK, bodyOf = { contentType(ContentType.Application.Json); setBody(request) }) { }
     suspend fun undoFeedback(tripId: String, placeId: String): ApiResult<Unit> =
