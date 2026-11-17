@@ -58,6 +58,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
@@ -781,7 +782,8 @@ private fun DaySection(
             )
             val next = items.getOrNull(index + 1)
             if (showGap && next != null) {
-                TravelGap {
+                // while a card is held and moves, the capsules fade out: the rows shift, the gaps stay, and the two overlap
+                TravelGap(hidden = drag.isDragging) {
                     when (gap) {
                         is LegDisplay.Leg -> TravelCapsule(
                             TravelCapsuleModel(item, next, gap.leg, gap.warning),
@@ -799,9 +801,13 @@ private fun DaySection(
     }
 }
 
-/** The row between two activities that holds the capsule: the timeline's rail runs through it, the capsule sits in the title column. */
+/**
+ * The row between two activities that holds the capsule: the timeline's rail runs through it, the capsule sits in the title column.
+ * [hidden] (a card is being dragged) makes the capsule invisible but keeps its room, so the rows do not jump.
+ */
 @Composable
-private fun TravelGap(content: @Composable () -> Unit) {
+internal fun TravelGap(hidden: Boolean = false, content: @Composable () -> Unit) {
+    val alpha by animateFloatAsState(if (hidden) 0f else 1f, label = "travel-gap-alpha")
     Row(
         Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -810,7 +816,7 @@ private fun TravelGap(content: @Composable () -> Unit) {
             Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
         }
         // under the tile (40 dp) and its gap, like the activity's title
-        Box(Modifier.weight(1f).padding(start = 52.dp, top = 1.dp, bottom = 1.dp)) { content() }
+        Box(Modifier.weight(1f).padding(start = 52.dp, top = 1.dp, bottom = 1.dp).alpha(alpha)) { content() }
     }
 }
 
