@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -37,6 +38,7 @@ import app.ransel.shared.domain.SummaryRow
 import app.ransel.shared.domain.canContinue
 import app.ransel.shared.domain.canSkip
 import app.ransel.shared.domain.canSkipInterview
+import app.ransel.shared.domain.departureSummaryEditStep
 import app.ransel.shared.domain.isOverseas
 import app.ransel.shared.domain.progress
 import app.ransel.shared.domain.steps
@@ -285,7 +287,7 @@ private fun InterviewSummary(state: InterviewUiState, viewModel: InterviewViewMo
                         filled,
                         onClick = { viewModel.edit(InterviewStep.DESTINATION) },
                     )
-                    SummaryRow.DEPARTURE -> DepartureSummaryRow(state, filled, viewModel)
+                    SummaryRow.DEPARTURE -> DepartureSummaryRow(state, filled, onEdit = viewModel::edit, modifier = Modifier.testTag("interview_summary_leaving"))
                     SummaryRow.LOCAL_TRANSPORT -> SummaryValueRow(
                         stringResource(Res.string.interview_summary_local),
                         answers.localTransport?.let { stringResource(it.labelRes) }.orEmpty(),
@@ -343,7 +345,7 @@ private fun SummaryValueRow(label: String, value: String, filled: Boolean, onCli
             .heightIn(min = 56.dp)
             .clip(IrisShape.lg)
             .let { if (filled) it.border(1.dp, scheme.outlineVariant, IrisShape.lg) else it.dashedBorder(scheme.outline, radius = 16.dp) }
-            .clickable(role = Role.Button, onClick = onClick)
+            .summaryCardClickable(onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -390,10 +392,10 @@ private fun TasteSummaryRow(label: String, value: String, detail: String, onChan
     }
 }
 
-/** "Dari Subang · Motor sendiri": the city opens W1, the way of going opens W2. Abroad there is no W2. */
+/** "Dari Subang · Motor sendiri": the whole card is one control like the sibling rows; the city line still opens W1. */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, viewModel: InterviewViewModel) {
+internal fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, onEdit: (InterviewStep) -> Unit, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     val answers = state.answers
     val origin = answers.origin
@@ -401,18 +403,18 @@ private fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, viewMo
     if (!filled || origin == null) {
         SummaryValueRow(
             stringResource(Res.string.interview_summary_departure), "", filled = false,
-            onClick = { viewModel.edit(if (origin == null) InterviewStep.ORIGIN else InterviewStep.DEPARTURE) },
+            onClick = { onEdit(answers.departureSummaryEditStep()) },
+            modifier = modifier,
         )
         return
     }
-    // one card like the other rows: a tap anywhere opens W1 (the city); the way of going, when there is one, opens W2
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .clip(IrisShape.lg)
             .border(1.dp, scheme.outlineVariant, IrisShape.lg)
-            .clickable(role = Role.Button) { viewModel.edit(InterviewStep.ORIGIN) }
+            .summaryCardClickable(onClick = { onEdit(answers.departureSummaryEditStep()) })
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -422,13 +424,14 @@ private fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, viewMo
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     stringResource(Res.string.interview_summary_from, origin.name),
+                    Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { onEdit(InterviewStep.ORIGIN) }.padding(end = 6.dp),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = scheme.onSurface,
                 )
                 if (departure != null && !answers.isOverseas()) {
                     Text(
                         "· " + stringResource(departure.labelRes),
-                        Modifier.clickable(role = Role.Button) { viewModel.edit(InterviewStep.DEPARTURE) },
+                        Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { onEdit(InterviewStep.DEPARTURE) },
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = scheme.onSurface,
                     )

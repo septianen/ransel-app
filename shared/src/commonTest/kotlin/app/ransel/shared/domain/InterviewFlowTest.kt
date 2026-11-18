@@ -251,6 +251,25 @@ class InterviewFlowTest {
     }
 
     @Test
+    fun theLeavingSummaryCardOpensW2OnceThereIsAnOriginAndW1WhenThereIsNot() {
+        assertEquals(InterviewStep.ORIGIN, start().departureSummaryEditStep())
+        assertEquals(InterviewStep.DEPARTURE, start().withOrigin(subang, none).departureSummaryEditStep())
+        assertEquals(
+            InterviewStep.ORIGIN,
+            start(tokyo).withOrigin(subang, none).departureSummaryEditStep(),
+            "abroad: W2 is not asked, so the card opens the origin",
+        )
+    }
+
+    @Test
+    fun destinationInterestChipsAreAskedOnlyWhenSignedInAndOnline() {
+        assertFalse(canLoadDestinationInterests(signedIn = false, offline = false, destination = "Bali"))
+        assertFalse(canLoadDestinationInterests(signedIn = true, offline = true, destination = "Bali"))
+        assertFalse(canLoadDestinationInterests(signedIn = true, offline = false, destination = "B"))
+        assertTrue(canLoadDestinationInterests(signedIn = true, offline = false, destination = "Bali"))
+    }
+
+    @Test
     fun undatedTripsCountTheDatesRowAsFilled() {
         val a = InterviewAnswers().withDestination(bandung, none).withDatesUndecided(true)
         assertEquals(true, a.summaryRows().toMap()[SummaryRow.DATES])
