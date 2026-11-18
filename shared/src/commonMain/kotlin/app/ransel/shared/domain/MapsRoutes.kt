@@ -69,11 +69,19 @@ fun mapsDirectionsUrl(points: List<MapsPoint>, mode: MapsTravelMode?): String? {
 }
 
 /**
- * "Buka rute hari ini": the URLs that together walk through [points] in order, each with at most [maxWaypoints] stops
- * between its origin and destination (pass [MAPS_MAX_WAYPOINTS], or [MAPS_MAX_WAYPOINTS_MOBILE_BROWSER] on a mobile
- * browser). A day with more points is cut into several URLs, and each one starts where the one before ended. Two points
- * in a row at the same place are one point. Empty for fewer than two different points.
+ * One Maps URL for the day's stops, at most [DAY_ROUTE_MAX_POINTS] (the first 9 distinct points). [truncated] is true
+ * when more stops were dropped. Null for fewer than two distinct points.
  */
+data class DayMapsOpen(val url: String, val truncated: Boolean)
+
+fun mapsDayRouteOpen(points: List<MapsPoint>, mode: MapsTravelMode): DayMapsOpen? {
+    val distinct = points.fold(emptyList<MapsPoint>()) { kept, point -> if (kept.lastOrNull() == point) kept else kept + point }
+    if (distinct.size < 2) return null
+    val used = distinct.take(DAY_ROUTE_MAX_POINTS)
+    val url = mapsDirectionsUrl(used, mode) ?: return null
+    return DayMapsOpen(url, truncated = distinct.size > DAY_ROUTE_MAX_POINTS)
+}
+
 fun mapsDayRouteUrls(points: List<MapsPoint>, mode: MapsTravelMode, maxWaypoints: Int = MAPS_MAX_WAYPOINTS): List<String> {
     val distinct = points.fold(emptyList<MapsPoint>()) { kept, point -> if (kept.lastOrNull() == point) kept else kept + point }
     if (distinct.size < 2) return emptyList()

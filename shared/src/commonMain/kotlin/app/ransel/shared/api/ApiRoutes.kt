@@ -24,6 +24,11 @@ object ApiRoutes {
     fun dayOrder(tripId: String, date: String) =
         "/trips/$tripId/days/$date/order"                          // PUT DayOrderRequest (date = ISO yyyy-MM-dd)
 
+    // Per-leg travel mode between two itinerary items (Getting there sheet).
+    fun travelModes(tripId: String) = "/trips/$tripId/travel-modes" // GET list, PUT TravelModeInput → TravelModeDto (EDITOR+)
+    fun travelMode(tripId: String, id: String) =
+        "/trips/$tripId/travel-modes/$id"                          // DELETE (soft, EDITOR+) → 204
+
     // Phase 2 ─ packing
     fun packing(tripId: String) = "/trips/$tripId/packing"         // GET list, POST CreatePackingItemRequest
     fun packingItem(tripId: String, itemId: String) =

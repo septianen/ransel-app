@@ -256,7 +256,8 @@ class SyncCoordinator(
             val packing = dao.pendingPacking()
             val expenses = dao.pendingExpenses()
             val personal = dao.pendingPersonal()
-            if (trips.isEmpty() && items.isEmpty() && packing.isEmpty() && expenses.isEmpty() && personal.isEmpty()) {
+            val travelModes = dao.pendingTravelModes()
+            if (trips.isEmpty() && items.isEmpty() && packing.isEmpty() && expenses.isEmpty() && personal.isEmpty() && travelModes.isEmpty()) {
                 return PushResult(needsFullPull)
             }
             // Trips first so a batch never has an item whose trip comes later; cap each batch.
@@ -267,6 +268,7 @@ class SyncCoordinator(
             val sendPacking = packing.take()
             val sendExpenses = expenses.take()
             val sendPersonal = personal.take()
+            val sendTravelModes = travelModes.take()
             val request = SyncPushRequest(
                 SyncChanges(
                     trips = sendTrips.map { it.toDto() },
@@ -274,9 +276,10 @@ class SyncCoordinator(
                     packingItems = sendPacking.map { it.toDto() },
                     expenses = sendExpenses.map { it.toDto() },
                     personalItems = sendPersonal.map { it.toDto() },
+                    travelModes = sendTravelModes.map { it.toDto() },
                 ),
             )
-            val sent = sendTrips.size + sendItems.size + sendPacking.size + sendExpenses.size + sendPersonal.size
+            val sent = sendTrips.size + sendItems.size + sendPacking.size + sendExpenses.size + sendPersonal.size + sendTravelModes.size
             when (val result = api.syncPush(request)) {
                 is ApiResult.Failure -> {
                     if (result.error.isConnection) {
@@ -303,6 +306,7 @@ class SyncCoordinator(
                         sendPacking.forEach { settle(accepted, rejected, "packingItem", it.id) { s -> dao.setPackingState(it.id, it.updatedAt, s) } }
                         sendExpenses.forEach { settle(accepted, rejected, "expense", it.id) { s -> dao.setExpenseState(it.id, it.updatedAt, s) } }
                         sendPersonal.forEach { settle(accepted, rejected, "personalItem", it.id) { s -> dao.setPersonalState(it.id, it.updatedAt, s) } }
+                        sendTravelModes.forEach { settle(accepted, rejected, "travelMode", it.id) { s -> dao.setTravelModeState(it.id, it.updatedAt, s) } }
                     }
                     // Any rejection (not only CONFLICT) leaves the local copy different from the server's; a full
                     // pull puts the server's copy back. A row the server never had stays REJECTED.
@@ -350,6 +354,7 @@ class SyncCoordinator(
             dao.deleteRejectedItems()
             dao.deleteRejectedPacking()
             dao.deleteRejectedPersonal()
+            dao.deleteRejectedTravelModes()
             dao.deleteRejectedExpenses()
             dao.deleteRejectedTrips()
         }
@@ -441,6 +446,12 @@ class SyncCoordinator(
                     dao.putExpense(dto.toEntity())
                 }
             }
+            c.travelModes.forEach { dto ->
+                val local = dao.travelMode(dto.id)
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
+                    dao.putTravelMode(dto.toEntity())
+                }
+            }
         }
     }
 
@@ -453,6 +464,7 @@ class SyncCoordinator(
             dao.clearItems()
             dao.clearPacking()
             dao.clearPersonal()
+            dao.clearTravelModes()
             dao.clearExpenses()
             dao.clearTrips()
             db.pendingReceiptDao().deleteAll()

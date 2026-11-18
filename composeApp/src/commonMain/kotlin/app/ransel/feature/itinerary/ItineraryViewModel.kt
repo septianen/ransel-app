@@ -9,6 +9,8 @@ import app.ransel.data.auth.SessionManager
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.ItineraryRepository
+import app.ransel.data.repository.NoTravelModes
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.sync.NoSyncStatus
@@ -23,15 +25,19 @@ import app.ransel.shared.domain.AutoExisting
 import app.ransel.shared.domain.AutoPlace
 import app.ransel.shared.domain.AutoScheduleResult
 import app.ransel.shared.domain.autoSchedule
+import app.ransel.shared.domain.LegKind
 import app.ransel.shared.domain.scheduleAtEndOfDay
+import app.ransel.shared.domain.travelModeOverrides
 import app.ransel.shared.dto.DayOrderItem
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.UpdateTripRequest
 import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.PollKind
+import app.ransel.util.newId
 import app.ransel.util.plusDays
 import app.ransel.util.today
 import kotlinx.coroutines.channels.Channel
@@ -68,6 +74,8 @@ data class ItineraryUiState(
     val undated: Boolean = false,
     /** The open DATE poll of an undated trip (signed in, online); null = none or not known. */
     val datePoll: PollDto? = null,
+    /** Saved per-leg modes keyed on (from, to). A pair that is no longer consecutive is ignored when drawing capsules. */
+    val travelModeOverrides: Map<Pair<String, String>, LegKind> = emptyMap(),
 ) {
     val selectedIndex: Int get() = days.indexOf(selectedDay).coerceAtLeast(0)
     val selectedItems: List<ItineraryItemDto> get() = selectedDay?.let { itemsByDay[it] }.orEmpty()
@@ -113,6 +121,7 @@ class ItineraryViewModel(
     private val session: SessionManager? = null,
     /** The trip row, to change its main travel mode from the travel sheet (null = the sheet cannot change it). */
     private val trips: TripRepository? = null,
+    private val travelModes: TravelModeRepository = NoTravelModes,
     private val sync: SyncStatus = NoSyncStatus,
 ) : ViewModel() {
     private val datePoll = MutableStateFlow<PollDto?>(null)
@@ -134,12 +143,14 @@ class ItineraryViewModel(
     private val undated = days.isEmpty()
 
     val state: StateFlow<ItineraryUiState> = combine(
-        combine(itinerary.observe(trip.id), datePoll, ::Pair),
+        combine(itinerary.observe(trip.id), travelModes.observe(trip.id), datePoll) { items, modes, poll ->
+            Triple(items, travelModeOverrides(modes), poll)
+        },
         combine(selectedDay, pending, ::Pair),
         preferences.observe(),
         autoRunning,
         combine(dragHold, flashingIds, ::Pair),
-    ) { (items, poll), (selected, pendingReorder), prefs, auto, (hold, flash) ->
+    ) { (items, overrides, poll), (selected, pendingReorder), prefs, auto, (hold, flash) ->
         val scheduled = items.filter { it.dayDate != null }
         val byDay = days.associateWith { day ->
             scheduled.filter { it.dayDate == day }.sortedWith(compareBy({ it.sortOrder }, { it.startTime }))
@@ -160,6 +171,7 @@ class ItineraryViewModel(
             loading = false,
             undated = undated,
             datePoll = poll,
+            travelModeOverrides = overrides,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItineraryUiState(days = days, undated = undated))
 
@@ -178,6 +190,13 @@ class ItineraryViewModel(
             val polls = (api.polls(trip.id) as? ApiResult.Success)?.value ?: return@launch
             datePoll.value = polls.filter { it.kind == PollKind.DATE && it.isOpen }.maxByOrNull { it.createdAt }
         }
+    }
+
+    /** Persist the Getting there sheet's selected mode. False = the sheet stays open (web save failed). */
+    suspend fun saveLegMode(fromItemId: String, toItemId: String, mode: LegKind): Boolean {
+        val live = travelModes.observe(trip.id).first()
+        val id = live.firstOrNull { it.fromItemId == fromItemId && it.toItemId == toItemId }?.id ?: newId()
+        return travelModes.save(trip.id, TravelModeInput(id, fromItemId, toItemId, mode))
     }
 
     /**

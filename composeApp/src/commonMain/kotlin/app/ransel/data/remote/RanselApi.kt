@@ -103,6 +103,8 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.TravelModeDto
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
 import app.ransel.shared.dto.TripDocumentsDto
@@ -258,6 +260,13 @@ class RanselApi(
         delete(ApiRoutes.itineraryItem(tripId, itemId))
     suspend fun reorderDay(tripId: String, date: LocalDate, request: DayOrderRequest): ApiResult<List<ItineraryItemDto>> =
         send(HttpMethod.Put, ApiRoutes.dayOrder(tripId, date.toString()), request)
+
+    suspend fun travelModes(tripId: String): ApiResult<List<TravelModeDto>> =
+        get(ApiRoutes.travelModes(tripId))
+    suspend fun putTravelMode(tripId: String, input: TravelModeInput): ApiResult<TravelModeDto> =
+        send(HttpMethod.Put, ApiRoutes.travelModes(tripId), input)
+    suspend fun deleteTravelMode(tripId: String, id: String): ApiResult<Unit> =
+        delete(ApiRoutes.travelMode(tripId, id))
 
     // ── packing ─────────────────────────────────────────────────────────────
     suspend fun packing(tripId: String): ApiResult<List<PackingItemDto>> = get(ApiRoutes.packing(tripId))

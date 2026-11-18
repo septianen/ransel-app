@@ -11,6 +11,8 @@ import app.ransel.data.auth.WebTokenStore
 import app.ransel.data.remote.RemoteExpenseRepository
 import app.ransel.data.remote.RemoteGateway
 import app.ransel.data.remote.RemoteItineraryRepository
+import app.ransel.data.remote.RemoteTravelModeRepository
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.remote.RemotePackingRepository
 import app.ransel.data.remote.RemoteTripRepository
 import app.ransel.data.remote.WebConnectionMonitor
@@ -38,6 +40,7 @@ actual val platformModule: Module = module {
     single { RemoteGateway(get(), get(), get()) }
     single<TripRepository> { RemoteTripRepository(get()) }
     single<ItineraryRepository> { RemoteItineraryRepository(get()) }
+    single<TravelModeRepository> { RemoteTravelModeRepository(get()) }
     single<PackingRepository> { RemotePackingRepository(get()) }
     single<app.ransel.data.repository.PersonalItemRepository> { app.ransel.data.remote.RemotePersonalItemRepository(get()) }
     single<ExpenseRepository> { RemoteExpenseRepository(get()) }

@@ -13,8 +13,11 @@ import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.TravelModeDto
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.dto.UpdateTripRequest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
 
@@ -36,6 +39,21 @@ interface TripRepository {
     suspend fun delete(tripId: String)
     /** The cover the server stored (`PUT/DELETE /trips/{id}/cover`, online only); not a change to sync. */
     suspend fun applyCover(tripId: String, coverUrl: String?)
+}
+
+/**
+ * Per-leg travel mode (Getting there sheet). Keyed on (fromItemId, toItemId). [save] is local-first on
+ * Android/iOS and returns false on the web when the server refused, so the sheet can stay open.
+ */
+interface TravelModeRepository {
+    fun observe(tripId: String): Flow<List<TravelModeDto>>
+    suspend fun save(tripId: String, input: TravelModeInput): Boolean
+}
+
+/** Tests and screens that do not persist a leg. */
+object NoTravelModes : TravelModeRepository {
+    override fun observe(tripId: String): Flow<List<TravelModeDto>> = flowOf(emptyList())
+    override suspend fun save(tripId: String, input: TravelModeInput): Boolean = true
 }
 
 interface ItineraryRepository {

@@ -62,6 +62,20 @@ data class TripEntity(
     val mainTravelMode: String? = null,
 )
 
+@Entity(tableName = "travel_modes", indices = [Index("tripId"), Index(value = ["fromItemId", "toItemId"])])
+data class TravelModeEntity(
+    @PrimaryKey val id: String,
+    val tripId: String,
+    val fromItemId: String,
+    val toItemId: String,
+    /** `LegKind` name: WALK, MOTORCYCLE, CAR, PUBLIC_TRANSPORT. */
+    val mode: String,
+    val createdAt: Long,
+    val updatedAt: Long,
+    val deletedAt: Long?,
+    val syncState: String = SyncState.PENDING,
+)
+
 @Entity(tableName = "itinerary_items", indices = [Index("tripId")])
 data class ItineraryItemEntity(
     @PrimaryKey val id: String,

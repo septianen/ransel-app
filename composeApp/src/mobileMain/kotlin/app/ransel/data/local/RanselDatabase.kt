@@ -13,6 +13,7 @@ import kotlinx.coroutines.IO // Dispatchers.IO is an extension outside the JVM
     entities = [
         TripEntity::class,
         ItineraryItemEntity::class,
+        TravelModeEntity::class,
         PackingItemEntity::class,
         PersonalItemEntity::class,
         ExpenseEntity::class,
@@ -25,16 +26,18 @@ import kotlinx.coroutines.IO // Dispatchers.IO is an extension outside the JVM
     // v3 (13 Nov 2026): `expenses.receiptDocumentId` and the `pending_receipts` table (receipt photos waiting to upload).
     // v4 (16 Nov 2026): the trip interview answers (`trips.origin*`, `departureMode`, `localTransport`, `mainTravelMode`).
     // v5 (16 Nov 2026): `itinerary_items.placeKind` and `placeCity` (point or area, and its city).
-    version = 5,
+    // v6 (18 Nov 2026): `travel_modes` (per-leg mode on the Getting there sheet).
+    version = 6,
     autoMigrations = [
         AutoMigration(from = 1, to = 2), AutoMigration(from = 2, to = 3), AutoMigration(from = 3, to = 4),
-        AutoMigration(from = 4, to = 5),
+        AutoMigration(from = 4, to = 5), AutoMigration(from = 5, to = 6),
     ],
 )
 @ConstructedBy(RanselDatabaseConstructor::class)
 abstract class RanselDatabase : RoomDatabase() {
     abstract fun tripDao(): TripDao
     abstract fun itineraryDao(): ItineraryDao
+    abstract fun travelModeDao(): TravelModeDao
     abstract fun packingDao(): PackingDao
     abstract fun personalItemDao(): PersonalItemDao
     abstract fun expenseDao(): ExpenseDao

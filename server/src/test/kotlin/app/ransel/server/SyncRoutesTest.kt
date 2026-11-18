@@ -10,7 +10,9 @@ import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
+import app.ransel.shared.dto.TravelModeDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.domain.LegKind
 import app.ransel.shared.model.Category
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -111,6 +113,50 @@ class SyncRoutesTest {
         assertEquals(itemId, pulled.changes.itineraryItems.single().id)
         assertEquals(1, pulled.changes.packingItems.size)
         assertEquals(1, pulled.changes.expenses.single().splits.size)
+    }
+
+    @Test
+    fun aTravelModePushesAndPullsAndAViewerCannotWrite() = apiTest {
+        val tripId = id()
+        val from = id()
+        val to = id()
+        val modeId = id()
+        val stamp = Clock.System.now()
+        push(
+            SyncChanges(
+                trips = listOf(trip(tripId)),
+                itineraryItems = listOf(item(tripId, from, title = "A"), item(tripId, to, title = "B", sort = 2.0)),
+                travelModes = listOf(
+                    TravelModeDto(modeId, tripId, from, to, LegKind.WALK, stamp, stamp),
+                ),
+            ),
+        )
+        val pulled = pull().changes.travelModes.single()
+        assertEquals(modeId, pulled.id)
+        assertEquals("WALK", pulled.mode.name)
+        assertEquals(from, pulled.fromItemId)
+
+        val later = stamp + 1.minutes
+        push(
+            SyncChanges(
+                travelModes = listOf(TravelModeDto(modeId, tripId, from, to, LegKind.CAR, stamp, later)),
+            ),
+        )
+        assertEquals("CAR", pull().changes.travelModes.single { it.id == modeId }.mode.name)
+
+        val owner = session()
+        val code = post("/trips/$tripId/invites", """{"role":"VIEWER","expiresAt":"2099-01-01T00:00:00Z"}""")
+            .data().jsonObject.getValue("code").jsonPrimitive.content
+        signUp()
+        post("/invites/$code/accept")
+        val asViewer = push(
+            SyncChanges(
+                travelModes = listOf(TravelModeDto(id(), tripId, from, to, LegKind.MOTORCYCLE, Clock.System.now(), Clock.System.now() + 2.minutes)),
+            ),
+        )
+        assertEquals("FORBIDDEN", asViewer.rejected.single().code)
+        use(owner)
+        assertEquals("CAR", pull().changes.travelModes.single { it.deletedAt == null }.mode.name)
     }
 
     @Test

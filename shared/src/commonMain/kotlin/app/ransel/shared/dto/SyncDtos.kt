@@ -34,6 +34,11 @@ data class SyncChanges(
     val settlements: List<SettlementDto> = emptyList(),
     /** The caller's own packing lines only, both ways; every line is the member's to edit or delete, also those from the owner's list. */
     val personalItems: List<PersonalItemDto> = emptyList(),
+    /**
+     * How a pair of itinerary items is travelled (Getting there sheet). Keyed on (fromItemId, toItemId); a reorder that
+     * breaks the pair is ignored on the client and the capsule falls back to Auto. EDITOR+ on push.
+     */
+    val travelModes: List<TravelModeDto> = emptyList(),
     /** Pull only: membership of the user's trips (Phase 4). Ignored on push. */
     val members: List<TripMemberDto> = emptyList(),
 )
@@ -53,7 +58,7 @@ data class SyncPushResponse(
 
 @Serializable
 data class SyncRowRef(
-    /** "trip", "itineraryItem", "packingItem", "personalItem", "expense", "settlement" */
+    /** "trip", "itineraryItem", "packingItem", "personalItem", "expense", "settlement", "travelMode" */
     val entity: String,
     val id: String,
 )

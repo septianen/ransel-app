@@ -7,6 +7,7 @@ import app.ransel.feature.home.HomeViewModel
 import app.ransel.feature.itinerary.ActivityFormViewModel
 import app.ransel.feature.itinerary.ItineraryViewModel
 import app.ransel.data.credit.CreditsStore
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.sync.SyncStatus
 import app.ransel.data.notification.NotificationTarget
@@ -79,7 +80,7 @@ val commonModule: Module = module {
     viewModelOf(::AccountViewModel)
     viewModel { params -> InterviewViewModel(params.get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get(), get<ExploreSessionStore>(), get<CreditsStore>()) }
     viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get()) }
-    viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get<TripRepository>(), get<SyncStatus>()) }
+    viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get<TripRepository>(), get<TravelModeRepository>(), get<SyncStatus>()) }
     viewModel { params -> PackingViewModel(params.get(), get(), get()) }
     // parametersOf(tripId) = the trip-wide list; parametersOf(tripId, true) = the user's Pribadi list
     viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get(), if (params.values.getOrNull(1) == true) get() else null) }

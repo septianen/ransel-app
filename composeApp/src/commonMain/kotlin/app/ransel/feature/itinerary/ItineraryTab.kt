@@ -62,6 +62,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -120,7 +121,6 @@ import app.ransel.feature.itinerary.map.MapSegment
 import app.ransel.feature.itinerary.map.TransferRow
 import app.ransel.feature.itinerary.travel.AddLocationPrompt
 import app.ransel.feature.itinerary.travel.RouteTodayChip
-import app.ransel.feature.itinerary.travel.RouteTodaySheet
 import app.ransel.feature.itinerary.travel.TravelCapsule
 import app.ransel.feature.itinerary.travel.TravelCapsuleModel
 import app.ransel.feature.itinerary.travel.TravelSheet
@@ -132,7 +132,10 @@ import app.ransel.shared.domain.LegKind
 import app.ransel.shared.domain.dayCities
 import app.ransel.shared.domain.dayLegs
 import app.ransel.shared.domain.daySegments
+import app.ransel.shared.domain.dayRoutePoints
 import app.ransel.shared.domain.dayStops
+import app.ransel.shared.domain.legBetween
+import app.ransel.shared.domain.mapsDayRouteOpen
 import app.ransel.shared.domain.defaultDayCity
 import app.ransel.shared.domain.effectiveMainTravelMode
 import app.ransel.shared.domain.hasCoordinates
@@ -163,6 +166,8 @@ import ransel.composeapp.generated.resources.itinerary_auto_confirm
 import ransel.composeapp.generated.resources.itinerary_auto_done
 import ransel.composeapp.generated.resources.itinerary_auto_done_left
 import ransel.composeapp.generated.resources.action_undo
+import ransel.composeapp.generated.resources.route_today_truncated
+import ransel.composeapp.generated.resources.travel_saved
 import ransel.composeapp.generated.resources.ic_itinerary_empty
 import ransel.composeapp.generated.resources.itinerary_add_activity
 import ransel.composeapp.generated.resources.itinerary_add_idea
@@ -275,6 +280,7 @@ fun ItineraryTab(
                 viewModel = viewModel,
                 onOpenPoll = onOpenPoll,
                 onFillLocation = onFillLocation,
+                snackbar = snackbar,
             )
         }
         SnackbarHost(
@@ -315,6 +321,7 @@ private fun ItineraryContent(
     viewModel: ItineraryViewModel,
     onOpenPoll: ((String) -> Unit)? = null,
     onFillLocation: ((String) -> Unit)? = null,
+    snackbar: SnackbarHostState,
 ) {
     if (state.undated) {
         // no days yet: the date poll, a line about it and the ideas; the + adds an unscheduled idea
@@ -370,10 +377,21 @@ private fun ItineraryContent(
     val firstMissing = firstUnlocated(items)
     // the capsules between the day's activities (spec "Perjalanan antar tempat V1"); the sheet is looked up again on every
     // change, so a new main mode shows in it at once
-    val legs = remember(items, mainMode) { dayLegs(items, mainMode) }
+    val overrides = state.travelModeOverrides
+    val legs = remember(items, mainMode, overrides) { dayLegs(items, mainMode, overrides) }
     var openLeg by rememberSaveable { mutableStateOf<String?>(null) }
-    var showRoute by rememberSaveable(day) { mutableStateOf(false) }
     val routeStops = remember(items) { dayStops(items) }
+    val uriHandler = LocalUriHandler.current
+    fun openDayRoute() {
+        val open = mapsDayRouteOpen(dayRoutePoints(items), mainMode.mapsMode()) ?: return
+        runCatching { uriHandler.openUri(open.url) }
+        if (open.truncated) {
+            scope.launch {
+                snackbar.currentSnackbarData?.dismiss()
+                snackbar.showSnackbar(getString(Res.string.route_today_truncated))
+            }
+        }
+    }
     // a day in two or more cities: chips pick the city the map shows (default the trip's destination); pin numbers stay the day's
     val cities = remember(routeStops) { dayCities(routeStops) }
     var pickedCity by rememberSaveable(day) { mutableStateOf<String?>(null) }
@@ -386,7 +404,7 @@ private fun ItineraryContent(
     val shownIds = mapStops.map { it.id }.toSet()
     val shownPins = pins.filter { it.itemId in shownIds }
     // the straight lines between pins, with a time pill on the ones that have an estimate
-    val segments = daySegments(mapStops, mainMode).map { segment ->
+    val segments = daySegments(mapStops, mainMode, overrides).map { segment ->
         MapSegment(
             segment.from.lat!!, segment.from.lng!!, segment.to.lat!!, segment.to.lng!!,
             walking = segment.leg.kind == LegKind.WALK,
@@ -546,7 +564,7 @@ private fun ItineraryContent(
                         legs = legs,
                         onOpenLeg = { from, to -> openLeg = "$from|$to" },
                         onFillLocation = onFillLocation,
-                        onOpenRoute = if (routeStops.size >= 2) ({ showRoute = true }) else null,
+                        onOpenRoute = if (routeStops.size >= 2) ::openDayRoute else null,
                         pinsById = pinsById,
                         selectedPinId = selectedPin,
                         rowRequesters = rowRequesters,
@@ -617,11 +635,26 @@ private fun ItineraryContent(
         val index = items.indexOfFirst { it.id == fromId }
         val shown = legs.getOrNull(index) as? LegDisplay.Leg
         if (shown != null && items.getOrNull(index + 1)?.id == toId) {
+            val from = items[index]
+            val to = items[index + 1]
+            val auto = (legBetween(from, to, mainMode) as? LegDisplay.Leg)?.leg?.kind ?: shown.leg.kind
             TravelSheet(
-                model = TravelCapsuleModel(items[index], items[index + 1], shown.leg, shown.warning),
+                model = TravelCapsuleModel(from, to, shown.leg, shown.warning),
                 mainMode = mainMode,
+                autoKind = auto,
+                savedKind = overrides[from.id to to.id],
                 canChangeMainMode = canEdit,
+                canSave = canEdit,
                 ownVehicle = ownVehicle,
+                onSave = { kind ->
+                    val ok = viewModel.saveLegMode(from.id, to.id, kind)
+                    if (ok) {
+                        openLeg = null
+                        snackbar.currentSnackbarData?.dismiss()
+                        snackbar.showSnackbar(getString(Res.string.travel_saved))
+                    }
+                    ok
+                },
                 // the sheet stays open and shows its own "Urungkan" snackbar
                 onChangeMainMode = viewModel::changeMainMode,
                 onDismiss = { openLeg = null },
@@ -630,14 +663,6 @@ private fun ItineraryContent(
             // the two activities are no longer side by side (reordered or edited behind the sheet)
             openLeg = null
         }
-    }
-    if (showRoute && day != null && routeStops.size >= 2) {
-        RouteTodaySheet(
-            dayNumber = state.selectedIndex + 1,
-            allStops = routeStops,
-            mode = mainMode.mapsMode(),
-            onDismiss = { showRoute = false },
-        )
     }
     state.unscheduled.firstOrNull { it.id == confirmDeleteId }?.let { doomed ->
         ConfirmDialog(

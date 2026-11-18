@@ -10,6 +10,7 @@ import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.SettlementDto
+import app.ransel.shared.dto.TravelModeDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripOriginDto
 import app.ransel.shared.dto.TripPlaceDto
@@ -75,6 +76,17 @@ fun ResultRow.toItineraryItemDto() = ItineraryItemDto(
     createdAt = this[ItineraryItems.createdAt].toTimestamp(),
     updatedAt = this[ItineraryItems.updatedAt].toTimestamp(),
     deletedAt = this[ItineraryItems.deletedAt]?.toTimestamp(),
+)
+
+fun ResultRow.toTravelModeDto() = TravelModeDto(
+    id = this[TravelModes.id].toString(),
+    tripId = this[TravelModes.tripId].toString(),
+    fromItemId = this[TravelModes.fromItemId].toString(),
+    toItemId = this[TravelModes.toItemId].toString(),
+    mode = this[TravelModes.mode],
+    createdAt = this[TravelModes.createdAt].toTimestamp(),
+    updatedAt = this[TravelModes.updatedAt].toTimestamp(),
+    deletedAt = this[TravelModes.deletedAt]?.toTimestamp(),
 )
 
 fun ResultRow.toPackingItemDto() = PackingItemDto(

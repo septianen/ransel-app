@@ -8,7 +8,9 @@ import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
+import app.ransel.shared.domain.LegKind
 import app.ransel.shared.dto.ItineraryItemDto
+import app.ransel.shared.dto.TravelModeDto
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.TripDto
@@ -87,6 +89,18 @@ fun TripEntity.withPlace(place: TripPlaceDto?) = copy(
     destLat = place?.lat,
     destLng = place?.lng,
     destViewportJson = place?.viewport?.let { ApiJson.encodeToString(ViewportDto.serializer(), it) },
+)
+
+fun TravelModeEntity.toDto() = TravelModeDto(
+    id = id, tripId = tripId, fromItemId = fromItemId, toItemId = toItemId,
+    mode = enumOr(mode, LegKind.WALK),
+    createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
+)
+
+fun TravelModeDto.toEntity() = TravelModeEntity(
+    id = id, tripId = tripId, fromItemId = fromItemId, toItemId = toItemId, mode = mode.name,
+    createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
+    syncState = SyncState.SYNCED,
 )
 
 fun ItineraryItemEntity.toDto() = ItineraryItemDto(
