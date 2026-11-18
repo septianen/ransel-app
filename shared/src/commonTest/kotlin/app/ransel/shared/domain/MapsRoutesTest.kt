@@ -106,6 +106,20 @@ class MapsRoutesTest {
     }
 
     @Test
+    fun openingTheDayUsesTheFirstNineStopsAndMarksTheRest() {
+        val nine = mapsDayRouteOpen(spread(9), MapsTravelMode.DRIVING)!!
+        assertEquals(false, nine.truncated)
+        assertEquals(mapsDirectionsUrl(spread(9), MapsTravelMode.DRIVING), nine.url)
+        val ten = mapsDayRouteOpen(spread(10), MapsTravelMode.DRIVING)!!
+        assertEquals(true, ten.truncated)
+        assertEquals(mapsDirectionsUrl(spread(9), MapsTravelMode.DRIVING), ten.url)
+        assertEquals(null, mapsDayRouteOpen(listOf(a), MapsTravelMode.DRIVING))
+        val collapsed = mapsDayRouteOpen(listOf(a, a, b), MapsTravelMode.DRIVING)!!
+        assertEquals(false, collapsed.truncated)
+        assertTrue("waypoints" !in collapsed.url)
+    }
+
+    @Test
     fun samePlaceTwiceInARowIsOnePointAndOnePointIsNoRoute() {
         assertEquals(emptyList(), mapsDayRouteUrls(listOf(a, a, a), MapsTravelMode.DRIVING))
         assertEquals(emptyList(), mapsDayRouteUrls(listOf(a), MapsTravelMode.DRIVING))

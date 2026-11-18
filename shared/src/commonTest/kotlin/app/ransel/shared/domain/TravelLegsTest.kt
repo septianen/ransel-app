@@ -70,6 +70,37 @@ class TravelLegsTest {
     }
 
     @Test
+    fun aSavedModeOverridesTheAutoKindUntilThePairIsBroken() {
+        val saved = travelLegForKind(14.455, LegKind.WALK)
+        assertEquals(LegKind.WALK, saved.kind)
+        assertEquals(195, saved.minutes) // 14.455 / 4.5 * 60 = 192.7 → 195
+        val between = item("a", "09:00", "10:00", -6.9, 107.6)
+        val next = item("b", "11:00", "12:00", -7.0, 107.6)
+        val auto = legBetween(between, next, MainTravelMode.CAR)
+        assertIs<LegDisplay.Leg>(auto)
+        assertEquals(LegKind.CAR, auto.leg.kind)
+        val overridden = legBetween(between, next, MainTravelMode.CAR, LegKind.MOTORCYCLE)
+        assertIs<LegDisplay.Leg>(overridden)
+        assertEquals(LegKind.MOTORCYCLE, overridden.leg.kind)
+        val far = travelLegFor(130.0, MainTravelMode.CAR)
+        assertEquals(LegKind.FAR, far.kind)
+        val stillFar = legBetween(
+            item("x", "09:00", "10:00", -6.0, 107.0),
+            item("y", "18:00", "19:00", -8.0, 107.0),
+            MainTravelMode.CAR,
+            LegKind.WALK,
+        )
+        assertIs<LegDisplay.Leg>(stillFar)
+        assertEquals(LegKind.FAR, stillFar.leg.kind, "a saved mode is not used on a long-distance leg")
+        val third = item("c", "13:00", "14:00", -7.1, 107.6)
+        val day = dayLegs(listOf(between, next, third), MainTravelMode.CAR, mapOf((between.id to next.id) to LegKind.WALK))
+        val first = assertIs<LegDisplay.Leg>(day[0])
+        assertEquals(LegKind.WALK, first.leg.kind)
+        val second = assertIs<LegDisplay.Leg>(day[1])
+        assertEquals(LegKind.CAR, second.leg.kind, "a pair that is no longer the saved one falls back to Auto")
+    }
+
+    @Test
     fun beyondFiftyKmNothingIsGuessedButTheWarningUsesACarAtFiftyKmPerHour() {
         val leg = travelLegFor(130.0, MainTravelMode.MOTORCYCLE)
         assertEquals(LegKind.FAR, leg.kind)

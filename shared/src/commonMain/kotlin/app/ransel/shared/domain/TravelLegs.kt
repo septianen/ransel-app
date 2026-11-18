@@ -32,7 +32,11 @@ const val FAR_WARNING_SPEED_KMH = 50.0
 const val LEG_ROUNDING_MINUTES = 5
 
 /** What the leg is travelled by. [FAR] = too far to guess ("Jarak jauh ±N km"). */
+@kotlinx.serialization.Serializable
 enum class LegKind { WALK, MOTORCYCLE, CAR, PUBLIC_TRANSPORT, FAR }
+
+/** Modes that can be saved on a leg. [LegKind.FAR] is never stored. */
+val SAVED_LEG_KINDS: Set<LegKind> = setOf(LegKind.WALK, LegKind.MOTORCYCLE, LegKind.CAR, LegKind.PUBLIC_TRANSPORT)
 
 /**
  * One leg between two points. [minutes] is what the capsule shows ("±15 mnt"): null for [LegKind.PUBLIC_TRANSPORT] (no
@@ -40,6 +44,15 @@ enum class LegKind { WALK, MOTORCYCLE, CAR, PUBLIC_TRANSPORT, FAR }
  * as [minutes] when there is one, a 50 km/h car for [LegKind.FAR], null for public transport.
  */
 data class TravelLeg(val roadKm: Double, val kind: LegKind, val minutes: Int?, val warningMinutes: Int?)
+
+/** The leg for [roadKm] travelled as [kind]. [LegKind.FAR] and public transport have no time; FAR still has a warning time. */
+fun travelLegForKind(roadKm: Double, kind: LegKind): TravelLeg = when (kind) {
+    LegKind.WALK -> estimated(roadKm, LegKind.WALK, WALK_SPEED_KMH)
+    LegKind.MOTORCYCLE -> estimated(roadKm, LegKind.MOTORCYCLE, MOTORCYCLE_SPEED_KMH)
+    LegKind.CAR -> estimated(roadKm, LegKind.CAR, CAR_SPEED_KMH)
+    LegKind.PUBLIC_TRANSPORT -> TravelLeg(roadKm, LegKind.PUBLIC_TRANSPORT, null, null)
+    LegKind.FAR -> TravelLeg(roadKm, LegKind.FAR, null, roundLegMinutes(roadKm / FAR_WARNING_SPEED_KMH * 60))
+}
 
 /** The leg for [roadKm] (already ×1.3, see [roadKm]) with the trip's [mainMode]. */
 fun travelLegFor(roadKm: Double, mainMode: MainTravelMode): TravelLeg = when {
@@ -135,18 +148,37 @@ sealed interface LegDisplay {
  *    (a city centre) there is nothing to measure.
  * The leg uses [mainMode]; the warning compares it with the gap between the two activities' times.
  */
-fun legBetween(from: ItineraryItemDto, to: ItineraryItemDto, mainMode: MainTravelMode): LegDisplay {
+fun legBetween(
+    from: ItineraryItemDto,
+    to: ItineraryItemDto,
+    mainMode: MainTravelMode,
+    /** A saved mode for this pair; ignored when the auto leg is [LegKind.FAR] or the kind cannot be stored. */
+    savedKind: LegKind? = null,
+): LegDisplay {
     if (from.category == Category.TRANSPORT) return LegDisplay.None
     if (to.category == Category.TRANSPORT && !to.isPointPlace()) return LegDisplay.None
     if (!from.hasCoordinates() || !to.hasCoordinates()) return LegDisplay.AddLocationPrompt
     if (!from.isPointPlace() || !to.isPointPlace()) return LegDisplay.None
-    val leg = travelLegBetween(from.lat!!, from.lng!!, to.lat!!, to.lng!!, mainMode)
+    val auto = travelLegBetween(from.lat!!, from.lng!!, to.lat!!, to.lng!!, mainMode)
+    val leg = if (auto.kind != LegKind.FAR && savedKind != null && savedKind in SAVED_LEG_KINDS) {
+        travelLegForKind(auto.roadKm, savedKind)
+    } else {
+        auto
+    }
     return LegDisplay.Leg(leg, travelWarning(leg, gapMinutesBetween(from, to)))
 }
 
+/** Saved modes keyed by (from item id, to item id). A pair that is no longer consecutive is simply absent. */
+fun savedKindOf(overrides: Map<Pair<String, String>, LegKind>, fromId: String, toId: String): LegKind? =
+    overrides[fromId to toId]
+
 /** The capsules of one day: [items] in timeline order, one entry for each consecutive pair (so `items.size - 1`, none for fewer than two). */
-fun dayLegs(items: List<ItineraryItemDto>, mainMode: MainTravelMode): List<LegDisplay> =
-    items.zipWithNext { from, to -> legBetween(from, to, mainMode) }
+fun dayLegs(
+    items: List<ItineraryItemDto>,
+    mainMode: MainTravelMode,
+    overrides: Map<Pair<String, String>, LegKind> = emptyMap(),
+): List<LegDisplay> =
+    items.zipWithNext { from, to -> legBetween(from, to, mainMode, savedKindOf(overrides, from.id, to.id)) }
 
 /**
  * An activity that is a stop on the map and on "Buka rute hari ini": it has coordinates, except a Perjalanan activity whose
@@ -192,8 +224,14 @@ data class DaySegment(val from: ItineraryItemDto, val to: ItineraryItemDto, val 
  * The lines of a day's mini map: [stops] (the day's [dayStops]) two by two, the ones where a capsule would be (so none after
  * a Perjalanan activity, none to an area). The leg is the same as the capsule's.
  */
-fun daySegments(stops: List<ItineraryItemDto>, mainMode: MainTravelMode): List<DaySegment> =
-    stops.zipWithNext { from, to -> (legBetween(from, to, mainMode) as? LegDisplay.Leg)?.let { DaySegment(from, to, it.leg) } }.filterNotNull()
+fun daySegments(
+    stops: List<ItineraryItemDto>,
+    mainMode: MainTravelMode,
+    overrides: Map<Pair<String, String>, LegKind> = emptyMap(),
+): List<DaySegment> =
+    stops.zipWithNext { from, to ->
+        (legBetween(from, to, mainMode, savedKindOf(overrides, from.id, to.id)) as? LegDisplay.Leg)?.let { DaySegment(from, to, it.leg) }
+    }.filterNotNull()
 
 /** A city of the day and how many of its stops have a place there ("Jakarta · 2"). */
 data class DayCity(val name: String, val count: Int)
