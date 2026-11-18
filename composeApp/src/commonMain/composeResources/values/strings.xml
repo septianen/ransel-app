@@ -67,6 +67,33 @@
     <string name="placeholder_account_title">Account</string>
     <string name="placeholder_body">This screen is coming in the next step.</string>
     <string name="debug_component_gallery">Component gallery (debug)</string>
+    <string name="debug_motion_lab">Motion Lab (debug)</string>
+    <string name="debug_motion_lab_title">Motion Lab</string>
+    <string name="debug_motion_lab_subtitle">Feel IRIS motion tokens on this phone. Fake data only — production screens are unchanged.</string>
+    <string name="debug_motion_lab_back">← Back</string>
+    <string name="debug_motion_lab_reduce">Simulate reduce motion</string>
+    <string name="debug_motion_lab_reduce_hint">Crossfade only, shimmer stays still. Also follows the system animator scale / Reduce motion setting.</string>
+    <string name="debug_motion_lab_crossfade_note">Reduce motion is on: spatial moves are a crossfade, shimmer is static.</string>
+    <string name="debug_motion_lab_section_shared">Trip card → detail</string>
+    <string name="debug_motion_lab_card_hint">Tap the card for a shared-element open. With reduce motion it crossfades.</string>
+    <string name="debug_motion_lab_trip_title">Bali weekend</string>
+    <string name="debug_motion_lab_trip_dates">20–22 Nov 2026</string>
+    <string name="debug_motion_lab_detail_activity">09:00 · Tanah Lot</string>
+    <string name="debug_motion_lab_detail_back">Back to card</string>
+    <string name="debug_motion_lab_section_shimmer">Skeleton → content</string>
+    <string name="debug_motion_lab_load">Load content</string>
+    <string name="debug_motion_lab_reload">Show skeleton again</string>
+    <string name="debug_motion_lab_content_title">Ubud day plan</string>
+    <string name="debug_motion_lab_content_body">Rice terrace walk, then lunch in town. Fake itinerary for this demo.</string>
+    <string name="debug_motion_lab_section_press">Press feedback</string>
+    <string name="debug_motion_lab_press_hint">Press and hold: scale plus haptic. Reduce motion skips the scale.</string>
+    <string name="debug_motion_lab_press_button">Hold me</string>
+    <string name="debug_motion_lab_press_card">Trip card press</string>
+    <string name="debug_motion_lab_section_success">Split success</string>
+    <string name="debug_motion_lab_success_hint">A check pops in with a haptic. Reduce motion shows the check without the spring.</string>
+    <string name="debug_motion_lab_check_split">Split the bill</string>
+    <string name="debug_motion_lab_split_done">Split saved</string>
+    <string name="debug_motion_lab_reset_split">Reset</string>
 
     <!-- Greetings -->
     <string name="greeting_morning">Good morning</string>

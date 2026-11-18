@@ -91,6 +91,7 @@ import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PackingRepository
 import app.ransel.data.repository.TripRepository
+import app.ransel.feature.debug.MotionLabScreen
 import app.ransel.feature.debug.seedSampleTrip
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -129,6 +130,7 @@ import app.ransel.feature.credits.CreditsScreen
 import app.ransel.navigation.ActivityDetailRoute
 import app.ransel.navigation.ActivityFormRoute
 import app.ransel.navigation.ComponentGalleryRoute
+import app.ransel.navigation.MotionLabRoute
 import app.ransel.navigation.CreateTripRoute
 import app.ransel.navigation.InterviewRoute
 import app.ransel.navigation.InviteFriendsRoute
@@ -198,6 +200,7 @@ import app.ransel.navigation.PlaceDetailRoute
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.album_default_drive
 import ransel.composeapp.generated.resources.debug_component_gallery
+import ransel.composeapp.generated.resources.debug_motion_lab
 import ransel.composeapp.generated.resources.debug_seed_sample
 import ransel.composeapp.generated.resources.debug_show_onboarding
 import ransel.composeapp.generated.resources.placeholder_account_title
@@ -787,6 +790,9 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
                     Button(onClick = { navController.navigate(ComponentGalleryRoute) }) {
                         Text(stringResource(Res.string.debug_component_gallery))
                     }
+                    Button(onClick = { navController.navigate(MotionLabRoute) }) {
+                        Text(stringResource(Res.string.debug_motion_lab))
+                    }
                     val scope = rememberCoroutineScope()
                     val preferences: PreferencesRepository = koinInject()
                     Button(onClick = { scope.launch { preferences.setOnboardingCompleted(false) } }) {
@@ -805,6 +811,11 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
     }
     page<ComponentGalleryRoute> {
         ComponentGalleryScreen(onBack = { navController.popBackStack() }) // handles its own insets
+    }
+    if (isDebugBuild) {
+        page<MotionLabRoute> {
+            MotionLabScreen(onBack = { navController.popBackStack() })
+        }
     }
 }
 
