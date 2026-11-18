@@ -85,9 +85,11 @@ object TravelModeService {
     }
 
     /** The item exists on this trip (a soft-deleted one still counts, so a saved pair is not lost). */
-    fun itemsInTrip(tripId: UUID, fromId: UUID, toId: UUID): Map<String, String> = buildMap {
-        if (!itemInTrip(tripId, fromId)) put("fromItemId", "NOT_IN_TRIP")
-        if (!itemInTrip(tripId, toId)) put("toItemId", "NOT_IN_TRIP")
+    fun itemsInTrip(tripId: UUID, fromId: UUID, toId: UUID): Map<String, String> = transaction {
+        buildMap {
+            if (!itemInTrip(tripId, fromId)) put("fromItemId", "NOT_IN_TRIP")
+            if (!itemInTrip(tripId, toId)) put("toItemId", "NOT_IN_TRIP")
+        }
     }
 
     private fun itemInTrip(tripId: UUID, itemId: UUID): Boolean =
