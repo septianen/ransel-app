@@ -32,6 +32,12 @@ interface SyncStatus {
 
     /** The app went to the background (false) or came back (true). Mobile stops the minute-by-minute sync meanwhile. */
     fun setInForeground(foreground: Boolean) = Unit
+
+    /**
+     * True while a drag (or similar) is in progress. Mobile skips GET /sync so a pull cannot rewrite
+     * the list under the finger; a kick runs when it becomes false again.
+     */
+    fun setInteractiveBusy(busy: Boolean) = Unit
 }
 
 /** Web / tests: nothing is ever pending. */
