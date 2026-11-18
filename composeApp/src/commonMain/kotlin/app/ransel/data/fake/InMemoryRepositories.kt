@@ -4,6 +4,7 @@ import app.ransel.data.repository.AppLanguage
 import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.repository.PackingRepository
 import app.ransel.data.repository.PersonalItemRepository
 import app.ransel.shared.dto.CreatePersonalItemRequest
@@ -25,6 +26,8 @@ import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.LOCAL_USER_ID
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
+import app.ransel.shared.dto.TravelModeDto
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.dto.UpdateTripRequest
@@ -48,6 +51,7 @@ class InMemoryStore {
     val packing = MutableStateFlow<List<PackingItemDto>>(emptyList())
     val expenses = MutableStateFlow<List<ExpenseDto>>(emptyList())
     val personal = MutableStateFlow<List<PersonalItemDto>>(emptyList())
+    val travelModes = MutableStateFlow<List<TravelModeDto>>(emptyList())
 }
 
 class InMemoryPersonalItemRepository(private val store: InMemoryStore, private val ownerMemberId: (String) -> String) : PersonalItemRepository {
@@ -167,6 +171,30 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
 
     override suspend fun applyCover(tripId: String, coverUrl: String?) {
         store.trips.update { l -> l.map { if (it.id == tripId) it.copy(coverUrl = coverUrl) else it } }
+    }
+}
+
+class InMemoryTravelModeRepository(private val store: InMemoryStore) : TravelModeRepository {
+    override fun observe(tripId: String): Flow<List<TravelModeDto>> = store.travelModes.map { list ->
+        list.filter { it.tripId == tripId && it.deletedAt == null }
+    }
+
+    override suspend fun save(tripId: String, input: TravelModeInput): Boolean {
+        val stamp = now()
+        store.travelModes.update { list ->
+            val existing = list.firstOrNull { it.fromItemId == input.fromItemId && it.toItemId == input.toItemId }
+            val row = TravelModeDto(
+                id = existing?.id ?: input.id,
+                tripId = tripId,
+                fromItemId = input.fromItemId,
+                toItemId = input.toItemId,
+                mode = input.mode,
+                createdAt = existing?.createdAt ?: stamp,
+                updatedAt = stamp,
+            )
+            if (existing == null) list + row else list.map { if (it.id == existing.id) row else it }
+        }
+        return true
     }
 }
 

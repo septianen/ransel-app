@@ -13,6 +13,7 @@ import app.ransel.shared.model.CommentTarget
 import app.ransel.shared.model.PollKind
 import app.ransel.shared.model.PollPriceUnit
 import app.ransel.shared.model.PollStatus
+import app.ransel.shared.domain.LegKind
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.PackingCategory
 import app.ransel.shared.model.PaymentMethod
@@ -247,6 +248,19 @@ object ItineraryItems : Table("itinerary_items") {
     val links = jsonb<List<String>>("links", Json)
     val itemSource = enumerationByName<ItemSource>("source", 16)
     val sortOrder = double("sort_order")
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** How a pair of itinerary items is travelled (Getting there). V10. */
+object TravelModes : Table("travel_modes") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val fromItemId = javaUUID("from_item_id")
+    val toItemId = javaUUID("to_item_id")
+    val mode = enumerationByName<LegKind>("mode", 20)
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()

@@ -2012,7 +2012,9 @@
     <string name="travel_main_public">Transportasi umum</string>
     <string name="travel_main_changed">Moda utama diubah ke %1$s.</string>
     <string name="travel_undo">Urungkan</string>
-    <string name="travel_open_maps">Buka rute di Google Maps</string>
+    <string name="travel_open_maps">Buka di Google Maps</string>
+    <string name="travel_saved">Transportasi disimpan</string>
+    <string name="travel_save_failed">Gagal simpan, coba lagi</string>
     <string name="travel_estimate_note">Perkiraan dari jarak, bukan kondisi jalan.</string>
     <string name="travel_transit_note_title">Waktu transportasi umum tidak diperkirakan di sini.</string>
     <string name="travel_transit_note_body">Jadwal dan rutenya ada di Google Maps.</string>
@@ -2020,17 +2022,8 @@
     <string name="travel_far_warning_note">Perkiraan ±%1$s hanya untuk peringatan jeda.</string>
     <string name="travel_sheet_warning">Perkiraan ±%1$s, jeda cuma %2$s. Jam tidak diubah.</string>
     <string name="travel_sheet_overlap">Perkiraan ±%1$s, tapi jam bentrok dengan aktivitas sebelumnya. Jam tidak diubah.</string>
-    <string name="route_today_chip">Buka rute hari ini</string>
-    <string name="route_today_title">Buka rute hari ini</string>
-    <string name="route_today_subtitle">Hari %1$d · Google Maps · %2$d titik singgah</string>
+    <string name="route_today_truncated">Google Maps cuma bisa nampilin 9 tempat pertama</string>
     <string name="route_today_open">Buka di Google Maps</string>
-    <string name="route_today_note">Rute urut sesuai jam. Maksimal 9 titik per rute.</string>
-    <string name="route_today_split">Google Maps menerima maksimal 9 titik per rute, jadi rute hari ini dibuka dalam %1$d bagian.</string>
-    <string name="route_today_part">Bagian %1$d</string>
-    <string name="route_today_part_range">Titik %1$d–%2$d</string>
-    <string name="route_today_part_times">Titik %1$d–%2$d · %3$s–%4$s</string>
-    <string name="route_today_part_open">Buka</string>
-    <string name="route_today_repeat">Titik %1$d diulang sebagai titik awal bagian berikutnya.</string>
     <string name="map_travel_caption">Garis lurus antar pin menurut urutan hari, bukan jalan. Putus-putus = jalan kaki. Rute asli ada di Google Maps.</string>
     <string name="map_cities_today">%1$d kota hari ini</string>
     <string name="map_city_chip">%1$s · %2$d</string>

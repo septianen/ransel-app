@@ -17,6 +17,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
@@ -27,6 +28,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
@@ -70,7 +72,9 @@ import ransel.composeapp.generated.resources.travel_main_mode
 import ransel.composeapp.generated.resources.travel_main_mode_change
 import ransel.composeapp.generated.resources.travel_main_mode_own
 import ransel.composeapp.generated.resources.travel_main_motorcycle
+import ransel.composeapp.generated.resources.action_save
 import ransel.composeapp.generated.resources.travel_open_maps
+import ransel.composeapp.generated.resources.travel_save_failed
 import ransel.composeapp.generated.resources.travel_see_in_maps
 import ransel.composeapp.generated.resources.travel_sheet_overlap
 import ransel.composeapp.generated.resources.travel_sheet_subtitle
@@ -81,24 +85,29 @@ import ransel.composeapp.generated.resources.travel_transit_note_title
 
 /**
  * The sheet that opens from a capsule (spec "Perjalanan antar tempat V1", section 2): the modes to look at, the trip's main
- * mode (changeable by an owner or editor) and "Buka rute di Google Maps". Choosing a mode here only changes the Maps link:
- * nothing is saved and the capsule stays as it was. Selected cards are purple like the interview's ([SelectedChoice], owner,
- * 16 Nov 2026).
+ * mode (changeable by an owner or editor) and "Buka di Google Maps". An editor's "Simpan" persists the selected mode for
+ * this pair of items. Selected cards are purple like the interview's ([SelectedChoice], owner, 16 Nov 2026).
  */
 @Composable
 fun TravelSheet(
     model: TravelCapsuleModel,
     mainMode: MainTravelMode,
+    /** The Auto kind for this pair (no saved override). */
+    autoKind: LegKind,
+    /** The stored override, or null when Auto is in effect. */
+    savedKind: LegKind?,
     canChangeMainMode: Boolean,
+    canSave: Boolean,
+    onSave: suspend (LegKind) -> Boolean,
     onChangeMainMode: (MainTravelMode) -> Unit,
     onDismiss: () -> Unit,
     /** The trip goes by an own vehicle: the main mode is that vehicle, "Motor · kendaraanmu", and nobody changes it here (spec 1572938 v3). */
     ownVehicle: Boolean = false,
 ) {
     val leg = model.leg
-    val far = leg.kind == LegKind.FAR
-    val auto = leg.kind
-    var chosen by rememberSaveable(model.from.id, model.to.id) { mutableStateOf(auto) }
+    val far = autoKind == LegKind.FAR
+    val baseline = savedKind ?: autoKind
+    var chosen by rememberSaveable(model.from.id, model.to.id) { mutableStateOf(model.leg.kind) }
     var changing by rememberSaveable { mutableStateOf(false) }
     // "Moda utama diubah ke Mobil." + "Urungkan" shows inside the sheet, which stays open
     val snackbar = remember { SnackbarHostState() }
@@ -120,20 +129,45 @@ fun TravelSheet(
     val colors = IrisTheme.warning
 
     AdaptiveSheet(onDismiss = onDismiss) {
+        val dirty = !far && chosen != baseline
+        var saving by rememberSaveable { mutableStateOf(false) }
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    stringResource(Res.string.travel_sheet_title),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    stringResource(Res.string.travel_sheet_subtitle, model.from.title, model.to.title, travelDistanceText(leg.roadKm)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        stringResource(Res.string.travel_sheet_title),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        stringResource(Res.string.travel_sheet_subtitle, model.from.title, model.to.title, travelDistanceText(leg.roadKm)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (canSave && !far) {
+                    Text(
+                        stringResource(Res.string.action_save),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .alpha(if (dirty && !saving) 1f else 0.38f)
+                            .clickable(enabled = dirty && !saving, role = Role.Button) {
+                                saving = true
+                                scope.launch {
+                                    val ok = onSave(chosen)
+                                    saving = false
+                                    if (ok) onDismiss() else {
+                                        snackbar.currentSnackbarData?.dismiss()
+                                        snackbar.showSnackbar(getString(Res.string.travel_save_failed))
+                                    }
+                                }
+                            },
+                    )
+                }
             }
 
             model.warning?.let { warning ->
@@ -178,7 +212,7 @@ fun TravelSheet(
                                     kind = kind,
                                     roadKm = leg.roadKm,
                                     selected = chosen == kind,
-                                    isAuto = auto == kind,
+                                    isAuto = autoKind == kind,
                                     onClick = { chosen = kind },
                                     modifier = Modifier.weight(1f),
                                 )
@@ -211,30 +245,24 @@ fun TravelSheet(
             }
 
             val mapsMode = if (far) null else chosen.mapsMode(mainMode)
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 52.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .clickable(role = Role.Button) {
-                        val url = mapsDirectionsUrl(
-                            listOf(MapsPoint(model.from.lat!!, model.from.lng!!), MapsPoint(model.to.lat!!, model.to.lng!!)),
-                            mapsMode,
-                        )
-                        if (url != null) runCatching { uriHandler.openUri(url) }
-                    }
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            OutlinedButton(
+                onClick = {
+                    val url = mapsDirectionsUrl(
+                        listOf(MapsPoint(model.from.lat!!, model.from.lng!!), MapsPoint(model.to.lat!!, model.to.lng!!)),
+                        mapsMode,
+                    )
+                    if (url != null) runCatching { uriHandler.openUri(url) }
+                },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
             ) {
-                Symbol(Symbols.map, size = 20.dp, tint = MaterialTheme.colorScheme.onPrimary)
-                Text(
-                    stringResource(Res.string.travel_open_maps),
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                Symbol(Symbols.openInNew, size = 20.dp, tint = MaterialTheme.colorScheme.onPrimary)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Symbol(Symbols.map, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        stringResource(Res.string.travel_open_maps),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    )
+                    Symbol(Symbols.openInNew, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
+                }
             }
             if (!far) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

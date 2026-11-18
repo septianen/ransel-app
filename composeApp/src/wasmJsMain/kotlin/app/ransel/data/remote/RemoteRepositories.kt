@@ -2,6 +2,7 @@ package app.ransel.data.remote
 
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.repository.PackingRepository
 import app.ransel.data.repository.PersonalItemRepository
 import app.ransel.shared.dto.CreatePersonalItemRequest
@@ -18,6 +19,8 @@ import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
+import app.ransel.shared.dto.TravelModeDto
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.dto.UpdateTripRequest
@@ -50,6 +53,16 @@ internal class RemoteTripRepository(private val gateway: RemoteGateway) : TripRe
 
     /** The upload already went to the server; every trip on screen just loads again. */
     override suspend fun applyCover(tripId: String, coverUrl: String?) = gateway.mutate { ApiResult.Success(Unit) }
+}
+
+internal class RemoteTravelModeRepository(private val gateway: RemoteGateway) : TravelModeRepository {
+    private val api get() = gateway.api
+
+    override fun observe(tripId: String): Flow<List<TravelModeDto>> =
+        gateway.observe(whenMissing = { emptyList() }) { api.travelModes(tripId) }
+
+    override suspend fun save(tripId: String, input: TravelModeInput): Boolean =
+        gateway.tryMutate { api.putTravelMode(tripId, input) }
 }
 
 internal class RemoteItineraryRepository(private val gateway: RemoteGateway) : ItineraryRepository {

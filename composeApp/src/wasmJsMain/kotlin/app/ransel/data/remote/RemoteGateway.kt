@@ -84,6 +84,16 @@ internal class RemoteGateway(
             is ApiResult.Failure -> monitor.report(result.error)
         }
     }
+
+    /** Like [mutate], but a failure is not a full-screen error: the caller shows its own snackbar. */
+    suspend fun <T> tryMutate(block: suspend () -> ApiResult<T>): Boolean =
+        when (val result = block()) {
+            is ApiResult.Success -> {
+                invalidation.invalidate()
+                true
+            }
+            is ApiResult.Failure -> false
+        }
 }
 
 /** Web has nothing to sync; pull-to-refresh just fetches the visible data again. */

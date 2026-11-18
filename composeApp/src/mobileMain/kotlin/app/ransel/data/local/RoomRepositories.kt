@@ -5,6 +5,7 @@ import app.ransel.data.repository.AppLanguage
 import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.repository.PackingRepository
 import app.ransel.data.repository.PendingReceipt
 import app.ransel.data.repository.PersonalItemRepository
@@ -23,6 +24,7 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.LOCAL_USER_ID
 import app.ransel.shared.dto.PackingItemDto
@@ -132,6 +134,7 @@ class RoomTripRepository(
         val stamp = now().toMillis()
         db.withWriteTransaction {
             db.itineraryDao().softDeleteByTrip(tripId, stamp)
+            db.travelModeDao().softDeleteByTrip(tripId, stamp)
             db.packingDao().softDeleteByTrip(tripId, stamp)
             db.expenseDao().softDeleteByTrip(tripId, stamp)
             db.tripDao().softDelete(tripId, stamp)
@@ -139,6 +142,30 @@ class RoomTripRepository(
     }
 
     override suspend fun applyCover(tripId: String, coverUrl: String?) = db.tripDao().setCover(tripId, coverUrl)
+}
+
+class RoomTravelModeRepository(private val db: RanselDatabase) : TravelModeRepository {
+    override fun observe(tripId: String): Flow<List<app.ransel.shared.dto.TravelModeDto>> =
+        db.travelModeDao().observe(tripId).map { l -> l.map { it.toDto() } }
+
+    override suspend fun save(tripId: String, input: TravelModeInput): Boolean {
+        val dao = db.travelModeDao()
+        val stamp = now().toMillis()
+        val existing = dao.getByPair(input.fromItemId, input.toItemId)
+        dao.upsert(
+            TravelModeEntity(
+                id = existing?.id ?: input.id,
+                tripId = tripId,
+                fromItemId = input.fromItemId,
+                toItemId = input.toItemId,
+                mode = input.mode.name,
+                createdAt = existing?.createdAt ?: stamp,
+                updatedAt = stamp,
+                deletedAt = null,
+            ),
+        )
+        return true
+    }
 }
 
 class RoomItineraryRepository(private val db: RanselDatabase) : ItineraryRepository {

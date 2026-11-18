@@ -2029,7 +2029,9 @@
     <string name="travel_main_public">Public transport</string>
     <string name="travel_main_changed">Main mode changed to %1$s.</string>
     <string name="travel_undo">Undo</string>
-    <string name="travel_open_maps">Open route in Google Maps</string>
+    <string name="travel_open_maps">Open in Google Maps</string>
+    <string name="travel_saved">Transport saved</string>
+    <string name="travel_save_failed">Could not save, try again</string>
     <string name="travel_estimate_note">Estimated from distance, not road conditions.</string>
     <string name="travel_transit_note_title">Public transport times aren't estimated here.</string>
     <string name="travel_transit_note_body">Schedules and routes are in Google Maps.</string>
@@ -2037,17 +2039,8 @@
     <string name="travel_far_warning_note">The ±%1$s estimate is only used for the gap warning.</string>
     <string name="travel_sheet_warning">About %1$s needed, only %2$s between them. Times are not changed.</string>
     <string name="travel_sheet_overlap">About %1$s needed, but the times overlap with the activity before. Times are not changed.</string>
-    <string name="route_today_chip">Open this day's route</string>
-    <string name="route_today_title">Open this day's route</string>
-    <string name="route_today_subtitle">Day %1$d · Google Maps · %2$d stops</string>
+    <string name="route_today_truncated">Google Maps can only show the first 9 places</string>
     <string name="route_today_open">Open in Google Maps</string>
-    <string name="route_today_note">Route follows the schedule. At most 9 stops per route.</string>
-    <string name="route_today_split">Google Maps accepts at most 9 stops per route, so this day opens in %1$d parts.</string>
-    <string name="route_today_part">Part %1$d</string>
-    <string name="route_today_part_range">Stops %1$d–%2$d</string>
-    <string name="route_today_part_times">Stops %1$d–%2$d · %3$s–%4$s</string>
-    <string name="route_today_part_open">Open</string>
-    <string name="route_today_repeat">Stop %1$d repeats as the start of the next part.</string>
     <string name="map_travel_caption">Straight lines between pins in day order, not roads. Dotted = walking. The real route is in Google Maps.</string>
     <string name="map_cities_today">%1$d cities this day</string>
     <string name="map_city_chip">%1$s · %2$d</string>
