@@ -11,6 +11,9 @@ import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
+import app.ransel.data.sync.NoSyncStatus
+import app.ransel.data.sync.SyncStatus
+import kotlinx.coroutines.delay
 import app.ransel.shared.domain.Slot
 import app.ransel.shared.domain.activityDurationMinutes
 import app.ransel.shared.domain.changedSlots
@@ -53,6 +56,8 @@ data class ItineraryUiState(
     val unscheduled: List<ItineraryItemDto> = emptyList(),
     val skipReorderConfirmation: Boolean = false,
     val pendingReorder: PendingReorder? = null,
+    /** Item ids whose times just changed; the time column flashes while this is set. */
+    val flashingIds: Set<String> = emptySet(),
     /** "Jadwalkan otomatis" is saving: the dialog shows progress and ignores taps. */
     val autoScheduling: Boolean = false,
     val loading: Boolean = true,
@@ -108,11 +113,15 @@ class ItineraryViewModel(
     private val session: SessionManager? = null,
     /** The trip row, to change its main travel mode from the travel sheet (null = the sheet cannot change it). */
     private val trips: TripRepository? = null,
+    private val sync: SyncStatus = NoSyncStatus,
 ) : ViewModel() {
     private val datePoll = MutableStateFlow<PollDto?>(null)
     private val selectedDay = MutableStateFlow<LocalDate?>(null)
     private val pending = MutableStateFlow<PendingReorder?>(null)
     private val autoRunning = MutableStateFlow(false)
+    /** Day + items frozen at long-press so a pull cannot move rows under the finger. */
+    private val dragHold = MutableStateFlow<Pair<LocalDate, List<ItineraryItemDto>>?>(null)
+    private val flashingIds = MutableStateFlow<Set<String>>(emptySet())
     private val events = Channel<ItineraryEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
@@ -126,14 +135,17 @@ class ItineraryViewModel(
 
     val state: StateFlow<ItineraryUiState> = combine(
         combine(itinerary.observe(trip.id), datePoll, ::Pair),
-        selectedDay,
-        pending,
+        combine(selectedDay, pending, ::Pair),
         preferences.observe(),
         autoRunning,
-    ) { (items, poll), selected, pendingReorder, prefs, auto ->
+        combine(dragHold, flashingIds, ::Pair),
+    ) { (items, poll), (selected, pendingReorder), prefs, auto, (hold, flash) ->
         val scheduled = items.filter { it.dayDate != null }
         val byDay = days.associateWith { day ->
             scheduled.filter { it.dayDate == day }.sortedWith(compareBy({ it.sortOrder }, { it.startTime }))
+        }.let { map ->
+            val frozen = hold ?: return@let map
+            if (frozen.first in map) map + (frozen.first to frozen.second) else map
         }
         val chosen = selected?.takeIf { it in days } ?: today().takeIf { it in days } ?: days.firstOrNull()
         ItineraryUiState(
@@ -143,6 +155,7 @@ class ItineraryViewModel(
             unscheduled = items.filter { it.dayDate == null },
             skipReorderConfirmation = prefs.skipReorderConfirmation,
             pendingReorder = pendingReorder,
+            flashingIds = flash,
             autoScheduling = auto,
             loading = false,
             undated = undated,
@@ -195,6 +208,24 @@ class ItineraryViewModel(
 
     // ── Reorder (drag within a day) ──────────────────────────────────────────
 
+    /** Call on long-press start; [endDrag] on drop (after chrome has settled). */
+    fun beginDrag() {
+        val s = state.value
+        val day = s.selectedDay ?: return
+        if (dragHold.value != null) return
+        dragHold.value = day to s.selectedItems
+        sync.setInteractiveBusy(true)
+    }
+
+    fun endDrag() {
+        if (dragHold.value == null) {
+            sync.setInteractiveBusy(false)
+            return
+        }
+        dragHold.value = null
+        sync.setInteractiveBusy(false)
+    }
+
     fun onReorder(day: LocalDate, from: Int, to: Int) {
         if (from == to) return
         val items = state.value.itemsByDay[day].orEmpty()
@@ -242,7 +273,17 @@ class ItineraryViewModel(
         }
         viewModelScope.launch {
             itinerary.applyDayOrder(trip.id, request.day, order)
+            flashTimes(request.changes.map { it.item.id })
             if (announce) events.send(ItineraryEvent.Reordered(request.dayNumber, request.day, restore))
+        }
+    }
+
+    private fun flashTimes(ids: List<String>) {
+        if (ids.isEmpty()) return
+        flashingIds.value = ids.toSet()
+        viewModelScope.launch {
+            delay(600)
+            if (flashingIds.value == ids.toSet()) flashingIds.value = emptySet()
         }
     }
 

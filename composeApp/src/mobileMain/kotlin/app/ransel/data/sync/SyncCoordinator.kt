@@ -21,6 +21,7 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.CreateDocumentRequest
 import app.ransel.shared.model.DocumentCategory
 import app.ransel.util.newId
+import app.ransel.shared.domain.shouldApplyPulledRow
 import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncRejection
@@ -84,6 +85,11 @@ class SyncCoordinator(
 
     /** The loop only runs while the app is on screen: no pulls every minute in the background (battery, data). */
     private val foreground = MutableStateFlow(true)
+    /**
+     * A drag (or similar) is in progress: a pull that lands mid-gesture jumps the list under the finger.
+     * Pushes of earlier edits still go out; the missed pull is kicked when the gesture ends.
+     */
+    private val interactiveBusy = MutableStateFlow(false)
     private val storedDropped = MutableStateFlow<DroppedChanges?>(null)
     /** Shown only while the app is on screen, so a notice from a background sync waits for the next visit. */
     override val dropped: StateFlow<DroppedChanges?> =
@@ -140,6 +146,12 @@ class SyncCoordinator(
         kick.trySend(Unit)
     }
 
+    override fun setInteractiveBusy(busy: Boolean) {
+        if (interactiveBusy.value == busy) return
+        interactiveBusy.value = busy
+        if (!busy) kick.trySend(Unit)
+    }
+
     override fun setInForeground(foreground: Boolean) {
         if (this.foreground.value == foreground) return
         // Leaving with unsent edits: send them once on the way out instead of waiting for the next visit.
@@ -175,6 +187,7 @@ class SyncCoordinator(
         try {
             val pushed = push()
             if (pushed == null) return Outcome.OFFLINE
+            if (interactiveBusy.value) return Outcome.OK
             // Refused rows are only told apart after a full pull: until one completes they stay (also from older versions).
             val full = pushed.needsFullPull || db.syncDao().rejectedRows().isNotEmpty()
             when (pull(full)) {
@@ -400,31 +413,31 @@ class SyncCoordinator(
         db.withWriteTransaction {
             c.trips.forEach { dto ->
                 val local = dao.trip(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putTrip(dto.toEntity())
                 }
             }
             c.itineraryItems.forEach { dto ->
                 val local = dao.item(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putItem(dto.toEntity())
                 }
             }
             c.packingItems.forEach { dto ->
                 val local = dao.packing(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putPacking(dto.toEntity())
                 }
             }
             c.personalItems.forEach { dto ->
                 val local = dao.personal(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putPersonal(dto.toEntity())
                 }
             }
             c.expenses.forEach { dto ->
                 val local = dao.expense(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putExpense(dto.toEntity())
                 }
             }

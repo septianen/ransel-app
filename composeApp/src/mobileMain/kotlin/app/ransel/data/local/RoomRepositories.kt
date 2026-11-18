@@ -15,6 +15,7 @@ import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.repository.buildTripSummary
 import app.ransel.shared.domain.itemsOutsideRange
+import app.ransel.shared.domain.nextUpdatedAtMillis
 import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.CreateTripRequest
@@ -42,9 +43,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
 /*
- * Local-first repositories (Android + iOS). Every write sets `updatedAt = now` and marks the row
- * PENDING; Phase 3 sync reads that. Multi-row writes run in one transaction.
+ * Local-first repositories (Android + iOS). Every write sets `updatedAt` to
+ * [nextUpdatedAtMillis] (at least one ms after the stored value) and marks the row PENDING;
+ * Phase 3 sync reads that. Multi-row writes run in one transaction.
  */
+
+private fun writeAt(existingUpdatedAt: Long?): Long = nextUpdatedAtMillis(existingUpdatedAt, now().toMillis())
 
 class RoomTripRepository(
     private val db: RanselDatabase,
@@ -88,7 +92,7 @@ class RoomTripRepository(
 
     override suspend fun update(tripId: String, request: UpdateTripRequest) {
         val current = db.tripDao().get(tripId) ?: return
-        val stamp = now().toMillis()
+        val stamp = writeAt(current.updatedAt)
         db.withWriteTransaction {
             db.tripDao().upsert(
                 current.copy(
@@ -147,8 +151,9 @@ class RoomItineraryRepository(private val db: RanselDatabase) : ItineraryReposit
 
     override suspend fun save(tripId: String, input: ItineraryItemInput) {
         val dao = db.itineraryDao()
-        val stamp = now().toMillis()
-        val created = dao.get(input.id)?.createdAt ?: stamp
+        val existing = dao.get(input.id)
+        val stamp = writeAt(existing?.updatedAt)
+        val created = existing?.createdAt ?: stamp
         dao.upsert(
             ItineraryItemEntity(
                 id = input.id, tripId = tripId, dayDate = input.dayDate?.toString(),
@@ -168,8 +173,9 @@ class RoomItineraryRepository(private val db: RanselDatabase) : ItineraryReposit
     }
 
     override suspend fun applyDayOrder(tripId: String, date: LocalDate, items: List<DayOrderItem>) {
-        val stamp = now().toMillis()
         db.withWriteTransaction {
+            val existing = items.mapNotNull { db.itineraryDao().get(it.id)?.updatedAt }
+            val stamp = writeAt(existing.maxOrNull())
             items.forEach {
                 db.itineraryDao().updateOrder(
                     tripId, it.id, it.sortOrder, it.startTime?.toString(), it.endTime?.toString(), stamp,
@@ -197,12 +203,12 @@ class RoomPackingRepository(private val db: RanselDatabase) : PackingRepository 
     override suspend fun bring(tripId: String, itemId: String, memberId: String) {
         val current = db.packingDao().get(itemId) ?: return
         if (current.assigneeMemberId != null) return
-        db.packingDao().upsert(current.copy(assigneeMemberId = memberId, updatedAt = now().toMillis(), syncState = SyncState.PENDING))
+        db.packingDao().upsert(current.copy(assigneeMemberId = memberId, updatedAt = writeAt(current.updatedAt), syncState = SyncState.PENDING))
     }
 
     override suspend fun giveBack(tripId: String, itemId: String) {
         val current = db.packingDao().get(itemId) ?: return
-        db.packingDao().upsert(current.copy(assigneeMemberId = null, isPacked = false, updatedAt = now().toMillis(), syncState = SyncState.PENDING))
+        db.packingDao().upsert(current.copy(assigneeMemberId = null, isPacked = false, updatedAt = writeAt(current.updatedAt), syncState = SyncState.PENDING))
     }
 
     override suspend fun update(tripId: String, itemId: String, patch: PatchPackingItemRequest) {
@@ -214,7 +220,7 @@ class RoomPackingRepository(private val db: RanselDatabase) : PackingRepository 
                 quantity = patch.quantity ?: current.quantity,
                 isPacked = patch.isPacked ?: current.isPacked,
                 sortOrder = patch.sortOrder ?: current.sortOrder,
-                updatedAt = now().toMillis(), syncState = SyncState.PENDING,
+                updatedAt = writeAt(current.updatedAt), syncState = SyncState.PENDING,
             ),
         )
     }
@@ -257,7 +263,7 @@ class RoomPersonalItemRepository(
                 quantity = patch.quantity ?: current.quantity,
                 isPacked = patch.isPacked ?: current.isPacked,
                 sortOrder = patch.sortOrder ?: current.sortOrder,
-                updatedAt = now().toMillis(), syncState = SyncState.PENDING,
+                updatedAt = writeAt(current.updatedAt), syncState = SyncState.PENDING,
             ),
         )
     }
@@ -276,8 +282,8 @@ class RoomExpenseRepository(
 
     override suspend fun save(tripId: String, input: ExpenseInput) {
         val dao = db.expenseDao()
-        val stamp = now().toMillis()
         val existing = dao.get(input.id)
+        val stamp = writeAt(existing?.updatedAt)
         val created = existing?.createdAt ?: stamp
         dao.upsert(
             ExpenseEntity(
