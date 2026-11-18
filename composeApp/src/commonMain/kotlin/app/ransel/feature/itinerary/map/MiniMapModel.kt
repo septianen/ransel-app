@@ -53,6 +53,12 @@ const val MINI_MAP_LOAD_TIMEOUT_MILLIS = 8_000L
 /** Preference key (per device, not per trip): "1" once the user has opened the map. Never set = closed. */
 const val MINI_MAP_OPEN_KEY = "mini_map_open"
 
+/** Preference key: "1" after the two-finger hint on the strip has been shown. */
+const val MINI_MAP_TWO_FINGER_HINT_KEY = "mini_map_two_finger_hint"
+
+/** How the strip or the full-screen map takes pointer input. */
+enum class MiniMapGestureMode { TWO_FINGER, FREE }
+
 /**
  * The map starts closed and is only built when the user opens it (owner, 13 Nov 2026), so a day's list opens fast and the
  * Maps SDK is not started for people who never look at it. After an opening the choice is remembered on the device.
@@ -61,6 +67,9 @@ fun isMiniMapOpen(stored: String?): Boolean = stored == "1"
 
 /** What to store for the choice: "1" when open, nothing when closed (the default). */
 fun storedMiniMapOpen(open: Boolean): String? = if (open) "1" else null
+
+/** True once the two-finger hint has been shown (or skipped) on this device. */
+fun isMiniMapTwoFingerHintShown(stored: String?): Boolean = stored == "1"
 
 /**
  * A straight line of the strip between two stops (spec "Perjalanan antar tempat V1", section 5). Walking is dotted, motorbike

@@ -87,10 +87,12 @@ import app.ransel.feature.itinerary.map.storedMiniMapOpen
 import app.ransel.feature.itinerary.map.mapPinsOf
 import app.ransel.feature.itinerary.map.firstUnlocated
 import app.ransel.feature.itinerary.map.isMiniMapOpen
+import app.ransel.feature.itinerary.map.isMiniMapTwoFingerHintShown
 import app.ransel.feature.itinerary.map.PinBadge
 import app.ransel.feature.itinerary.map.MiniMapSection
 import app.ransel.feature.itinerary.map.MapPin
 import app.ransel.feature.itinerary.map.MINI_MAP_OPEN_KEY
+import app.ransel.feature.itinerary.map.MINI_MAP_TWO_FINGER_HINT_KEY
 import app.ransel.data.repository.PreferencesRepository
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.luminance
@@ -345,7 +347,11 @@ private fun ItineraryContent(
     val prefs: PreferencesRepository = koinInject()
     // closed until the user opens it: nothing of the map is built before that
     var mapOpen by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { mapOpen = isMiniMapOpen(prefs.getString(MINI_MAP_OPEN_KEY)) }
+    var twoFingerHintShown by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        mapOpen = isMiniMapOpen(prefs.getString(MINI_MAP_OPEN_KEY))
+        twoFingerHintShown = isMiniMapTwoFingerHintShown(prefs.getString(MINI_MAP_TWO_FINGER_HINT_KEY))
+    }
     var selectedPinId by rememberSaveable(day) { mutableStateOf<String?>(null) }
     val rowRequesters = remember(day) { mutableMapOf<String, BringIntoViewRequester>() }
     val pinColors = Category.entries.associateWith { category ->
@@ -488,6 +494,11 @@ private fun ItineraryContent(
                         onSelectCity = { pickedCity = it },
                         transfers = transfers,
                         onOpenTransfer = { id -> scope.launch { rowRequesters[id]?.bringIntoView() } },
+                        twoFingerHintShown = twoFingerHintShown,
+                        onTwoFingerHintShown = {
+                            twoFingerHintShown = true
+                            scope.launch { prefs.putString(MINI_MAP_TWO_FINGER_HINT_KEY, "1") }
+                        },
                     )
                 }
                 if (day != null) {

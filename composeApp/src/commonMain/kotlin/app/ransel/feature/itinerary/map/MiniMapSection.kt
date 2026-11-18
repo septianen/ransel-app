@@ -1,19 +1,30 @@
 package app.ransel.feature.itinerary.map
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -21,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,11 +40,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -41,8 +56,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import app.ransel.navigation.SheetBackHandler
 import app.ransel.ui.pulledUp
 import app.ransel.content.stringResource
+import app.ransel.ui.motion.IrisMotion
+import app.ransel.ui.motion.rememberReduceMotion
 import ransel.composeapp.generated.resources.map_travel_caption
 import ransel.composeapp.generated.resources.map_city_chip
 import ransel.composeapp.generated.resources.map_cities_today
@@ -50,7 +70,6 @@ import ransel.composeapp.generated.resources.map_cities_group
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
-import app.ransel.ui.components.SkeletonCards
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.shared.domain.DayCity
 import app.ransel.ui.symbols.Symbol
@@ -68,9 +87,12 @@ import ransel.composeapp.generated.resources.mini_map_empty_title
 import ransel.composeapp.generated.resources.mini_map_expand
 import ransel.composeapp.generated.resources.mini_map_failed_body
 import ransel.composeapp.generated.resources.mini_map_failed_title
+import ransel.composeapp.generated.resources.mini_map_fullscreen
 import ransel.composeapp.generated.resources.mini_map_open_in_maps
 import ransel.composeapp.generated.resources.mini_map_partial
+import ransel.composeapp.generated.resources.mini_map_recenter
 import ransel.composeapp.generated.resources.mini_map_retry
+import ransel.composeapp.generated.resources.mini_map_two_finger_hint
 
 /** Where the strip is in its life: the base map is coming, it is there, or it did not come in time. */
 enum class MapPhase { LOADING, LOADED, FAILED }
@@ -105,13 +127,16 @@ fun MiniMapSection(
     /** "Jakarta → Bandung · OTW 09.00–12.00 · 3 jam" rows under the strip; a tap goes to the Perjalanan activity. */
     transfers: List<TransferRow> = emptyList(),
     onOpenTransfer: (itemId: String) -> Unit = {},
+    /** True after the two-finger hint has been stored on this device. */
+    twoFingerHintShown: Boolean = true,
+    onTwoFingerHintShown: () -> Unit = {},
 ) {
     if (pins.isEmpty() && unlocated == 0) return
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (cities.size >= 2 && selectedCity != null) MiniMapCityChips(cities, selectedCity, onSelectCity)
         MiniMapBody(
             pins, unlocated, selectedId, collapsed, dark, onToggleCollapsed, onPinClick, onFillLocation, segments, lineStyle,
-            transfers, onOpenTransfer,
+            transfers, onOpenTransfer, twoFingerHintShown, onTwoFingerHintShown,
         )
     }
 }
@@ -130,68 +155,179 @@ private fun MiniMapBody(
     lineStyle: MapLineStyle?,
     transfers: List<TransferRow>,
     onOpenTransfer: (itemId: String) -> Unit,
+    twoFingerHintShown: Boolean,
+    onTwoFingerHintShown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when {
         pins.isEmpty() -> MiniMapEmptyCard(onFillLocation, modifier)
-        collapsed -> MiniMapCollapsedBar(pins.size, onToggleCollapsed, modifier)
-        else -> {
-            // a retry makes a new map; the clock of 8 s starts with each try
-            var attempt by remember { mutableIntStateOf(0) }
-            var phase by remember(attempt) { mutableStateOf(MapPhase.LOADING) }
-            LaunchedEffect(attempt) {
-                delay(MINI_MAP_LOAD_TIMEOUT_MILLIS)
-                if (phase == MapPhase.LOADING) phase = MapPhase.FAILED
-            }
-            val uriHandler = LocalUriHandler.current
-            val toOpen = pinToOpen(pins, selectedId)
-            Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        else -> MiniMapOpenable(
+            pins, unlocated, selectedId, collapsed, dark, onToggleCollapsed, onPinClick, onFillLocation,
+            segments, lineStyle, transfers, onOpenTransfer, twoFingerHintShown, onTwoFingerHintShown, modifier,
+        )
+    }
+}
+
+@Composable
+private fun MiniMapOpenable(
+    pins: List<MapPin>,
+    unlocated: Int,
+    selectedId: String?,
+    collapsed: Boolean,
+    dark: Boolean,
+    onToggleCollapsed: () -> Unit,
+    onPinClick: (itemId: String) -> Unit,
+    onFillLocation: (() -> Unit)?,
+    segments: List<MapSegment>,
+    lineStyle: MapLineStyle?,
+    transfers: List<TransferRow>,
+    onOpenTransfer: (itemId: String) -> Unit,
+    twoFingerHintShown: Boolean,
+    onTwoFingerHintShown: () -> Unit,
+    modifier: Modifier,
+) {
+    var mounted by remember { mutableStateOf(!collapsed) }
+    if (!collapsed) mounted = true
+    var attempt by remember { mutableIntStateOf(0) }
+    var phase by remember { mutableStateOf(MapPhase.LOADING) }
+    var fullscreen by remember { mutableStateOf(false) }
+    var recenterTick by remember { mutableIntStateOf(0) }
+    var mapReveal by remember { mutableFloatStateOf(0f) }
+    var showHint by remember { mutableStateOf(false) }
+    val reduceMotion = rememberReduceMotion()
+    val uriHandler = LocalUriHandler.current
+    val toOpen = pinToOpen(pins, selectedId)
+    val openMaps = toOpen?.let { pin -> { uriHandler.openUri(googleMapsUrl(pin)) } }
+    val collapsedBarHeight = 48.dp
+    val height by animateDpAsState(
+        if (collapsed) collapsedBarHeight else StripHeight,
+        animationSpec = if (reduceMotion) snap() else IrisMotion.defaultSpatial(),
+        label = "mini-map-height",
+    )
+    val mapAlpha by animateFloatAsState(
+        if (mapReveal >= 1f) 1f else 0f,
+        animationSpec = if (reduceMotion) snap() else IrisMotion.short4Decelerate(),
+        label = "mini-map-fade",
+    )
+    val skeletonAlpha by animateFloatAsState(
+        if (phase == MapPhase.LOADING && mapReveal < 1f) 1f else 0f,
+        animationSpec = IrisMotion.short3(),
+        label = "mini-map-skeleton",
+    )
+    LaunchedEffect(attempt) {
+        if (phase == MapPhase.LOADED) return@LaunchedEffect
+        delay(MINI_MAP_LOAD_TIMEOUT_MILLIS)
+        if (phase == MapPhase.LOADING) phase = MapPhase.FAILED
+    }
+    LaunchedEffect(phase, twoFingerHintShown, collapsed) {
+        if (phase != MapPhase.LOADED || twoFingerHintShown || collapsed) return@LaunchedEffect
+        showHint = true
+        delay(4_000)
+        showHint = false
+        onTwoFingerHintShown()
+    }
+    val ring = MaterialTheme.colorScheme.primary.toArgb()
+    val description = stringResource(Res.string.mini_map_description, pins.size)
+    val mapCanvas: @Composable (Modifier, Int, Int, Boolean, Int) -> Unit = { canvasModifier, widthPx, heightPx, expanded, tick ->
+        MiniMapCanvas(
+            pins = pins,
+            selectedId = selectedId,
+            dark = dark,
+            ringColor = ring,
+            description = description,
+            onPinClick = onPinClick,
+            onLoaded = { phase = MapPhase.LOADED },
+            modifier = canvasModifier,
+            segments = segments,
+            lineStyle = lineStyle,
+            viewportWidthPx = widthPx,
+            viewportHeightPx = heightPx,
+            gestures = if (expanded) MiniMapGestureMode.FREE else MiniMapGestureMode.TWO_FINGER,
+            recenterTick = tick,
+            expanded = expanded,
+            onRevealProgress = { mapReveal = it },
+        )
+    }
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(Modifier.fillMaxWidth().height(height).clip(IrisShape.lg).clipToBounds()) {
+            if (mounted) {
                 MiniMapStrip(
                     phase = phase,
-                    canvas = { canvasModifier ->
-                        MiniMapCanvas(
-                            pins = pins,
-                            selectedId = selectedId,
-                            dark = dark,
-                            ringColor = MaterialTheme.colorScheme.primary.toArgb(),
-                            description = stringResource(Res.string.mini_map_description, pins.size),
-                            onPinClick = onPinClick,
-                            onLoaded = { phase = MapPhase.LOADED },
-                            modifier = canvasModifier,
-                            segments = segments,
-                            lineStyle = lineStyle,
-                        )
-                    },
-                    onOpenInMaps = toOpen?.let { pin -> { uriHandler.openUri(googleMapsUrl(pin)) } },
+                    mapAlpha = mapAlpha,
+                    skeletonAlpha = skeletonAlpha,
+                    showHint = showHint && !collapsed,
+                    canvas = { canvasModifier, w, h -> mapCanvas(canvasModifier, w, h, false, 0) },
+                    onOpenInMaps = openMaps,
                     onCollapse = onToggleCollapsed,
-                    onRetry = { attempt++ },
+                    onFullscreen = { fullscreen = true },
+                    onRetry = {
+                        phase = MapPhase.LOADING
+                        mapReveal = 0f
+                        attempt++
+                    },
+                    modifier = Modifier.fillMaxWidth().requiredHeight(StripHeight),
                 )
-                // the lines are straight, not roads: said once under the strip while the map is open (spec)
-                if (segments.isNotEmpty() && phase != MapPhase.FAILED) {
-                    Text(
-                        stringResource(Res.string.map_travel_caption),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        // closer to the strip than the column's spacing; never a negative padding (Compose crashes on one)
-                        modifier = Modifier.pulledUp(6.dp),
-                    )
-                }
-                transfers.forEach { row -> IntercityRow(row, onClick = { onOpenTransfer(row.itemId) }) }
-                if (unlocated > 0) MiniMapPartialLine(unlocated, onFillLocation)
             }
+            androidx.compose.animation.AnimatedVisibility(
+                visible = collapsed,
+                enter = fadeIn(IrisMotion.short3()),
+                exit = fadeOut(IrisMotion.short3()),
+            ) {
+                MiniMapCollapsedBar(pins.size, onToggleCollapsed, Modifier.fillMaxWidth())
+            }
+        }
+        androidx.compose.animation.AnimatedVisibility(
+            visible = !collapsed && segments.isNotEmpty() && phase != MapPhase.FAILED,
+            enter = fadeIn(IrisMotion.short3()),
+            exit = fadeOut(IrisMotion.short3()),
+        ) {
+            Text(
+                stringResource(Res.string.map_travel_caption),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.pulledUp(6.dp),
+            )
+        }
+        if (!collapsed) {
+            transfers.forEach { row -> IntercityRow(row, onClick = { onOpenTransfer(row.itemId) }) }
+            if (unlocated > 0) MiniMapPartialLine(unlocated, onFillLocation)
+        }
+    }
+    if (fullscreen) {
+        Dialog(
+            onDismissRequest = { fullscreen = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            SheetBackHandler { fullscreen = false }
+            MiniMapFullscreen(
+                phase = phase,
+                canvas = { canvasModifier, w, h -> mapCanvas(canvasModifier, w, h, true, recenterTick) },
+                onOpenInMaps = openMaps,
+                onClose = { fullscreen = false },
+                onRecenter = { recenterTick++ },
+                onRetry = {
+                    phase = MapPhase.LOADING
+                    mapReveal = 0f
+                    attempt++
+                },
+            )
         }
     }
 }
 
-/** The strip: the map (a slot, so previews can show a stand-in) with its two controls, the skeleton, or the failed card. */
+/** The strip: the map (a slot, so previews can show a stand-in) with its controls, the skeleton, or the failed card. */
 @Composable
 fun MiniMapStrip(
     phase: MapPhase,
-    canvas: @Composable (Modifier) -> Unit,
+    canvas: @Composable (Modifier, widthPx: Int, heightPx: Int) -> Unit,
     onOpenInMaps: (() -> Unit)?,
     onCollapse: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    mapAlpha: Float = 1f,
+    skeletonAlpha: Float = 0f,
+    showHint: Boolean = false,
+    onFullscreen: () -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
     Box(modifier.fillMaxWidth().height(StripHeight).clip(IrisShape.lg).background(scheme.surfaceContainerHigh)) {
@@ -199,60 +335,150 @@ fun MiniMapStrip(
             MiniMapFailedCard(onRetry, Modifier.fillMaxSize())
             return@Box
         }
-        canvas(Modifier.fillMaxSize())
-        // the strip keeps its height while it loads, so the list never jumps
-        if (phase == MapPhase.LOADING) SkeletonCards(cards = 1, cardHeight = StripHeight, padding = 0.dp)
-        // controls sit apart from the Google logo (bottom left), which must stay visible
-        if (onOpenInMaps != null) {
-            Box(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                    .clickable(role = Role.Button, onClick = onOpenInMaps),
-                contentAlignment = Alignment.Center,
-            ) {
-                Row(
-                    Modifier
-                        .height(32.dp)
-                        .clip(CircleShape)
-                        .background(scheme.surface)
-                        .border(1.dp, scheme.outline, CircleShape)
-                        .padding(horizontal = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Symbol(Symbols.openInNew, size = 14.dp, tint = scheme.onSurface)
-                    Text(
-                        stringResource(Res.string.mini_map_open_in_maps),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = scheme.onSurface,
-                    )
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val widthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
+            val heightPx = with(LocalDensity.current) { maxHeight.roundToPx() }
+            if (widthPx > 0 && heightPx > 0) {
+                Box(Modifier.fillMaxSize().graphicsLayer { alpha = mapAlpha }) {
+                    canvas(Modifier.fillMaxSize(), widthPx, heightPx)
                 }
             }
         }
-        Box(
-            Modifier
-                .align(Alignment.TopEnd)
-                .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
-                .clickable(role = Role.Button, onClick = onCollapse),
-            contentAlignment = Alignment.Center,
-        ) {
+        if (skeletonAlpha > 0f) {
             Box(
                 Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(scheme.surface)
-                    .border(1.dp, scheme.outlineVariant, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Symbol(
-                    Symbols.expandMore,
-                    size = 20.dp,
-                    tint = scheme.onSurface,
-                    modifier = Modifier.rotate(180f),
-                    contentDescription = stringResource(Res.string.mini_map_collapse),
-                )
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = skeletonAlpha }
+                    .background(scheme.surfaceContainerHigh),
+            )
+        }
+        if (onOpenInMaps != null) {
+            OpenInMapsChip(onOpenInMaps, Modifier.align(Alignment.BottomEnd))
+        }
+        Row(Modifier.align(Alignment.TopEnd), verticalAlignment = Alignment.CenterVertically) {
+            MapIconButton(
+                symbol = Symbols.expandMore,
+                label = stringResource(Res.string.mini_map_collapse),
+                onClick = onCollapse,
+                symbolModifier = Modifier.rotate(180f),
+            )
+            MapIconButton(
+                symbol = Symbols.explore,
+                label = stringResource(Res.string.mini_map_fullscreen),
+                onClick = onFullscreen,
+            )
+        }
+        if (showHint) {
+            Text(
+                stringResource(Res.string.mini_map_two_finger_hint),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                color = scheme.onSurface,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 40.dp, start = 12.dp, end = 12.dp)
+                    .clip(IrisShape.md)
+                    .background(scheme.surface.copy(alpha = 0.92f))
+                    .border(1.dp, scheme.outlineVariant, IrisShape.md)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MiniMapFullscreen(
+    phase: MapPhase,
+    canvas: @Composable (Modifier, widthPx: Int, heightPx: Int) -> Unit,
+    onOpenInMaps: (() -> Unit)?,
+    onClose: () -> Unit,
+    onRecenter: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val enter = fadeIn(IrisMotion.short4Decelerate()) + scaleIn(IrisMotion.defaultSpatial(), initialScale = 0.92f)
+    val exit = fadeOut(IrisMotion.short3()) + scaleOut(IrisMotion.defaultSpatial(), targetScale = 0.92f)
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    androidx.compose.animation.AnimatedVisibility(visible = shown, enter = enter, exit = exit) {
+        Box(Modifier.fillMaxSize().background(scheme.surfaceContainerHigh)) {
+            if (phase == MapPhase.FAILED) {
+                MiniMapFailedCard(onRetry, Modifier.fillMaxSize().statusBarsPadding())
+            } else {
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val widthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
+                    val heightPx = with(LocalDensity.current) { maxHeight.roundToPx() }
+                    if (widthPx > 0 && heightPx > 0) {
+                        canvas(Modifier.fillMaxSize(), widthPx, heightPx)
+                    }
+                }
             }
+            MapIconButton(
+                symbol = Symbols.close,
+                label = stringResource(Res.string.mini_map_collapse),
+                onClick = onClose,
+                modifier = Modifier.align(Alignment.TopStart).statusBarsPadding(),
+            )
+            Column(
+                Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 8.dp, bottom = 8.dp),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MapIconButton(
+                    symbol = Symbols.locationOn,
+                    label = stringResource(Res.string.mini_map_recenter),
+                    onClick = onRecenter,
+                )
+                if (onOpenInMaps != null) OpenInMapsChip(onOpenInMaps)
+            }
+        }
+    }
+}
+
+@Composable
+private fun OpenInMapsChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    Box(
+        modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            Modifier
+                .height(32.dp)
+                .clip(CircleShape)
+                .background(scheme.surface)
+                .border(1.dp, scheme.outline, CircleShape)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Symbol(Symbols.openInNew, size = 14.dp, tint = scheme.onSurface)
+            Text(
+                stringResource(Res.string.mini_map_open_in_maps),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = scheme.onSurface,
+            )
+        }
+    }
+}
+
+@Composable
+private fun MapIconButton(
+    symbol: String,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    symbolModifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Box(
+        modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier.size(32.dp).clip(CircleShape).background(scheme.surface).border(1.dp, scheme.outlineVariant, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Symbol(symbol, size = 20.dp, tint = scheme.onSurface, modifier = symbolModifier, contentDescription = label)
         }
     }
 }
@@ -417,9 +643,9 @@ private fun PreviewMapStandIn(modifier: Modifier) {
 @Composable
 private fun MiniMapStripPreview() = IrisPreview {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        MiniMapStrip(MapPhase.LOADED, { PreviewMapStandIn(it) }, {}, {}, {})
-        MiniMapStrip(MapPhase.LOADING, { PreviewMapStandIn(it) }, {}, {}, {})
-        MiniMapStrip(MapPhase.FAILED, { PreviewMapStandIn(it) }, {}, {}, {})
+        MiniMapStrip(MapPhase.LOADED, { modifier, _, _ -> PreviewMapStandIn(modifier) }, {}, {}, {})
+        MiniMapStrip(MapPhase.LOADING, { modifier, _, _ -> PreviewMapStandIn(modifier) }, {}, {}, {}, skeletonAlpha = 1f, mapAlpha = 0f)
+        MiniMapStrip(MapPhase.FAILED, { modifier, _, _ -> PreviewMapStandIn(modifier) }, {}, {}, {})
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             PinBadge(MapPin("a", 1, 0.0, 0.0, app.ransel.shared.model.Category.FOOD, 0xFFFF5722.toInt(), 0xFFFFFFFF.toInt()))
             PinBadge(MapPin("b", 2, 0.0, 0.0, app.ransel.shared.model.Category.SHOPPING, 0xFFFFB800.toInt(), 0xFF1B1B1B.toInt()))
