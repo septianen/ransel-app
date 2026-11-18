@@ -18,4 +18,10 @@ actual fun MiniMapCanvas(
     modifier: Modifier,
     segments: List<MapSegment>,
     lineStyle: MapLineStyle?,
+    viewportWidthPx: Int,
+    viewportHeightPx: Int,
+    gestures: MiniMapGestureMode,
+    recenterTick: Int,
+    expanded: Boolean,
+    onRevealProgress: (Float) -> Unit,
 ) = Unit

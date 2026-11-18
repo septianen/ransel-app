@@ -9,6 +9,17 @@ import app.ransel.feature.itinerary.map.mapPinsOf
 import app.ransel.feature.itinerary.map.pinToOpen
 import app.ransel.feature.itinerary.map.storedMiniMapOpen
 import app.ransel.feature.itinerary.map.unlocatedCount
+import app.ransel.feature.itinerary.map.GeoPoint
+import app.ransel.feature.itinerary.map.clampToRect
+import app.ransel.feature.itinerary.map.clampZoom
+import app.ransel.feature.itinerary.map.dragBounds
+import app.ransel.feature.itinerary.map.fitCamera
+import app.ransel.feature.itinerary.map.isMiniMapTwoFingerHintShown
+import app.ransel.feature.itinerary.map.minZoomPreference
+import app.ransel.feature.itinerary.map.MINI_MAP_MAX_ZOOM
+import app.ransel.feature.itinerary.map.MINI_MAP_MIN_ZOOM_FLOOR
+import app.ransel.feature.itinerary.map.MINI_MAP_SINGLE_FIT_ZOOM
+import kotlin.math.abs
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.model.Category
 import kotlin.test.Test
@@ -85,5 +96,51 @@ class MiniMapModelTest {
         assertNull(storedMiniMapOpen(false), "closing again goes back to the default")
         assertTrue(isMiniMapOpen(storedMiniMapOpen(true)))
         assertFalse(isMiniMapOpen(storedMiniMapOpen(false)))
+    }
+
+    @Test
+    fun theTwoFingerHintIsShownOnceThenRemembered() {
+        assertFalse(isMiniMapTwoFingerHintShown(null))
+        assertFalse(isMiniMapTwoFingerHintShown("0"))
+        assertTrue(isMiniMapTwoFingerHintShown("1"))
+    }
+
+    @Test
+    fun minZoomIsOneLevelWiderThanTheFitAndNeverWiderThanTen() {
+        assertEquals(14f, minZoomPreference(15f))
+        assertEquals(MINI_MAP_MIN_ZOOM_FLOOR, minZoomPreference(10f))
+        assertEquals(MINI_MAP_MIN_ZOOM_FLOOR, minZoomPreference(8f), "a very wide fit still stops at zoom 10")
+        assertEquals(MINI_MAP_MAX_ZOOM, clampZoom(21f, 15f))
+        assertEquals(14f, clampZoom(12f, 15f))
+    }
+
+    @Test
+    fun oneStopFitsAtZoom15AndDragsInsideAboutTwoKilometres() {
+        val pin = GeoPoint(-8.5, 115.2)
+        val fit = fitCamera(listOf(pin), 1080, 480, 0, 0, 0, 0, 2.75f)!!
+        assertEquals(-8.5, fit.centerLat)
+        assertEquals(115.2, fit.centerLng)
+        assertEquals(MINI_MAP_SINGLE_FIT_ZOOM, fit.zoom)
+        val box = dragBounds(listOf(pin))!!
+        val kmNorth = (box.north - box.south) * 110.574
+        assertTrue(abs(kmNorth - 2.0) < 0.05, "the drag box is ~2 km tall, was $kmNorth")
+        val inside = clampToRect(box.centerLat, box.centerLng, box)
+        assertEquals(box.centerLat, inside.lat)
+        val outside = clampToRect(box.north + 1, box.east + 1, box)
+        assertEquals(box.north, outside.lat)
+        assertEquals(box.east, outside.lng)
+    }
+
+    @Test
+    fun severalStopsPadTheDragBoxByHalfAndFitInsideTheViewport() {
+        val pins = listOf(GeoPoint(-8.50, 115.20), GeoPoint(-8.60, 115.30))
+        val box = dragBounds(pins)!!
+        val rawLat = 0.10
+        assertEquals(-8.60 - rawLat * 0.25, box.south, 1e-9)
+        assertEquals(-8.50 + rawLat * 0.25, box.north, 1e-9)
+        val fit = fitCamera(pins, 1000, 500, 40, 40, 40, 40, 2f)!!
+        assertTrue(fit.zoom in MINI_MAP_MIN_ZOOM_FLOOR..MINI_MAP_MAX_ZOOM)
+        assertTrue(fit.zoom < 18f, "two Bali stops in a 1000 px view are not at max zoom")
+        assertEquals((-8.50 + -8.60) / 2, fit.centerLat, 1e-9)
     }
 }

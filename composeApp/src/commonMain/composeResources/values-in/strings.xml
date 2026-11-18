@@ -1412,6 +1412,9 @@
     <string name="mini_map_failed_body">Daftar aktivitas tetap bisa dipakai</string>
     <string name="mini_map_retry">Coba lagi</string>
     <string name="mini_map_badge">Lokasi nomor %1$d</string>
+    <string name="mini_map_two_finger_hint">Pakai 2 jari buat geser peta</string>
+    <string name="mini_map_fullscreen">Buka peta layar penuh</string>
+    <string name="mini_map_recenter">Pusatkan peta</string>
     <string name="near_title">Cari dekat mana?</string>
     <string name="near_pick">Pilih</string>
     <string name="near_current">Lokasi saat ini</string>

@@ -1424,6 +1424,9 @@
     <string name="mini_map_failed_body">Your activity list still works</string>
     <string name="mini_map_retry">Try again</string>
     <string name="mini_map_badge">Location number %1$d</string>
+    <string name="mini_map_two_finger_hint">Use two fingers to move the map</string>
+    <string name="mini_map_fullscreen">Open the map full screen</string>
+    <string name="mini_map_recenter">Recenter the map</string>
     <string name="near_title">Search near where?</string>
     <string name="near_pick">Pick</string>
     <string name="near_current">Current location</string>

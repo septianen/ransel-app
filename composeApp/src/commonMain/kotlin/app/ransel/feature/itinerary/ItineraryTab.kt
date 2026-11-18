@@ -5,7 +5,9 @@ import app.ransel.ui.RefreshOnReturn
 import app.ransel.content.getString
 import app.ransel.content.stringResource
 import app.ransel.ui.components.SectionHeader
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -48,8 +50,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -88,10 +92,12 @@ import app.ransel.feature.itinerary.map.storedMiniMapOpen
 import app.ransel.feature.itinerary.map.mapPinsOf
 import app.ransel.feature.itinerary.map.firstUnlocated
 import app.ransel.feature.itinerary.map.isMiniMapOpen
+import app.ransel.feature.itinerary.map.isMiniMapTwoFingerHintShown
 import app.ransel.feature.itinerary.map.PinBadge
 import app.ransel.feature.itinerary.map.MiniMapSection
 import app.ransel.feature.itinerary.map.MapPin
 import app.ransel.feature.itinerary.map.MINI_MAP_OPEN_KEY
+import app.ransel.feature.itinerary.map.MINI_MAP_TWO_FINGER_HINT_KEY
 import app.ransel.data.repository.PreferencesRepository
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.luminance
@@ -137,8 +143,10 @@ import app.ransel.shared.domain.intercityTransfers
 import app.ransel.shared.domain.mapsMode
 import app.ransel.shared.domain.stopsInCity
 import app.ransel.shared.model.MainTravelMode
+import app.ransel.ui.theme.IrisMotion
 import app.ransel.ui.theme.IrisShape
 import app.ransel.ui.theme.IrisTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.painterResource
@@ -337,7 +345,7 @@ private fun ItineraryContent(
         return
     }
     val dates = rememberDateFormatter()
-    val drag = remember(state.selectedDay) { DayDragState() }
+    val drag = remember { DayDragState() }
     var showUnscheduled by rememberSaveable { mutableStateOf(false) }
     var scheduleItemId by rememberSaveable { mutableStateOf<String?>(null) }
     var autoPlan by remember { mutableStateOf<AutoPlan?>(null) }
@@ -345,14 +353,17 @@ private fun ItineraryContent(
     var confirmDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     val day = state.selectedDay
     val items = state.selectedItems
-    val ids = items.map { it.id }
 
     // the day's mini map: pins numbered among the activities that have a place; the pin tapped is highlighted in the list
     val scope = rememberCoroutineScope()
     val prefs: PreferencesRepository = koinInject()
     // closed until the user opens it: nothing of the map is built before that
     var mapOpen by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { mapOpen = isMiniMapOpen(prefs.getString(MINI_MAP_OPEN_KEY)) }
+    var twoFingerHintShown by remember { mutableStateOf(true) }
+    LaunchedEffect(Unit) {
+        mapOpen = isMiniMapOpen(prefs.getString(MINI_MAP_OPEN_KEY))
+        twoFingerHintShown = isMiniMapTwoFingerHintShown(prefs.getString(MINI_MAP_TWO_FINGER_HINT_KEY))
+    }
     var selectedPinId by rememberSaveable(day) { mutableStateOf<String?>(null) }
     val rowRequesters = remember(day) { mutableMapOf<String, BringIntoViewRequester>() }
     val pinColors = Category.entries.associateWith { category ->
@@ -426,27 +437,46 @@ private fun ItineraryContent(
         emptyList()
     }
 
-    val from = ids.indexOf(drag.draggingId)
+    LaunchedEffect(day) {
+        drag.finish()
+        drag.clearRowBounds()
+        viewModel.endDrag()
+    }
+
+    val from = if (drag.isDragging) drag.fromIndex() else -1
     val hovered = drag.hoveredChip
-    val target = if (from >= 0 && hovered == null) drag.targetIndex(ids).coerceIn(0, items.lastIndex.coerceAtLeast(0)) else from
+    val target = if (from >= 0 && hovered == null) drag.targetIndex().coerceIn(0, items.lastIndex.coerceAtLeast(0)) else from
     val preview = if (from >= 0 && hovered == null && target != from) {
         reorder(items.map { Slot(it.id, it.startTime, it.endTime) }, from, target).associateBy { it.id }
     } else {
         null
     }
+    val hintAlpha by animateFloatAsState(
+        targetValue = if (drag.showChrome) 1f else 0f,
+        animationSpec = tween(IrisMotion.Short4),
+        label = "drag-hint",
+    )
 
     fun finishDrag() {
         // Read everything from the live drag state: this function may be called from a gesture that
         // started before the latest recomposition.
-        val dragged = drag.draggingId
+        if (drag.settling) return
+        val dragged = drag.draggingId ?: return
         val chip = drag.hoveredChip
-        val fromIndex = ids.indexOf(dragged)
-        val destination = if (fromIndex >= 0 && chip == null) drag.targetIndex(ids) else -1
-        drag.finish()
-        if (dragged == null || day == null) return
-        when {
-            chip != null -> state.days.getOrNull(chip)?.let { if (it != day) onMoveToDay(dragged, it) }
-            destination >= 0 && destination != fromIndex -> onReorder(day, fromIndex, destination)
+        val fromIndex = drag.fromIndex()
+        val destination = if (fromIndex >= 0 && chip == null) drag.targetIndex() else -1
+        drag.beginSettle()
+        scope.launch {
+            val token = drag.settleToken
+            delay(IrisMotion.Short4.toLong())
+            if (drag.settleToken != token) return@launch
+            drag.finish()
+            viewModel.endDrag()
+            if (day == null) return@launch
+            when {
+                chip != null -> state.days.getOrNull(chip)?.let { if (it != day) onMoveToDay(dragged, it) }
+                destination >= 0 && destination != fromIndex -> onReorder(day, fromIndex, destination)
+            }
         }
     }
 
@@ -477,7 +507,7 @@ private fun ItineraryContent(
                     )
                 }
                 if (drag.isDragging) {
-                    DragHint()
+                    DragHint(Modifier.graphicsLayer { alpha = hintAlpha })
                 }
                 if (day != null && miniMapSupported) {
                     MiniMapSection(
@@ -506,6 +536,11 @@ private fun ItineraryContent(
                         onSelectCity = { pickedCity = it },
                         transfers = transfers,
                         onOpenTransfer = { id -> scope.launch { rowRequesters[id]?.bringIntoView() } },
+                        twoFingerHintShown = twoFingerHintShown,
+                        onTwoFingerHintShown = {
+                            twoFingerHintShown = true
+                            scope.launch { prefs.putString(MINI_MAP_TWO_FINGER_HINT_KEY, "1") }
+                        },
                     )
                 }
                 if (day != null) {
@@ -519,6 +554,9 @@ private fun ItineraryContent(
                         target = target,
                         from = from,
                         onFinish = ::finishDrag,
+                        onBeginDrag = viewModel::beginDrag,
+                        onEndDrag = viewModel::endDrag,
+                        flashingIds = state.flashingIds,
                         onEdit = onOpenActivity,
                         canEdit = canEdit,
                         onExplore = onExplore,
@@ -691,9 +729,9 @@ private fun DayChips(
 }
 
 @Composable
-private fun DragHint() {
+private fun DragHint(modifier: Modifier = Modifier) {
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .clip(IrisShape.md)
             .background(MaterialTheme.colorScheme.surfaceContainer)
@@ -722,6 +760,9 @@ private fun DaySection(
     target: Int,
     from: Int,
     onFinish: () -> Unit,
+    onBeginDrag: () -> Unit,
+    onEndDrag: () -> Unit,
+    flashingIds: Set<String>,
     onEdit: (String) -> Unit,
     canEdit: Boolean,
     onExplore: (() -> Unit)?,
@@ -735,12 +776,14 @@ private fun DaySection(
     rowRequesters: MutableMap<String, BringIntoViewRequester>,
 ) {
     val finish by rememberUpdatedState(onFinish)
+    val beginDrag by rememberUpdatedState(onBeginDrag)
+    val endDrag by rememberUpdatedState(onEndDrag)
     val itemIds by rememberUpdatedState(items.map { it.id })
     var containerRoot by remember { mutableStateOf(Offset.Zero) }
     Column(
         Modifier
             .onGloballyPositioned { containerRoot = it.positionInRoot() }
-            .pointerInput(drag, canEdit) {
+            .pointerInput(canEdit) {
                 if (!canEdit) return@pointerInput
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -750,13 +793,24 @@ private fun DaySection(
                     val bounds = drag.rowBounds.getValue(hit)
                     // only a long press anywhere on the row starts a drag, so scrolling past a row never moves it
                     if (awaitLongPressOrCancellation(down.id) == null) return@awaitEachGesture
-                    drag.start(hit, rootPos - bounds.topLeft)
-                    val completed = drag(down.id) { change ->
-                        val delta = change.positionChange()
-                        change.consume()
-                        drag.dragBy(delta.x, delta.y)
+                    try {
+                        drag.start(hit, rootPos - bounds.topLeft, itemIds)
+                        beginDrag()
+                        val completed = drag(down.id) { change ->
+                            val delta = change.positionChange()
+                            change.consume()
+                            drag.dragBy(delta.x, delta.y)
+                        }
+                        if (completed) finish() else {
+                            drag.finish()
+                            endDrag()
+                        }
+                    } finally {
+                        if (drag.isDragging && !drag.settling) {
+                            drag.finish()
+                            endDrag()
+                        }
                     }
-                    if (completed) finish() else drag.finish()
                 }
             },
     ) {
@@ -784,6 +838,13 @@ private fun DaySection(
             }
             val height = drag.rowBounds[drag.draggingId]?.height ?: 0f
             val animatedShift by animateFloatAsState(shift * height, label = "row-shift")
+            var lastDelta by remember(item.id) { mutableFloatStateOf(0f) }
+            SideEffect { if (isDragging && !drag.settling) lastDelta = drag.deltaY }
+            val settleY by animateFloatAsState(
+                targetValue = if (isDragging && drag.settling) 0f else lastDelta,
+                animationSpec = tween(if (isDragging && drag.settling) IrisMotion.Short4 else 0),
+                label = "drag-settle",
+            )
             val slot = previewSlots?.get(item.id)
             val gap = legs.getOrNull(index)
             val showGap = gap is LegDisplay.Leg || (gap is LegDisplay.AddLocationPrompt && canEdit)
@@ -795,8 +856,13 @@ private fun DaySection(
                 shownStart = slot?.start ?: item.startTime,
                 shownEnd = slot?.end ?: item.endTime,
                 dragging = isDragging,
+                flashing = item.id in flashingIds,
                 showDuration = drag.isDragging,
-                translationY = if (isDragging) drag.deltaY else animatedShift,
+                translationY = when {
+                    isDragging && drag.settling -> settleY
+                    isDragging -> drag.deltaY
+                    else -> animatedShift
+                },
                 drag = drag,
                 onClick = { onEdit(item.id) },
                 pin = pinsById[item.id],
@@ -854,6 +920,7 @@ private fun TimelineRow(
     shownStart: kotlinx.datetime.LocalTime?,
     shownEnd: kotlinx.datetime.LocalTime?,
     dragging: Boolean,
+    flashing: Boolean,
     showDuration: Boolean,
     translationY: Float,
     drag: DayDragState,
@@ -864,6 +931,19 @@ private fun TimelineRow(
     requester: BringIntoViewRequester,
 ) {
     val primary = MaterialTheme.colorScheme.primary
+    val chromeAlpha by animateFloatAsState(
+        targetValue = if (dragging && drag.showChrome) 1f else 0f,
+        animationSpec = tween(IrisMotion.Short4),
+        label = "drag-chrome",
+    )
+    val timeColor by animateColorAsState(
+        targetValue = when {
+            dragging || flashing || (drag.isDragging && shownStart != item.startTime) -> primary
+            else -> MaterialTheme.colorScheme.onSurface
+        },
+        animationSpec = tween(IrisMotion.Short4),
+        label = "time-flash",
+    )
     val minutes = durationMinutes(shownStart, shownEnd) ?: item.durationMin
     val label = stringResource(item.category.itineraryLabel)
     val untilLabel = untilTime?.let { stringResource(Res.string.travel_until, formatTime(it)) }
@@ -896,7 +976,7 @@ private fun TimelineRow(
                 Text(
                     text = shownStart?.let { formatTime(it) }.orEmpty(),
                     style = MaterialTheme.typography.titleSmall,
-                    color = if (dragging || (drag.isDragging && shownStart != item.startTime)) primary else MaterialTheme.colorScheme.onSurface,
+                    color = timeColor,
                 )
             }
             if (!isLast) {
@@ -925,7 +1005,7 @@ private fun TimelineRow(
                         Modifier
                             .clip(IrisShape.lg)
                             .background(MaterialTheme.colorScheme.surface)
-                            .border(BorderStroke(2.dp, primary), IrisShape.lg)
+                            .border(BorderStroke(2.dp, primary.copy(alpha = chromeAlpha)), IrisShape.lg)
                             .padding(horizontal = 10.dp, vertical = 8.dp)
                     } else {
                         Modifier.clickable(onClick = onClick)
