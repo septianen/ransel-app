@@ -195,10 +195,10 @@ private fun MiniMapOpenable(
     onOpenInMaps: (() -> Unit)?,
     modifier: Modifier,
 ) {
-    var mounted by remember { mutableStateOf(!collapsed) }
-    if (!collapsed) mounted = true
     var collapseSettled by remember { mutableStateOf(collapsed) }
     if (!collapsed) collapseSettled = false
+    var mounted by remember { mutableStateOf(!collapsed) }
+    mounted = isMiniMapMounted(collapsed, collapseSettled, mounted)
     var attempt by remember { mutableIntStateOf(0) }
     var phase by remember { mutableStateOf(MapPhase.LOADING) }
     var fullscreen by remember { mutableStateOf(false) }
@@ -212,6 +212,11 @@ private fun MiniMapOpenable(
         animationSpec = if (reduceMotion) snap() else IrisMotion.defaultSpatial(),
         finishedListener = { value ->
             collapseSettled = collapsed && value == collapsedBarHeight
+            if (collapseSettled) {
+                // the map is thrown away now: the next expand starts from a skeleton and a new load clock
+                phase = MapPhase.LOADING
+                mapReveal = 0f
+            }
         },
         label = "mini-map-height",
     )
@@ -226,8 +231,8 @@ private fun MiniMapOpenable(
         animationSpec = IrisMotion.short3(),
         label = "mini-map-skeleton",
     )
-    LaunchedEffect(attempt) {
-        if (phase == MapPhase.LOADED) return@LaunchedEffect
+    LaunchedEffect(attempt, mounted) {
+        if (!mounted || phase == MapPhase.LOADED) return@LaunchedEffect
         delay(MINI_MAP_LOAD_TIMEOUT_MILLIS)
         if (phase == MapPhase.LOADING) phase = MapPhase.FAILED
     }

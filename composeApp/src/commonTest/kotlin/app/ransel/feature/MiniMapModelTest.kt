@@ -5,6 +5,7 @@ import app.ransel.feature.itinerary.map.firstUnlocated
 import app.ransel.feature.itinerary.map.googleMapsDayRoute
 import app.ransel.feature.itinerary.map.hasMapPoint
 import app.ransel.feature.itinerary.map.isMiniMapDrawn
+import app.ransel.feature.itinerary.map.isMiniMapMounted
 import app.ransel.feature.itinerary.map.isMiniMapOpen
 import app.ransel.feature.itinerary.map.mapPinsOf
 import app.ransel.feature.itinerary.map.pinToOpen
@@ -83,6 +84,22 @@ class MiniMapModelTest {
         assertTrue(isMiniMapDrawn(collapsed = false, collapseSettled = true), "expand always shows the map")
         assertTrue(isMiniMapDrawn(collapsed = true, collapseSettled = false), "still drawn while the 48 dp spring runs")
         assertFalse(isMiniMapDrawn(collapsed = true, collapseSettled = true), "hidden after the bar has settled")
+    }
+
+    @Test
+    fun theMapIsBuiltAgainOnEveryExpandAfterTheBarHasSettled() {
+        // closed from the start: never built
+        assertFalse(isMiniMapMounted(collapsed = true, collapseSettled = true, wasMounted = false))
+        // expand builds it, and it stays while the strip is open
+        assertTrue(isMiniMapMounted(collapsed = false, collapseSettled = false, wasMounted = false))
+        assertTrue(isMiniMapMounted(collapsed = false, collapseSettled = false, wasMounted = true))
+        // collapse: kept while the spring runs, thrown away once it has settled on the bar
+        assertTrue(isMiniMapMounted(collapsed = true, collapseSettled = false, wasMounted = true))
+        assertFalse(isMiniMapMounted(collapsed = true, collapseSettled = true, wasMounted = true))
+        // the second expand builds a new one
+        assertTrue(isMiniMapMounted(collapsed = false, collapseSettled = false, wasMounted = false))
+        // a collapse that is reopened before it settled never lost the map
+        assertTrue(isMiniMapMounted(collapsed = false, collapseSettled = false, wasMounted = true))
     }
 
     @Test
