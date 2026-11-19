@@ -197,6 +197,8 @@ private fun MiniMapOpenable(
 ) {
     var mounted by remember { mutableStateOf(!collapsed) }
     if (!collapsed) mounted = true
+    var collapseSettled by remember { mutableStateOf(collapsed) }
+    if (!collapsed) collapseSettled = false
     var attempt by remember { mutableIntStateOf(0) }
     var phase by remember { mutableStateOf(MapPhase.LOADING) }
     var fullscreen by remember { mutableStateOf(false) }
@@ -208,8 +210,12 @@ private fun MiniMapOpenable(
     val height by animateDpAsState(
         if (collapsed) collapsedBarHeight else StripHeight,
         animationSpec = if (reduceMotion) snap() else IrisMotion.defaultSpatial(),
+        finishedListener = { value ->
+            collapseSettled = collapsed && value == collapsedBarHeight
+        },
         label = "mini-map-height",
     )
+    val mapDrawn = isMiniMapDrawn(collapsed, collapseSettled)
     val mapAlpha by animateFloatAsState(
         if (mapReveal >= 1f) 1f else 0f,
         animationSpec = if (reduceMotion) snap() else IrisMotion.short4Decelerate(),
@@ -234,7 +240,7 @@ private fun MiniMapOpenable(
     }
     val ring = MaterialTheme.colorScheme.primary.toArgb()
     val description = stringResource(Res.string.mini_map_description, pins.size)
-    val mapCanvas: @Composable (Modifier, Int, Int, Boolean, Int) -> Unit = { canvasModifier, widthPx, heightPx, expanded, tick ->
+    val mapCanvas: @Composable (Modifier, Int, Int, Boolean, Int, Boolean) -> Unit = { canvasModifier, widthPx, heightPx, expanded, tick, drawn ->
         MiniMapCanvas(
             pins = pins,
             selectedId = selectedId,
@@ -252,6 +258,7 @@ private fun MiniMapOpenable(
             recenterTick = tick,
             expanded = expanded,
             onRevealProgress = { mapReveal = it },
+            drawn = drawn,
         )
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -262,7 +269,7 @@ private fun MiniMapOpenable(
                     mapAlpha = mapAlpha,
                     skeletonAlpha = skeletonAlpha,
                     showHint = showHint && !collapsed,
-                    canvas = { canvasModifier, w, h -> mapCanvas(canvasModifier, w, h, false, 0) },
+                    canvas = { canvasModifier, w, h -> mapCanvas(canvasModifier, w, h, false, 0, mapDrawn) },
                     onOpenInMaps = onOpenInMaps,
                     onCollapse = onToggleCollapsed,
                     onFullscreen = { fullscreen = true },
@@ -271,7 +278,10 @@ private fun MiniMapOpenable(
                         mapReveal = 0f
                         attempt++
                     },
-                    modifier = Modifier.fillMaxWidth().requiredHeight(StripHeight),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .requiredHeight(StripHeight)
+                        .graphicsLayer { alpha = if (mapDrawn) 1f else 0f },
                 )
             }
             androidx.compose.animation.AnimatedVisibility(
@@ -307,7 +317,7 @@ private fun MiniMapOpenable(
             SheetBackHandler { fullscreen = false }
             MiniMapFullscreen(
                 phase = phase,
-                canvas = { canvasModifier, w, h -> mapCanvas(canvasModifier, w, h, true, recenterTick) },
+                canvas = { canvasModifier, w, h -> mapCanvas(canvasModifier, w, h, true, recenterTick, true) },
                 onOpenInMaps = onOpenInMaps,
                 onClose = { fullscreen = false },
                 onRecenter = { recenterTick++ },

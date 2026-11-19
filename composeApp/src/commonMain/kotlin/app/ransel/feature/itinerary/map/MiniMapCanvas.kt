@@ -39,4 +39,9 @@ expect fun MiniMapCanvas(
     expanded: Boolean = false,
     /** Filled with 0..1 after the first tiles and the fit camera, so the caller can fade the map in. */
     onRevealProgress: (Float) -> Unit = {},
+    /**
+     * False after the collapse spring has settled: the map stays in composition (no reload on expand) but must not
+     * paint or take pointer input. Android's MapView is a SurfaceView and would otherwise show through the 48 dp bar.
+     */
+    drawn: Boolean = true,
 )
