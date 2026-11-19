@@ -9,6 +9,10 @@ import kotlinx.serialization.Serializable
 /** Explore step 2: the form for one trip; null = a new trip (destination and dates are asked in the form). */
 @Serializable data class ExplorePreferencesRoute(val tripId: String? = null)
 @Serializable data object AccountRoute
+/** Account → Profile & security. */
+@Serializable data object ProfileSecurityRoute
+/** Account → Payment (credits card, history, payment info). */
+@Serializable data object PaymentRoute
 
 /** First-launch introduction (3 pages), shown once. */
 @Serializable data object OnboardingRoute

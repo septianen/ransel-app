@@ -360,6 +360,19 @@
 
     <!-- Account -->
     <string name="account_title">Account</string>
+    <string name="account_section_account">Account</string>
+    <string name="account_profile_security">Profile &amp; security</string>
+    <string name="account_payment">Payment</string>
+    <string name="account_photo_name">Photo &amp; name</string>
+    <string name="account_email">Email</string>
+    <string name="account_email_readonly">Read-only</string>
+    <string name="account_danger_zone">Danger zone</string>
+    <string name="account_credit_history">Credit history</string>
+    <string name="account_top_up">Top up</string>
+    <string name="account_credits_count">Credits · %1$d</string>
+    <string name="account_sync_tile_synced">Synced · %1$s</string>
+    <string name="account_sync_retry">Retry</string>
+    <string name="account_app_version">RANSEL v%1$s</string>
     <string name="account_section_preferences">Preferences</string>
     <string name="account_default_currency">Default currency</string>
     <string name="account_theme">Theme</string>
@@ -367,6 +380,7 @@
     <string name="account_confirm_reorder">Confirm before reordering</string>
     <string name="account_confirm_reorder_hint">Ask first when a drag changes activity times.</string>
     <string name="account_section_other">More</string>
+    <string name="account_section_info">Info</string>
     <string name="account_about">About the app</string>
     <string name="theme_system">Follow system</string>
     <string name="theme_light">Light</string>
@@ -953,7 +967,7 @@
     <string name="notification_permission_body">Get told when a friend joins, a shared expense is added, and before you leave. You can change this or turn it off any time in Account.</string>
     <string name="notification_permission_allow">Yes, turn on</string>
     <string name="notification_permission_later">Not now</string>
-    <string name="account_notifications">Notifications and reminders</string>
+    <string name="account_notifications">Notifications &amp; reminders</string>
     <string name="account_notifications_hint">Trip activity, expenses, reminders</string>
     <!-- Itinerary voting (docs/specs/voting-spec.md) -->
     <string name="vote_title">Voting for %1$s</string>

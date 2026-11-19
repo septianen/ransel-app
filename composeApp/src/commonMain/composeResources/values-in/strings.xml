@@ -360,6 +360,19 @@
 
     <!-- Account -->
     <string name="account_title">Akun</string>
+    <string name="account_section_account">Akun</string>
+    <string name="account_profile_security">Profil &amp; keamanan</string>
+    <string name="account_payment">Pembayaran</string>
+    <string name="account_photo_name">Foto &amp; nama</string>
+    <string name="account_email">Email</string>
+    <string name="account_email_readonly">Hanya baca</string>
+    <string name="account_danger_zone">Zona bahaya</string>
+    <string name="account_credit_history">Riwayat kredit</string>
+    <string name="account_top_up">Isi ulang</string>
+    <string name="account_credits_count">Kredit · %1$d</string>
+    <string name="account_sync_tile_synced">Tersinkron · %1$s</string>
+    <string name="account_sync_retry">Coba lagi</string>
+    <string name="account_app_version">RANSEL v%1$s</string>
     <string name="account_section_preferences">Preferensi</string>
     <string name="account_default_currency">Mata uang default</string>
     <string name="account_theme">Tema</string>
@@ -367,6 +380,7 @@
     <string name="account_confirm_reorder">Konfirmasi ubah urutan</string>
     <string name="account_confirm_reorder_hint">Tanya dulu saat urutan mengubah jam aktivitas.</string>
     <string name="account_section_other">Lainnya</string>
+    <string name="account_section_info">Info</string>
     <string name="account_about">Tentang aplikasi</string>
     <string name="theme_system">Ikuti sistem</string>
     <string name="theme_light">Terang</string>
@@ -943,7 +957,7 @@
     <string name="notification_permission_body">Dapat kabar saat teman bergabung, ada pengeluaran bersama, dan sebelum berangkat. Bisa kamu atur atau matikan kapan saja di Akun.</string>
     <string name="notification_permission_allow">Ya, aktifkan</string>
     <string name="notification_permission_later">Nanti saja</string>
-    <string name="account_notifications">Notifikasi dan pengingat</string>
+    <string name="account_notifications">Notifikasi &amp; pengingat</string>
     <string name="account_notifications_hint">Aktivitas trip, pengeluaran, pengingat</string>
     <!-- Itinerary voting (docs/specs/voting-spec.md) -->
     <string name="vote_title">Voting untuk %1$s</string>
