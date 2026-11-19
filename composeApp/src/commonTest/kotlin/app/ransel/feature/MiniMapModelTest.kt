@@ -4,6 +4,7 @@ import app.ransel.feature.itinerary.map.MapPin
 import app.ransel.feature.itinerary.map.firstUnlocated
 import app.ransel.feature.itinerary.map.googleMapsDayRoute
 import app.ransel.feature.itinerary.map.hasMapPoint
+import app.ransel.feature.itinerary.map.isMiniMapDrawn
 import app.ransel.feature.itinerary.map.isMiniMapOpen
 import app.ransel.feature.itinerary.map.mapPinsOf
 import app.ransel.feature.itinerary.map.pinToOpen
@@ -74,6 +75,14 @@ class MiniMapModelTest {
         assertNull(firstUnlocated(listOf(item("a", 1.0, 2.0))))
         assertNull(firstUnlocated(emptyList()))
         assertEquals(1, unlocatedCount(listOf(item("x"))), "a day where nothing has a place: all are unlocated")
+    }
+
+    @Test
+    fun theMapStaysDrawnUntilTheCollapseSpringHasSettled() {
+        assertTrue(isMiniMapDrawn(collapsed = false, collapseSettled = false))
+        assertTrue(isMiniMapDrawn(collapsed = false, collapseSettled = true), "expand always shows the map")
+        assertTrue(isMiniMapDrawn(collapsed = true, collapseSettled = false), "still drawn while the 48 dp spring runs")
+        assertFalse(isMiniMapDrawn(collapsed = true, collapseSettled = true), "hidden after the bar has settled")
     }
 
     @Test

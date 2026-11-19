@@ -15,6 +15,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -118,6 +120,7 @@ actual fun MiniMapCanvas(
     recenterTick: Int,
     expanded: Boolean,
     onRevealProgress: (Float) -> Unit,
+    drawn: Boolean,
 ) {
     val density = LocalDensity.current
     val reduceMotion = rememberReduceMotion()
@@ -209,11 +212,12 @@ actual fun MiniMapCanvas(
     val latestCamera = rememberUpdatedState(cameraPositionState)
     val latestFitZoom = rememberUpdatedState(fitZoom)
     val latestDrag = rememberUpdatedState(drag)
-    LaunchedEffect(twoFingerOnly, viewRef.value) {
+    LaunchedEffect(twoFingerOnly, drawn, viewRef.value) {
         viewRef.value?.twoFingerOnly = twoFingerOnly
         viewRef.value?.onTwoFingerDelta = { midX, midY, prevMidX, prevMidY, span, prevSpan ->
             applyTwoFingerCamera(latestCamera.value, latestFitZoom.value, latestDrag.value, midX, midY, prevMidX, prevMidY, span, prevSpan)
         }
+        viewRef.value?.setDrawn(drawn)
     }
     val background = if (dark) DARK_MAP_BACKGROUND else LIGHT_MAP_BACKGROUND
     val optionsFactory = remember(initialPosition, background, dark) {
@@ -226,10 +230,12 @@ actual fun MiniMapCanvas(
     }
 
     GoogleMap(
-        modifier = modifier,
+        modifier = modifier
+            .graphicsLayer { alpha = if (drawn) 1f else 0f }
+            .then(if (drawn) Modifier else Modifier.pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent() } }),
         cameraPositionState = cameraPositionState,
         contentPadding = contentPadding,
-        contentDescription = description,
+        contentDescription = if (drawn) description else "",
         properties = properties,
         uiSettings = if (expanded) ExpandedUiSettings else StripUiSettings,
         mapColorScheme = if (dark) ComposeMapColorScheme.DARK else ComposeMapColorScheme.LIGHT,
@@ -237,6 +243,7 @@ actual fun MiniMapCanvas(
         mapViewFactory = { ctx, options ->
             CooperativeMapView(ctx, options).also {
                 it.twoFingerOnly = twoFingerOnly
+                it.setDrawn(drawn)
                 viewRef.value = it
             }
         },

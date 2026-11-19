@@ -2,6 +2,10 @@ package app.ransel.feature.itinerary.map
 
 import android.content.Context
 import android.view.MotionEvent
+import android.view.SurfaceView
+import android.view.TextureView
+import android.view.View
+import android.view.ViewGroup
 import com.google.android.gms.maps.GoogleMapOptions
 import com.google.android.gms.maps.MapView
 import kotlin.math.hypot
@@ -32,8 +36,29 @@ internal class CooperativeMapView(
     private var prevMidY = 0f
     private var prevSpan = 0f
     private var tracking = false
+    private var drawn: Boolean = true
+
+    /**
+     * Compose clip and alpha do not hide a SurfaceView. After collapse settles, keep this MapView in the tree (so
+     * expand does not reload tiles) but stop it painting and taking touches.
+     */
+    fun setDrawn(drawn: Boolean) {
+        this.drawn = drawn
+        applyDrawn(this, drawn)
+    }
+
+    override fun onViewAdded(child: View) {
+        super.onViewAdded(child)
+        if (!drawn) applyDrawn(this, drawn = false)
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        if (!drawn) applyDrawn(this, drawn = false)
+    }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (!drawn) return false
         if (!twoFingerOnly) {
             parent?.requestDisallowInterceptTouchEvent(true)
             return super.dispatchTouchEvent(ev)
@@ -85,5 +110,36 @@ internal class CooperativeMapView(
         prevMidX = (ev.getX(0) + ev.getX(1)) / 2f
         prevMidY = (ev.getY(0) + ev.getY(1)) / 2f
         prevSpan = hypot(ev.getX(0) - ev.getX(1), ev.getY(0) - ev.getY(1))
+    }
+}
+
+private fun applyDrawn(root: View, drawn: Boolean) {
+    if (drawn) {
+        root.visibility = View.VISIBLE
+        root.isEnabled = true
+        root.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+        visitPlatformLayers(root) { layer ->
+            layer.visibility = View.VISIBLE
+            layer.isEnabled = true
+        }
+        return
+    }
+    root.isEnabled = false
+    root.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+    fun hide(view: View) {
+        view.visibility = View.INVISIBLE
+        view.isEnabled = false
+        if (view is SurfaceView) view.setZOrderOnTop(false)
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) hide(view.getChildAt(i))
+        }
+    }
+    hide(root)
+}
+
+private fun visitPlatformLayers(view: View, action: (View) -> Unit) {
+    if (view is SurfaceView || view is TextureView) action(view)
+    if (view is ViewGroup) {
+        for (i in 0 until view.childCount) visitPlatformLayers(view.getChildAt(i), action)
     }
 }

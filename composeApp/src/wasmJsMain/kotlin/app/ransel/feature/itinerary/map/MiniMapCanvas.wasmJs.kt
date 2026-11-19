@@ -24,4 +24,5 @@ actual fun MiniMapCanvas(
     recenterTick: Int,
     expanded: Boolean,
     onRevealProgress: (Float) -> Unit,
+    drawn: Boolean,
 ) = Unit
