@@ -2026,7 +2026,6 @@
     <string name="travel_sheet_warning">Perkiraan ±%1$s, jeda cuma %2$s. Jam tidak diubah.</string>
     <string name="travel_sheet_overlap">Perkiraan ±%1$s, tapi jam bentrok dengan aktivitas sebelumnya. Jam tidak diubah.</string>
     <string name="route_today_truncated">Google Maps cuma bisa nampilin 9 tempat pertama</string>
-    <string name="route_today_open">Buka di Google Maps</string>
     <string name="map_travel_caption">Garis lurus antar pin menurut urutan hari, bukan jalan. Putus-putus = jalan kaki. Rute asli ada di Google Maps.</string>
     <string name="map_cities_today">%1$d kota hari ini</string>
     <string name="map_city_chip">%1$s · %2$d</string>
