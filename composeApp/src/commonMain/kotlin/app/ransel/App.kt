@@ -802,6 +802,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onPasswordChangedShown = { accountEntry.savedStateHandle["passwordChanged"] = false },
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
+            onReplayTour = { navController.openTab(MainTab.HOME) },
             debugContent = if (!isDebugBuild) null else ({
                 Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { navController.navigate(ComponentGalleryRoute) }) {

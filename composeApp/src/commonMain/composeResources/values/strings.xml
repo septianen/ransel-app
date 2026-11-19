@@ -380,6 +380,7 @@
     <string name="account_confirm_reorder">Confirm before reordering</string>
     <string name="account_confirm_reorder_hint">Ask first when a drag changes activity times.</string>
     <string name="account_section_other">More</string>
+    <string name="account_section_about">About</string>
     <string name="account_about">About the app</string>
     <string name="theme_system">Follow system</string>
     <string name="theme_light">Light</string>

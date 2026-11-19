@@ -23,10 +23,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
@@ -38,14 +40,22 @@ import app.ransel.platform.requiresAccount
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbols
+import app.ransel.ui.tour.TourController
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.account_app_version
+import ransel.composeapp.generated.resources.account_about
+import ransel.composeapp.generated.resources.account_confirm_reorder
+import ransel.composeapp.generated.resources.account_confirm_reorder_hint
 import ransel.composeapp.generated.resources.account_default_currency
+import ransel.composeapp.generated.resources.account_language
 import ransel.composeapp.generated.resources.account_notifications
 import ransel.composeapp.generated.resources.account_payment
+import ransel.composeapp.generated.resources.account_privacy
 import ransel.composeapp.generated.resources.account_profile_security
+import ransel.composeapp.generated.resources.account_section_about
 import ransel.composeapp.generated.resources.account_section_account
 import ransel.composeapp.generated.resources.account_section_preferences
 import ransel.composeapp.generated.resources.account_sign_out
@@ -61,8 +71,10 @@ import ransel.composeapp.generated.resources.currency_sheet_default_hint
 import ransel.composeapp.generated.resources.currency_sheet_default_title
 import ransel.composeapp.generated.resources.sign_in_action
 import ransel.composeapp.generated.resources.sign_up_action
+import ransel.composeapp.generated.resources.tour_replay
+import ransel.composeapp.generated.resources.tour_replay_hint
 
-private enum class AccountSheet { CURRENCY, THEME }
+private enum class AccountSheet { CURRENCY, THEME, LANGUAGE }
 
 @Composable
 fun AccountScreen(
@@ -74,6 +86,7 @@ fun AccountScreen(
     onOpenNotifications: () -> Unit = {},
     onSignIn: () -> Unit = {},
     onSignUp: () -> Unit = {},
+    onReplayTour: () -> Unit = {},
     passwordChanged: Boolean = false,
     onPasswordChangedShown: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
@@ -87,6 +100,8 @@ fun AccountScreen(
     val syncing by viewModel.sync.syncing.collectAsState()
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
+    val tour: TourController = koinInject()
+    val tourScope = rememberCoroutineScope()
     val changedText = stringResource(Res.string.change_password_done)
     LaunchedEffect(passwordChanged) {
         if (!passwordChanged) return@LaunchedEffect
@@ -110,6 +125,8 @@ fun AccountScreen(
             sync = sync,
             currency = prefs.defaultCurrency,
             themeLabel = stringResource(prefs.themeMode.label),
+            languageLabel = stringResource(prefs.language.label),
+            confirmReorder = !prefs.skipReorderConfirmation,
             signedOut = user == null && !requiresAccount,
             appVersion = installedAppVersion,
             onOpenProfileSecurity = onOpenProfileSecurity,
@@ -118,7 +135,10 @@ fun AccountScreen(
             onSyncNow = { viewModel.sync.syncNow() },
             onOpenNotifications = onOpenNotifications,
             onOpenCurrency = { sheet = AccountSheet.CURRENCY },
+            onOpenLanguage = { sheet = AccountSheet.LANGUAGE },
             onOpenTheme = { sheet = AccountSheet.THEME },
+            onConfirmReorderChange = viewModel::setConfirmReorder,
+            onReplayTour = { tourScope.launch { tour.replay(); onReplayTour() } },
             onSignOut = { confirmSignOut = true },
             onSignIn = onSignIn,
             onSignUp = onSignUp,
@@ -160,6 +180,11 @@ fun AccountScreen(
                 onSelect = viewModel::setTheme,
                 onDismiss = { sheet = null },
             )
+            AccountSheet.LANGUAGE -> LanguageSheet(
+                selected = prefs.language,
+                onSelect = viewModel::setLanguage,
+                onDismiss = { sheet = null },
+            )
             null -> Unit
         }
         SnackbarHost(
@@ -178,6 +203,8 @@ internal fun AccountContent(
     sync: SyncTileSnapshot?,
     currency: String,
     themeLabel: String,
+    languageLabel: String,
+    confirmReorder: Boolean,
     signedOut: Boolean,
     appVersion: String?,
     onOpenProfileSecurity: () -> Unit,
@@ -186,7 +213,10 @@ internal fun AccountContent(
     onSyncNow: () -> Unit,
     onOpenNotifications: () -> Unit,
     onOpenCurrency: () -> Unit,
+    onOpenLanguage: () -> Unit,
     onOpenTheme: () -> Unit,
+    onConfirmReorderChange: (Boolean) -> Unit,
+    onReplayTour: () -> Unit,
     onSignOut: () -> Unit,
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
@@ -194,6 +224,7 @@ internal fun AccountContent(
     debugContent: (@Composable () -> Unit)? = null,
 ) {
     val signedIn = name != null
+    val links = LocalUriHandler.current
     Column(modifier.fillMaxSize()) {
         Text(
             stringResource(Res.string.account_title),
@@ -249,35 +280,57 @@ internal fun AccountContent(
                     showDivider = signedIn,
                 )
                 AccountSettingRow(
+                    Symbols.translate,
+                    stringResource(Res.string.account_language),
+                    value = languageLabel,
+                    onClick = onOpenLanguage,
+                    showDivider = true,
+                )
+                AccountSettingRow(
                     Symbols.darkMode,
                     stringResource(Res.string.account_theme),
                     value = themeLabel,
                     onClick = onOpenTheme,
                     showDivider = true,
                 )
+                AccountSwitchRow(
+                    Symbols.swipeVertical,
+                    stringResource(Res.string.account_confirm_reorder),
+                    stringResource(Res.string.account_confirm_reorder_hint),
+                    checked = confirmReorder,
+                    onCheckedChange = onConfirmReorderChange,
+                    showDivider = true,
+                )
+            }
+            AccountGroupLabel(stringResource(Res.string.account_section_about))
+            AccountGroupCard {
+                AccountSettingRow(
+                    Symbols.help,
+                    stringResource(Res.string.tour_replay),
+                    subtitle = stringResource(Res.string.tour_replay_hint),
+                    onClick = onReplayTour,
+                )
+                AccountSettingRow(
+                    Symbols.lock,
+                    stringResource(Res.string.account_privacy),
+                    onClick = { runCatching { links.openUri(PRIVACY_POLICY_URL) } },
+                    trailing = AccountRowTrailing.OPEN_IN_NEW,
+                    showDivider = true,
+                )
+                AccountSettingRow(
+                    Symbols.info,
+                    stringResource(Res.string.account_about),
+                    value = appVersion?.let { "v$it" },
+                    onClick = null,
+                    showDivider = true,
+                )
+            }
+            if (signedIn) {
+                Column(Modifier.padding(top = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    SignOutButton(onSignOut)
+                }
             }
             debugContent?.invoke()
-            if (signedIn) {
-                Column(Modifier.padding(top = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    SignOutButton(onSignOut)
-                    appVersion?.let {
-                        Text(
-                            stringResource(Res.string.account_app_version, it),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            } else {
-                appVersion?.let {
-                    Text(
-                        stringResource(Res.string.account_app_version, it),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                    )
-                }
-            }
         }
     }
 }
@@ -293,6 +346,8 @@ private fun AccountSyncingPreview() = IrisPreview {
         sync = SyncTileSnapshot(SyncTileKind.SYNCING, "20:11"),
         currency = "IDR",
         themeLabel = "Light",
+        languageLabel = "Indonesian",
+        confirmReorder = true,
         signedOut = false,
         appVersion = "1.0.1",
         onOpenProfileSecurity = {},
@@ -301,7 +356,10 @@ private fun AccountSyncingPreview() = IrisPreview {
         onSyncNow = {},
         onOpenNotifications = {},
         onOpenCurrency = {},
+        onOpenLanguage = {},
         onOpenTheme = {},
+        onConfirmReorderChange = {},
+        onReplayTour = {},
         onSignOut = {},
         onSignIn = {},
         onSignUp = {},
@@ -319,6 +377,8 @@ private fun AccountSignedInPreview() = IrisPreview {
         sync = SyncTileSnapshot(SyncTileKind.IDLE, "20:11"),
         currency = "IDR",
         themeLabel = "Light",
+        languageLabel = "Indonesian",
+        confirmReorder = true,
         signedOut = false,
         appVersion = "1.0.1",
         onOpenProfileSecurity = {},
@@ -327,7 +387,10 @@ private fun AccountSignedInPreview() = IrisPreview {
         onSyncNow = {},
         onOpenNotifications = {},
         onOpenCurrency = {},
+        onOpenLanguage = {},
         onOpenTheme = {},
+        onConfirmReorderChange = {},
+        onReplayTour = {},
         onSignOut = {},
         onSignIn = {},
         onSignUp = {},

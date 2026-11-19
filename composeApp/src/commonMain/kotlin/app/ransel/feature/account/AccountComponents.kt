@@ -29,6 +29,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -109,6 +111,8 @@ internal fun AccountGroupCard(modifier: Modifier = Modifier, content: @Composabl
     ) { content() }
 }
 
+internal enum class AccountRowTrailing { CHEVRON, OPEN_IN_NEW, NONE }
+
 @Composable
 internal fun AccountSettingRow(
     symbol: String,
@@ -118,7 +122,7 @@ internal fun AccountSettingRow(
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
     destructive: Boolean = false,
-    showChevron: Boolean = onClick != null,
+    trailing: AccountRowTrailing = if (onClick != null) AccountRowTrailing.CHEVRON else AccountRowTrailing.NONE,
     showDivider: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -151,7 +155,7 @@ internal fun AccountSettingRow(
                         subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = scheme.onSurfaceVariant,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -163,7 +167,55 @@ internal fun AccountSettingRow(
                     color = scheme.onSurfaceVariant,
                 )
             }
-            if (showChevron) Symbol(Symbols.chevronRight, size = 18.dp, tint = scheme.onSurfaceVariant)
+            when (trailing) {
+                AccountRowTrailing.CHEVRON -> Symbol(Symbols.chevronRight, size = 18.dp, tint = scheme.onSurfaceVariant)
+                AccountRowTrailing.OPEN_IN_NEW -> Symbol(Symbols.openInNew, size = 18.dp, tint = scheme.onSurfaceVariant)
+                AccountRowTrailing.NONE -> Unit
+            }
+        }
+    }
+}
+
+@Composable
+internal fun AccountSwitchRow(
+    symbol: String,
+    title: String,
+    hint: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    showDivider: Boolean = false,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth()) {
+        if (showDivider) {
+            HorizontalDivider(Modifier.padding(start = DividerInset), color = scheme.outlineVariant)
+        }
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = RowHeight)
+                .accountPress({ onCheckedChange(!checked) })
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Symbol(symbol, size = 24.dp, tint = scheme.onSurface)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = scheme.onSurface,
+                )
+                Text(hint, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant)
+            }
+            Switch(
+                checked = checked,
+                onCheckedChange = onCheckedChange,
+                colors = SwitchDefaults.colors(
+                    checkedTrackColor = scheme.primary,
+                    checkedThumbColor = scheme.onPrimary,
+                ),
+            )
         }
     }
 }
