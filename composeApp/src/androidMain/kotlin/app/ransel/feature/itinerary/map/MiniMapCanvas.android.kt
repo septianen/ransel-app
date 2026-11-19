@@ -1,10 +1,13 @@
 package app.ransel.feature.itinerary.map
 
+import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Point
 import android.graphics.Typeface
+import android.util.Log
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -111,6 +114,48 @@ actual fun MiniMapCanvas(
     description: String,
     onPinClick: (itemId: String) -> Unit,
     onLoaded: () -> Unit,
+    onLoadFailed: () -> Unit,
+    modifier: Modifier,
+    segments: List<MapSegment>,
+    lineStyle: MapLineStyle?,
+    viewportWidthPx: Int,
+    viewportHeightPx: Int,
+    gestures: MiniMapGestureMode,
+    recenterTick: Int,
+    expanded: Boolean,
+    onRevealProgress: (Float) -> Unit,
+    drawn: Boolean,
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val keyPresent = remember(context) { mapsApiKeyPresent(context) }
+    val fail = rememberUpdatedState(onLoadFailed)
+    LaunchedEffect(keyPresent) {
+        Log.i(
+            MINI_MAP_LOG,
+            "MiniMapCanvas package=${context.packageName} keyPresent=$keyPresent drawn=$drawn pins=${pins.size}",
+        )
+        if (!keyPresent) {
+            Log.w(MINI_MAP_LOG, "Maps API key missing from manifest; map cannot load")
+            fail.value()
+        }
+    }
+    if (keyPresent) {
+        MiniMapGoogleCanvas(
+            pins, selectedId, dark, ringColor, description, onPinClick, onLoaded, modifier, segments, lineStyle,
+            viewportWidthPx, viewportHeightPx, gestures, recenterTick, expanded, onRevealProgress, drawn,
+        )
+    }
+}
+
+@Composable
+private fun MiniMapGoogleCanvas(
+    pins: List<MapPin>,
+    selectedId: String?,
+    dark: Boolean,
+    ringColor: Int,
+    description: String,
+    onPinClick: (itemId: String) -> Unit,
+    onLoaded: () -> Unit,
     modifier: Modifier,
     segments: List<MapSegment>,
     lineStyle: MapLineStyle?,
@@ -152,6 +197,7 @@ actual fun MiniMapCanvas(
     }
     var loaded by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
+    var loadedWhileHidden by remember { mutableStateOf(false) }
     val properties = remember(dark, minZoom, cameraTargetBounds) {
         MapProperties(
             mapStyleOptions = MapStyleOptions(MiniMapStyle.of(dark)),
@@ -218,6 +264,11 @@ actual fun MiniMapCanvas(
             applyTwoFingerCamera(latestCamera.value, latestFitZoom.value, latestDrag.value, midX, midY, prevMidX, prevMidY, span, prevSpan)
         }
         viewRef.value?.setDrawn(drawn)
+        if (drawn && loadedWhileHidden && !loaded) {
+            loadedWhileHidden = false
+            loaded = true
+            onLoaded()
+        }
     }
     val background = if (dark) DARK_MAP_BACKGROUND else LIGHT_MAP_BACKGROUND
     val optionsFactory = remember(initialPosition, background, dark) {
@@ -243,13 +294,19 @@ actual fun MiniMapCanvas(
         mapViewFactory = { ctx, options ->
             CooperativeMapView(ctx, options).also {
                 it.twoFingerOnly = twoFingerOnly
-                it.setDrawn(drawn)
+                // Never hide in the factory: a MapView that first layouts INVISIBLE keeps the SDK's grey '!' tile.
                 viewRef.value = it
             }
         },
         onMapLoaded = {
-            loaded = true
-            onLoaded()
+            val visible = viewRef.value?.isDrawn != false
+            Log.i(MINI_MAP_LOG, "onMapLoaded drawn=$visible")
+            if (visible) {
+                loaded = true
+                onLoaded()
+            } else {
+                loadedWhileHidden = true
+            }
         },
     ) {
         // the straight lines under the pins, and the time pills on the ones long enough to hold them
@@ -412,4 +469,12 @@ private fun pinIcon(pin: MapPin, selected: Boolean, ringColor: Int, density: Den
     val baseline = center - (paint.descent() + paint.ascent()) / 2f
     canvas.drawText(pin.number.toString(), center, baseline, paint)
     return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+internal fun mapsApiKeyPresent(context: Context): Boolean {
+    val key = runCatching {
+        val info = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
+        info.metaData?.getString("com.google.android.geo.API_KEY")
+    }.getOrNull()
+    return !key.isNullOrBlank()
 }

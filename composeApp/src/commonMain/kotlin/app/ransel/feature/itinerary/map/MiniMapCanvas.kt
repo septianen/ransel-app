@@ -13,6 +13,7 @@ expect val miniMapSupported: Boolean
  * The map itself: the numbered [pins] fitted in view, the one with [selectedId] highlighted. On the strip, one finger
  * scrolls the page and two fingers pan/zoom the map; full screen allows one-finger drag. Taps on a pin go to
  * [onPinClick]. [onLoaded] says the base map is on screen; if it never comes, the caller shows the "failed" card.
+ * [onLoadFailed] is for a missing API key or an SDK that cannot start; the 8 s timeout still covers a hung load.
  * [description] is read by screen readers as one element ("Peta hari ini, 4 lokasi"). [ringColor] (ARGB, the theme's
  * primary) is the ring and halo of the selected pin.
  */
@@ -25,6 +26,7 @@ expect fun MiniMapCanvas(
     description: String,
     onPinClick: (itemId: String) -> Unit,
     onLoaded: () -> Unit,
+    onLoadFailed: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** The straight lines between pins (Android draws them; empty = none) and their colours. */
     segments: List<MapSegment> = emptyList(),
@@ -42,8 +44,8 @@ expect fun MiniMapCanvas(
     /**
      * False after the collapse spring has settled: the map stays in composition (no reload on expand) but must not
      * paint or take pointer input. Android's MapView is a SurfaceView and would otherwise show through the 48 dp bar.
-     * Expand sets the MapView and every child VISIBLE (alpha 1) again; hiding only Surface/Texture leaves would leave
-     * the map blank on the next open.
+     * Expand restores only the views collapse hid; it must not force every descendant VISIBLE (that un-hides the SDK's
+     * grey '!' placeholder). First composition should be drawn so the renderer gets a surface.
      */
     drawn: Boolean = true,
 )

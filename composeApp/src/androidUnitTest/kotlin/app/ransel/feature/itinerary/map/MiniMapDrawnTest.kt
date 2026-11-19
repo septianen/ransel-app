@@ -15,8 +15,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * PR #42 hid the MapView tree with [View.INVISIBLE] after collapse. Expand must restore the MapView and every
- * child (holders included, not only Surface/Texture leaves), alpha 1, and a11y, on every cycle.
+ * Collapse hides VISIBLE MapView descendants with [View.INVISIBLE]. Expand must restore only those views (holders
+ * included), and must not force a GONE Maps SDK placeholder (the grey '!') VISIBLE.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
@@ -25,39 +25,77 @@ class MiniMapDrawnTest {
 
     @Test
     fun expandRestoresEveryChildAfterCollapse() {
+        val hidden = mutableSetOf<View>()
         val tree = mapTree()
-        applyMiniMapDrawn(tree.root, drawn = false)
+        applyMiniMapDrawn(tree.root, drawn = false, hidden)
         assertHidden(tree)
 
-        applyMiniMapDrawn(tree.root, drawn = true)
+        applyMiniMapDrawn(tree.root, drawn = true, hidden)
         assertShown(tree)
     }
 
     @Test
     fun severalCollapseExpandCyclesKeepTheMapVisible() {
+        val hidden = mutableSetOf<View>()
         val tree = mapTree()
         repeat(4) {
-            applyMiniMapDrawn(tree.root, drawn = false)
+            applyMiniMapDrawn(tree.root, drawn = false, hidden)
             assertHidden(tree)
-            applyMiniMapDrawn(tree.root, drawn = true)
+            applyMiniMapDrawn(tree.root, drawn = true, hidden)
             assertShown(tree)
         }
     }
 
     @Test
     fun aQuickHideThenShowMidTreeStillRestoresNewChildren() {
+        val hidden = mutableSetOf<View>()
         val tree = mapTree()
-        applyMiniMapDrawn(tree.root, drawn = false)
+        applyMiniMapDrawn(tree.root, drawn = false, hidden)
         val late = SurfaceView(context)
         tree.holder.addView(late)
-        applyMiniMapDrawn(tree.root, drawn = false)
+        applyMiniMapDrawn(tree.root, drawn = false, hidden)
         assertEquals(View.INVISIBLE, late.visibility)
 
-        applyMiniMapDrawn(tree.root, drawn = true)
+        applyMiniMapDrawn(tree.root, drawn = true, hidden)
         assertShown(tree)
         assertEquals(View.VISIBLE, late.visibility)
         assertEquals(1f, late.alpha)
         assertTrue(late.isEnabled)
+    }
+
+    @Test
+    fun firstCompositionExpandedDoesNotUnhideSdkGonePlaceholder() {
+        val hidden = mutableSetOf<View>()
+        val tree = mapTree()
+        val placeholder = View(context).apply { visibility = View.GONE }
+        tree.root.addView(placeholder)
+
+        applyMiniMapDrawn(tree.root, drawn = true, hidden)
+
+        assertShown(tree)
+        assertEquals("SDK GONE placeholder must stay GONE on first expanded composition", View.GONE, placeholder.visibility)
+        assertTrue(hidden.isEmpty())
+    }
+
+    @Test
+    fun mapsApiKeyPresenceIsReadableFromTheMergedManifest() {
+        mapsApiKeyPresent(context)
+    }
+
+    @Test
+    fun firstCompositionHiddenThenShownRestoresSurfacesAndLeavesGonePlaceholderGone() {
+        val hidden = mutableSetOf<View>()
+        val tree = mapTree()
+        val placeholder = View(context).apply { visibility = View.GONE }
+        tree.root.addView(placeholder)
+
+        applyMiniMapDrawn(tree.root, drawn = false, hidden)
+        assertHidden(tree)
+        assertEquals(View.GONE, placeholder.visibility)
+
+        applyMiniMapDrawn(tree.root, drawn = true, hidden)
+        assertShown(tree)
+        assertEquals(View.GONE, placeholder.visibility)
     }
 
     private fun mapTree(): MapTree {

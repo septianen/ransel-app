@@ -29,6 +29,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.key
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -87,7 +89,6 @@ import ransel.composeapp.generated.resources.mini_map_collapsed_title
 import ransel.composeapp.generated.resources.mini_map_description
 import ransel.composeapp.generated.resources.mini_map_empty_title
 import ransel.composeapp.generated.resources.mini_map_expand
-import ransel.composeapp.generated.resources.mini_map_failed_body
 import ransel.composeapp.generated.resources.mini_map_failed_title
 import ransel.composeapp.generated.resources.mini_map_fullscreen
 import ransel.composeapp.generated.resources.mini_map_open_in_maps
@@ -241,25 +242,28 @@ private fun MiniMapOpenable(
     val ring = MaterialTheme.colorScheme.primary.toArgb()
     val description = stringResource(Res.string.mini_map_description, pins.size)
     val mapCanvas: @Composable (Modifier, Int, Int, Boolean, Int, Boolean) -> Unit = { canvasModifier, widthPx, heightPx, expanded, tick, drawn ->
-        MiniMapCanvas(
-            pins = pins,
-            selectedId = selectedId,
-            dark = dark,
-            ringColor = ring,
-            description = description,
-            onPinClick = onPinClick,
-            onLoaded = { phase = MapPhase.LOADED },
-            modifier = canvasModifier,
-            segments = segments,
-            lineStyle = lineStyle,
-            viewportWidthPx = widthPx,
-            viewportHeightPx = heightPx,
-            gestures = if (expanded) MiniMapGestureMode.FREE else MiniMapGestureMode.TWO_FINGER,
-            recenterTick = tick,
-            expanded = expanded,
-            onRevealProgress = { mapReveal = it },
-            drawn = drawn,
-        )
+        key(attempt) {
+            MiniMapCanvas(
+                pins = pins,
+                selectedId = selectedId,
+                dark = dark,
+                ringColor = ring,
+                description = description,
+                onPinClick = onPinClick,
+                onLoaded = { phase = MapPhase.LOADED },
+                onLoadFailed = { phase = MapPhase.FAILED },
+                modifier = canvasModifier,
+                segments = segments,
+                lineStyle = lineStyle,
+                viewportWidthPx = widthPx,
+                viewportHeightPx = heightPx,
+                gestures = if (expanded) MiniMapGestureMode.FREE else MiniMapGestureMode.TWO_FINGER,
+                recenterTick = tick,
+                expanded = expanded,
+                onRevealProgress = { mapReveal = it },
+                drawn = drawn,
+            )
+        }
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Box(Modifier.fillMaxWidth().height(height).clipToBounds()) {
@@ -350,9 +354,7 @@ fun MiniMapStrip(
     val gap = IrisTheme.spacing.s8
     Box(modifier.fillMaxWidth().height(StripHeight)) {
         Box(Modifier.fillMaxSize().clip(IrisShape.lg).background(scheme.surfaceContainerHigh)) {
-            if (phase == MapPhase.FAILED) {
-                MiniMapFailedCard(onRetry, Modifier.fillMaxSize())
-            } else {
+            if (phase != MapPhase.FAILED) {
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     val widthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
                     val heightPx = with(LocalDensity.current) { maxHeight.roundToPx() }
@@ -370,44 +372,46 @@ fun MiniMapStrip(
                             .background(scheme.surfaceContainerHigh),
                     )
                 }
+            } else {
+                MiniMapFailedCard(onRetry, Modifier.fillMaxSize())
             }
         }
-        if (phase != MapPhase.FAILED) {
-            if (onOpenInMaps != null) {
-                // 12 dp inset: the pill sat flush on the rounded clip and lost its right edge (looked like a cut-off control)
-                OpenInMapsChip(onOpenInMaps, Modifier.align(Alignment.BottomEnd).padding(edge))
-            }
-            Row(
-                Modifier.align(Alignment.TopEnd).padding(edge),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(gap),
-            ) {
+        if (onOpenInMaps != null) {
+            // 12 dp inset: the pill sat flush on the rounded clip and lost its right edge (looked like a cut-off control)
+            OpenInMapsChip(onOpenInMaps, Modifier.align(Alignment.BottomEnd).padding(edge))
+        }
+        Row(
+            Modifier.align(Alignment.TopEnd).padding(edge),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(gap),
+        ) {
+            if (phase != MapPhase.FAILED) {
                 MapIconButton(
                     symbol = Symbols.explore,
                     label = stringResource(Res.string.mini_map_fullscreen),
                     onClick = onFullscreen,
                 )
-                MapIconButton(
-                    symbol = Symbols.expandMore,
-                    label = stringResource(Res.string.mini_map_collapse),
-                    onClick = onCollapse,
-                    symbolModifier = Modifier.rotate(180f),
-                )
             }
-            if (showHint) {
-                Text(
-                    stringResource(Res.string.mini_map_two_finger_hint),
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = scheme.onSurface,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 40.dp, start = 12.dp, end = 12.dp)
-                        .clip(IrisShape.md)
-                        .background(scheme.surface.copy(alpha = 0.92f))
-                        .border(1.dp, scheme.outlineVariant, IrisShape.md)
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-            }
+            MapIconButton(
+                symbol = Symbols.expandMore,
+                label = stringResource(Res.string.mini_map_collapse),
+                onClick = onCollapse,
+                symbolModifier = Modifier.rotate(180f),
+            )
+        }
+        if (showHint && phase != MapPhase.FAILED) {
+            Text(
+                stringResource(Res.string.mini_map_two_finger_hint),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                color = scheme.onSurface,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 40.dp, start = 12.dp, end = 12.dp)
+                    .clip(IrisShape.md)
+                    .background(scheme.surface.copy(alpha = 0.92f))
+                    .border(1.dp, scheme.outlineVariant, IrisShape.md)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            )
         }
     }
 }
@@ -447,11 +451,13 @@ private fun MiniMapFullscreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(IrisTheme.spacing.s8),
             ) {
-                MapIconButton(
-                    symbol = Symbols.locationOn,
-                    label = stringResource(Res.string.mini_map_recenter),
-                    onClick = onRecenter,
-                )
+                if (phase != MapPhase.FAILED) {
+                    MapIconButton(
+                        symbol = Symbols.locationOn,
+                        label = stringResource(Res.string.mini_map_recenter),
+                        onClick = onRecenter,
+                    )
+                }
                 MapIconButton(
                     symbol = Symbols.close,
                     label = stringResource(Res.string.mini_map_collapse),
@@ -634,20 +640,14 @@ fun MiniMapEmptyCard(onFillLocation: (() -> Unit)?, modifier: Modifier = Modifie
 private fun MiniMapFailedCard(onRetry: () -> Unit, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     Column(
-        modifier.background(scheme.surfaceContainer).padding(16.dp),
+        modifier.background(scheme.surfaceContainerHigh).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
     ) {
-        Symbol(Symbols.map, size = 32.dp, tint = scheme.onSurfaceVariant)
+        Symbol(Symbols.error, size = 32.dp, tint = scheme.onSurfaceVariant)
         Text(stringResource(Res.string.mini_map_failed_title), style = MaterialTheme.typography.titleSmall)
-        Text(
-            stringResource(Res.string.mini_map_failed_body),
-            style = MaterialTheme.typography.bodySmall,
-            color = scheme.onSurfaceVariant,
-        )
-        OutlinedButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) {
-            Symbol(Symbols.refresh, size = 18.dp)
-            Text(stringResource(Res.string.mini_map_retry), modifier = Modifier.padding(start = 6.dp))
+        TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(Res.string.mini_map_retry))
         }
     }
 }

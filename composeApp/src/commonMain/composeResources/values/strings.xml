@@ -1421,9 +1421,9 @@
     <string name="mini_map_partial">%1$d activities have no location ·</string>
     <string name="mini_map_add_location">Add location</string>
     <string name="mini_map_empty_title">Add a location to see activities on the map</string>
-    <string name="mini_map_failed_title">Map failed to load</string>
+    <string name="mini_map_failed_title">Map couldn't load</string>
     <string name="mini_map_failed_body">Your activity list still works</string>
-    <string name="mini_map_retry">Try again</string>
+    <string name="mini_map_retry">Retry</string>
     <string name="mini_map_badge">Location number %1$d</string>
     <string name="mini_map_two_finger_hint">Use two fingers to move the map</string>
     <string name="mini_map_fullscreen">Open the map full screen</string>

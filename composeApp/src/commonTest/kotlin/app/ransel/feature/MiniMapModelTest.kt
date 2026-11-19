@@ -4,6 +4,8 @@ import app.ransel.feature.itinerary.map.MapPin
 import app.ransel.feature.itinerary.map.firstUnlocated
 import app.ransel.feature.itinerary.map.googleMapsDayRoute
 import app.ransel.feature.itinerary.map.hasMapPoint
+import app.ransel.feature.itinerary.map.initialCollapseSettled
+import app.ransel.feature.itinerary.map.initialMiniMapMounted
 import app.ransel.feature.itinerary.map.isMiniMapDrawn
 import app.ransel.feature.itinerary.map.isMiniMapOpen
 import app.ransel.feature.itinerary.map.mapPinsOf
@@ -83,6 +85,24 @@ class MiniMapModelTest {
         assertTrue(isMiniMapDrawn(collapsed = false, collapseSettled = true), "expand always shows the map")
         assertTrue(isMiniMapDrawn(collapsed = true, collapseSettled = false), "still drawn while the 48 dp spring runs")
         assertFalse(isMiniMapDrawn(collapsed = true, collapseSettled = true), "hidden after the bar has settled")
+    }
+
+    @Test
+    fun firstCompositionExpandedDrawsAndMountsTheMap() {
+        val collapsed = false
+        val collapseSettled = initialCollapseSettled(collapsed)
+        assertFalse(collapseSettled)
+        assertTrue(initialMiniMapMounted(collapsed))
+        assertTrue(isMiniMapDrawn(collapsed, collapseSettled), "open preference: MapView must layout VISIBLE")
+    }
+
+    @Test
+    fun firstCompositionCollapsedDoesNotMountOrDrawTheMap() {
+        val collapsed = true
+        val collapseSettled = initialCollapseSettled(collapsed)
+        assertTrue(collapseSettled)
+        assertFalse(initialMiniMapMounted(collapsed), "closed: no MapView until the first expand")
+        assertFalse(isMiniMapDrawn(collapsed, collapseSettled))
     }
 
     @Test
