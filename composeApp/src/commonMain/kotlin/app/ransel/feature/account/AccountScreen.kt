@@ -55,7 +55,7 @@ import ransel.composeapp.generated.resources.account_notifications
 import ransel.composeapp.generated.resources.account_payment
 import ransel.composeapp.generated.resources.account_privacy
 import ransel.composeapp.generated.resources.account_profile_security
-import ransel.composeapp.generated.resources.account_section_about
+import ransel.composeapp.generated.resources.account_section_info
 import ransel.composeapp.generated.resources.account_section_account
 import ransel.composeapp.generated.resources.account_section_preferences
 import ransel.composeapp.generated.resources.account_sign_out
@@ -302,7 +302,7 @@ internal fun AccountContent(
                     showDivider = true,
                 )
             }
-            AccountGroupLabel(stringResource(Res.string.account_section_about))
+            AccountGroupLabel(stringResource(Res.string.account_section_info))
             AccountGroupCard {
                 AccountSettingRow(
                     Symbols.help,

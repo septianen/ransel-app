@@ -380,7 +380,7 @@
     <string name="account_confirm_reorder">Konfirmasi ubah urutan</string>
     <string name="account_confirm_reorder_hint">Tanya dulu saat urutan mengubah jam aktivitas.</string>
     <string name="account_section_other">Lainnya</string>
-    <string name="account_section_about">Tentang</string>
+    <string name="account_section_info">Info</string>
     <string name="account_about">Tentang aplikasi</string>
     <string name="theme_system">Ikuti sistem</string>
     <string name="theme_light">Terang</string>
