@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -37,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import app.ransel.content.getString
 import app.ransel.content.stringResource
 import app.ransel.feature.explore.label
-import app.ransel.feature.interview.TasteSheet
 import app.ransel.feature.interview.labelRes
 import app.ransel.feature.interview.symbol
 import app.ransel.feature.itinerary.travel.mainModeLabel
@@ -87,8 +85,8 @@ import ransel.composeapp.generated.resources.trip_travel_title
 
 /**
  * The section "Perjalanan" of Edit trip (spec 1638556, mockups s26-1), under the budget: one row per answer of the interview
- * (Berangkat dari, Cara berangkat, Keliling di {destinasi}, Seleramu). A tap opens the screen that changes it ([onOpenRow]) or, for
- * the Seleramu, the sheet. A change is stored at once; this section says so ("... diubah." with "Urungkan", into [snackbar]) and
+ * (Berangkat dari, Cara berangkat, Keliling di {destinasi}, Seleramu). A tap opens the screen that changes it ([onOpenRow]).
+ * A change is stored at once; this section says so ("... diubah." with "Urungkan", into [snackbar]) and
  * explains a reset ("Cara berangkat direset"). Owner only: the form is the owner's.
  */
 @Composable
@@ -150,7 +148,7 @@ fun TripTravelSection(
                 TravelRow.LOCAL_TRANSPORT -> localRow(trip, onClick = { onOpenRow(row) })
                 TravelRow.TASTE -> AnswerRow(
                     Symbols.autoAwesome, stringResource(Res.string.trip_travel_taste),
-                    state.taste?.let { tasteLine(it) }, onClick = viewModel::openTasteSheet,
+                    state.taste?.let { tasteLine(it) }, onClick = { onOpenRow(row) },
                 )
             }
         }
@@ -164,22 +162,6 @@ fun TripTravelSection(
                 )
             }
         }
-    }
-    state.draft?.let { draft ->
-        TasteSheet(
-            draft = draft,
-            khas = state.khas,
-            destination = trip.destination,
-            onInterest = viewModel::draftToggleInterest,
-            onExtra = viewModel::draftToggleExtra,
-            onStyle = viewModel::draftStyle,
-            onPrice = viewModel::draftPriceLevel,
-            defaultPrice = state.budgetPriceLevel ?: app.ransel.shared.model.PriceLevel.MEDIUM,
-            priceFromBudget = state.budgetPriceLevel != null,
-            onNotes = viewModel::draftNotes,
-            onSave = viewModel::saveTasteSheet,
-            onDismiss = viewModel::closeTasteSheet,
-        )
     }
     reset?.let { dialog ->
         ConfirmDialog(
@@ -257,10 +239,11 @@ private fun AnswerRow(symbol: String, label: String, value: String?, onClick: ((
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).let { it }, contentAlignment = Alignment.Center) {
-            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(scheme.surfaceContainerHigh), contentAlignment = Alignment.Center) {
-                Symbol(symbol, size = 22.dp, tint = scheme.onSurfaceVariant)
-            }
+        Box(
+            Modifier.size(40.dp).clip(IrisShape.md).background(if (filled) scheme.primary else scheme.surfaceContainerHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            Symbol(symbol, size = 22.dp, tint = if (filled) scheme.onPrimary else scheme.onSurfaceVariant)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(label, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), color = scheme.onSurfaceVariant)
