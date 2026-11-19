@@ -117,6 +117,11 @@ import app.ransel.navigation.CreditsRoute
 import app.ransel.navigation.ChangePasswordRoute
 import app.ransel.navigation.DeleteAccountRoute
 import app.ransel.navigation.PaymentMethodsRoute
+import app.ransel.navigation.PaymentRoute
+import app.ransel.navigation.ProfileSecurityRoute
+import app.ransel.feature.account.PaymentScreen
+import app.ransel.feature.account.ProfileSecurityScreen
+import app.ransel.ui.motion.IrisMotion
 import app.ransel.navigation.NotificationSettingsRoute
 import app.ransel.navigation.NotificationsRoute
 import app.ransel.feature.notifications.NotificationPermissionSheet
@@ -737,6 +742,22 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onContinueSearch = { id -> navController.navigate(SwipeRoute(id)) { popUpTo<CreditsRoute> { inclusive = true } } },
         )
     }
+    page<ProfileSecurityRoute>(emphasizedSlide = true) {
+        ProfileSecurityScreen(
+            onBack = { navController.popBackStack() },
+            onChangePassword = { navController.navigate(ChangePasswordRoute) },
+            onDeleteAccount = { navController.navigate(DeleteAccountRoute) },
+            modifier = Modifier.statusBarsPadding(),
+        )
+    }
+    page<PaymentRoute>(emphasizedSlide = true) {
+        PaymentScreen(
+            onBack = { navController.popBackStack() },
+            onOpenCredits = { navController.navigate(CreditsRoute()) },
+            onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
+            modifier = Modifier.statusBarsPadding(),
+        )
+    }
     page<DeleteAccountRoute> {
         app.ransel.feature.account.DeleteAccountScreen(onBack = { navController.popBackStack() })
     }
@@ -773,14 +794,12 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
         val passwordChanged by accountEntry.savedStateHandle.getStateFlow("passwordChanged", false).collectAsState()
         AccountScreen(
             modifier = Modifier.statusBarsPadding(),
+            onOpenProfileSecurity = { navController.navigate(ProfileSecurityRoute) },
+            onOpenPayment = { navController.navigate(PaymentRoute) },
             onOpenCredits = { navController.navigate(CreditsRoute()) },
-            onOpenPaymentMethods = { navController.navigate(PaymentMethodsRoute) },
             onOpenNotifications = { navController.navigate(NotificationSettingsRoute) },
-            onDeleteAccount = { navController.navigate(DeleteAccountRoute) },
-            onChangePassword = { navController.navigate(ChangePasswordRoute) },
             passwordChanged = passwordChanged,
             onPasswordChangedShown = { accountEntry.savedStateHandle["passwordChanged"] = false },
-            onReplayTour = { navController.openTab(MainTab.HOME) },
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
             debugContent = if (!isDebugBuild) null else ({
@@ -1177,9 +1196,10 @@ private inline fun <reified T : Any> NavGraphBuilder.tabPage(
  */
 private inline fun <reified T : Any> NavGraphBuilder.page(
     maxContentWidth: Dp? = PageMaxWidth,
+    emphasizedSlide: Boolean = false,
     noinline content: @Composable (NavBackStackEntry) -> Unit,
 ) {
-    composable<T> { entry ->
+    val body: @Composable (NavBackStackEntry) -> Unit = { entry ->
         Box(
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
             contentAlignment = Alignment.TopCenter,
@@ -1188,6 +1208,16 @@ private inline fun <reified T : Any> NavGraphBuilder.page(
             val width = if (maxContentWidth != null) Modifier.widthIn(max = maxContentWidth) else Modifier
             Box(width.fillMaxSize()) { content(entry) }
         }
+    }
+    if (emphasizedSlide) {
+        composable<T>(
+            enterTransition = { slideInHorizontally(IrisMotion.medium2()) { it } },
+            exitTransition = { slideOutHorizontally(IrisMotion.medium2()) { -it / 4 } },
+            popEnterTransition = { slideInHorizontally(IrisMotion.medium2()) { -it / 4 } },
+            popExitTransition = { slideOutHorizontally(IrisMotion.medium2()) { it } },
+        ) { body(it) }
+    } else {
+        composable<T> { body(it) }
     }
 }
 

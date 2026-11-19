@@ -21,6 +21,8 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     ExploreRoute -> "explore"
     is ExplorePreferencesRoute -> route.tripId?.let { "trips/${enc(it)}/explore/new" } ?: "explore/new"
     AccountRoute -> "account"
+    ProfileSecurityRoute -> "account/profile"
+    PaymentRoute -> "account/payment"
     OnboardingRoute -> "welcome"
     is TripRoute -> "trips/${enc(route.tripId)}" + tabPath(route.tab)
     CreateTripRoute -> "trips/new"
@@ -72,6 +74,8 @@ fun routeForUrlFragment(fragment: String): Any? {
         parts == listOf("trips") -> TripListRoute
         parts == listOf("explore") -> ExploreRoute
         parts == listOf("account") -> AccountRoute
+        parts == listOf("account", "profile") -> ProfileSecurityRoute
+        parts == listOf("account", "payment") -> PaymentRoute
         parts == listOf("account", "credits") -> CreditsRoute()
         parts == listOf("account", "payment-methods") -> PaymentMethodsRoute
         parts == listOf("account", "password") -> ChangePasswordRoute
@@ -119,6 +123,8 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(ExploreRoute::class) -> ExploreRoute
         d.hasRoute(ExplorePreferencesRoute::class) -> entry.toRoute<ExplorePreferencesRoute>()
         d.hasRoute(AccountRoute::class) -> AccountRoute
+        d.hasRoute(ProfileSecurityRoute::class) -> ProfileSecurityRoute
+        d.hasRoute(PaymentRoute::class) -> PaymentRoute
         d.hasRoute(OnboardingRoute::class) -> OnboardingRoute
         d.hasRoute(TripRoute::class) -> entry.toRoute<TripRoute>()
         d.hasRoute(CreateTripRoute::class) -> CreateTripRoute
