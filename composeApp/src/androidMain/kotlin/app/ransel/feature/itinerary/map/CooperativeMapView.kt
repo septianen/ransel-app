@@ -3,6 +3,7 @@ package app.ransel.feature.itinerary.map
 import android.content.Context
 import android.view.MotionEvent
 import android.view.SurfaceView
+import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import com.google.android.gms.maps.GoogleMapOptions
@@ -43,21 +44,17 @@ internal class CooperativeMapView(
      */
     fun setDrawn(drawn: Boolean) {
         this.drawn = drawn
-        applyMiniMapDrawn(this, drawn)
-        if (drawn) {
-            // MapView may add Surface/Texture children after this call; show again on the next frame.
-            post { if (this.drawn) applyMiniMapDrawn(this, drawn = true) }
-        }
+        applyDrawn(this, drawn)
     }
 
     override fun onViewAdded(child: View) {
         super.onViewAdded(child)
-        applyMiniMapDrawn(this, drawn)
+        if (!drawn) applyDrawn(this, drawn = false)
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        applyMiniMapDrawn(this, drawn)
+        if (!drawn) applyDrawn(this, drawn = false)
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
@@ -116,28 +113,21 @@ internal class CooperativeMapView(
     }
 }
 
-/**
- * Hide or show [root] and every descendant. Collapse walks the whole tree with [View.INVISIBLE]; expand must
- * restore the same tree (not only Surface/Texture leaves) or the map stays blank after the next open.
- */
-internal fun applyMiniMapDrawn(root: View, drawn: Boolean) {
+private fun applyDrawn(root: View, drawn: Boolean) {
     if (drawn) {
+        root.visibility = View.VISIBLE
+        root.isEnabled = true
         root.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
-        fun show(view: View) {
-            view.visibility = View.VISIBLE
-            view.alpha = 1f
-            view.isEnabled = true
-            if (view is ViewGroup) {
-                for (i in 0 until view.childCount) show(view.getChildAt(i))
-            }
+        visitPlatformLayers(root) { layer ->
+            layer.visibility = View.VISIBLE
+            layer.isEnabled = true
         }
-        show(root)
         return
     }
+    root.isEnabled = false
     root.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
     fun hide(view: View) {
         view.visibility = View.INVISIBLE
-        view.alpha = 0f
         view.isEnabled = false
         if (view is SurfaceView) view.setZOrderOnTop(false)
         if (view is ViewGroup) {
@@ -145,4 +135,11 @@ internal fun applyMiniMapDrawn(root: View, drawn: Boolean) {
         }
     }
     hide(root)
+}
+
+private fun visitPlatformLayers(view: View, action: (View) -> Unit) {
+    if (view is SurfaceView || view is TextureView) action(view)
+    if (view is ViewGroup) {
+        for (i in 0 until view.childCount) visitPlatformLayers(view.getChildAt(i), action)
+    }
 }
