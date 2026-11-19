@@ -382,6 +382,7 @@ private fun ItineraryContent(
     var openLeg by rememberSaveable { mutableStateOf<String?>(null) }
     val routeStops = remember(items) { dayStops(items) }
     val uriHandler = LocalUriHandler.current
+    /** Mini map (strip, collapsed bar, fullscreen) and, off Android, the day heading chip. */
     fun openDayRoute() {
         val open = mapsDayRouteOpen(dayRoutePoints(items), mainMode.mapsMode()) ?: return
         runCatching { uriHandler.openUri(open.url) }
@@ -541,6 +542,7 @@ private fun ItineraryContent(
                             twoFingerHintShown = true
                             scope.launch { prefs.putString(MINI_MAP_TWO_FINGER_HINT_KEY, "1") }
                         },
+                        onOpenInMaps = if (routeStops.size >= 2) ::openDayRoute else null,
                     )
                 }
                 if (day != null) {
@@ -564,7 +566,7 @@ private fun ItineraryContent(
                         legs = legs,
                         onOpenLeg = { from, to -> openLeg = "$from|$to" },
                         onFillLocation = onFillLocation,
-                        onOpenRoute = if (routeStops.size >= 2) ::openDayRoute else null,
+                        onOpenRoute = if (!miniMapSupported && routeStops.size >= 2) ::openDayRoute else null,
                         pinsById = pinsById,
                         selectedPinId = selectedPin,
                         rowRequesters = rowRequesters,
@@ -814,7 +816,6 @@ private fun DaySection(
                 }
             },
     ) {
-        // the day's title and, with two or more stops, "Buka rute hari ini" (it wraps under the title with a big font)
         androidx.compose.foundation.layout.FlowRow(
             Modifier.fillMaxWidth().padding(bottom = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -907,7 +908,12 @@ internal fun TravelGap(hidden: Boolean = false, content: @Composable () -> Unit)
             Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
         }
         // under the tile (40 dp) and its gap, like the activity's title
-        Box(Modifier.weight(1f).padding(start = 52.dp, top = 1.dp, bottom = 1.dp).alpha(alpha)) { content() }
+        Box(
+            Modifier
+                .weight(1f)
+                .padding(start = 52.dp, top = IrisTheme.spacing.s8, bottom = IrisTheme.spacing.s12)
+                .alpha(alpha),
+        ) { content() }
     }
 }
 
@@ -991,7 +997,7 @@ private fun TimelineRow(
         Row(
             Modifier
                 .weight(1f)
-                .padding(bottom = if (isLast) 0.dp else if (capsuleFollows) 2.dp else 16.dp)
+                .padding(bottom = if (isLast || capsuleFollows) 0.dp else 16.dp)
                 .then(
                     if (selected && !dragging) {
                         // the row of the pin that was tapped on the map

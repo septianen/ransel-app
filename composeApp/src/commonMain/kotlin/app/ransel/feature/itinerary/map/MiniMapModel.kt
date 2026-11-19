@@ -1,6 +1,10 @@
 package app.ransel.feature.itinerary.map
 
+import app.ransel.shared.domain.DayMapsOpen
+import app.ransel.shared.domain.MapsPoint
+import app.ransel.shared.domain.MapsTravelMode
 import app.ransel.shared.domain.isMapStop
+import app.ransel.shared.domain.mapsDayRouteOpen
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.model.Category
 
@@ -39,13 +43,16 @@ fun unlocatedCount(items: List<ItineraryItemDto>): Int = items.count { !it.hasMa
 fun firstUnlocated(items: List<ItineraryItemDto>): ItineraryItemDto? = items.firstOrNull { !it.hasMapPoint() }
 
 /**
- * The pin "Buka di Google Maps" opens: the highlighted one, else the first of the day (owner and Benn, 12 Nov 2026).
- * A place, not a route: navigation is a PRD non-goal.
+ * The pin a highlight refers to: the highlighted one, else the first of the day (owner and Benn, 12 Nov 2026).
  */
 fun pinToOpen(pins: List<MapPin>, selectedId: String?): MapPin? = pins.firstOrNull { it.itemId == selectedId } ?: pins.firstOrNull()
 
-/** Google Maps URL for one point (https://developers.google.com/maps/documentation/urls/get-started "Search"). */
-fun googleMapsUrl(pin: MapPin): String = "https://www.google.com/maps/search/?api=1&query=${pin.lat},${pin.lng}"
+/**
+ * The day's "Buka di Google Maps" URL: origin = first stop, destination = last, waypoints = the ones between,
+ * capped at nine distinct points ([mapsDayRouteOpen]). Null for fewer than two distinct stops.
+ */
+fun googleMapsDayRoute(pins: List<MapPin>, mode: MapsTravelMode): DayMapsOpen? =
+    mapsDayRouteOpen(pins.map { MapsPoint(it.lat, it.lng) }, mode)
 
 /** What the map shows while it loads before it gives up and shows the "failed" card (spec state 5 to 6). */
 const val MINI_MAP_LOAD_TIMEOUT_MILLIS = 8_000L

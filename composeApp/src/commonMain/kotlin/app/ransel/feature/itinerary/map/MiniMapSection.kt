@@ -43,12 +43,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -75,12 +75,14 @@ import app.ransel.shared.domain.DayCity
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
+import app.ransel.ui.theme.IrisTheme
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.mini_map_add_location
 import ransel.composeapp.generated.resources.mini_map_badge
 import ransel.composeapp.generated.resources.mini_map_collapse
+import ransel.composeapp.generated.resources.mini_map_collapsed_open_maps
 import ransel.composeapp.generated.resources.mini_map_collapsed_title
 import ransel.composeapp.generated.resources.mini_map_description
 import ransel.composeapp.generated.resources.mini_map_empty_title
@@ -98,11 +100,14 @@ import ransel.composeapp.generated.resources.mini_map_two_finger_hint
 enum class MapPhase { LOADING, LOADED, FAILED }
 
 private val StripHeight = 160.dp
+/** Compass and collapse: 40 dp circles, 8 dp apart, 12 dp from the strip's edge (spec 19 Nov 2026). */
+private val MapControlSize = 40.dp
 
 /**
  * The day's mini map above the timeline (spec "Mini peta di Itinerary"): a 160 dp strip with numbered pins, a chip that
- * opens the highlighted place in Google Maps, a fold button, and the "n aktivitas belum punya lokasi" line. A day
- * without any activity shows nothing; a day where none has a place shows the dashed "Isi lokasi" card.
+ * opens the day's route in Google Maps (same as the day heading chip), compass then collapse at the top right, and the
+ * "n aktivitas belum punya lokasi" line. A day without any activity shows nothing; a day where none has a place shows
+ * the dashed "Isi lokasi" card.
  *
  * [onFillLocation] opens the first activity without a place with its place picker; null (viewers) hides the buttons.
  */
@@ -130,13 +135,15 @@ fun MiniMapSection(
     /** True after the two-finger hint has been stored on this device. */
     twoFingerHintShown: Boolean = true,
     onTwoFingerHintShown: () -> Unit = {},
+    /** Same as the day's "Buka di Google Maps" chip: the day's route, or null when there are fewer than two stops. */
+    onOpenInMaps: (() -> Unit)? = null,
 ) {
     if (pins.isEmpty() && unlocated == 0) return
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         if (cities.size >= 2 && selectedCity != null) MiniMapCityChips(cities, selectedCity, onSelectCity)
         MiniMapBody(
             pins, unlocated, selectedId, collapsed, dark, onToggleCollapsed, onPinClick, onFillLocation, segments, lineStyle,
-            transfers, onOpenTransfer, twoFingerHintShown, onTwoFingerHintShown,
+            transfers, onOpenTransfer, twoFingerHintShown, onTwoFingerHintShown, onOpenInMaps,
         )
     }
 }
@@ -157,13 +164,14 @@ private fun MiniMapBody(
     onOpenTransfer: (itemId: String) -> Unit,
     twoFingerHintShown: Boolean,
     onTwoFingerHintShown: () -> Unit,
+    onOpenInMaps: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     when {
         pins.isEmpty() -> MiniMapEmptyCard(onFillLocation, modifier)
         else -> MiniMapOpenable(
             pins, unlocated, selectedId, collapsed, dark, onToggleCollapsed, onPinClick, onFillLocation,
-            segments, lineStyle, transfers, onOpenTransfer, twoFingerHintShown, onTwoFingerHintShown, modifier,
+            segments, lineStyle, transfers, onOpenTransfer, twoFingerHintShown, onTwoFingerHintShown, onOpenInMaps, modifier,
         )
     }
 }
@@ -184,6 +192,7 @@ private fun MiniMapOpenable(
     onOpenTransfer: (itemId: String) -> Unit,
     twoFingerHintShown: Boolean,
     onTwoFingerHintShown: () -> Unit,
+    onOpenInMaps: (() -> Unit)?,
     modifier: Modifier,
 ) {
     var mounted by remember { mutableStateOf(!collapsed) }
@@ -195,9 +204,6 @@ private fun MiniMapOpenable(
     var mapReveal by remember { mutableFloatStateOf(0f) }
     var showHint by remember { mutableStateOf(false) }
     val reduceMotion = rememberReduceMotion()
-    val uriHandler = LocalUriHandler.current
-    val toOpen = pinToOpen(pins, selectedId)
-    val openMaps = toOpen?.let { pin -> { uriHandler.openUri(googleMapsUrl(pin)) } }
     val collapsedBarHeight = 48.dp
     val height by animateDpAsState(
         if (collapsed) collapsedBarHeight else StripHeight,
@@ -249,7 +255,7 @@ private fun MiniMapOpenable(
         )
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Box(Modifier.fillMaxWidth().height(height).clip(IrisShape.lg).clipToBounds()) {
+        Box(Modifier.fillMaxWidth().height(height).clipToBounds()) {
             if (mounted) {
                 MiniMapStrip(
                     phase = phase,
@@ -257,7 +263,7 @@ private fun MiniMapOpenable(
                     skeletonAlpha = skeletonAlpha,
                     showHint = showHint && !collapsed,
                     canvas = { canvasModifier, w, h -> mapCanvas(canvasModifier, w, h, false, 0) },
-                    onOpenInMaps = openMaps,
+                    onOpenInMaps = onOpenInMaps,
                     onCollapse = onToggleCollapsed,
                     onFullscreen = { fullscreen = true },
                     onRetry = {
@@ -273,7 +279,7 @@ private fun MiniMapOpenable(
                 enter = fadeIn(IrisMotion.short3()),
                 exit = fadeOut(IrisMotion.short3()),
             ) {
-                MiniMapCollapsedBar(pins.size, onToggleCollapsed, Modifier.fillMaxWidth())
+                MiniMapCollapsedBar(pins.size, onToggleCollapsed, onOpenInMaps, Modifier.fillMaxWidth())
             }
         }
         androidx.compose.animation.AnimatedVisibility(
@@ -302,7 +308,7 @@ private fun MiniMapOpenable(
             MiniMapFullscreen(
                 phase = phase,
                 canvas = { canvasModifier, w, h -> mapCanvas(canvasModifier, w, h, true, recenterTick) },
-                onOpenInMaps = openMaps,
+                onOpenInMaps = onOpenInMaps,
                 onClose = { fullscreen = false },
                 onRecenter = { recenterTick++ },
                 onRetry = {
@@ -330,57 +336,68 @@ fun MiniMapStrip(
     onFullscreen: () -> Unit = {},
 ) {
     val scheme = MaterialTheme.colorScheme
-    Box(modifier.fillMaxWidth().height(StripHeight).clip(IrisShape.lg).background(scheme.surfaceContainerHigh)) {
-        if (phase == MapPhase.FAILED) {
-            MiniMapFailedCard(onRetry, Modifier.fillMaxSize())
-            return@Box
-        }
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val widthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
-            val heightPx = with(LocalDensity.current) { maxHeight.roundToPx() }
-            if (widthPx > 0 && heightPx > 0) {
-                Box(Modifier.fillMaxSize().graphicsLayer { alpha = mapAlpha }) {
-                    canvas(Modifier.fillMaxSize(), widthPx, heightPx)
+    val edge = IrisTheme.spacing.s12
+    val gap = IrisTheme.spacing.s8
+    Box(modifier.fillMaxWidth().height(StripHeight)) {
+        Box(Modifier.fillMaxSize().clip(IrisShape.lg).background(scheme.surfaceContainerHigh)) {
+            if (phase == MapPhase.FAILED) {
+                MiniMapFailedCard(onRetry, Modifier.fillMaxSize())
+            } else {
+                BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val widthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
+                    val heightPx = with(LocalDensity.current) { maxHeight.roundToPx() }
+                    if (widthPx > 0 && heightPx > 0) {
+                        Box(Modifier.fillMaxSize().graphicsLayer { alpha = mapAlpha }) {
+                            canvas(Modifier.fillMaxSize(), widthPx, heightPx)
+                        }
+                    }
+                }
+                if (skeletonAlpha > 0f) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = skeletonAlpha }
+                            .background(scheme.surfaceContainerHigh),
+                    )
                 }
             }
         }
-        if (skeletonAlpha > 0f) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = skeletonAlpha }
-                    .background(scheme.surfaceContainerHigh),
-            )
-        }
-        if (onOpenInMaps != null) {
-            OpenInMapsChip(onOpenInMaps, Modifier.align(Alignment.BottomEnd))
-        }
-        Row(Modifier.align(Alignment.TopEnd), verticalAlignment = Alignment.CenterVertically) {
-            MapIconButton(
-                symbol = Symbols.expandMore,
-                label = stringResource(Res.string.mini_map_collapse),
-                onClick = onCollapse,
-                symbolModifier = Modifier.rotate(180f),
-            )
-            MapIconButton(
-                symbol = Symbols.explore,
-                label = stringResource(Res.string.mini_map_fullscreen),
-                onClick = onFullscreen,
-            )
-        }
-        if (showHint) {
-            Text(
-                stringResource(Res.string.mini_map_two_finger_hint),
-                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                color = scheme.onSurface,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 40.dp, start = 12.dp, end = 12.dp)
-                    .clip(IrisShape.md)
-                    .background(scheme.surface.copy(alpha = 0.92f))
-                    .border(1.dp, scheme.outlineVariant, IrisShape.md)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-            )
+        if (phase != MapPhase.FAILED) {
+            if (onOpenInMaps != null) {
+                // 12 dp inset: the pill sat flush on the rounded clip and lost its right edge (looked like a cut-off control)
+                OpenInMapsChip(onOpenInMaps, Modifier.align(Alignment.BottomEnd).padding(edge))
+            }
+            Row(
+                Modifier.align(Alignment.TopEnd).padding(edge),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(gap),
+            ) {
+                MapIconButton(
+                    symbol = Symbols.explore,
+                    label = stringResource(Res.string.mini_map_fullscreen),
+                    onClick = onFullscreen,
+                )
+                MapIconButton(
+                    symbol = Symbols.expandMore,
+                    label = stringResource(Res.string.mini_map_collapse),
+                    onClick = onCollapse,
+                    symbolModifier = Modifier.rotate(180f),
+                )
+            }
+            if (showHint) {
+                Text(
+                    stringResource(Res.string.mini_map_two_finger_hint),
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = scheme.onSurface,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 40.dp, start = 12.dp, end = 12.dp)
+                        .clip(IrisShape.md)
+                        .background(scheme.surface.copy(alpha = 0.92f))
+                        .border(1.dp, scheme.outlineVariant, IrisShape.md)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }
@@ -412,23 +429,30 @@ private fun MiniMapFullscreen(
                     }
                 }
             }
-            MapIconButton(
-                symbol = Symbols.close,
-                label = stringResource(Res.string.mini_map_collapse),
-                onClick = onClose,
-                modifier = Modifier.align(Alignment.TopStart).statusBarsPadding(),
-            )
-            Column(
-                Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(end = 8.dp, bottom = 8.dp),
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            Row(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(IrisTheme.spacing.s12),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(IrisTheme.spacing.s8),
             ) {
                 MapIconButton(
                     symbol = Symbols.locationOn,
                     label = stringResource(Res.string.mini_map_recenter),
                     onClick = onRecenter,
                 )
-                if (onOpenInMaps != null) OpenInMapsChip(onOpenInMaps)
+                MapIconButton(
+                    symbol = Symbols.close,
+                    label = stringResource(Res.string.mini_map_collapse),
+                    onClick = onClose,
+                )
+            }
+            if (onOpenInMaps != null) {
+                OpenInMapsChip(
+                    onOpenInMaps,
+                    Modifier.align(Alignment.BottomEnd).navigationBarsPadding().padding(IrisTheme.spacing.s12),
+                )
             }
         }
     }
@@ -471,22 +495,33 @@ private fun MapIconButton(
 ) {
     val scheme = MaterialTheme.colorScheme
     Box(
-        modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).clickable(role = Role.Button, onClick = onClick),
+        modifier
+            .size(MapControlSize)
+            .shadow(
+                elevation = 2.dp,
+                shape = CircleShape,
+                ambientColor = Color.Black.copy(alpha = 0.06f),
+                spotColor = Color.Black.copy(alpha = 0.08f),
+            )
+            .clip(CircleShape)
+            .background(scheme.surface)
+            .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            Modifier.size(32.dp).clip(CircleShape).background(scheme.surface).border(1.dp, scheme.outlineVariant, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Symbol(symbol, size = 20.dp, tint = scheme.onSurface, modifier = symbolModifier, contentDescription = label)
-        }
+        Symbol(symbol, size = 20.dp, tint = scheme.onSurface, modifier = symbolModifier, contentDescription = label)
     }
 }
 
 @Composable
-fun MiniMapCollapsedBar(count: Int, onExpand: () -> Unit, modifier: Modifier = Modifier) {
+fun MiniMapCollapsedBar(
+    count: Int,
+    onExpand: () -> Unit,
+    onOpenInMaps: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
     val scheme = MaterialTheme.colorScheme
     val expandLabel = stringResource(Res.string.mini_map_expand)
+    val openMapsLabel = stringResource(Res.string.mini_map_collapsed_open_maps)
     Row(
         modifier
             .fillMaxWidth()
@@ -505,6 +540,23 @@ fun MiniMapCollapsedBar(count: Int, onExpand: () -> Unit, modifier: Modifier = M
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.weight(1f),
         )
+        if (onOpenInMaps != null) {
+            Row(
+                Modifier
+                    .heightIn(min = 48.dp)
+                    .clickable(role = Role.Button, onClick = onOpenInMaps),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Symbol(Symbols.map, size = 18.dp, tint = scheme.onSurface)
+                Text(
+                    openMapsLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = scheme.onSurface,
+                    maxLines = 1,
+                )
+            }
+        }
         Symbol(Symbols.expandMore, size = 22.dp, tint = scheme.onSurfaceVariant)
     }
 }

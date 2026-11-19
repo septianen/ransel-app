@@ -2,7 +2,7 @@ package app.ransel.feature
 
 import app.ransel.feature.itinerary.map.MapPin
 import app.ransel.feature.itinerary.map.firstUnlocated
-import app.ransel.feature.itinerary.map.googleMapsUrl
+import app.ransel.feature.itinerary.map.googleMapsDayRoute
 import app.ransel.feature.itinerary.map.hasMapPoint
 import app.ransel.feature.itinerary.map.isMiniMapOpen
 import app.ransel.feature.itinerary.map.mapPinsOf
@@ -20,6 +20,9 @@ import app.ransel.feature.itinerary.map.MINI_MAP_MAX_ZOOM
 import app.ransel.feature.itinerary.map.MINI_MAP_MIN_ZOOM_FLOOR
 import app.ransel.feature.itinerary.map.MINI_MAP_SINGLE_FIT_ZOOM
 import kotlin.math.abs
+import app.ransel.shared.domain.MapsPoint
+import app.ransel.shared.domain.MapsTravelMode
+import app.ransel.shared.domain.mapsDayRouteOpen
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.model.Category
 import kotlin.test.Test
@@ -74,16 +77,47 @@ class MiniMapModelTest {
     }
 
     @Test
-    fun openInGoogleMapsOpensTheHighlightedPinElseTheFirstAsAPlaceNotARoute() {
+    fun aHighlightPicksThatPinElseTheFirst() {
         val pins = mapPinsOf(listOf(item("a", -8.5, 115.2), item("b", -8.6, 115.3)), colors)
         assertEquals("b", pinToOpen(pins, "b")?.itemId)
         assertEquals("a", pinToOpen(pins, null)?.itemId)
         assertEquals("a", pinToOpen(pins, "gone")?.itemId, "a highlight that is no longer on the day falls back to the first")
         assertNull(pinToOpen(emptyList(), "a"))
+    }
 
-        val url = googleMapsUrl(pins[1])
-        assertEquals("https://www.google.com/maps/search/?api=1&query=-8.6,115.3", url)
-        assertFalse("dir" in url, "a place, never directions (navigation is a PRD non-goal)")
+    @Test
+    fun openInGoogleMapsIsTheDayRouteWithOriginDestinationAndWaypoints() {
+        val pins = mapPinsOf(
+            listOf(
+                item("a", -8.5, 115.2),
+                item("b", -8.6, 115.3),
+                item("c", -8.7, 115.1),
+            ),
+            colors,
+        )
+        val open = googleMapsDayRoute(pins, MapsTravelMode.TWO_WHEELER)!!
+        val expected = mapsDayRouteOpen(
+            listOf(MapsPoint(-8.5, 115.2), MapsPoint(-8.6, 115.3), MapsPoint(-8.7, 115.1)),
+            MapsTravelMode.TWO_WHEELER,
+        )!!
+        assertEquals(expected.url, open.url)
+        assertFalse(open.truncated)
+        assertTrue("origin=-8.5%2C115.2" in open.url, open.url)
+        assertTrue("destination=-8.7%2C115.1" in open.url, open.url)
+        assertTrue("waypoints=-8.6%2C115.3" in open.url, open.url)
+        assertTrue("/dir/" in open.url)
+        assertFalse("search" in open.url)
+        assertNull(googleMapsDayRoute(pins.take(1), MapsTravelMode.DRIVING), "one stop is not a route")
+    }
+
+    @Test
+    fun aDayLongerThanNineStopsIsCappedAndMarked() {
+        val day = (0 until 10).map { i -> item("s$i", -8.5 - i * 0.01, 115.2 + i * 0.01) }
+        val open = googleMapsDayRoute(mapPinsOf(day, colors), MapsTravelMode.DRIVING)!!
+        assertTrue(open.truncated)
+        assertEquals(mapsDayRouteOpen(day.map { MapsPoint(it.lat!!, it.lng!!) }, MapsTravelMode.DRIVING)!!.url, open.url)
+        val waypoints = open.url.substringAfter("waypoints=").substringBefore("&").split("%7C")
+        assertEquals(7, waypoints.size, open.url)
     }
 
     @Test
