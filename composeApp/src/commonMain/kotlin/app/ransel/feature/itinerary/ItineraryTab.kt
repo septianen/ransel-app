@@ -541,6 +541,7 @@ private fun ItineraryContent(
                             twoFingerHintShown = true
                             scope.launch { prefs.putString(MINI_MAP_TWO_FINGER_HINT_KEY, "1") }
                         },
+                        onOpenInMaps = if (routeStops.size >= 2) ::openDayRoute else null,
                     )
                 }
                 if (day != null) {
@@ -907,7 +908,12 @@ internal fun TravelGap(hidden: Boolean = false, content: @Composable () -> Unit)
             Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
         }
         // under the tile (40 dp) and its gap, like the activity's title
-        Box(Modifier.weight(1f).padding(start = 52.dp, top = 1.dp, bottom = 1.dp).alpha(alpha)) { content() }
+        Box(
+            Modifier
+                .weight(1f)
+                .padding(start = 52.dp, top = IrisTheme.spacing.s8, bottom = IrisTheme.spacing.s12)
+                .alpha(alpha),
+        ) { content() }
     }
 }
 
@@ -991,7 +997,7 @@ private fun TimelineRow(
         Row(
             Modifier
                 .weight(1f)
-                .padding(bottom = if (isLast) 0.dp else if (capsuleFollows) 2.dp else 16.dp)
+                .padding(bottom = if (isLast || capsuleFollows) 0.dp else 16.dp)
                 .then(
                     if (selected && !dragging) {
                         // the row of the pin that was tapped on the map
