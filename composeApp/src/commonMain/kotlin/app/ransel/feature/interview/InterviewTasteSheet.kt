@@ -95,66 +95,18 @@ internal fun TasteSheet(
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                 color = scheme.onSurface,
             )
-            if (khas is KhasState.Loaded) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(Res.string.explore_special_title, destination), style = MaterialTheme.typography.labelLarge)
-                    ChipFlow { khas.interests.forEach { InterestChip(it, it in draft.extraInterests, { onExtra(it) }, special = true) } }
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(Res.string.interview_taste_general), style = MaterialTheme.typography.labelLarge)
-                ChipFlow { Interest.entries.forEach { InterestChip(stringResource(it.label), it in draft.interests, { onInterest(it) }) } }
-                if (!draft.canSaveFromSheet()) {
-                    Text(stringResource(Res.string.interview_taste_sheet_error), style = MaterialTheme.typography.bodySmall, color = scheme.error)
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(Res.string.interview_taste_style), style = MaterialTheme.typography.labelLarge)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TravelStyle.entries.forEach { style ->
-                        StyleCard(stringResource(style.labelRes), stringResource(style.hintRes), draft.style == style, { onStyle(style) }, Modifier.weight(1f))
-                    }
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(stringResource(Res.string.explore_price_title), style = MaterialTheme.typography.labelLarge)
-                    Text(stringResource(Res.string.explore_price_relative), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-                }
-                if (priceFromBudget && draft.priceLevel == null) {
-                    Text(
-                        stringResource(Res.string.interview_price_from_budget),
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = scheme.tertiary,
-                    )
-                }
-                // "Sedang" is the start of a trip without a budget; the card of the effective range is the selected one
-                PriceLevel.entries.forEach { level ->
-                    ChoiceRow(
-                        symbol = priceSymbol(level),
-                        label = level.signs() + " " + stringResource(level.labelRes),
-                        effect = stringResource(level.exampleRes),
-                        selected = (draft.priceLevel ?: defaultPrice) == level,
-                        onClick = { onPrice(level) },
-                    )
-                }
-            }
-            IrisTextField(
-                label = stringResource(Res.string.explore_notes),
-                labelSuffix = stringResource(Res.string.explore_optional),
-                value = draft.notes,
-                onValueChange = onNotes,
-                placeholder = stringResource(Res.string.explore_notes_hint),
-                singleLine = false,
+            TasteFields(
+                draft = draft,
+                khas = khas,
+                destination = destination,
+                onInterest = onInterest,
+                onExtra = onExtra,
+                onStyle = onStyle,
+                onPrice = onPrice,
+                onNotes = onNotes,
+                defaultPrice = defaultPrice,
+                priceFromBudget = priceFromBudget,
             )
-            if (draft.notes.isNotEmpty()) {
-                Text(
-                    stringResource(Res.string.interview_taste_sheet_counter, draft.notes.length, TASTE_NOTES_MAX),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = scheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
         }
         InterviewBottomBar(
             primaryLabel = stringResource(Res.string.interview_save),
@@ -162,6 +114,86 @@ internal fun TasteSheet(
             onPrimary = onSave,
             modifier = Modifier.padding(top = 8.dp),
         )
+    }
+}
+
+/** Interests, style, price and notes: the sheet and the Edit-trip full screen share this. */
+@Composable
+internal fun TasteFields(
+    draft: InterviewTaste,
+    khas: KhasState,
+    destination: String,
+    onInterest: (Interest) -> Unit,
+    onExtra: (String) -> Unit,
+    onStyle: (TravelStyle) -> Unit,
+    onPrice: (PriceLevel) -> Unit,
+    onNotes: (String) -> Unit,
+    defaultPrice: PriceLevel = PriceLevel.MEDIUM,
+    priceFromBudget: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (khas is KhasState.Loaded) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(Res.string.explore_special_title, destination), style = MaterialTheme.typography.labelLarge)
+                ChipFlow { khas.interests.forEach { InterestChip(it, it in draft.extraInterests, { onExtra(it) }, special = true) } }
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(Res.string.interview_taste_general), style = MaterialTheme.typography.labelLarge)
+            ChipFlow { Interest.entries.forEach { InterestChip(stringResource(it.label), it in draft.interests, { onInterest(it) }) } }
+            if (!draft.canSaveFromSheet()) {
+                Text(stringResource(Res.string.interview_taste_sheet_error), style = MaterialTheme.typography.bodySmall, color = scheme.error)
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(Res.string.interview_taste_style), style = MaterialTheme.typography.labelLarge)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TravelStyle.entries.forEach { style ->
+                    StyleCard(stringResource(style.labelRes), stringResource(style.hintRes), draft.style == style, { onStyle(style) }, Modifier.weight(1f))
+                }
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(stringResource(Res.string.explore_price_title), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(Res.string.explore_price_relative), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+            }
+            if (priceFromBudget && draft.priceLevel == null) {
+                Text(
+                    stringResource(Res.string.interview_price_from_budget),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = scheme.tertiary,
+                )
+            }
+            // "Sedang" is the start of a trip without a budget; the card of the effective range is the selected one
+            PriceLevel.entries.forEach { level ->
+                ChoiceRow(
+                    symbol = priceSymbol(level),
+                    label = level.signs() + " " + stringResource(level.labelRes),
+                    effect = stringResource(level.exampleRes),
+                    selected = (draft.priceLevel ?: defaultPrice) == level,
+                    onClick = { onPrice(level) },
+                )
+            }
+        }
+        IrisTextField(
+            label = stringResource(Res.string.explore_notes),
+            labelSuffix = stringResource(Res.string.explore_optional),
+            value = draft.notes,
+            onValueChange = onNotes,
+            placeholder = stringResource(Res.string.explore_notes_hint),
+            singleLine = false,
+        )
+        if (draft.notes.isNotEmpty()) {
+            Text(
+                stringResource(Res.string.interview_taste_sheet_counter, draft.notes.length, TASTE_NOTES_MAX),
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 

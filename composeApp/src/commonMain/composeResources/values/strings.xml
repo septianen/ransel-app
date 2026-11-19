@@ -2117,6 +2117,7 @@
     <string name="trip_answer_origin_title">Starting city</string>
     <string name="trip_answer_departure_title">Getting there</string>
     <string name="trip_answer_local_title">Getting around</string>
+    <string name="trip_answer_taste_title">Your taste</string>
     <string name="trip_answer_follows_motor">Getting around %1$s follows: Motorbike</string>
     <string name="trip_answer_follows_car">Getting around %1$s follows: Car</string>
     <string name="trip_answer_asks_local">You choose how to get around next</string>

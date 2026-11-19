@@ -286,9 +286,11 @@ internal fun InterviewBottomBar(
     note: String? = null,
     skipLabel: String? = null,
     onSkip: (() -> Unit)? = null,
+    /** False on full-screen Travel edit: the green button sits on the page, no floating card. */
+    elevated: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Surface(modifier.fillMaxWidth(), color = scheme.surface, shadowElevation = 8.dp) {
+    Surface(modifier.fillMaxWidth(), color = scheme.surface, shadowElevation = if (elevated) 8.dp else 0.dp) {
         Column(
             Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

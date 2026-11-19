@@ -2100,6 +2100,7 @@
     <string name="trip_answer_origin_title">Kota asal</string>
     <string name="trip_answer_departure_title">Cara berangkat</string>
     <string name="trip_answer_local_title">Cara keliling</string>
+    <string name="trip_answer_taste_title">Seleramu</string>
     <string name="trip_answer_follows_motor">Keliling di %1$s ikut: Motor</string>
     <string name="trip_answer_follows_car">Keliling di %1$s ikut: Mobil</string>
     <string name="trip_answer_asks_local">Kamu lanjut memilih cara keliling</string>

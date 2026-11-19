@@ -137,6 +137,7 @@ import app.ransel.feature.invite.InviteFriendsScreen
 import app.ransel.navigation.EditTripRoute
 import app.ransel.navigation.TripAnswerRoute
 import app.ransel.feature.tripform.travel.TripAnswerScreen
+import app.ransel.feature.tripform.travel.TripTasteScreen
 import app.ransel.shared.domain.TravelRow
 import app.ransel.navigation.ExplorePreferencesRoute
 import app.ransel.navigation.ExploreRoute
@@ -1011,16 +1012,25 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
     }
     page<TripAnswerRoute> { entry ->
         val route = entry.toRoute<TripAnswerRoute>()
-        TripAnswerScreen(
-            tripId = route.tripId,
-            row = TravelRow.valueOf(route.row),
-            onBack = { navController.popBackStack() },
-            onSaved = { navController.popBackStack() },
-            // an own vehicle was replaced: "Cara keliling" opens straight away, in place of this screen
-            onSavedOpenLocalTransport = {
-                navController.navigate(TripAnswerRoute(route.tripId, TravelRow.LOCAL_TRANSPORT.name)) { popUpTo<TripAnswerRoute> { inclusive = true } }
-            },
-        )
+        val row = TravelRow.valueOf(route.row)
+        if (row == TravelRow.TASTE) {
+            TripTasteScreen(
+                tripId = route.tripId,
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+            )
+        } else {
+            TripAnswerScreen(
+                tripId = route.tripId,
+                row = row,
+                onBack = { navController.popBackStack() },
+                onSaved = { navController.popBackStack() },
+                // an own vehicle was replaced: "Cara keliling" opens straight away, in place of this screen
+                onSavedOpenLocalTransport = {
+                    navController.navigate(TripAnswerRoute(route.tripId, TravelRow.LOCAL_TRANSPORT.name)) { popUpTo<TripAnswerRoute> { inclusive = true } }
+                },
+            )
+        }
     }
 }
 

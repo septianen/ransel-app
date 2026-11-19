@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
-/** The section "Perjalanan" of Edit trip: the trip (live), its Seleramu, and the sheet "Ubah seleramu" with its draft. */
+/** The section "Perjalanan" of Edit trip: the trip (live), its Seleramu, and the full-screen "Seleramu" draft. */
 data class TripTravelUiState(
     val trip: TripDto? = null,
     /** The Seleramu of this trip; null = not answered ("Belum diisi · Isi"). */
