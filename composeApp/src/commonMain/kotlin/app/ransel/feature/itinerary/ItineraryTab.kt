@@ -17,7 +17,6 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.gestures.drag
-import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -60,8 +59,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -346,6 +347,10 @@ private fun ItineraryContent(
     }
     val dates = rememberDateFormatter()
     val drag = remember { DayDragState() }
+    val listScroll = rememberScrollState()
+    val density = LocalDensity.current
+    val edgeZonePx = with(density) { EdgeZoneDp.dp.toPx() }
+    val maxEdgeScrollPxPerSec = with(density) { MaxEdgeScrollDpPerSec.dp.toPx() }
     var showUnscheduled by rememberSaveable { mutableStateOf(false) }
     var scheduleItemId by rememberSaveable { mutableStateOf<String?>(null) }
     var autoPlan by remember { mutableStateOf<AutoPlan?>(null) }
@@ -444,6 +449,30 @@ private fun ItineraryContent(
         viewModel.endDrag()
     }
 
+    val autoScrolling = drag.showChrome
+    LaunchedEffect(autoScrolling) {
+        if (!autoScrolling) return@LaunchedEffect
+        var lastFrame = 0L
+        while (drag.showChrome) {
+            val frame = withFrameNanos { it }
+            if (!drag.showChrome) break
+            if (lastFrame != 0L) {
+                val dt = (frame - lastFrame).coerceAtMost(32_000_000L) / 1_000_000_000f
+                val fingerY = drag.fingerY()
+                val box = drag.viewport
+                if (fingerY != null && box.height > 0f) {
+                    val velocity = edgeScrollVelocityPxPerSec(
+                        fingerY, box.top, box.bottom, edgeZonePx, maxEdgeScrollPxPerSec,
+                    )
+                    if (velocity != 0f) {
+                        drag.onListScrolled(listScroll.dispatchRawDelta(velocity * dt))
+                    }
+                }
+            }
+            lastFrame = frame
+        }
+    }
+
     val from = if (drag.isDragging) drag.fromIndex() else -1
     val hovered = drag.hoveredChip
     val target = if (from >= 0 && hovered == null) drag.targetIndex().coerceIn(0, items.lastIndex.coerceAtLeast(0)) else from
@@ -483,11 +512,15 @@ private fun ItineraryContent(
 
     Column(Modifier.fillMaxSize()) {
         DayChips(state, dates, drag, onSelectDay)
-        Box(Modifier.weight(1f)) {
+        Box(
+            Modifier
+                .weight(1f)
+                .onGloballyPositioned { drag.viewport = it.boundsInRoot() },
+        ) {
             Column(
                 Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState(), enabled = !drag.blocksScroll)
+                    .verticalScroll(listScroll, enabled = !drag.blocksScroll)
                     .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
@@ -506,9 +539,6 @@ private fun ItineraryContent(
                             null
                         },
                     )
-                }
-                if (drag.isDragging) {
-                    DragHint(Modifier.graphicsLayer { alpha = hintAlpha })
                 }
                 if (day != null && miniMapSupported) {
                     MiniMapSection(
@@ -572,6 +602,15 @@ private fun ItineraryContent(
                         rowRequesters = rowRequesters,
                     )
                 }
+            }
+            if (drag.isDragging) {
+                DragHint(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .zIndex(2f)
+                        .graphicsLayer { alpha = hintAlpha },
+                )
             }
             if (canEdit && !drag.isDragging) {
                 IconFab(
@@ -781,15 +820,15 @@ private fun DaySection(
     val beginDrag by rememberUpdatedState(onBeginDrag)
     val endDrag by rememberUpdatedState(onEndDrag)
     val itemIds by rememberUpdatedState(items.map { it.id })
-    var containerRoot by remember { mutableStateOf(Offset.Zero) }
+    val containerRoot = remember { mutableStateOf(Offset.Zero) }
     Column(
         Modifier
-            .onGloballyPositioned { containerRoot = it.positionInRoot() }
+            .onGloballyPositioned { containerRoot.value = it.positionInRoot() }
             .pointerInput(canEdit) {
                 if (!canEdit) return@pointerInput
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
-                    val rootPos = containerRoot + down.position
+                    val rootPos = containerRoot.value + down.position
                     val hit = itemIds.firstOrNull { drag.rowBounds[it]?.contains(rootPos) == true }
                         ?: return@awaitEachGesture
                     val bounds = drag.rowBounds.getValue(hit)
@@ -799,9 +838,8 @@ private fun DaySection(
                         drag.start(hit, rootPos - bounds.topLeft, itemIds)
                         beginDrag()
                         val completed = drag(down.id) { change ->
-                            val delta = change.positionChange()
                             change.consume()
-                            drag.dragBy(delta.x, delta.y)
+                            drag.dragTo(containerRoot.value + change.position)
                         }
                         if (completed) finish() else {
                             drag.finish()
@@ -837,8 +875,8 @@ private fun DaySection(
                 target <= index && index < from -> 1
                 else -> 0
             }
-            val height = drag.rowBounds[drag.draggingId]?.height ?: 0f
-            val animatedShift by animateFloatAsState(shift * height, label = "row-shift")
+            val slot = drag.draggingId?.let { drag.slotHeight(it) } ?: 0f
+            val animatedShift by animateFloatAsState(shift * slot, label = "row-shift")
             var lastDelta by remember(item.id) { mutableFloatStateOf(0f) }
             SideEffect { if (isDragging && !drag.settling) lastDelta = drag.deltaY }
             val settleY by animateFloatAsState(
@@ -846,7 +884,7 @@ private fun DaySection(
                 animationSpec = tween(if (isDragging && drag.settling) IrisMotion.Short4 else 0),
                 label = "drag-settle",
             )
-            val slot = previewSlots?.get(item.id)
+            val previewSlot = previewSlots?.get(item.id)
             val gap = legs.getOrNull(index)
             val showGap = gap is LegDisplay.Leg || (gap is LegDisplay.AddLocationPrompt && canEdit)
             TimelineRow(
@@ -854,8 +892,8 @@ private fun DaySection(
                 isLast = index == items.lastIndex,
                 capsuleFollows = showGap,
                 untilTime = (gap as? LegDisplay.Leg)?.takeIf { it.warning != null }?.let { item.endTime },
-                shownStart = slot?.start ?: item.startTime,
-                shownEnd = slot?.end ?: item.endTime,
+                shownStart = previewSlot?.start ?: item.startTime,
+                shownEnd = previewSlot?.end ?: item.endTime,
                 dragging = isDragging,
                 flashing = item.id in flashingIds,
                 showDuration = drag.isDragging,
@@ -873,9 +911,15 @@ private fun DaySection(
                 requester = remember(item.id) { rowRequesters.getOrPut(item.id) { BringIntoViewRequester() } },
             )
             val next = items.getOrNull(index + 1)
+            if (!showGap && !drag.isDragging) drag.gapHeightAfter.remove(item.id)
             if (showGap && next != null) {
-                // while a card is held and moves, the capsules fade out: the rows shift, the gaps stay, and the two overlap
-                TravelGap(hidden = drag.isDragging) {
+                // Capsules fade while a card is held; they keep their room so rest spacing stays.
+                // They shift with the row above, except the dragged row's own gap, which is the slot left behind.
+                TravelGap(
+                    hidden = drag.isDragging,
+                    translationY = if (isDragging) 0f else animatedShift,
+                    onHeight = { height -> if (!drag.isDragging) drag.gapHeightAfter[item.id] = height },
+                ) {
                     when (gap) {
                         is LegDisplay.Leg -> TravelCapsule(
                             TravelCapsuleModel(item, next, gap.leg, gap.warning),
@@ -895,13 +939,22 @@ private fun DaySection(
 
 /**
  * The row between two activities that holds the capsule: the timeline's rail runs through it, the capsule sits in the title column.
- * [hidden] (a card is being dragged) makes the capsule invisible but keeps its room, so the rows do not jump.
+ * [hidden] (a card is being dragged) makes the capsule invisible but keeps its room, so rest spacing stays.
  */
 @Composable
-internal fun TravelGap(hidden: Boolean = false, content: @Composable () -> Unit) {
+internal fun TravelGap(
+    hidden: Boolean = false,
+    translationY: Float = 0f,
+    onHeight: ((Float) -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
     val alpha by animateFloatAsState(if (hidden) 0f else 1f, label = "travel-gap-alpha")
     Row(
-        Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+        Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .graphicsLayer { this.translationY = translationY }
+            .onGloballyPositioned { coords -> onHeight?.invoke(coords.size.height.toFloat()) },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(Modifier.width(44.dp).fillMaxHeight(), contentAlignment = Alignment.TopCenter) {
@@ -1008,11 +1061,11 @@ private fun TimelineRow(
                 )
                 .then(
                     if (dragging) {
+                        // Border only: extra padding here used to grow the row and the drop slot.
                         Modifier
                             .clip(IrisShape.lg)
                             .background(MaterialTheme.colorScheme.surface)
                             .border(BorderStroke(2.dp, primary.copy(alpha = chromeAlpha)), IrisShape.lg)
-                            .padding(horizontal = 10.dp, vertical = 8.dp)
                     } else {
                         Modifier.clickable(onClick = onClick)
                     },

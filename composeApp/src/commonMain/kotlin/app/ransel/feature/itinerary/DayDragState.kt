@@ -13,6 +13,10 @@ import androidx.compose.ui.geometry.Rect
  * at rest); while dragging only graphics-layer translations change, so those bounds stay valid and the
  * finger position can be hit-tested against both.
  *
+ * List auto-scroll during a drag is applied as [onListScrolled]: row bounds stay frozen and the
+ * dragged card's translation grows by the consumed scroll so it stays under the finger. [targetIndex]
+ * uses that translation, so the drop slot keeps moving as the list scrolls.
+ *
  * Drop targets: another row's slot (reorder within the day) or a day chip (move to that day).
  *
  * The instance must outlive a day change only as an object identity: [pointerInput] keys off it, so
@@ -22,6 +26,7 @@ import androidx.compose.ui.geometry.Rect
 class DayDragState {
     var draggingId by mutableStateOf<String?>(null)
         private set
+    /** Graphics-layer Y of the dragged row: pointer movement plus list auto-scroll. */
     var deltaY by mutableFloatStateOf(0f)
         private set
     var hoveredChip by mutableStateOf<Int?>(null)
@@ -30,7 +35,9 @@ class DayDragState {
     var settling by mutableStateOf(false)
         private set
 
-    private var deltaX = 0f
+    private var pointerDeltaX = 0f
+    private var pointerDeltaY = 0f
+    private var scrollCompensationY = 0f
     private var touch = Offset.Zero
     private var orderedIds: List<String> = emptyList()
     var settleToken: Int = 0
@@ -38,6 +45,9 @@ class DayDragState {
 
     val rowBounds = HashMap<String, Rect>()
     val chipBounds = HashMap<Int, Rect>()
+    /** Height of the travel gap under each row; 0 when the next activity has no capsule. */
+    val gapHeightAfter = HashMap<String, Float>()
+    var viewport: Rect = Rect.Zero
 
     val isDragging: Boolean get() = draggingId != null
 
@@ -51,7 +61,9 @@ class DayDragState {
         draggingId = id
         orderedIds = ids
         touch = touchInRow
-        deltaX = 0f
+        pointerDeltaX = 0f
+        pointerDeltaY = 0f
+        scrollCompensationY = 0f
         deltaY = 0f
         hoveredChip = null
         settling = false
@@ -60,10 +72,31 @@ class DayDragState {
 
     fun dragBy(dx: Float, dy: Float) {
         if (settling) return
-        deltaX += dx
-        deltaY += dy
+        pointerDeltaX += dx
+        pointerDeltaY += dy
+        publishDelta()
         val finger = finger() ?: return
         hoveredChip = chipBounds.entries.firstOrNull { it.value.contains(finger) }?.key
+    }
+
+    /** Pointer moved: [root] is the finger in root coordinates (scroll-stable). */
+    fun dragTo(root: Offset) {
+        if (settling) return
+        val bounds = rowBounds[draggingId ?: return] ?: return
+        pointerDeltaX = root.x - bounds.left - touch.x
+        pointerDeltaY = root.y - bounds.top - touch.y
+        publishDelta()
+        hoveredChip = chipBounds.entries.firstOrNull { it.value.contains(root) }?.key
+    }
+
+    /**
+     * The scrollable consumed [consumedPx] of programmatic auto-scroll (Compose: positive moves
+     * content up). The dragged card's translation grows by the same amount so it stays under the finger.
+     */
+    fun onListScrolled(consumedPx: Float) {
+        if (settling || draggingId == null || consumedPx == 0f) return
+        scrollCompensationY += consumedPx
+        publishDelta()
     }
 
     /** Finger is up: keep [draggingId] so chrome can fade, freeze the delta. */
@@ -75,8 +108,10 @@ class DayDragState {
 
     fun finish() {
         draggingId = null
+        pointerDeltaX = 0f
+        pointerDeltaY = 0f
+        scrollCompensationY = 0f
         deltaY = 0f
-        deltaX = 0f
         hoveredChip = null
         settling = false
         orderedIds = emptyList()
@@ -85,11 +120,24 @@ class DayDragState {
 
     fun clearRowBounds() {
         rowBounds.clear()
+        gapHeightAfter.clear()
+    }
+
+    fun fingerY(): Float? = finger()?.y
+
+    /** Row plus the travel gap under it: the slot other rows shift by while this one is held. */
+    fun slotHeight(id: String): Float {
+        val row = rowBounds[id] ?: return 0f
+        return row.height + (gapHeightAfter[id] ?: 0f)
+    }
+
+    private fun publishDelta() {
+        deltaY = pointerDeltaY + scrollCompensationY
     }
 
     private fun finger(): Offset? {
         val bounds = rowBounds[draggingId ?: return null] ?: return null
-        return Offset(bounds.left + touch.x + deltaX, bounds.top + touch.y + deltaY)
+        return Offset(bounds.left + touch.x + pointerDeltaX, bounds.top + touch.y + pointerDeltaY)
     }
 
     fun fromIndex(): Int {
