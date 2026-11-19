@@ -1415,6 +1415,7 @@
     <string name="mini_map_description">Map of today, %1$d places</string>
     <string name="mini_map_open_in_maps">Open in Google Maps</string>
     <string name="mini_map_collapsed_title">View map · %1$d places</string>
+    <string name="mini_map_collapsed_open_maps">Open in Maps</string>
     <string name="mini_map_collapse">Fold the map</string>
     <string name="mini_map_expand">Show the map</string>
     <string name="mini_map_partial">%1$d activities have no location ·</string>
@@ -2043,6 +2044,7 @@
     <string name="travel_sheet_warning">About %1$s needed, only %2$s between them. Times are not changed.</string>
     <string name="travel_sheet_overlap">About %1$s needed, but the times overlap with the activity before. Times are not changed.</string>
     <string name="route_today_truncated">Google Maps can only show the first 9 places</string>
+    <string name="route_today_open">Open in Google Maps</string>
     <string name="map_travel_caption">Straight lines between pins in day order, not roads. Dotted = walking. The real route is in Google Maps.</string>
     <string name="map_cities_today">%1$d cities this day</string>
     <string name="map_city_chip">%1$s · %2$d</string>

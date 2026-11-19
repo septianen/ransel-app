@@ -82,6 +82,7 @@ import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.mini_map_add_location
 import ransel.composeapp.generated.resources.mini_map_badge
 import ransel.composeapp.generated.resources.mini_map_collapse
+import ransel.composeapp.generated.resources.mini_map_collapsed_open_maps
 import ransel.composeapp.generated.resources.mini_map_collapsed_title
 import ransel.composeapp.generated.resources.mini_map_description
 import ransel.composeapp.generated.resources.mini_map_empty_title
@@ -278,7 +279,7 @@ private fun MiniMapOpenable(
                 enter = fadeIn(IrisMotion.short3()),
                 exit = fadeOut(IrisMotion.short3()),
             ) {
-                MiniMapCollapsedBar(pins.size, onToggleCollapsed, Modifier.fillMaxWidth())
+                MiniMapCollapsedBar(pins.size, onToggleCollapsed, onOpenInMaps, Modifier.fillMaxWidth())
             }
         }
         androidx.compose.animation.AnimatedVisibility(
@@ -512,9 +513,15 @@ private fun MapIconButton(
 }
 
 @Composable
-fun MiniMapCollapsedBar(count: Int, onExpand: () -> Unit, modifier: Modifier = Modifier) {
+fun MiniMapCollapsedBar(
+    count: Int,
+    onExpand: () -> Unit,
+    onOpenInMaps: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
     val scheme = MaterialTheme.colorScheme
     val expandLabel = stringResource(Res.string.mini_map_expand)
+    val openMapsLabel = stringResource(Res.string.mini_map_collapsed_open_maps)
     Row(
         modifier
             .fillMaxWidth()
@@ -533,6 +540,23 @@ fun MiniMapCollapsedBar(count: Int, onExpand: () -> Unit, modifier: Modifier = M
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.weight(1f),
         )
+        if (onOpenInMaps != null) {
+            Row(
+                Modifier
+                    .heightIn(min = 48.dp)
+                    .clickable(role = Role.Button, onClick = onOpenInMaps),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Symbol(Symbols.map, size = 18.dp, tint = scheme.onSurface)
+                Text(
+                    openMapsLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = scheme.onSurface,
+                    maxLines = 1,
+                )
+            }
+        }
         Symbol(Symbols.expandMore, size = 22.dp, tint = scheme.onSurfaceVariant)
     }
 }

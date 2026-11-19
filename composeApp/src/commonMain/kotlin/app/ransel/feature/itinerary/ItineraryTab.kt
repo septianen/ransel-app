@@ -120,6 +120,7 @@ import app.ransel.feature.itinerary.map.MapLineStyle
 import app.ransel.feature.itinerary.map.MapSegment
 import app.ransel.feature.itinerary.map.TransferRow
 import app.ransel.feature.itinerary.travel.AddLocationPrompt
+import app.ransel.feature.itinerary.travel.RouteTodayChip
 import app.ransel.feature.itinerary.travel.TravelCapsule
 import app.ransel.feature.itinerary.travel.TravelCapsuleModel
 import app.ransel.feature.itinerary.travel.TravelSheet
@@ -381,7 +382,7 @@ private fun ItineraryContent(
     var openLeg by rememberSaveable { mutableStateOf<String?>(null) }
     val routeStops = remember(items) { dayStops(items) }
     val uriHandler = LocalUriHandler.current
-    /** Mini map and fullscreen "Buka di Google Maps" (the day heading chip was removed). */
+    /** Mini map (strip, collapsed bar, fullscreen) and, off Android, the day heading chip. */
     fun openDayRoute() {
         val open = mapsDayRouteOpen(dayRoutePoints(items), mainMode.mapsMode()) ?: return
         runCatching { uriHandler.openUri(open.url) }
@@ -565,6 +566,7 @@ private fun ItineraryContent(
                         legs = legs,
                         onOpenLeg = { from, to -> openLeg = "$from|$to" },
                         onFillLocation = onFillLocation,
+                        onOpenRoute = if (!miniMapSupported && routeStops.size >= 2) ::openDayRoute else null,
                         pinsById = pinsById,
                         selectedPinId = selectedPin,
                         rowRequesters = rowRequesters,
@@ -750,6 +752,7 @@ private fun DragHint(modifier: Modifier = Modifier) {
 
 // ── A day's timeline ─────────────────────────────────────────────────────────
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun DaySection(
     heading: String,
@@ -769,6 +772,7 @@ private fun DaySection(
     legs: List<LegDisplay>,
     onOpenLeg: (fromId: String, toId: String) -> Unit,
     onFillLocation: ((String) -> Unit)?,
+    onOpenRoute: (() -> Unit)?,
     pinsById: Map<String, MapPin>,
     selectedPinId: String?,
     rowRequesters: MutableMap<String, BringIntoViewRequester>,
@@ -812,7 +816,15 @@ private fun DaySection(
                 }
             },
     ) {
-        SectionHeader(heading, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp))
+        androidx.compose.foundation.layout.FlowRow(
+            Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.Center,
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionHeader(heading)
+            if (onOpenRoute != null) RouteTodayChip(onOpenRoute)
+        }
         if (items.isEmpty()) {
             EmptyDay(title = emptyTitle, onExplore = onExplore)
             return@Column
