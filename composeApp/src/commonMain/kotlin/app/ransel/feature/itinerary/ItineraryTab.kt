@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,7 +64,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
@@ -967,7 +965,10 @@ internal fun TravelGap(
         Modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
-            .graphicsLayer { this.translationY = translationY }
+            .graphicsLayer {
+                this.translationY = translationY
+                this.alpha = alpha
+            }
             .onGloballyPositioned { coords -> onHeight?.invoke(coords.size.height.toFloat()) },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -979,7 +980,6 @@ internal fun TravelGap(
             Modifier
                 .weight(1f)
                 .padding(start = 52.dp, top = IrisTheme.spacing.s8, bottom = IrisTheme.spacing.s12)
-                .alpha(alpha),
         ) { content() }
     }
 }
@@ -1025,6 +1025,10 @@ private fun TimelineRow(
         animationSpec = tween(IrisMotion.Short4),
         label = "time-flash",
     )
+    val timelineLineAlpha by animateFloatAsState(
+        targetValue = if (drag.isDragging) 0f else 1f,
+        label = "timeline-line",
+    )
     val minutes = durationMinutes(shownStart, shownEnd) ?: item.durationMin
     val label = stringResource(item.category.itineraryLabel)
     val untilLabel = untilTime?.let { stringResource(Res.string.travel_until, formatTime(it)) }
@@ -1060,17 +1064,14 @@ private fun TimelineRow(
                     color = timeColor,
                 )
             }
-            // Timeline connector hidden while dragging, so rows don't show stale connectors during reorder.
-            if (!isLast && !drag.isDragging) {
+            if (!isLast) {
                 Box(
                     Modifier
                         .width(2.dp)
                         .weight(1f)
+                        .graphicsLayer { alpha = timelineLineAlpha }
                         .background(MaterialTheme.colorScheme.outlineVariant),
                 )
-            } else if (!isLast) {
-                // keep column height balanced when the line is hidden
-                Spacer(Modifier.width(2.dp).weight(1f))
             }
         }
         Row(
