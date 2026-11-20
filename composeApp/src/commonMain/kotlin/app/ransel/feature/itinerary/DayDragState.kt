@@ -49,6 +49,12 @@ class DayDragState {
     val gapHeightAfter = HashMap<String, Float>()
     var viewport: Rect = Rect.Zero
 
+    /**
+     * Room kept between two rows while a card is held, in px (set by the screen). The rows keep their layout, but
+     * their travel gaps are shown closed up to this much: see [compaction].
+     */
+    var compactSpacingPx: Float = 0f
+
     val isDragging: Boolean get() = draggingId != null
 
     /** Banner/border still at full strength (not the settle fade). */
@@ -125,10 +131,36 @@ class DayDragState {
 
     fun fingerY(): Float? = finger()?.y
 
-    /** Row plus the travel gap under it: the slot other rows shift by while this one is held. */
+    /** The room under a row while a card is held: its travel gap closed up to [compactSpacingPx], nothing if it has none. */
+    private fun closedGapAfter(id: String): Float {
+        val gap = gapHeightAfter[id] ?: 0f
+        return if (gap > 0f) minOf(gap, compactSpacingPx) else 0f
+    }
+
+    /** How much a row's travel gap shrinks while a card is held. */
+    private fun savedAfter(id: String): Float = (gapHeightAfter[id] ?: 0f) - closedGapAfter(id)
+
+    private fun savedAbove(index: Int): Float {
+        var total = 0f
+        for (i in 0 until index.coerceAtMost(orderedIds.size)) total += savedAfter(orderedIds[i])
+        return total
+    }
+
+    /**
+     * Vertical translation that closes the rows up while a card is held, around the held card: the rows above it move
+     * down, the rows below it move up, and the held card itself is not moved (it stays under the finger).
+     */
+    fun compaction(id: String): Float {
+        val held = orderedIds.indexOf(draggingId ?: return 0f)
+        val index = orderedIds.indexOf(id)
+        if (held < 0 || index < 0 || index == held) return 0f
+        return savedAbove(held) - savedAbove(index)
+    }
+
+    /** Row plus the room under it while a card is held (its travel gap closed up): the slot other rows shift by. */
     fun slotHeight(id: String): Float {
         val row = rowBounds[id] ?: return 0f
-        return row.height + (gapHeightAfter[id] ?: 0f)
+        return row.height + closedGapAfter(id)
     }
 
     private fun publishDelta() {
@@ -145,13 +177,15 @@ class DayDragState {
         return orderedIds.indexOf(id)
     }
 
-    /** Index the dragged row would take: how many other rows have their center above the dragged center. */
+    /** Index the dragged row would take: how many other rows have their center (as closed up by [compaction]) above the dragged center. */
     fun targetIndex(): Int {
         val id = draggingId ?: return -1
         val from = orderedIds.indexOf(id)
         if (from < 0) return -1
         val dragged = rowBounds[id] ?: return from
         val center = dragged.center.y + deltaY
-        return orderedIds.indices.count { it != from && (rowBounds[orderedIds[it]]?.center?.y ?: Float.MAX_VALUE) < center }
+        return orderedIds.indices.count {
+            it != from && (rowBounds[orderedIds[it]]?.center?.y?.plus(compaction(orderedIds[it])) ?: Float.MAX_VALUE) < center
+        }
     }
 }
