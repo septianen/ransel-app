@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -1059,13 +1060,17 @@ private fun TimelineRow(
                     color = timeColor,
                 )
             }
-            if (!isLast) {
+            // Timeline connector hidden while dragging, so rows don't show stale connectors during reorder.
+            if (!isLast && !drag.isDragging) {
                 Box(
                     Modifier
                         .width(2.dp)
                         .weight(1f)
                         .background(MaterialTheme.colorScheme.outlineVariant),
                 )
+            } else if (!isLast) {
+                // keep column height balanced when the line is hidden
+                Spacer(Modifier.width(2.dp).weight(1f))
             }
         }
         Row(
