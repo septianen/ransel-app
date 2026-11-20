@@ -49,13 +49,64 @@ class DayDragStateTest {
     }
 
     @Test
-    fun slotHeightIsTheRowPlusTheTravelGapUnderIt() {
+    fun slotHeightIsTheRowPlusTheTravelGapUnderItClosedUpToTheHeldSpacing() {
         val drag = DayDragState()
+        drag.compactSpacingPx = 16f
         drag.rowBounds["a"] = Rect(0f, 0f, 100f, 80f)
-        drag.gapHeightAfter["a"] = 24f
-        drag.rowBounds["b"] = Rect(0f, 104f, 100f, 184f)
-        assertEquals(104f, drag.slotHeight("a"))
-        assertEquals(80f, drag.slotHeight("b"))
+        drag.gapHeightAfter["a"] = 90f
+        drag.rowBounds["b"] = Rect(0f, 170f, 100f, 250f)
+        drag.rowBounds["c"] = Rect(0f, 250f, 100f, 330f)
+        drag.gapHeightAfter["c"] = 10f
+        assertEquals(96f, drag.slotHeight("a"), "a 90 px capsule gap closes up to 16 px")
+        assertEquals(80f, drag.slotHeight("b"), "no capsule, nothing to add")
+        assertEquals(90f, drag.slotHeight("c"), "a gap smaller than the spacing is kept as it is")
+    }
+
+    @Test
+    fun theRowsCloseUpAroundTheHeldCardAndTheHeldCardStaysPut() {
+        val drag = DayDragState()
+        drag.compactSpacingPx = 16f
+        // a, b, c, d: a capsule gap of 90 px after a and after c; b has none
+        listOf("a" to 0f, "b" to 170f, "c" to 250f, "d" to 430f).forEach { (id, top) ->
+            drag.rowBounds[id] = Rect(0f, top, 100f, top + 80f)
+        }
+        drag.gapHeightAfter["a"] = 90f
+        drag.gapHeightAfter["c"] = 90f
+        drag.start("b", Offset(50f, 40f), listOf("a", "b", "c", "d"))
+
+        assertEquals(0f, drag.compaction("b"), "the held card is not moved")
+        assertEquals(74f, drag.compaction("a"), "above: moves down by the 74 px its gap loses")
+        assertEquals(0f, drag.compaction("c"), "below: b has no capsule under it, so c does not move")
+        assertEquals(-74f, drag.compaction("d"), "below: the 74 px that c's capsule gap loses")
+    }
+
+    @Test
+    fun noRowMovesWhenThereIsNoCardHeldOrNoCapsule() {
+        val drag = DayDragState()
+        drag.compactSpacingPx = 16f
+        drag.rowBounds["a"] = Rect(0f, 0f, 100f, 80f)
+        drag.rowBounds["b"] = Rect(0f, 96f, 100f, 176f)
+        assertEquals(0f, drag.compaction("a"), "nothing held")
+        drag.start("a", Offset(50f, 40f), listOf("a", "b"))
+        assertEquals(0f, drag.compaction("b"), "no capsule gap anywhere")
+    }
+
+    @Test
+    fun theDropIndexIsFoundAmongTheClosedUpRows() {
+        val drag = DayDragState()
+        drag.compactSpacingPx = 16f
+        drag.rowBounds["a"] = Rect(0f, 0f, 100f, 80f)
+        drag.rowBounds["b"] = Rect(0f, 170f, 100f, 250f)
+        drag.rowBounds["c"] = Rect(0f, 340f, 100f, 420f)
+        drag.gapHeightAfter["a"] = 90f
+        drag.gapHeightAfter["b"] = 90f
+        // holding a: b closes up to center 210 - 74 = 136 and c to 380 - 148 = 232
+        drag.start("a", Offset(50f, 40f), listOf("a", "b", "c"))
+        assertEquals(0, drag.targetIndex())
+        drag.onListScrolled(100f) // a's center is now 140: past b's closed-up center
+        assertEquals(1, drag.targetIndex())
+        drag.onListScrolled(100f) // 240: past c as well
+        assertEquals(2, drag.targetIndex())
     }
 
     @Test

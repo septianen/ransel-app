@@ -66,10 +66,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
@@ -349,6 +354,8 @@ private fun ItineraryContent(
     val drag = remember { DayDragState() }
     val listScroll = rememberScrollState()
     val density = LocalDensity.current
+    // while a card is held the rows close up to this room between them (the travel capsules are invisible then)
+    drag.compactSpacingPx = with(density) { HeldRowSpacing.toPx() }
     val edgeZonePx = with(density) { EdgeZoneDp.dp.toPx() }
     val maxEdgeScrollPxPerSec = with(density) { MaxEdgeScrollDpPerSec.dp.toPx() }
     var showUnscheduled by rememberSaveable { mutableStateOf(false) }
@@ -877,6 +884,12 @@ private fun DaySection(
             }
             val slot = drag.draggingId?.let { drag.slotHeight(it) } ?: 0f
             val animatedShift by animateFloatAsState(shift * slot, label = "row-shift")
+            // the travel capsules keep their room (the layout does not move), so the rows are closed up with a translation
+            // around the held card instead, which stays where it is under the finger
+            val closeUp by animateFloatAsState(
+                targetValue = if (drag.isDragging && !isDragging) drag.compaction(item.id) else 0f,
+                label = "row-close-up",
+            )
             var lastDelta by remember(item.id) { mutableFloatStateOf(0f) }
             SideEffect { if (isDragging && !drag.settling) lastDelta = drag.deltaY }
             val settleY by animateFloatAsState(
@@ -900,7 +913,7 @@ private fun DaySection(
                 translationY = when {
                     isDragging && drag.settling -> settleY
                     isDragging -> drag.deltaY
-                    else -> animatedShift
+                    else -> animatedShift + closeUp
                 },
                 drag = drag,
                 onClick = { onEdit(item.id) },
@@ -913,8 +926,8 @@ private fun DaySection(
             val next = items.getOrNull(index + 1)
             if (!showGap && !drag.isDragging) drag.gapHeightAfter.remove(item.id)
             if (showGap && next != null) {
-                // Capsules fade while a card is held; they keep their room so rest spacing stays.
-                // They shift with the row above, except the dragged row's own gap, which is the slot left behind.
+                // Capsules fade while a card is held and keep their room in the layout; the rows around them close up
+                // with a translation (see closeUp). They shift with the row above, except the dragged row's own gap.
                 TravelGap(
                     hidden = drag.isDragging,
                     translationY = if (isDragging) 0f else animatedShift,
@@ -939,7 +952,7 @@ private fun DaySection(
 
 /**
  * The row between two activities that holds the capsule: the timeline's rail runs through it, the capsule sits in the title column.
- * [hidden] (a card is being dragged) makes the capsule invisible but keeps its room, so rest spacing stays.
+ * [hidden] (a card is being dragged) makes the capsule invisible but keeps its room in the layout; the rows close up around it.
  */
 @Composable
 internal fun TravelGap(
@@ -970,6 +983,13 @@ internal fun TravelGap(
     }
 }
 
+/** Room between two rows while a card is held; at rest a row has 16 dp under it, or a travel capsule. */
+private val HeldRowSpacing = 16.dp
+
+/** How far the held card's border sits outside the row, so the content has room inside it (about 8 dp and 6 dp). */
+private val HeldCardInsetX = 8.dp
+private val HeldCardInsetY = 6.dp
+
 @Composable
 private fun TimelineRow(
     item: ItineraryItemDto,
@@ -990,6 +1010,7 @@ private fun TimelineRow(
     requester: BringIntoViewRequester,
 ) {
     val primary = MaterialTheme.colorScheme.primary
+    val surfaceColor = MaterialTheme.colorScheme.surface
     val chromeAlpha by animateFloatAsState(
         targetValue = if (dragging && drag.showChrome) 1f else 0f,
         animationSpec = tween(IrisMotion.Short4),
@@ -1061,11 +1082,19 @@ private fun TimelineRow(
                 )
                 .then(
                     if (dragging) {
-                        // Border only: extra padding here used to grow the row and the drop slot.
-                        Modifier
-                            .clip(IrisShape.lg)
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(BorderStroke(2.dp, primary.copy(alpha = chromeAlpha)), IrisShape.lg)
+                        // The card and its border are drawn outside the row's bounds by [HeldCardInsetX] and
+                        // [HeldCardInsetY], so the content has room inside the border while the row keeps its size
+                        // (padding here used to grow the row and the drop slot).
+                        Modifier.drawBehind {
+                            val insetX = HeldCardInsetX.toPx()
+                            val insetY = HeldCardInsetY.toPx()
+                            val card = Size(size.width + 2 * insetX, size.height + 2 * insetY)
+                            val outline = IrisShape.lg.createOutline(card, layoutDirection, this)
+                            translate(left = -insetX, top = -insetY) {
+                                drawOutline(outline, color = surfaceColor)
+                                drawOutline(outline, color = primary.copy(alpha = chromeAlpha), style = Stroke(width = 2.dp.toPx()))
+                            }
+                        }
                     } else {
                         Modifier.clickable(onClick = onClick)
                     },
