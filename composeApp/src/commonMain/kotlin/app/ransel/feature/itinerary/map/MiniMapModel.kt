@@ -64,11 +64,20 @@ const val MINI_MAP_OPEN_KEY = "mini_map_open"
 const val MINI_MAP_TWO_FINGER_HINT_KEY = "mini_map_two_finger_hint"
 
 /**
- * Whether the platform map should paint. The strip stays composed across collapse so expand does not reload tiles, but
- * Android's MapView is a SurfaceView and ignores Compose clip and alpha. Draw it while the strip is open or still
- * springing shut; hide it only after the height has settled on the 48 dp bar.
+ * Whether the platform map should paint. Android's MapView is a SurfaceView and ignores Compose clip and alpha, so it
+ * must not stay on screen behind the 48 dp bar. Draw it while the strip is open or still springing shut.
  */
 fun isMiniMapDrawn(collapsed: Boolean, collapseSettled: Boolean): Boolean = !collapsed || !collapseSettled
+
+/**
+ * Whether the platform map exists at all. Expanding builds it; once the collapse spring has settled on the bar it is
+ * thrown away and the next expand builds a new one. Hiding the MapView's own views and showing them again left the
+ * map blank on the second expand (the SDK keeps views of its own hidden on purpose, so they cannot all be switched
+ * back on), so the map is rebuilt instead. [wasMounted] is the answer from the last pass: while the spring runs
+ * shut, the map stays.
+ */
+fun isMiniMapMounted(collapsed: Boolean, collapseSettled: Boolean, wasMounted: Boolean): Boolean =
+    if (!collapsed) true else if (collapseSettled) false else wasMounted
 
 /** How the strip or the full-screen map takes pointer input. */
 enum class MiniMapGestureMode { TWO_FINGER, FREE }

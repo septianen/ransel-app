@@ -42,8 +42,6 @@ expect fun MiniMapCanvas(
     /**
      * False after the collapse spring has settled: the map stays in composition (no reload on expand) but must not
      * paint or take pointer input. Android's MapView is a SurfaceView and would otherwise show through the 48 dp bar.
-     * Expand sets the MapView and every child VISIBLE (alpha 1) again; hiding only Surface/Texture leaves would leave
-     * the map blank on the next open.
      */
     drawn: Boolean = true,
 )
