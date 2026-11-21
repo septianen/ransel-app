@@ -10,7 +10,6 @@ import app.ransel.feature.inspiration.InspirationHomeViewModel
 import app.ransel.feature.inspiration.InspirationStartState
 import app.ransel.shared.dto.*
 import app.ransel.shared.model.*
-import app.ransel.shared.serialization.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -40,7 +39,7 @@ class InspirationHomeViewModelTest {
         override suspend fun refresh(id: String) = ApiResult.Failure(ApiFailure("x", "x"))
         override suspend fun buddy(request: BuddyInterestRequest) = ApiResult.Success(Unit)
     }
-    private fun session(id: String = "session-1") = InspirationSessionDto(id, InspirationStatus.ACTIVE, expiresAt = Timestamp(Instant.parse("2026-11-22T00:00:00Z")))
+    private fun session(id: String = "session-1") = InspirationSessionDto(id, InspirationStatus.ACTIVE, expiresAt = Instant.parse("2026-11-22T00:00:00Z"))
     private fun vm(repo: FakeRepository, credits: CreditsStore = CreditsStore()) = InspirationHomeViewModel(repo, InspirationSessionStore(InMemoryPreferencesRepository()), credits)
 
     @Test fun chipLimitAndTextLimit() = runTest {

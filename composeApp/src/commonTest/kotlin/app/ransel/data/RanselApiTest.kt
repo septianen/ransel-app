@@ -204,14 +204,12 @@ class RanselApiTest {
         assertEquals("WRONG", failure.details?.get("currentPassword"))
         assertEquals(0, refreshes)
     }
-}
 
-private fun fixedAuth(token: String) = object : ApiAuth {
-    override fun accessToken() = token
-    override suspend fun refreshAccessToken() = false
-    private val inspirationSessionJson = """{"id":"s1","status":"ACTIVE","question":{"slot":"INTEREST","text":"Question?","options":[{"id":"a","title":"A"},{"id":"b","title":"B"},{"id":"c","title":"C"}]},"expiresAt":"2026-11-22T00:00:00Z"}"""
+    private val inspirationSessionJson =
+        """{"id":"s1","status":"ACTIVE","question":{"slot":"COMBINATION","text":"Question?","options":[{"id":"a","title":"A"},{"id":"b","title":"B"},{"id":"c","title":"C"}]},"expiresAt":"2026-11-22T00:00:00Z"}"""
 
-    @Test fun startInspirationPostsRequestAndBody() = runTest {
+    @Test
+    fun startInspirationPostsRequestAndBody() = runTest {
         val api = api { request ->
             assertEquals(HttpMethod.Post, request.method)
             assertEquals("/api/v1/explore/inspiration/sessions", request.url.encodedPath)
@@ -220,22 +218,41 @@ private fun fixedAuth(token: String) = object : ApiAuth {
             respond("""{"data":$inspirationSessionJson}""", HttpStatusCode.Created, json)
         }
         val result = api.startInspiration(StartInspirationRequest("s1"))
-        assertEquals("s1", (result as ApiResult.Success).value.id)
+        assertEquals("s1", assertIs<ApiResult.Success<*>>(result).value.let { it as app.ransel.shared.dto.InspirationSessionDto }.id)
     }
 
-    @Test fun answerAndFinishUseExpectedRoutes() = runTest {
+    @Test
+    fun answerAndFinishUseExpectedRoutes() = runTest {
         val seen = mutableListOf<String>()
-        val api = api { request -> seen += "${request.method.value} ${request.url.encodedPath}"; respond("""{"data":$inspirationSessionJson}""", HttpStatusCode.OK, json) }
+        val api = api { request ->
+            seen += "${request.method.value} ${request.url.encodedPath}"
+            respond("""{"data":$inspirationSessionJson}""", HttpStatusCode.OK, json)
+        }
         api.answerInspiration("s1", InspirationAnswerRequest(optionId = "a"))
         api.finishInspiration("s1")
-        assertEquals(listOf("POST /api/v1/explore/inspiration/sessions/s1/answers", "POST /api/v1/explore/inspiration/sessions/s1/finish"), seen)
+        assertEquals(
+            listOf("POST /api/v1/explore/inspiration/sessions/s1/answers", "POST /api/v1/explore/inspiration/sessions/s1/finish"),
+            seen,
+        )
     }
 
-    @Test fun inspirationCreditAndRateLimitErrorsKeepCodesAndDetails() = runTest {
-        val creditApi = api { respond("""{"error":{"code":"INSUFFICIENT_CREDITS","message":"No credits"}}""", HttpStatusCode.PaymentRequired, json) }
-        assertEquals(ErrorCode.INSUFFICIENT_CREDITS, (creditApi.startInspiration(StartInspirationRequest("s1")) as ApiResult.Failure).error.code)
-        val limitedApi = api { respond("""{"error":{"code":"RATE_LIMITED","message":"Wait","details":{"retryAfterSeconds":"75"}}}""", HttpStatusCode.TooManyRequests, json) }
-        assertEquals("75", (limitedApi.startInspiration(StartInspirationRequest("s1")) as ApiResult.Failure).error.details?.get("retryAfterSeconds"))
+    @Test
+    fun inspirationCreditAndRateLimitErrorsKeepCodesAndDetails() = runTest {
+        val creditApi = api {
+            respond("""{"error":{"code":"INSUFFICIENT_CREDITS","message":"No credits"}}""", HttpStatusCode.PaymentRequired, json)
+        }
+        val noCredits = assertIs<ApiResult.Failure>(creditApi.startInspiration(StartInspirationRequest("s1"))).error
+        assertEquals(ErrorCode.INSUFFICIENT_CREDITS, noCredits.code)
+        val limitedApi = api {
+            respond("""{"error":{"code":"RATE_LIMITED","message":"Wait","details":{"retryAfterSeconds":"75"}}}""", HttpStatusCode.TooManyRequests, json)
+        }
+        val limited = assertIs<ApiResult.Failure>(limitedApi.startInspiration(StartInspirationRequest("s1"))).error
+        assertEquals(ErrorCode.RATE_LIMITED, limited.code)
+        assertEquals("75", limited.details?.get("retryAfterSeconds"))
     }
+}
 
+private fun fixedAuth(token: String) = object : ApiAuth {
+    override fun accessToken() = token
+    override suspend fun refreshAccessToken() = false
 }
