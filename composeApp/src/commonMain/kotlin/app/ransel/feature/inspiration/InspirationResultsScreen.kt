@@ -121,7 +121,7 @@ fun InspirationResultsScreen(
         viewModel.eventFlow.collect { event ->
             when (event) {
                 InspirationResultsEvent.OutOfCredits -> onOpenCredits()
-                InspirationResultsEvent.SaveFailed -> snackbarHost.showSnackbar(buddyFailed)
+                InspirationResultsEvent.SaveFailed, InspirationResultsEvent.ChipEditFailed -> snackbarHost.showSnackbar(buddyFailed)
                 is InspirationResultsEvent.Saved -> {
                     val message = if (event.removedOldest) oldestMessage else savedMessage
                     val action = if (event.removedOldest) undoAction else viewAction

@@ -61,6 +61,8 @@ sealed interface InspirationResultsEvent {
     data object OutOfCredits : InspirationResultsEvent
     data class Saved(val removedOldest: Boolean, val newIdeaId: String) : InspirationResultsEvent
     data object SaveFailed : InspirationResultsEvent
+    /** A chip edit failed (not 402, not a lost session): the sheet stays open for another try. */
+    data object ChipEditFailed : InspirationResultsEvent
     /** "Kabari saya" was recorded (or failed: [recorded] false). */
     data class BuddyNoted(val recorded: Boolean) : InspirationResultsEvent
 }
@@ -166,10 +168,7 @@ class InspirationResultsViewModel(
                     if (response.error.code == ErrorCode.INSUFFICIENT_CREDITS) {
                         mutable.value = old.copy(chipEditOpen = false, chipEditLoading = false, recalculating = false)
                         events.send(InspirationResultsEvent.OutOfCredits)
-                    } else {
-                        mutable.value = old.copy(chipEditLoading = false, recalculating = false)
-                        handleFailure(response.error, old.copy(chipEditOpen = false), finishing = false)
-                    }
+                    } else chipEditFailed(response.error, old)
                 }
             }
         }
@@ -206,10 +205,23 @@ class InspirationResultsViewModel(
                     if (response.error.code == ErrorCode.INSUFFICIENT_CREDITS) {
                         mutable.value = old.copy(chipEditOpen = false, chipEditLoading = false, recalculating = false)
                         events.send(InspirationResultsEvent.OutOfCredits)
-                    } else handleFailure(response.error, old, finishing = false)
+                    } else chipEditFailed(response.error, old)
                 }
             }
         }
+    }
+
+    /**
+     * A failed chip edit or its follow-up answer: the cards and the sheet stay as they were and a snackbar says so
+     * ("Tanya lagi"'s error handling would open its own sheet). A lost session still shows the full-screen state.
+     */
+    private suspend fun chipEditFailed(error: ApiFailure, old: InspirationResultsUiState) {
+        if (error.code == ErrorCode.NOT_FOUND) {
+            handleFailure(error, old.copy(chipEditOpen = false), finishing = false)
+            return
+        }
+        mutable.value = old.copy(chipEditLoading = false, recalculating = false)
+        events.send(InspirationResultsEvent.ChipEditFailed)
     }
 
     fun closeChipEdit() {

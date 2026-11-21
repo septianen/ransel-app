@@ -81,6 +81,20 @@ class InspirationResultsViewModelTest {
         assertEquals(4, vm.state.value.askAgainPaidCost)
     }
 
+    @Test fun aFailedChipEditKeepsTheSheetAndShowsASnackbar() = runTest {
+        val repo = Repo()
+        repo.editResult = ApiResult.Failure(ApiFailure(ErrorCode.AI_UNAVAILABLE, "down", 503))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        vm.openChipEdit(InspirationChipDto(app.ransel.shared.model.InspirationChipKey.DURATION, "Sampai 3 hari"))
+        vm.setChipEditValue("4-7 hari")
+        vm.editChip(); runCurrent()
+        assertTrue(vm.state.value.chipEditOpen)
+        assertFalse(vm.state.value.chipEditLoading)
+        assertFalse(vm.state.value.askAgainOpen, "not the Tanya lagi sheet")
+        assertEquals(listOf("c1", "s1"), vm.state.value.cards.map { it.card.id })
+        assertEquals(InspirationResultsEvent.ChipEditFailed, vm.eventFlow.first())
+    }
+
     @Test fun askAgainWithoutCreditsClosesTheSheet() = runTest {
         val repo = Repo()
         repo.againResult = ApiResult.Failure(ApiFailure(ErrorCode.INSUFFICIENT_CREDITS, "No credits", 402))
