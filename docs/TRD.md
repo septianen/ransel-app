@@ -240,7 +240,8 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST ★ | /explore/inspiration/sessions/{id}/ask-again | "Tanya lagi": 1 free per session, then the next-batch price; the answer appends cards | Inspirasi |
 | PATCH ★ | /explore/inspiration/sessions/{id}/profile | Edit a profile chip: 3 free per session, then the next-batch price | Inspirasi |
 | GET, POST ★ | /explore/inspiration/saved | "Ide tersimpan" of the account (max 30; the 31st removes the oldest) | Inspirasi |
-| DELETE ★ | /explore/inspiration/saved/{id} | Remove a saved idea | Inspirasi |
+| DELETE ★ | /explore/inspiration/saved/{id} | Remove a saved idea (restorable for 24 h) | Inspirasi |
+| POST ★ | /explore/inspiration/saved/{id}/restore | "Urungkan" after a removal: the idea comes back (404 after 24 h, 409 when the list is full) | Inspirasi |
 | POST ★ | /explore/inspiration/saved/{id}/undo | Undo a save that pushed the oldest idea out | Inspirasi |
 | POST ★ | /explore/inspiration/saved/{id}/refresh | "Perbarui": free, once per card per 24 h | Inspirasi |
 | POST ★ | /explore/inspiration/buddy | "Kabari saya": interest + consent time | Inspirasi |
