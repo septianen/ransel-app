@@ -104,4 +104,13 @@ class InspirationHomeViewModelTest {
         assertEquals(InspirationStartState.Offline, mapped("NETWORK_UNAVAILABLE", connection = true).startState)
         assertEquals(InspirationStartState.Failed, mapped("INTERNAL_ERROR").startState)
     }
+
+    @Test fun creditsAreUnknownUntilTheStoreHasThem() = runTest {
+        val credits = CreditsStore()
+        val viewModel = vm(FakeRepository(), credits)
+        assertFalse(viewModel.state.value.creditsKnown)
+        credits.update(CreditsDto(1, 1, 3, Instant.parse("2026-11-22T00:00:00Z"), CreditCostsDto(3, 1, 0, inspiration = 3)))
+        assertTrue(viewModel.state.value.creditsKnown)
+        assertEquals(2, viewModel.state.value.availableCredits)
+    }
 }

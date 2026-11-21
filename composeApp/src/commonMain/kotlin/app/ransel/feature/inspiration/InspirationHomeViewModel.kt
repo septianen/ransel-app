@@ -35,6 +35,8 @@ data class InspirationHomeUiState(
     val dailyFreeLeft: Int = 0,
     val dailyFreeLimit: Int = 0,
     val availableCredits: Int = 0,
+    /** False until the credits arrive from the server: the CTA stays enabled then (the server checks with 402). */
+    val creditsKnown: Boolean = false,
     val startState: InspirationStartState = InspirationStartState.Idle,
     val sessionId: String? = null,
     val rateLimitMinutes: Int? = null,
@@ -57,6 +59,7 @@ class InspirationHomeViewModel(
                     dailyFreeLeft = value?.dailyFreeLeft ?: 0,
                     dailyFreeLimit = value?.dailyFreeLimit ?: 0,
                     availableCredits = value?.available ?: 0,
+                    creditsKnown = value != null,
                 )
             }
         }

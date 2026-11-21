@@ -75,6 +75,8 @@ fun InspirationHomeScreen(
     onOpenSavedIdeas: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
+    // fills CreditsStore from the server on entering the screen; the ViewModel reads the store
+    app.ransel.feature.credits.rememberCredits()
     LaunchedEffect(state.sessionId) {
         val sessionId = state.sessionId ?: return@LaunchedEffect
         viewModel.consumeStarted()
@@ -212,17 +214,17 @@ fun InspirationHomeContent(
             )
             Button(
                 onClick = onStart,
-                enabled = start != InspirationStartState.Loading && state.availableCredits > 0,
+                enabled = start != InspirationStartState.Loading && !state.cannotAfford,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(),
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Symbol(Symbols.autoAwesome, size = 20.dp)
-                    Text(if (state.dailyFreeLeft > 0) stringResource(Res.string.explore_ask_cta_free) else composeStringResource(Res.string.explore_ask_cta, state.cost))
+                    Text(if (state.coveredByFreeCredits) stringResource(Res.string.explore_ask_cta_free) else composeStringResource(Res.string.explore_ask_cta, state.cost))
                 }
             }
-            if (start == InspirationStartState.OutOfCredits || state.availableCredits <= 0) {
+            if (start == InspirationStartState.OutOfCredits || state.cannotAfford) {
                 TextButton(onClick = onCredits, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Text(stringResource(Res.string.explore_add_credits))
                 }
@@ -238,6 +240,12 @@ fun InspirationHomeContent(
         }
     }
 }
+
+/** Known credits below the session price: the CTA is disabled and "Isi kredit" shows. Unknown credits never block. */
+private val InspirationHomeUiState.cannotAfford: Boolean get() = creditsKnown && availableCredits < cost
+
+/** "Tanya AI · gratis hari ini" only when today's free credits pay the whole session. */
+private val InspirationHomeUiState.coveredByFreeCredits: Boolean get() = creditsKnown && cost > 0 && dailyFreeLeft >= cost
 
 private fun interestSymbol(interest: Interest): String = when (interest) {
     Interest.PHOTO -> Symbols.photoCamera
