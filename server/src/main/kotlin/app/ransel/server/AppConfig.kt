@@ -84,7 +84,7 @@ data class AppConfig(
     val creditCostPlaceDetail: Int = 0,
     /** One receipt photo read by Gemini: about Rp50 of tokens (Rp130 on the fallback model) against Rp550–667 per credit. */
     val creditCostReceipt: Int = 1,
-    /** One Explore Inspirasi session. Provisional 3 (the search price) until the spike measures the real cost (PRD v0.8, open question 1). */
+    /** One Explore Inspirasi session: 3, the same as a new search (owner, 21 Nov 2026, after the spike). */
     val creditCostInspiration: Int = 3,
     /** Top-up packs shown by `GET /credits/packages`. */
     val creditPackages: List<CreditPack> = DEFAULT_CREDIT_PACKS,
