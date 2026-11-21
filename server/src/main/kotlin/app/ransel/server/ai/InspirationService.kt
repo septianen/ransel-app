@@ -428,11 +428,15 @@ class InspirationService(
         }
     }
 
-    /** Sessions and their log after 90 days; ideas pushed out by a 31st save once their undo is long gone (1 day). */
+    /**
+     * Sessions and their log after 90 days; "Kabari saya" rows after 90 days (the consent line promises it); ideas pushed
+     * out by a 31st save once their undo is long gone (1 day).
+     */
     fun purge() = transaction {
         val logCutoff = now().minus(Duration.ofDays(InspirationLimits.LOG_RETENTION_DAYS.toLong()))
         InspirationSessionLog.deleteWhere { InspirationSessionLog.createdAt less logCutoff }
         InspirationSessions.deleteWhere { InspirationSessions.createdAt less logCutoff }
+        BuddyInterest.deleteWhere { BuddyInterest.createdAt less logCutoff }
         val removedCutoff = now().minus(Duration.ofDays(1))
         SavedIdeas.deleteWhere { SavedIdeas.removedAt less removedCutoff }
     }
