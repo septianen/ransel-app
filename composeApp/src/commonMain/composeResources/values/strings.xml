@@ -2184,4 +2184,27 @@
     <string name="explore_home_title">Explore</string>
     <string name="explore_ask_cta_free">Ask AI · free today</string>
     <string name="saved_ideas_title">Saved ideas</string>
+    <string name="explore_activity_region">%1$s · %2$s</string>
+    <string name="explore_results_title">Ideas for you</string>
+    <string name="explore_edit_hint">Tap a part to change it. Results update without extra credits.</string>
+    <string name="explore_surprise_chip">Surprise</string>
+    <string name="explore_ask_again">Not quite right? Ask again</string>
+    <string name="explore_ask_again_paid">Ask again · %1$d credits</string>
+    <string name="explore_detail_title">What you need to know</string>
+    <string name="explore_cost_label">Estimated cost</string>
+    <string name="explore_ai_estimate_note">AI estimate, check again before you go</string>
+    <string name="explore_safety_line">Ransel is not an operator. Check your licence and buddy before you go.</string>
+    <string name="explore_create_trip">Create a trip from here</string>
+    <string name="explore_create_trip_note">You can add the dates later.</string>
+    <string name="explore_save">Save</string>
+    <string name="explore_saved_snackbar">Saved to Saved ideas · View</string>
+    <string name="explore_saved_oldest_removed">Oldest idea removed · Undo</string>
+    <string name="explore_saved_view">View</string>
+    <string name="explore_again_divider">More</string>
+    <string name="explore_no_credits_taken">No credits were taken.</string>
+    <string name="explore_access_value">Access · %1$s</string>
+    <string name="explore_best_season_value">Best season · %1$s</string>
+    <string name="explore_level_value">Level · %1$s</string>
+
+    <string name="explore_buddy_link">Find a buddy · coming soon — Notify me</string>
 </resources>

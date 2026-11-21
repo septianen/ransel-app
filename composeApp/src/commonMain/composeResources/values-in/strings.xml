@@ -2167,4 +2167,27 @@
     <string name="explore_home_title">Jelajah</string>
     <string name="explore_ask_cta_free">Tanya AI · gratis hari ini</string>
     <string name="saved_ideas_title">Ide tersimpan</string>
+    <string name="explore_activity_region">%1$s · %2$s</string>
+    <string name="explore_results_title">Inspirasi untukmu</string>
+    <string name="explore_edit_hint">Ketuk bagian untuk mengubah. Hasil dihitung ulang tanpa kredit.</string>
+    <string name="explore_surprise_chip">Kejutan</string>
+    <string name="explore_ask_again">Kurang sesuai? Tanya lagi</string>
+    <string name="explore_ask_again_paid">Tanya lagi · %1$d kredit</string>
+    <string name="explore_detail_title">Yang perlu diketahui</string>
+    <string name="explore_cost_label">Perkiraan biaya</string>
+    <string name="explore_ai_estimate_note">perkiraan AI, cek lagi sebelum berangkat</string>
+    <string name="explore_safety_line">Ransel bukan operator. Pastikan lisensi dan buddy sebelum berangkat.</string>
+    <string name="explore_create_trip">Bikin trip dari sini</string>
+    <string name="explore_create_trip_note">Tanggal bisa diisi nanti.</string>
+    <string name="explore_save">Simpan</string>
+    <string name="explore_saved_snackbar">Disimpan ke Ide tersimpan · Lihat</string>
+    <string name="explore_saved_oldest_removed">Ide terlama dihapus · Urungkan</string>
+    <string name="explore_saved_view">Lihat</string>
+    <string name="explore_again_divider">Lagi</string>
+    <string name="explore_no_credits_taken">Tidak ada kredit yang dipotong.</string>
+    <string name="explore_access_value">Akses · %1$s</string>
+    <string name="explore_best_season_value">Musim terbaik · %1$s</string>
+    <string name="explore_level_value">Level · %1$s</string>
+
+    <string name="explore_buddy_link">Cari buddy · segera hadir — Kabari saya</string>
 </resources>

@@ -83,9 +83,11 @@ import app.ransel.feature.inspiration.InspirationHomeScreen
 import app.ransel.feature.inspiration.InspirationInterviewScreen
 import app.ransel.feature.inspiration.InspirationHomeViewModel
 import app.ransel.feature.inspiration.InspirationInterviewViewModel
+import app.ransel.feature.inspiration.InspirationResultsScreen
+import app.ransel.feature.inspiration.InspirationResultsViewModel
 import app.ransel.navigation.InspirationHomeRoute
 import app.ransel.navigation.InspirationInterviewRoute
-import app.ransel.navigation.InspirationResultsPlaceholderRoute
+import app.ransel.navigation.InspirationResultsRoute
 import app.ransel.navigation.InspirationSavedPlaceholderRoute
 import app.ransel.feature.onboarding.OnboardingScreen
 import app.ransel.platform.SystemBarsAppearance
@@ -654,16 +656,19 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
         val sessionId = entry.toRoute<InspirationInterviewRoute>().sessionId
         InspirationInterviewScreen(
             viewModel = koinViewModel(key = "inspiration-$sessionId") { org.koin.core.parameter.parametersOf(sessionId) },
-            onResults = { navController.navigate(InspirationResultsPlaceholderRoute) },
+            onResults = { navController.navigate(InspirationResultsRoute(sessionId)) },
             onOutOfCredits = { navController.navigate(CreditsRoute()) },
             onBack = { navController.popBackStack() },
         )
     }
-    page<InspirationResultsPlaceholderRoute> {
-        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)) {
-            Text(stringResource(Res.string.explore_results_placeholder))
-            Button(onClick = { navController.navigate(InspirationHomeRoute) }) { Text(stringResource(Res.string.explore_results_back)) }
-        }
+    page<InspirationResultsRoute> { entry ->
+        val sessionId = entry.toRoute<InspirationResultsRoute>().sessionId
+        InspirationResultsScreen(
+            viewModel = koinViewModel(key = "inspiration-results-$sessionId") { org.koin.core.parameter.parametersOf(sessionId) },
+            onBack = { navController.popBackStack(InspirationHomeRoute, inclusive = false) },
+            onOpenSavedIdeas = { navController.navigate(InspirationSavedPlaceholderRoute) },
+            onOpenCredits = { navController.navigate(CreditsRoute()) },
+        )
     }
     page<InspirationSavedPlaceholderRoute> {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)) {
