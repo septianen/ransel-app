@@ -79,6 +79,13 @@ import app.ransel.platform.requiresAccount
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.account.AccountScreen
+import app.ransel.feature.inspiration.InspirationHomeScreen
+import app.ransel.feature.inspiration.InspirationInterviewScreen
+import app.ransel.feature.inspiration.InspirationHomeViewModel
+import app.ransel.feature.inspiration.InspirationInterviewViewModel
+import app.ransel.navigation.InspirationHomeRoute
+import app.ransel.navigation.InspirationInterviewRoute
+import app.ransel.navigation.InspirationResultsPlaceholderRoute
 import app.ransel.feature.onboarding.OnboardingScreen
 import app.ransel.platform.SystemBarsAppearance
 import app.ransel.platform.applyAppLanguage
@@ -204,6 +211,7 @@ import app.ransel.navigation.PlaceDetailRoute
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.album_default_drive
 import ransel.composeapp.generated.resources.debug_component_gallery
+import ransel.composeapp.generated.resources.debug_inspiration_home
 import ransel.composeapp.generated.resources.debug_seed_sample
 import ransel.composeapp.generated.resources.debug_show_onboarding
 import ransel.composeapp.generated.resources.placeholder_account_title
@@ -625,6 +633,31 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
         )
     }
+    page<InspirationHomeRoute> {
+        val manager: SessionManager = koinInject()
+        InspirationHomeScreen(
+            viewModel = koinViewModel(),
+            onStartInterview = { id -> navController.navigate(InspirationInterviewRoute(id)) },
+            onOpenCredits = { navController.navigate(CreditsRoute()) },
+            onVerifyEmail = { navController.navigate(VerifyEmailRoute(manager.user?.email.orEmpty())) },
+            onTripSearch = { navController.navigate(ExploreRoute) },
+        )
+    }
+    page<InspirationInterviewRoute> { entry ->
+        val sessionId = entry.toRoute<InspirationInterviewRoute>().sessionId
+        InspirationInterviewScreen(
+            viewModel = koinViewModel(key = "inspiration-$sessionId") { org.koin.core.parameter.parametersOf(sessionId) },
+            onResults = { navController.navigate(InspirationResultsPlaceholderRoute) },
+            onOutOfCredits = { navController.navigate(CreditsRoute()) },
+            onBack = { navController.popBackStack() },
+        )
+    }
+    page<InspirationResultsPlaceholderRoute> {
+        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)) {
+            Text("Inspirasi berhasil dibuat. Layar hasil menyusul.")
+            Button(onClick = { navController.navigate(InspirationHomeRoute) }) { Text("Kembali") }
+        }
+    }
     page<ExplorePreferencesRoute> { entry ->
         val route = entry.toRoute<ExplorePreferencesRoute>()
         if (route.tripId == null) {
@@ -805,6 +838,9 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onReplayTour = { navController.openTab(MainTab.HOME) },
             debugContent = if (!isDebugBuild) null else ({
                 Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { navController.navigate(InspirationHomeRoute) }) {
+                        Text(stringResource(Res.string.debug_inspiration_home))
+                    }
                     Button(onClick = { navController.navigate(ComponentGalleryRoute) }) {
                         Text(stringResource(Res.string.debug_component_gallery))
                     }
