@@ -1,0 +1,64 @@
+### Explore Inspirasi (PRD v0.8). Every request needs a verified account. Ids are UUIDs made by the app.
+### Start (201): the first question. 402 without credits, 429 after 10 new sessions in an hour (Retry-After).
+POST {{host}}/explore/inspiration/sessions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept-Language: id
+
+{ "id": "11111111-1111-4111-8111-111111111111", "interests": ["PHOTO", "SHOPPING"], "text": "street photography" }
+
+### Resume (24 h)
+GET {{host}}/explore/inspiration/sessions/11111111-1111-4111-8111-111111111111
+Authorization: Bearer {{token}}
+
+### Answer with an option id, or { "otherText": "..." } for "Lainnya" (max 80)
+POST {{host}}/explore/inspiration/sessions/11111111-1111-4111-8111-111111111111/answers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "optionId": "domestic" }
+
+### Results: builds the cards and charges once (a repeat charges nothing). "Sudah cukup" from step 3 when no mandatory question is left.
+POST {{host}}/explore/inspiration/sessions/11111111-1111-4111-8111-111111111111/finish
+Authorization: Bearer {{token}}
+
+### "Tanya lagi": one more question; its answer appends cards (1 free, then the next-batch price)
+POST {{host}}/explore/inspiration/sessions/11111111-1111-4111-8111-111111111111/ask-again
+Authorization: Bearer {{token}}
+
+### Edit a profile chip (3 free, then the next-batch price)
+PATCH {{host}}/explore/inspiration/sessions/11111111-1111-4111-8111-111111111111/profile
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "key": "DURATION", "value": "Sampai 3 hari" }
+
+### Save a card (201). The 31st removes the oldest: removedOldestId names it for the undo snackbar.
+POST {{host}}/explore/inspiration/saved
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "id": "22222222-2222-4222-8222-222222222222", "sessionId": "11111111-1111-4111-8111-111111111111", "cardId": "c1" }
+
+### Ide tersimpan, newest first
+GET {{host}}/explore/inspiration/saved
+Authorization: Bearer {{token}}
+
+### Undo that save -> 204 (the pushed-out idea comes back)
+POST {{host}}/explore/inspiration/saved/22222222-2222-4222-8222-222222222222/undo
+Authorization: Bearer {{token}}
+
+### "Perbarui" -> SavedIdeaDto; once per card per 24 h, then 429 with Retry-After
+POST {{host}}/explore/inspiration/saved/22222222-2222-4222-8222-222222222222/refresh
+Authorization: Bearer {{token}}
+
+### Remove -> 204
+DELETE {{host}}/explore/inspiration/saved/22222222-2222-4222-8222-222222222222
+Authorization: Bearer {{token}}
+
+### "Kabari saya" -> 204
+POST {{host}}/explore/inspiration/buddy
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "sessionId": "11111111-1111-4111-8111-111111111111", "interest": "ADVENTURE" }

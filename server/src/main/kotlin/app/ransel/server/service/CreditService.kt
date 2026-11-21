@@ -149,11 +149,18 @@ class CreditService(private val settings: SettingsService) {
         if (planCreditSpend(cost, now.dailyFreeLeft, now.balance) == null) throw insufficient(cost, now)
     }
 
-    /** Pays [action]. Call after the work succeeded, so a failed LLM costs nothing. Returns the state after paying. */
-    fun charge(userId: UUID, action: CreditAction, ref: String? = null): CreditsDto = transaction {
+    /**
+     * Pays [action]. Call after the work succeeded, so a failed LLM costs nothing. Returns the state after paying.
+     * [idempotencyKey] makes a repeat (a double tap on "Lihat inspirasi") pay once: a key already in the ledger charges nothing.
+     */
+    fun charge(userId: UUID, action: CreditAction, ref: String? = null, idempotencyKey: String? = null): CreditsDto = transaction {
         val cost = cost(action)
         val day = todayWib().toJavaLocalDate()
         val balance = lockedBalance(userId)
+        // the wallet row is locked above, so two parallel charges with one key see each other here
+        if (idempotencyKey != null && CreditLedger.selectAll().where { CreditLedger.idempotencyKey eq idempotencyKey }.any()) {
+            return@transaction snapshot(userId)
+        }
         val freeUsed = CreditDaily.selectAll().where { (CreditDaily.userId eq userId) and (CreditDaily.usageDate eq day) }
             .singleOrNull()?.get(CreditDaily.freeUsed) ?: 0
         val freeLeft = (config.creditDailyFree - freeUsed).coerceAtLeast(0)
@@ -165,11 +172,13 @@ class CreditService(private val settings: SettingsService) {
                 CreditDaily.update({ (CreditDaily.userId eq userId) and (CreditDaily.usageDate eq day) }) {
                     it[CreditDaily.freeUsed] = CreditDaily.freeUsed + spend.fromFree
                 }
-                ledger(userId, CreditLedgerKind.SPEND, -spend.fromFree, balance, CreditSource.FREE_DAILY, action, ref, null)
+                ledger(userId, CreditLedgerKind.SPEND, -spend.fromFree, balance, CreditSource.FREE_DAILY, action, ref, idempotencyKey)
             }
             if (spend.fromWallet > 0) {
                 CreditWallets.update({ CreditWallets.userId eq userId }) { it[CreditWallets.balance] = CreditWallets.balance - spend.fromWallet }
-                ledger(userId, CreditLedgerKind.SPEND, -spend.fromWallet, balance - spend.fromWallet, CreditSource.WALLET, action, ref, null)
+                // the key sits on the first row of the charge; a split charge's second row has its own derived key
+                val key = idempotencyKey?.let { if (spend.fromFree > 0) "$it:wallet" else it }
+                ledger(userId, CreditLedgerKind.SPEND, -spend.fromWallet, balance - spend.fromWallet, CreditSource.WALLET, action, ref, key)
             }
         }
         snapshot(userId)

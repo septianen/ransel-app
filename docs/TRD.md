@@ -107,6 +107,7 @@ Every table uses a client-generated UUID plus `created_at`, `updated_at`, `delet
 | app\_settings | admin overrides of config values (key = a `SettingKey` name, value as text, updated\_by, updated\_at); no row = the env var | V29 (6) |
 | content\_meta, content\_strings, content\_errors, content\_categories, destination\_interests | remote content (Karung stage D): the content version; error messages as a DRAFT and a PUBLISHED row (sent in error responses); `content_strings` is unused since 3 Nov 2026 (screen texts are the apps' own); category looks; curated "Khas" chips per destination, month of the year and language | V30 (6) |
 | ai\_search\_log, error\_counts | one row per Explore search (parameters, source, latency, credits, estimated cost); errors per hour, code and route | planned (6) |
+| inspiration\_sessions, inspiration\_session\_log, inspiration\_rules, saved\_ideas, buddy\_interest | Explore Inspirasi: the interview session (state JSONB, result JSONB, free refines used, charged\_at; resumes 24 h, deleted after 90 days with its per-step log of latency, source LLM/FALLBACK and scrubbed text), the mandatory-rule seed (skill activity = LEVEL + BUDDY, shopping = BUDGET, abroad = VISA\_NOTE), saved ideas per account (max 30; removed\_at/removed\_by keep the idea a 31st save pushed out for the undo, purged after a day), "Kabari saya" with its consent time; `credit_ledger.action` gains INSPIRATION | V11 |
 
 Enums:
 

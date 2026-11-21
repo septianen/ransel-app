@@ -93,6 +93,14 @@ interface LlmClient {
     suspend fun describe(name: String, address: String?): LlmPlaceText =
         throw UnsupportedOperationException("describe is not supported")
 
+    /** Explore Inspirasi: the next interview question plus what the model read so far. Throws on failure. */
+    suspend fun inspirationQuestion(input: InspirationQuestionInput): LlmInspirationQuestion =
+        throw UnsupportedOperationException("inspirationQuestion is not supported")
+
+    /** Explore Inspirasi: activity type + region cards (or one refreshed card). Throws on failure. */
+    suspend fun inspirationCards(input: InspirationCardsInput): LlmInspirationCards =
+        throw UnsupportedOperationException("inspirationCards is not supported")
+
     /** Reads a receipt photo. Throws on transport errors or unparseable output. Default: not supported. */
     suspend fun readReceipt(image: ByteArray, mimeType: String): LlmReceipt =
         throw UnsupportedOperationException("readReceipt is not supported")
