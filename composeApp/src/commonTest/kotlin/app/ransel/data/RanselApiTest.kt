@@ -237,6 +237,17 @@ class RanselApiTest {
     }
 
     @Test
+    fun restoreSavedIdeaPostsToItsRoute() = runTest {
+        var seen = ""
+        val api = api { request ->
+            seen = "${request.method.value} ${request.url.encodedPath}"
+            respond("", HttpStatusCode.NoContent, json)
+        }
+        assertIs<ApiResult.Success<*>>(api.restoreSavedIdea("idea-1"))
+        assertEquals("POST /api/v1/explore/inspiration/saved/idea-1/restore", seen)
+    }
+
+    @Test
     fun inspirationCreditAndRateLimitErrorsKeepCodesAndDetails() = runTest {
         val creditApi = api {
             respond("""{"error":{"code":"INSUFFICIENT_CREDITS","message":"No credits"}}""", HttpStatusCode.PaymentRequired, json)

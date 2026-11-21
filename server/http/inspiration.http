@@ -52,7 +52,11 @@ Authorization: Bearer {{token}}
 POST {{host}}/explore/inspiration/saved/22222222-2222-4222-8222-222222222222/refresh
 Authorization: Bearer {{token}}
 
-### Remove -> 204
+### Restore a removed idea within 24 h ("Urungkan") -> 204; 409 when the list is full or the card was saved again
+POST {{host}}/explore/inspiration/saved/22222222-2222-4222-8222-222222222222/restore
+Authorization: Bearer {{token}}
+
+### Remove -> 204 (restorable for 24 h)
 DELETE {{host}}/explore/inspiration/saved/22222222-2222-4222-8222-222222222222
 Authorization: Bearer {{token}}
 

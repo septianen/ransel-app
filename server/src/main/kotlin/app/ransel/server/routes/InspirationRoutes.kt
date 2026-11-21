@@ -67,6 +67,11 @@ fun Route.inspirationRoutes(service: InspirationService) {
         service.undoSave(call.userId(), call.parameters["id"].orEmpty())
         call.respondNoContent()
     }
+    post("${ApiRoutes.INSPIRATION_SAVED}/{id}/restore") {
+        requireVerifiedEmail(call.userId())
+        service.restore(call.userId(), call.parameters["id"].orEmpty())
+        call.respondNoContent()
+    }
     post("${ApiRoutes.INSPIRATION_SAVED}/{id}/refresh") {
         requireVerifiedEmail(call.userId())
         call.respondData(HttpStatusCode.OK, service.refresh(call.userId(), call.parameters["id"].orEmpty()))

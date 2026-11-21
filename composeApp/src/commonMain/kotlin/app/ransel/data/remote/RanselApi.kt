@@ -665,6 +665,8 @@ class RanselApi(
     suspend fun saveIdea(request: SaveIdeaRequest): ApiResult<SaveIdeaResponse> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_SAVED, request)
     suspend fun deleteSavedIdea(id: String): ApiResult<Unit> = delete(ApiRoutes.inspirationSavedIdea(id))
     suspend fun undoSavedIdea(id: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.inspirationSavedUndo(id)) { }
+    /** "Urungkan" after "Dihapus dari Ide tersimpan": the removed idea comes back (24 h; 409 CONFLICT when the list is full). */
+    suspend fun restoreSavedIdea(id: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.inspirationSavedRestore(id)) { }
     suspend fun refreshSavedIdea(id: String): ApiResult<SavedIdeaDto> = call(HttpMethod.Post, ApiRoutes.inspirationSavedRefresh(id)) { it.body<ApiResponse<SavedIdeaDto>>().data }
     suspend fun registerBuddyInterest(request: BuddyInterestRequest): ApiResult<Unit> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_BUDDY, request)
 

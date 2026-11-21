@@ -15,6 +15,8 @@ interface InspirationRepository {
     suspend fun save(request: SaveIdeaRequest): ApiResult<SaveIdeaResponse>
     suspend fun delete(id: String): ApiResult<Unit>
     suspend fun undo(id: String): ApiResult<Unit>
+    /** Brings back an idea removed with [delete] (within 24 h). */
+    suspend fun restore(id: String): ApiResult<Unit>
     suspend fun refresh(id: String): ApiResult<SavedIdeaDto>
     suspend fun buddy(request: BuddyInterestRequest): ApiResult<Unit>
 }
@@ -30,6 +32,7 @@ class ApiInspirationRepository(private val api: RanselApi) : InspirationReposito
     override suspend fun save(request: SaveIdeaRequest) = api.saveIdea(request)
     override suspend fun delete(id: String) = api.deleteSavedIdea(id)
     override suspend fun undo(id: String) = api.undoSavedIdea(id)
+    override suspend fun restore(id: String) = api.restoreSavedIdea(id)
     override suspend fun refresh(id: String) = api.refreshSavedIdea(id)
     override suspend fun buddy(request: BuddyInterestRequest) = api.registerBuddyInterest(request)
 }

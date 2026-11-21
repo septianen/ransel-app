@@ -437,6 +437,46 @@ class InspirationRoutesTest {
     }
 
     @Test
+    fun aRemovedIdeaCanBeRestoredWithin24Hours() {
+        apiTest(ai = AiServices(InspirationLlm(), PhotoPlaces)) {
+            val sessionId = UUID.randomUUID().toString()
+            answerAll(sessionId, start(listOf(Interest.NATURE), id = sessionId).data().jsonObject)
+            post("$SESSIONS/$sessionId/finish")
+            val first = UUID.randomUUID().toString()
+            val second = UUID.randomUUID().toString()
+            post(SAVED, """{"id":"$first","sessionId":"$sessionId","cardId":"c1"}""")
+            post(SAVED, """{"id":"$second","sessionId":"$sessionId","cardId":"c2"}""")
+            assertEquals(HttpStatusCode.NoContent, delete("$SAVED/$first").status)
+            assertEquals(listOf(second), get(SAVED).data().jsonObject.getValue("ideas").jsonArray.map { it.jsonObject.str("id") })
+            // a second delete of the same idea is 404: it is no longer in the list
+            assertEquals(HttpStatusCode.NotFound, delete("$SAVED/$first").status)
+
+            assertEquals(HttpStatusCode.NoContent, post("$SAVED/$first/restore").status)
+            // back in its old place: older than the second save, so last in "newest first"
+            assertEquals(listOf(second, first), get(SAVED).data().jsonObject.getValue("ideas").jsonArray.map { it.jsonObject.str("id") })
+            // nothing to restore any more
+            assertEquals(HttpStatusCode.NotFound, post("$SAVED/$first/restore").status)
+
+            // the same card saved again meanwhile: 409
+            delete("$SAVED/$first")
+            post(SAVED, """{"id":"${UUID.randomUUID()}","sessionId":"$sessionId","cardId":"c1"}""")
+            assertEquals(HttpStatusCode.Conflict, post("$SAVED/$first/restore").status)
+
+            // after 24 h it is gone
+            delete("$SAVED/$second")
+            TestDb.exec("UPDATE saved_ideas SET removed_at = now() - interval '25 hours' WHERE id = '$second'")
+            assertEquals(HttpStatusCode.NotFound, post("$SAVED/$second/restore").status)
+
+            // another account cannot restore it
+            delete("$SAVED/${get(SAVED).data().jsonObject.getValue("ideas").jsonArray.first().jsonObject.str("id")}")
+            val owner = session()
+            signUp()
+            assertEquals(HttpStatusCode.NotFound, post("$SAVED/$first/restore").status)
+            use(owner)
+        }
+    }
+
+    @Test
     fun perbaruiWorksOncePerCardPer24Hours() {
         val llm = InspirationLlm()
         apiTest(ai = AiServices(llm, PhotoPlaces)) {

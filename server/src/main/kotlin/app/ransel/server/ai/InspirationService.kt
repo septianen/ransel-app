@@ -362,12 +362,35 @@ class InspirationService(
         }
     }
 
+    /** Removes an idea from the list; it stays restorable for 24 h ("Urungkan"), then the purge deletes it. */
     fun delete(userId: UUID, rawId: String) {
         val id = parseId(rawId, "id")
-        val deleted = transaction {
-            SavedIdeas.deleteWhere { (SavedIdeas.id eq id) and (SavedIdeas.userId eq userId) and SavedIdeas.removedAt.isNull() }
+        val removed = transaction {
+            SavedIdeas.update({ (SavedIdeas.id eq id) and (SavedIdeas.userId eq userId) and SavedIdeas.removedAt.isNull() }) {
+                it[removedAt] = now()
+                it[removedBy] = null
+            }
         }
-        if (deleted == 0) throw notFound("Saved idea")
+        if (removed == 0) throw notFound("Saved idea")
+    }
+
+    /**
+     * "Urungkan" after a removal: the idea comes back in its old place (its `saved_at` is kept). 404 once it is gone
+     * (24 h) or when it was pushed out by a 31st save (that one has its own undo); 409 when the list is full again or the
+     * same card was saved since.
+     */
+    fun restore(userId: UUID, rawId: String) {
+        val id = parseId(rawId, "id")
+        transaction {
+            val row = SavedIdeas.selectAll().where {
+                (SavedIdeas.id eq id) and (SavedIdeas.userId eq userId) and SavedIdeas.removedBy.isNull() and
+                    (SavedIdeas.removedAt greater now().minus(Duration.ofDays(1)))
+            }.forUpdate().singleOrNull() ?: throw notFound("Saved idea")
+            val live = SavedIdeas.selectAll().where { (SavedIdeas.userId eq userId) and SavedIdeas.removedAt.isNull() }.forUpdate().toList()
+            val sameCard = live.any { it[SavedIdeas.sessionId] == row[SavedIdeas.sessionId] && it[SavedIdeas.cardId] == row[SavedIdeas.cardId] }
+            if (live.size >= InspirationLimits.SAVED_MAX || sameCard) throw conflict("The idea cannot come back: the list is full or it was saved again")
+            SavedIdeas.update({ SavedIdeas.id eq id }) { it[removedAt] = null }
+        }
     }
 
     /** "Perbarui": free, once per card per [hours]; the attempt counts even if the AI fails, but a failure gives it back. */

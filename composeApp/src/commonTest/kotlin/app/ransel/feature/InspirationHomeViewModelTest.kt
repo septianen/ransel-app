@@ -36,6 +36,7 @@ class InspirationHomeViewModelTest {
         override suspend fun save(request: SaveIdeaRequest) = ApiResult.Failure(ApiFailure("x", "x"))
         override suspend fun delete(id: String) = ApiResult.Success(Unit)
         override suspend fun undo(id: String) = ApiResult.Success(Unit)
+        override suspend fun restore(id: String) = ApiResult.Success(Unit)
         override suspend fun refresh(id: String) = ApiResult.Failure(ApiFailure("x", "x"))
         override suspend fun buddy(request: BuddyInterestRequest) = ApiResult.Success(Unit)
     }
