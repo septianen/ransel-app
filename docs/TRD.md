@@ -232,6 +232,17 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET ★ | /credits/packages | Top-up packs and prices (`purchasable` = `CREDIT_PURCHASE_ENABLED`; web offers an order by email when true, Android and iOS never do) | 5 |
 | POST ★ | /credits/redeem | Redeem a voucher code | 5 |
 | GET | /explore/suggestions | Destination interests + suggested price level for the Explore form (costs no credits); `tripId`, optionally with `destination` to use another place than the trip's; or `destination` (+ `month`) and, for a trip not saved yet, `budgetMinor` + `currency` + `days` | 5 |
+| POST ★ | /explore/inspiration/sessions | Explore Inspirasi: start a session (client UUID, up to 5 interests, optional text); answers the first question. Checks credits first (402), max 10 new sessions per user per hour (429 `RATE_LIMITED`) | Inspirasi |
+| GET ★ | /explore/inspiration/sessions/{id} | Resume a session (24 h) | Inspirasi |
+| POST ★ | /explore/inspiration/sessions/{id}/answers | Answer a question (option or "Lainnya"); next question or READY | Inspirasi |
+| POST ★ | /explore/inspiration/sessions/{id}/finish | Build the cards and charge once per session (idempotent); 402 keeps the session | Inspirasi |
+| POST ★ | /explore/inspiration/sessions/{id}/ask-again | "Tanya lagi": 1 free per session, then the next-batch price; the answer appends cards | Inspirasi |
+| PATCH ★ | /explore/inspiration/sessions/{id}/profile | Edit a profile chip: 3 free per session, then the next-batch price | Inspirasi |
+| GET, POST ★ | /explore/inspiration/saved | "Ide tersimpan" of the account (max 30; the 31st removes the oldest) | Inspirasi |
+| DELETE ★ | /explore/inspiration/saved/{id} | Remove a saved idea | Inspirasi |
+| POST ★ | /explore/inspiration/saved/{id}/undo | Undo a save that pushed the oldest idea out | Inspirasi |
+| POST ★ | /explore/inspiration/saved/{id}/refresh | "Perbarui": free, once per card per 24 h | Inspirasi |
+| POST ★ | /explore/inspiration/buddy | "Kabari saya": interest + consent time | Inspirasi |
 | POST | /recommendations | AI recommendations from preferences | 5 |
 | DELETE | /recommendations/searches/{searchId} | Cancel the search that was sent with this `searchId`: stops it before the credits are charged and any round is made (`cancelled: false` once past that point) | 5 |
 | POST ★ | /recommendations/feedback | LIKE / SKIP per place | 5 |

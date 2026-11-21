@@ -115,7 +115,7 @@ enum class MainTravelMode { MOTORCYCLE, CAR, PUBLIC_TRANSPORT }
 
 /** What an Explore credit was spent on (`CreditLedgerEntryDto.action`). */
 @Serializable
-enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL, RECEIPT }
+enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL, RECEIPT, INSPIRATION }
 
 /** Why a ledger row exists. SPEND is negative; ADJUSTMENT (an admin's correction) may be either sign; every other kind adds credits. */
 @Serializable
@@ -287,3 +287,40 @@ enum class PaymentMethodKind { BANK, EWALLET }
 /** Kind of a day off in Indonesia: a national holiday (tanggal merah) or a cuti bersama (collective leave day). */
 @Serializable
 enum class HolidayType { NATIONAL, CUTI_BERSAMA }
+
+// ── Explore Inspirasi (PRD v0.8, `docs/PRD.md` "Explore Inspirasi") ─────────────────────────────────────────────────
+
+/** The fixed slot order of the interview; the question inside a slot is dynamic. [INTEREST] is answered on the hero. */
+@Serializable
+enum class InspirationSlot { INTEREST, COMBINATION, DISTANCE, DETAIL, CONTEXT, OPTIONAL }
+
+/** Slot 3: how far the user wants to go. Never needs the location permission. */
+@Serializable
+enum class InspirationDistance { SAME_CITY, DOMESTIC, ABROAD, ANY }
+
+/**
+ * Where a session stands. ACTIVE = a question waits; READY = the cards are built and not paid yet (a 402 at the end keeps
+ * the session here for 24 h); CHARGED = paid once and final; FAILED = nothing was charged; EXPIRED = past 24 h.
+ */
+@Serializable
+enum class InspirationStatus { ACTIVE, READY, CHARGED, FAILED, EXPIRED }
+
+/** Whether the AI wrote a question or the pre-written fallback for its slot was shown (the 4 s step timeout). */
+@Serializable
+enum class InspirationQuestionSource { LLM, FALLBACK }
+
+/** The parts of the profile header; each is an editable chip. */
+@Serializable
+enum class InspirationChipKey { INTEREST, LEVEL, DURATION, DISTANCE, BUDGET, STYLE }
+
+/** What a mandatory rule asks for. [VISA_NOTE] is a note on the cards ("perkiraan AI, cek lagi"), not a question. */
+@Serializable
+enum class InspirationRequirement { LEVEL, BUDDY, BUDGET, VISA_NOTE }
+
+/** What switches a mandatory rule on. */
+@Serializable
+enum class InspirationRuleTrigger { SKILL_ACTIVITY, SHOPPING, ABROAD }
+
+/** The two ways to get new cards inside a paid session; both are free a few times (see `InspirationLimits`). */
+@Serializable
+enum class InspirationRefine { ASK_AGAIN, CHIP_EDIT }
