@@ -8,6 +8,7 @@ import app.ransel.data.remote.ApiResult
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.InspirationAnswerRequest
 import app.ransel.shared.dto.InspirationCardDto
+import app.ransel.shared.dto.InspirationEditChipRequest
 import app.ransel.shared.dto.InspirationQuestionDto
 import app.ransel.shared.dto.InspirationResultDto
 import app.ransel.shared.dto.InspirationSessionDto
@@ -44,13 +45,22 @@ data class InspirationResultsUiState(
     val askAgainFreeLeft: Int = 0,
     val extraCost: Int = 0,
     val appendDividerAt: Int? = null,
+    val chipEditsFreeLeft: Int = 0,
+    val chipEditOpen: Boolean = false,
+    val chipEditKey: InspirationChipKey? = null,
+    val chipEditValue: String = "",
+    val chipEditQuestion: InspirationQuestionDto? = null,
+    val chipEditLoading: Boolean = false,
+    val recalculating: Boolean = false,
 ) {
     val askAgainPaidCost: Int? get() = if (askAgainFreeLeft > 0) null else extraCost
+    val chipEditPaidCost: Int? get() = if (chipEditsFreeLeft > 0) null else extraCost
 }
 
 sealed interface InspirationResultsEvent {
     data object OutOfCredits : InspirationResultsEvent
     data class Saved(val removedOldest: Boolean, val newIdeaId: String) : InspirationResultsEvent
+    data object SaveFailed : InspirationResultsEvent
     /** "Kabari saya" was recorded (or failed: [recorded] false). */
     data class BuddyNoted(val recorded: Boolean) : InspirationResultsEvent
 }
@@ -112,6 +122,100 @@ class InspirationResultsViewModel(
     fun openOther() { mutable.value = mutable.value.copy(otherOpen = true) }
     fun closeAskAgain() { mutable.value = mutable.value.copy(askAgainOpen = false, askAgainQuestion = null, otherText = "", otherOpen = false) }
 
+    fun openChipEdit(chip: app.ransel.shared.dto.InspirationChipDto) {
+        mutable.value = mutable.value.copy(
+            chipEditOpen = true,
+            chipEditKey = chip.key,
+            chipEditValue = chip.value,
+            chipEditQuestion = null,
+            otherText = "",
+            otherOpen = false,
+        )
+    }
+
+    fun setChipEditValue(value: String) {
+        mutable.value = mutable.value.copy(chipEditValue = value.take(80))
+    }
+
+    fun editChip() {
+        val old = mutable.value
+        val key = old.chipEditKey ?: return
+        val value = old.chipEditValue.trim()
+        if (value.isEmpty() || old.chipEditLoading) return
+        analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationChipEdit(key, paid = old.chipEditsFreeLeft <= 0))
+        mutable.value = old.copy(chipEditLoading = true, recalculating = true, inlineError = false)
+        viewModelScope.launch {
+            when (val response = repository.editChip(sessionId, InspirationEditChipRequest(key, value))) {
+                is ApiResult.Success -> {
+                    val session = response.value
+                    mutable.value = mutable.value.copy(
+                        session = session,
+                        result = session.result ?: mutable.value.result,
+                        chipEditsFreeLeft = session.chipEditsFreeLeft,
+                        extraCost = session.extraCost,
+                        chipEditLoading = false,
+                        recalculating = false,
+                    )
+                    if (session.status == InspirationStatus.ACTIVE && session.question != null) {
+                        mutable.value = mutable.value.copy(chipEditQuestion = session.question, chipEditOpen = true)
+                    } else if (session.result != null) {
+                        acceptSession(session, previousCount = 0, replaceCards = true)
+                    }
+                }
+                is ApiResult.Failure -> {
+                    if (response.error.code == ErrorCode.INSUFFICIENT_CREDITS) {
+                        mutable.value = old.copy(chipEditOpen = false, chipEditLoading = false, recalculating = false)
+                        events.send(InspirationResultsEvent.OutOfCredits)
+                    } else {
+                        mutable.value = old.copy(chipEditLoading = false, recalculating = false)
+                        handleFailure(response.error, old.copy(chipEditOpen = false), finishing = false)
+                    }
+                }
+            }
+        }
+    }
+
+    fun answerChipEdit(optionId: String) = answerChipEdit(InspirationAnswerRequest(optionId = optionId))
+
+    fun answerChipEditOther() {
+        val text = mutable.value.otherText.trim()
+        if (text.isNotEmpty()) answerChipEdit(InspirationAnswerRequest(otherText = text))
+    }
+
+    private fun answerChipEdit(request: InspirationAnswerRequest) {
+        val old = mutable.value
+        mutable.value = old.copy(chipEditLoading = true, recalculating = true)
+        viewModelScope.launch {
+            when (val response = repository.answer(sessionId, request)) {
+                is ApiResult.Success -> {
+                    val session = response.value
+                    if (session.status == InspirationStatus.CHARGED && session.result != null) {
+                        acceptSession(session, previousCount = 0, replaceCards = true)
+                    } else {
+                        mutable.value = mutable.value.copy(
+                            session = session,
+                            chipEditQuestion = session.question,
+                            chipEditLoading = false,
+                            recalculating = false,
+                            chipEditsFreeLeft = session.chipEditsFreeLeft,
+                            extraCost = session.extraCost,
+                        )
+                    }
+                }
+                is ApiResult.Failure -> {
+                    if (response.error.code == ErrorCode.INSUFFICIENT_CREDITS) {
+                        mutable.value = old.copy(chipEditOpen = false, chipEditLoading = false, recalculating = false)
+                        events.send(InspirationResultsEvent.OutOfCredits)
+                    } else handleFailure(response.error, old, finishing = false)
+                }
+            }
+        }
+    }
+
+    fun closeChipEdit() {
+        mutable.value = mutable.value.copy(chipEditOpen = false, chipEditQuestion = null, otherText = "", otherOpen = false)
+    }
+
     private fun answer(request: InspirationAnswerRequest) {
         val old = mutable.value
         mutable.value = old.copy(askAgainLoading = true, inlineError = false)
@@ -148,7 +252,7 @@ class InspirationResultsViewModel(
                     analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationSaved)
                     events.send(InspirationResultsEvent.Saved(response.value.removedOldestId != null, response.value.idea.id))
                 }
-                is ApiResult.Failure -> handleFailure(response.error, mutable.value, finishing = false)
+                is ApiResult.Failure -> events.send(InspirationResultsEvent.SaveFailed)
             }
         }
     }
@@ -198,11 +302,11 @@ class InspirationResultsViewModel(
         }
     }
 
-    private suspend fun acceptSession(session: InspirationSessionDto, previousCount: Int) {
+    private suspend fun acceptSession(session: InspirationSessionDto, previousCount: Int, replaceCards: Boolean = false) {
         val result = session.result ?: mutable.value.result
         val incoming = result?.let(::feedCards).orEmpty()
         val prior = mutable.value.cards
-        val merged = if (prior.isNotEmpty() && incoming.isNotEmpty() && incoming.first().card.id == prior.first().card.id) {
+        val merged = if (replaceCards) incoming else if (prior.isNotEmpty() && incoming.isNotEmpty() && incoming.first().card.id == prior.first().card.id) {
             val ids = prior.mapTo(mutableSetOf()) { it.card.id }
             prior + incoming.filterNot { it.card.id in ids }
         } else if (prior.isNotEmpty()) {
@@ -220,11 +324,16 @@ class InspirationResultsViewModel(
             askAgainOpen = false,
             askAgainLoading = false,
             askAgainQuestion = null,
+            chipEditOpen = false,
+            chipEditQuestion = null,
+            chipEditLoading = false,
+            recalculating = false,
             otherText = "",
             otherOpen = false,
             askAgainFreeLeft = session.askAgainFreeLeft,
+            chipEditsFreeLeft = session.chipEditsFreeLeft,
             extraCost = session.extraCost,
-            appendDividerAt = previousCount.takeIf { it > 0 && merged.size > it },
+            appendDividerAt = if (replaceCards) null else previousCount.takeIf { it > 0 && merged.size > it },
         )
     }
 

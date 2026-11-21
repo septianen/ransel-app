@@ -30,7 +30,9 @@ class InspirationResultsViewModelTest {
         var getResult: ApiResult<InspirationSessionDto> = ApiResult.Success(session())
         var againResult: ApiResult<InspirationSessionDto> = ApiResult.Success(session(InspirationStatus.ACTIVE, question = question()))
         var answerResult: ApiResult<InspirationSessionDto> = ApiResult.Success(session())
+        var editResult: ApiResult<InspirationSessionDto> = ApiResult.Success(session())
         var saveResult: ApiResult<SaveIdeaResponse> = ApiResult.Success(saveResponse())
+        var editRequest: InspirationEditChipRequest? = null
         var undoIds = mutableListOf<String>()
         var getCalls = 0
         var lastSaveRequest: SaveIdeaRequest? = null
@@ -39,7 +41,7 @@ class InspirationResultsViewModelTest {
         override suspend fun answer(id: String, request: InspirationAnswerRequest) = answerResult
         override suspend fun finish(id: String) = answerResult
         override suspend fun askAgain(id: String) = againResult
-        override suspend fun editChip(id: String, request: InspirationEditChipRequest) = getResult
+        override suspend fun editChip(id: String, request: InspirationEditChipRequest): ApiResult<InspirationSessionDto> { editRequest = request; return editResult }
         override suspend fun saved() = ApiResult.Success(SavedIdeasResponse(emptyList()))
         override suspend fun save(request: SaveIdeaRequest): ApiResult<SaveIdeaResponse> { lastSaveRequest = request; return saveResult }
         override suspend fun delete(id: String) = ApiResult.Success(Unit)
@@ -123,6 +125,101 @@ class InspirationResultsViewModelTest {
         vm.askAgain(); runCurrent()
         assertTrue(vm.state.value.inlineError)
         assertEquals("c1", vm.state.value.cards.first().card.id)
+    }
+
+    @Test fun chipEditReplacesCardsAndClearsAppendDivider() = runTest {
+        val repo = Repo()
+        repo.getResult = ApiResult.Success(session(result(listOf(card("old-a"), card("old-b")))))
+        repo.editResult = ApiResult.Success(session(result(listOf(card("new-a"), card("new-b")))))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        vm.openChipEdit(InspirationChipDto(app.ransel.shared.model.InspirationChipKey.LEVEL, "Pemula"))
+        vm.setChipEditValue("Menengah")
+        vm.editChip(); runCurrent()
+        assertEquals(listOf("new-a", "new-b"), vm.state.value.cards.map { it.card.id })
+        assertNull(vm.state.value.appendDividerAt)
+        assertEquals(app.ransel.shared.model.InspirationChipKey.LEVEL, repo.editRequest?.key)
+        assertEquals("Menengah", repo.editRequest?.value)
+    }
+
+    @Test fun chipEditReturningQuestionShowsQuestionInSheet() = runTest {
+        val repo = Repo()
+        repo.editResult = ApiResult.Success(session(InspirationStatus.ACTIVE, result = null, question = question()))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        vm.openChipEdit(InspirationChipDto(app.ransel.shared.model.InspirationChipKey.BUDGET, "Sedang"))
+        vm.setChipEditValue("Mewah")
+        vm.editChip(); runCurrent()
+        assertTrue(vm.state.value.chipEditOpen)
+        assertEquals(question(), vm.state.value.chipEditQuestion)
+    }
+
+    @Test fun chipEditInsufficientCreditsClosesSheet() = runTest {
+        val repo = Repo()
+        repo.editResult = ApiResult.Failure(ApiFailure(ErrorCode.INSUFFICIENT_CREDITS, "No credits", 402))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        vm.openChipEdit(InspirationChipDto(app.ransel.shared.model.InspirationChipKey.BUDGET, "Sedang"))
+        vm.setChipEditValue("Mewah")
+        val event = async { vm.eventFlow.first() }
+        vm.editChip(); runCurrent()
+        assertFalse(vm.state.value.chipEditOpen)
+        assertEquals(InspirationResultsEvent.OutOfCredits, event.await())
+    }
+
+    @Test fun saveFailureEmitsSnackbarAndKeepsFeed() = runTest {
+        val repo = Repo()
+        repo.saveResult = ApiResult.Failure(ApiFailure("NETWORK_UNAVAILABLE", "offline"))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        val event = async { vm.eventFlow.first() }
+        vm.save(card("c1")); runCurrent()
+        assertEquals(InspirationResultsEvent.SaveFailed, event.await())
+        assertFalse(vm.state.value.inlineError)
+        assertEquals("c1", vm.state.value.cards.first().card.id)
+    }
+
+    @Test fun chipEditReplacesCardsAndClearsAppendDivider() = runTest {
+        val repo = Repo()
+        repo.getResult = ApiResult.Success(session(result(listOf(card("old-a"), card("old-b")))))
+        repo.editResult = ApiResult.Success(session(result(listOf(card("new-a"), card("new-b")))))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        vm.openChipEdit(InspirationChipDto(app.ransel.shared.model.InspirationChipKey.LEVEL, "Pemula"))
+        vm.setChipEditValue("Menengah")
+        vm.editChip(); runCurrent()
+        assertEquals(listOf("new-a", "new-b"), vm.state.value.cards.map { it.card.id })
+        assertNull(vm.state.value.appendDividerAt)
+        assertEquals(app.ransel.shared.model.InspirationChipKey.LEVEL, repo.editRequest?.key)
+        assertEquals("Menengah", repo.editRequest?.value)
+    }
+
+    @Test fun chipEditReturningQuestionKeepsTheSheetOpenWithQuestion() = runTest {
+        val repo = Repo()
+        repo.editResult = ApiResult.Success(session(InspirationStatus.ACTIVE, result = null, question = question()))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        vm.openChipEdit(InspirationChipDto(app.ransel.shared.model.InspirationChipKey.BUDGET, "Sedang"))
+        vm.setChipEditValue("Mewah")
+        vm.editChip(); runCurrent()
+        assertTrue(vm.state.value.chipEditOpen)
+        assertEquals(question(), vm.state.value.chipEditQuestion)
+    }
+
+    @Test fun chipEditInsufficientCreditsClosesItsSheet() = runTest {
+        val repo = Repo()
+        repo.editResult = ApiResult.Failure(ApiFailure(ErrorCode.INSUFFICIENT_CREDITS, "No credits", 402))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        vm.openChipEdit(InspirationChipDto(app.ransel.shared.model.InspirationChipKey.BUDGET, "Sedang"))
+        vm.setChipEditValue("Mewah")
+        val event = async { vm.eventFlow.first() }
+        vm.editChip(); runCurrent()
+        assertFalse(vm.state.value.chipEditOpen)
+        assertEquals(InspirationResultsEvent.OutOfCredits, event.await())
+    }
+
+    @Test fun saveFailureEmitsSnackbarWithoutSettingPageError() = runTest {
+        val repo = Repo()
+        repo.saveResult = ApiResult.Failure(ApiFailure("NETWORK_UNAVAILABLE", "offline"))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        val event = async { vm.eventFlow.first() }
+        vm.save(card("c1")); runCurrent()
+        assertEquals(InspirationResultsEvent.SaveFailed, event.await())
+        assertFalse(vm.state.value.inlineError)
     }
 
     private companion object {

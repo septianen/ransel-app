@@ -2212,4 +2212,22 @@
     <string name="explore_buddy_notify">Notify me</string>
     <string name="explore_buddy_later">Not now</string>
     <string name="explore_buddy_noted">We noted your interest and will let you know when it is ready.</string>
+    <string name="explore_chip_edit_title">Edit profile detail</string>
+    <string name="explore_chip_edit_free">Free · %1$d edits left</string>
+    <string name="explore_chip_edit_paid">Edit · %1$d credits</string>
+    <string name="explore_chip_edit_apply">Apply</string>
+    <string name="explore_distance_same_city">In my city</string>
+    <string name="explore_distance_domestic">Elsewhere in Indonesia</string>
+    <string name="explore_distance_abroad">Abroad</string>
+    <string name="explore_distance_any">Anywhere, let the AI choose</string>
+    <string name="saved_ideas_count">%1$d ideas</string>
+    <string name="saved_ideas_stale">AI estimate · made %1$s</string>
+    <string name="saved_ideas_refresh">Refresh</string>
+    <string name="saved_ideas_removed">Removed from Saved ideas · Undo</string>
+    <string name="saved_ideas_refresh_wait">You can refresh this again tomorrow</string>
+    <string name="saved_ideas_oldest_removed">Oldest idea removed · Undo</string>
+    <string name="saved_ideas_empty_title">Your backpack has no ideas yet</string>
+    <string name="saved_ideas_empty_body">Save any idea you like from Ask AI. Saved ideas live in your account, so you can open them on another device.</string>
+    <string name="saved_ideas_count_title">%1$d ideas</string>
+    <string name="saved_ideas_meta">%1$s</string>
 </resources>

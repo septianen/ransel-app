@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -120,6 +121,7 @@ fun InspirationResultsScreen(
         viewModel.eventFlow.collect { event ->
             when (event) {
                 InspirationResultsEvent.OutOfCredits -> onOpenCredits()
+                InspirationResultsEvent.SaveFailed -> snackbarHost.showSnackbar(buddyFailed)
                 is InspirationResultsEvent.Saved -> {
                     val message = if (event.removedOldest) oldestMessage else savedMessage
                     val action = if (event.removedOldest) undoAction else viewAction
@@ -150,6 +152,13 @@ fun InspirationResultsScreen(
             onCreateTrip(card, viewModel.interestsForTrip())
         },
         onCardOpened = viewModel::cardOpened,
+        onEditChip = viewModel::openChipEdit,
+        onChipEditValue = viewModel::setChipEditValue,
+        onChipEditSubmit = viewModel::editChip,
+        onChipEditAnswer = viewModel::answerChipEdit,
+        onChipEditAnswerOther = viewModel::answerChipEditOther,
+        onChipEditOpenOther = viewModel::openOther,
+        onChipEditClose = viewModel::closeChipEdit,
     )
     if (buddyOpen) {
         BuddySheet(onNotify = { buddyOpen = false; viewModel.notifyBuddy() }, onDismiss = { buddyOpen = false })
@@ -173,6 +182,13 @@ fun InspirationResultsContent(
     onBuddy: () -> Unit = {},
     onCreateTrip: (InspirationCardDto) -> Unit = {},
     onCardOpened: (InspirationCardDto) -> Unit = {},
+    onEditChip: (InspirationChipDto) -> Unit = {},
+    onChipEditValue: (String) -> Unit = {},
+    onChipEditSubmit: () -> Unit = {},
+    onChipEditAnswer: (String) -> Unit = {},
+    onChipEditAnswerOther: () -> Unit = {},
+    onChipEditOpenOther: () -> Unit = {},
+    onChipEditClose: () -> Unit = {},
 ) {
     var detailCard by remember { mutableStateOf<InspirationCardDto?>(null) }
     when {
@@ -201,8 +217,9 @@ fun InspirationResultsContent(
                 val result = state.result
                 if (result != null) {
                     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-                        ProfileHeader(result.profile)
+                        ProfileHeader(result.profile, onEditChip)
                         Text(stringResource(Res.string.explore_edit_hint), Modifier.padding(top = 8.dp, bottom = 16.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (state.recalculating) Box(Modifier.fillMaxWidth().height(2.dp).background(MaterialTheme.colorScheme.primary))
                         if (state.inlineError) InlineResultsError(onRetry)
                         state.cards.forEachIndexed { index, item ->
                             if (state.appendDividerAt == index) AgainDivider()
@@ -213,6 +230,7 @@ fun InspirationResultsContent(
                                     detailCard = item.card
                                 },
                                 onSave = { onSave(item.card) },
+                                modifier = Modifier.graphicsLayer(alpha = if (state.recalculating) 0.38f else 1f),
                             )
                             Spacer(Modifier.height(16.dp))
                         }
@@ -236,6 +254,24 @@ fun InspirationResultsContent(
     if (state.askAgainOpen) {
         AskAgainSheet(state, onAnswer, onOtherText, onOpenOther, onAnswerOther, onCloseQuestion)
     }
+    if (state.chipEditOpen && state.chipEditKey != null) {
+        ChipEditSheet(
+            key = state.chipEditKey,
+            value = state.chipEditValue,
+            freeLeft = state.chipEditsFreeLeft,
+            extraCost = state.extraCost,
+            question = state.chipEditQuestion,
+            otherText = state.otherText,
+            otherOpen = state.otherOpen,
+            loading = state.chipEditLoading,
+            onValueChange = onChipEditValue,
+            onOpenOther = onChipEditOpenOther,
+            onAnswer = onChipEditAnswer,
+            onAnswerOther = onChipEditAnswerOther,
+            onSubmit = onChipEditSubmit,
+            onDismiss = onChipEditClose,
+        )
+    }
 }
 
 @Composable
@@ -248,21 +284,27 @@ private fun ResultsTopBar(onBack: () -> Unit, onBookmark: () -> Unit) {
 }
 
 @Composable
-private fun ProfileHeader(profile: List<InspirationChipDto>) {
+private fun ProfileHeader(profile: List<InspirationChipDto>, onEdit: (InspirationChipDto) -> Unit) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Symbol(Symbols.edit, size = 14.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         profile.forEach { chip ->
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant) {
-                Text(chip.value, Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
+            Surface(
+                modifier = Modifier.heightIn(min = 48.dp).clip(CircleShape).clickable { onEdit(chip) },
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant,
+            ) {
+                Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Symbol(Symbols.edit, size = 14.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(chip.value, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun InspirationCard(item: InspirationFeedCard, onOpen: () -> Unit, onSave: () -> Unit) {
+private fun InspirationCard(item: InspirationFeedCard, onOpen: () -> Unit, onSave: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen),
+        modifier = modifier.fillMaxWidth().clickable(onClick = onOpen),
         shape = RoundedCornerShape(24.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 2.dp,
@@ -400,3 +442,12 @@ private val previewCards = listOf(
     )
 }
 @Preview @Composable private fun ResultsLoadingPreview() = IrisPreview { InspirationResultsContent(InspirationResultsUiState(loading = true)) }
+@Preview @Composable private fun ResultsRecalculatingPreview() = IrisPreview {
+    InspirationResultsContent(
+        InspirationResultsUiState(
+            result = app.ransel.shared.dto.InspirationResultDto(cards = previewCards.dropLast(1).map { it.card }, createdAt = Instant.parse("2026-11-21T00:00:00Z")),
+            cards = previewCards.dropLast(1),
+            recalculating = true,
+        ),
+    )
+}

@@ -2195,4 +2195,22 @@
     <string name="explore_buddy_notify">Kabari saya</string>
     <string name="explore_buddy_later">Nanti saja</string>
     <string name="explore_buddy_noted">Kami catat minatmu dan kabari kalau fitur ini siap.</string>
+    <string name="explore_chip_edit_title">Ubah bagian profil</string>
+    <string name="explore_chip_edit_free">Gratis · %1$d perubahan tersisa</string>
+    <string name="explore_chip_edit_paid">Ubah · %1$d kredit</string>
+    <string name="explore_chip_edit_apply">Terapkan</string>
+    <string name="explore_distance_same_city">Dalam kota</string>
+    <string name="explore_distance_domestic">Luar kota (Indonesia)</string>
+    <string name="explore_distance_abroad">Luar negeri</string>
+    <string name="explore_distance_any">Bebas, AI yang pilih</string>
+    <string name="saved_ideas_count">%1$d ide</string>
+    <string name="saved_ideas_stale">Perkiraan AI · dibuat %1$s</string>
+    <string name="saved_ideas_refresh">Perbarui</string>
+    <string name="saved_ideas_removed">Dihapus dari Ide tersimpan · Urungkan</string>
+    <string name="saved_ideas_refresh_wait">Bisa diperbarui lagi besok</string>
+    <string name="saved_ideas_oldest_removed">Ide terlama dihapus · Urungkan</string>
+    <string name="saved_ideas_empty_title">Ranselmu belum berisi ide</string>
+    <string name="saved_ideas_empty_body">Simpan inspirasi yang menarik dari hasil Tanya AI. Ide tersimpan ada di akunmu, jadi bisa dibuka di perangkat lain.</string>
+    <string name="saved_ideas_count_title">%1$d ide</string>
+    <string name="saved_ideas_meta">%1$s</string>
 </resources>
