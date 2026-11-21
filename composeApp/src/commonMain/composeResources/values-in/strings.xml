@@ -899,6 +899,7 @@
     <string name="credits_action_next_batch">Hasil berikutnya</string>
     <string name="credits_action_place_detail">Detail tempat</string>
     <string name="credits_action_receipt">Foto struk</string>
+    <string name="credits_action_inspiration">Sesi Tanya AI</string>
     <string name="credits_source_free">jatah gratis</string>
     <string name="account_credits">Kredit</string>
     <string name="explore_credits_left">%1$d kredit tersisa</string>

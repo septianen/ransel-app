@@ -909,6 +909,7 @@
     <string name="credits_action_next_batch">More results</string>
     <string name="credits_action_place_detail">Place details</string>
     <string name="credits_action_receipt">Receipt photo</string>
+    <string name="credits_action_inspiration">Ask AI session</string>
     <string name="credits_source_free">free daily</string>
     <string name="account_credits">Credits</string>
     <string name="explore_credits_left">%1$d credits left</string>
