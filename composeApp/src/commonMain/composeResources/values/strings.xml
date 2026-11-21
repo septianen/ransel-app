@@ -755,14 +755,14 @@
     </plurals>
     <string name="explore_interests">Interests</string>
     <string name="explore_interests_hint">choose one or more</string>
-    <string name="explore_interest_nature">Nature</string>
+    <string name="explore_interest_nature">Wildlife & nature</string>
     <string name="explore_interest_food">Food</string>
-    <string name="explore_interest_culture">Culture</string>
+    <string name="explore_interest_culture">History & culture</string>
     <string name="explore_interest_shopping">Shopping</string>
-    <string name="explore_interest_adventure">Adventure</string>
-    <string name="explore_interest_nightlife">Nightlife</string>
-    <string name="explore_interest_photo">Photo spots</string>
-    <string name="explore_interest_relax">Relax</string>
+    <string name="explore_interest_adventure">Sports & outdoors</string>
+    <string name="explore_interest_nightlife">Music & events</string>
+    <string name="explore_interest_photo">Photography</string>
+    <string name="explore_interest_relax">Healing</string>
     <string name="explore_price_title">Place price range</string>
     <string name="explore_price_relative">follows local prices</string>
     <string name="explore_price_low">Cheap</string>

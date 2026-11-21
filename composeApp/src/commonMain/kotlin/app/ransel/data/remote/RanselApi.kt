@@ -10,6 +10,15 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.data.auth.ApiAuth
 import app.ransel.shared.model.DevicePlatform
 import app.ransel.shared.dto.AccountDeletionPreviewDto
+import app.ransel.shared.dto.StartInspirationRequest
+import app.ransel.shared.dto.InspirationSessionDto
+import app.ransel.shared.dto.InspirationAnswerRequest
+import app.ransel.shared.dto.InspirationEditChipRequest
+import app.ransel.shared.dto.SavedIdeasResponse
+import app.ransel.shared.dto.SaveIdeaRequest
+import app.ransel.shared.dto.SaveIdeaResponse
+import app.ransel.shared.dto.SavedIdeaDto
+import app.ransel.shared.dto.BuddyInterestRequest
 import app.ransel.shared.dto.ChangePasswordRequest
 import app.ransel.shared.dto.DeleteAccountRequest
 import app.ransel.shared.dto.AddMemberRequest
@@ -644,6 +653,20 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.roundClose(tripId, roundId)) { }
     suspend fun decideRound(tripId: String, roundId: String, placeIds: List<String>): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.roundDecide(tripId, roundId), bodyOf = { contentType(ContentType.Application.Json); setBody(DecideRequest(placeIds)) }) { }
+
+    // ── Explore Inspirasi ───────────────────────────────────────────────────
+    suspend fun startInspiration(request: StartInspirationRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_SESSIONS, request)
+    suspend fun inspirationSession(id: String): ApiResult<InspirationSessionDto> = get(ApiRoutes.inspirationSession(id))
+    suspend fun answerInspiration(id: String, request: InspirationAnswerRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Post, ApiRoutes.inspirationAnswer(id), request)
+    suspend fun finishInspiration(id: String): ApiResult<InspirationSessionDto> = call(HttpMethod.Post, ApiRoutes.inspirationFinish(id)) { it.body<ApiResponse<InspirationSessionDto>>().data }
+    suspend fun askAgainInspiration(id: String): ApiResult<InspirationSessionDto> = call(HttpMethod.Post, ApiRoutes.inspirationAskAgain(id)) { it.body<ApiResponse<InspirationSessionDto>>().data }
+    suspend fun editInspirationChip(id: String, request: InspirationEditChipRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Patch, ApiRoutes.inspirationProfile(id), request)
+    suspend fun savedIdeas(): ApiResult<SavedIdeasResponse> = get(ApiRoutes.INSPIRATION_SAVED)
+    suspend fun saveIdea(request: SaveIdeaRequest): ApiResult<SaveIdeaResponse> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_SAVED, request)
+    suspend fun deleteSavedIdea(id: String): ApiResult<Unit> = delete(ApiRoutes.inspirationSavedIdea(id))
+    suspend fun undoSavedIdea(id: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.inspirationSavedUndo(id)) { }
+    suspend fun refreshSavedIdea(id: String): ApiResult<SavedIdeaDto> = call(HttpMethod.Post, ApiRoutes.inspirationSavedRefresh(id)) { it.body<ApiResponse<SavedIdeaDto>>().data }
+    suspend fun registerBuddyInterest(request: BuddyInterestRequest): ApiResult<Unit> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_BUDDY, request)
 
     // ── Explore credits ─────────────────────────────────────────────────────
     suspend fun credits(): ApiResult<CreditsDto> = get(ApiRoutes.CREDITS)
