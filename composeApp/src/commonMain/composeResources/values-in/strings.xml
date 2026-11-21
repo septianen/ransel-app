@@ -746,12 +746,12 @@
     </plurals>
     <string name="explore_interests">Minat</string>
     <string name="explore_interests_hint">pilih satu atau lebih</string>
-    <string name="explore_interest_nature">Satwa & alam</string>
+    <string name="explore_interest_nature">Satwa &amp; alam</string>
     <string name="explore_interest_food">Kuliner</string>
-    <string name="explore_interest_culture">Sejarah & budaya</string>
+    <string name="explore_interest_culture">Sejarah &amp; budaya</string>
     <string name="explore_interest_shopping">Belanja</string>
-    <string name="explore_interest_adventure">Olahraga & outdoor</string>
-    <string name="explore_interest_nightlife">Musik & event</string>
+    <string name="explore_interest_adventure">Olahraga &amp; outdoor</string>
+    <string name="explore_interest_nightlife">Musik &amp; event</string>
     <string name="explore_interest_photo">Fotografi</string>
     <string name="explore_interest_relax">Healing</string>
     <string name="explore_price_title">Kisaran harga tempat</string>

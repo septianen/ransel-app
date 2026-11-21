@@ -7,6 +7,8 @@ import app.ransel.data.remote.createApiHttpClient
 import app.ransel.data.remote.getOrNull
 import app.ransel.shared.api.ErrorCode
 import app.ransel.shared.dto.CreateTripRequest
+import app.ransel.shared.dto.StartInspirationRequest
+import app.ransel.shared.dto.InspirationAnswerRequest
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.respondError
@@ -207,4 +209,33 @@ class RanselApiTest {
 private fun fixedAuth(token: String) = object : ApiAuth {
     override fun accessToken() = token
     override suspend fun refreshAccessToken() = false
+    private val inspirationSessionJson = """{"id":"s1","status":"ACTIVE","question":{"slot":"INTEREST","text":"Question?","options":[{"id":"a","title":"A"},{"id":"b","title":"B"},{"id":"c","title":"C"}]},"expiresAt":"2026-11-22T00:00:00Z"}"""
+
+    @Test fun startInspirationPostsRequestAndBody() = runTest {
+        val api = api { request ->
+            assertEquals(HttpMethod.Post, request.method)
+            assertEquals("/api/v1/explore/inspiration/sessions", request.url.encodedPath)
+            val body = request.body.toByteArray().decodeToString()
+            assertTrue("\"id\":\"s1\"" in body, body)
+            respond("""{"data":$inspirationSessionJson}""", HttpStatusCode.Created, json)
+        }
+        val result = api.startInspiration(StartInspirationRequest("s1"))
+        assertEquals("s1", (result as ApiResult.Success).value.id)
+    }
+
+    @Test fun answerAndFinishUseExpectedRoutes() = runTest {
+        val seen = mutableListOf<String>()
+        val api = api { request -> seen += "${request.method.value} ${request.url.encodedPath}"; respond("""{"data":$inspirationSessionJson}""", HttpStatusCode.OK, json) }
+        api.answerInspiration("s1", InspirationAnswerRequest(optionId = "a"))
+        api.finishInspiration("s1")
+        assertEquals(listOf("POST /api/v1/explore/inspiration/sessions/s1/answers", "POST /api/v1/explore/inspiration/sessions/s1/finish"), seen)
+    }
+
+    @Test fun inspirationCreditAndRateLimitErrorsKeepCodesAndDetails() = runTest {
+        val creditApi = api { respond("""{"error":{"code":"INSUFFICIENT_CREDITS","message":"No credits"}}""", HttpStatusCode.PaymentRequired, json) }
+        assertEquals(ErrorCode.INSUFFICIENT_CREDITS, (creditApi.startInspiration(StartInspirationRequest("s1")) as ApiResult.Failure).error.code)
+        val limitedApi = api { respond("""{"error":{"code":"RATE_LIMITED","message":"Wait","details":{"retryAfterSeconds":"75"}}}""", HttpStatusCode.TooManyRequests, json) }
+        assertEquals("75", (limitedApi.startInspiration(StartInspirationRequest("s1")) as ApiResult.Failure).error.details?.get("retryAfterSeconds"))
+    }
+
 }
