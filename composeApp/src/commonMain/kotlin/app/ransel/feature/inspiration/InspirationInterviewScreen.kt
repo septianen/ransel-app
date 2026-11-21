@@ -84,7 +84,7 @@ fun InspirationInterviewScreen(
         onOtherText = viewModel::setOtherText,
         onOpenOther = viewModel::openOther,
         onAnswerOther = viewModel::answerOther,
-        onFinish = viewModel::finish,
+        onFinish = viewModel::enough,
         onRetry = viewModel::retry,
         onBack = onBack,
     )

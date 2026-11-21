@@ -31,7 +31,11 @@ sealed interface InspirationInterviewEvent {
     data object OutOfCredits : InspirationInterviewEvent
 }
 
-class InspirationInterviewViewModel(private val sessionId: String, private val repository: InspirationRepository) : ViewModel() {
+class InspirationInterviewViewModel(
+    private val sessionId: String,
+    private val repository: InspirationRepository,
+    private val analytics: app.ransel.data.analytics.Analytics = app.ransel.data.analytics.NoAnalytics,
+) : ViewModel() {
     private val mutable = MutableStateFlow(InspirationInterviewUiState())
     val state: StateFlow<InspirationInterviewUiState> = mutable.asStateFlow()
     private val events = Channel<InspirationInterviewEvent>(Channel.BUFFERED)
@@ -42,12 +46,28 @@ class InspirationInterviewViewModel(private val sessionId: String, private val r
     fun load() = runRequest { repository.get(sessionId) }
     fun setOtherText(value: String) { mutable.value = mutable.value.copy(otherText = value.take(80)) }
     fun openOther() { mutable.value = mutable.value.copy(otherOpen = true) }
-    fun answer(optionId: String) = runRequest { repository.answer(sessionId, InspirationAnswerRequest(optionId = optionId)) }
+    fun answer(optionId: String) {
+        trackStep(other = false)
+        runRequest { repository.answer(sessionId, InspirationAnswerRequest(optionId = optionId)) }
+    }
     fun answerOther() {
         val text = mutable.value.otherText.trim()
-        if (text.isNotEmpty()) runRequest { repository.answer(sessionId, InspirationAnswerRequest(otherText = text)) }
+        if (text.isEmpty()) return
+        trackStep(other = true)
+        runRequest { repository.answer(sessionId, InspirationAnswerRequest(otherText = text)) }
     }
     fun finish() = runRequest(repositoryCall = { repository.finish(sessionId) }, finishing = true)
+
+    /** "Sudah cukup, lihat inspirasi". */
+    fun enough() {
+        analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationEnough)
+        finish()
+    }
+
+    private fun trackStep(other: Boolean) {
+        val slot = mutable.value.question?.slot ?: return
+        analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationStep(slot, other))
+    }
     fun retry() = load()
 
     private fun runRequest(finishing: Boolean = false, repositoryCall: suspend () -> ApiResult<InspirationSessionDto>) {
@@ -65,7 +85,11 @@ class InspirationInterviewViewModel(private val sessionId: String, private val r
                     )
                     when (session.status) {
                         InspirationStatus.READY -> if (!finishing) finish()
-                        InspirationStatus.CHARGED -> events.send(InspirationInterviewEvent.Results)
+                        InspirationStatus.CHARGED -> {
+                            val cards = session.result?.let { it.cards.size + (if (it.surprise != null) 1 else 0) } ?: 0
+                            analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationFinished(cards))
+                            events.send(InspirationInterviewEvent.Results)
+                        }
                         else -> Unit
                     }
                 }

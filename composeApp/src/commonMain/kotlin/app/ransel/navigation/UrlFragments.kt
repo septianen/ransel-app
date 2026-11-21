@@ -19,6 +19,7 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     HomeRoute -> "home"
     TripListRoute -> "trips"
     ExploreRoute -> "explore"
+    ExploreTripPickerRoute -> "explore/trips"
     is ExplorePreferencesRoute -> route.tripId?.let { "trips/${enc(it)}/explore/new" } ?: "explore/new"
     AccountRoute -> "account"
     ProfileSecurityRoute -> "account/profile"
@@ -73,6 +74,7 @@ fun routeForUrlFragment(fragment: String): Any? {
         parts == listOf("home") -> HomeRoute
         parts == listOf("trips") -> TripListRoute
         parts == listOf("explore") -> ExploreRoute
+        parts == listOf("explore", "trips") -> ExploreTripPickerRoute
         parts == listOf("account") -> AccountRoute
         parts == listOf("account", "profile") -> ProfileSecurityRoute
         parts == listOf("account", "payment") -> PaymentRoute
@@ -121,6 +123,7 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(HomeRoute::class) -> HomeRoute
         d.hasRoute(TripListRoute::class) -> TripListRoute
         d.hasRoute(ExploreRoute::class) -> ExploreRoute
+        d.hasRoute(ExploreTripPickerRoute::class) -> ExploreTripPickerRoute
         d.hasRoute(ExplorePreferencesRoute::class) -> entry.toRoute<ExplorePreferencesRoute>()
         d.hasRoute(AccountRoute::class) -> AccountRoute
         d.hasRoute(ProfileSecurityRoute::class) -> ProfileSecurityRoute

@@ -1853,9 +1853,9 @@
     <string name="tour_home_create_body">Itinerary, barang bawaan, dan patungan nanti ada di dalam trip ini.</string>
     <string name="tour_home_trips_title">Semua trip ada di sini</string>
     <string name="tour_home_trips_body">Yang sedang berjalan, mendatang, dan sudah selesai. Trip dari undangan teman juga muncul di sini.</string>
-    <string name="tour_home_explore_title">Cari ide tempat dengan swipe</string>
-    <string name="tour_home_explore_body">Geser kanan untuk simpan, kiri untuk lewati. Jatah gratis %1$d kredit tiap hari, satu pencarian baru pakai %2$d kredit.</string>
-    <string name="tour_home_explore_body_plain">Geser kanan untuk simpan, kiri untuk lewati. Tiap hari ada jatah kredit gratis.</string>
+    <string name="tour_home_explore_title">Belum punya tujuan? Tanya AI</string>
+    <string name="tour_home_explore_body">Pilih minat, jawab beberapa pertanyaan, lalu dapat ide aktivitas dan wilayah. Jatah gratis %1$d kredit tiap hari, satu sesi Tanya AI pakai %2$d kredit.</string>
+    <string name="tour_home_explore_body_plain">Pilih minat, jawab beberapa pertanyaan, lalu dapat ide aktivitas dan wilayah. Tiap hari ada jatah kredit gratis.</string>
     <string name="tour_home_account_title">Kredit, bahasa, dan info pembayaran</string>
     <string name="tour_home_account_body">Semuanya ada di Akun. Mau lihat panduan ini lagi? Ketuk Ulangi panduan di sana.</string>
     <string name="tour_trip_tabs_title">Semua isi trip ada di tab ini</string>
@@ -2152,7 +2152,6 @@
     <string name="explore_step_left">Sisa ± %1$d pertanyaan</string>
     <string name="explore_interview_lost_title">Sesi ini sudah berakhir</string>
     <string name="explore_interview_lost_body">Mulai lagi untuk mencari inspirasi baru.</string>
-    <string name="debug_inspiration_home">Buka Jelajah Inspirasi</string>
     <string name="explore_retry">Coba lagi</string>
     <string name="explore_ai_title">Tanya AI</string>
     <string name="explore_explainer">Tanya AI menanyakan 3–5 hal soal seleramu, lalu memberi 3–5 ide aktivitas dan wilayah. Cocok kalau belum punya tujuan.</string>
@@ -2190,4 +2189,10 @@
     <string name="explore_level_value">Level · %1$s</string>
 
     <string name="explore_buddy_link">Cari buddy · segera hadir — Kabari saya</string>
+    <string name="explore_buddy_sheet_title">Cari buddy</string>
+    <string name="explore_buddy_body">Fitur cari buddy belum tersedia. Kalau kamu mau, kami kabari saat fitur ini siap.</string>
+    <string name="explore_buddy_consent">Minatmu dicatat 90 hari supaya kami tahu kota mana yang paling butuh fitur ini.</string>
+    <string name="explore_buddy_notify">Kabari saya</string>
+    <string name="explore_buddy_later">Nanti saja</string>
+    <string name="explore_buddy_noted">Kami catat minatmu dan kabari kalau fitur ini siap.</string>
 </resources>

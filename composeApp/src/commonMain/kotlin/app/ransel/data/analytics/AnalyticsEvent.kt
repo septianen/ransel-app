@@ -1,6 +1,8 @@
 package app.ransel.data.analytics
 
 import app.ransel.shared.model.Category
+import app.ransel.shared.model.InspirationChipKey
+import app.ransel.shared.model.InspirationSlot
 import app.ransel.shared.model.Role
 
 /**
@@ -44,6 +46,21 @@ sealed class AnalyticsEvent(val name: String, val params: Map<String, Any> = emp
     // Collaboration.
     data class InviteCreated(val role: Role) : AnalyticsEvent("invite_created", mapOf("role" to role.name))
     data object MemberJoined : AnalyticsEvent("member_joined")
+
+    // Explore Inspirasi (PRD v0.8 "Tracking"): never the hero text or a "Lainnya" answer, only counts, flags and enums.
+    data class InspirationStarted(val interests: Int, val withText: Boolean) :
+        AnalyticsEvent("inspiration_started", mapOf("interests" to interests, "with_text" to withText))
+    data class InspirationStep(val slot: InspirationSlot, val other: Boolean) :
+        AnalyticsEvent("inspiration_step", mapOf("slot" to slot.name, "other" to other))
+    data object InspirationEnough : AnalyticsEvent("inspiration_enough")
+    data class InspirationFinished(val cards: Int) : AnalyticsEvent("inspiration_finished", mapOf("cards" to cards))
+    data class InspirationCardTapped(val surprise: Boolean) : AnalyticsEvent("inspiration_card_tapped", mapOf("surprise" to surprise))
+    data object InspirationMakeTrip : AnalyticsEvent("inspiration_make_trip")
+    data class InspirationAskAgain(val paid: Boolean) : AnalyticsEvent("inspiration_ask_again", mapOf("paid" to paid))
+    data class InspirationChipEdit(val key: InspirationChipKey, val paid: Boolean) :
+        AnalyticsEvent("inspiration_chip_edit", mapOf("key" to key.name, "paid" to paid))
+    data object InspirationSaved : AnalyticsEvent("inspiration_saved")
+    data object BuddyInterest : AnalyticsEvent("buddy_interest")
 
     // Sync health: a row the server refused (not CONFLICT); [entity] is the sync wire name, [code] an ErrorCode.
     data class SyncRejected(val entity: String, val code: String) :

@@ -54,9 +54,10 @@ import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.*
 
 /**
- * Explore tab, step 1 (design `PilihTripJelajah`, `JelajahLanjut`, `JelajahTamu`): pick the trip to search for,
- * or start a new one. Guests see the sign-in state; a signed-in user with no eligible trip sees the empty state,
- * with the same "Trip baru" floating button.
+ * The trip-first search, step 1 (design `PilihTripJelajah`, `JelajahLanjut`, `JelajahTamu`): pick the trip to search for,
+ * or start a new one. Since Explore Inspirasi (21 Nov 2026) it opens from "Punya trip? Cari untuk trip ini" and from
+ * "Ganti" in the form, not as the Explore tab, so it has a back arrow ([onBack]). Guests see the sign-in state; a
+ * signed-in user with no eligible trip sees the empty state, with the same "Trip baru" floating button.
  */
 @Composable
 fun ExploreTripPickerScreen(
@@ -66,21 +67,59 @@ fun ExploreTripPickerScreen(
     onNewTrip: () -> Unit,
     onOpenSwipe: (tripId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     viewModel: ExploreTripPickerViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     Column(modifier.fillMaxSize().statusBarsPadding()) {
-        Text(
-            stringResource(Res.string.explore_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = if (onBack != null) 4.dp else 0.dp)) {
+            if (onBack != null) {
+                androidx.compose.material3.IconButton(onClick = onBack) {
+                    Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
+                }
+            }
+            Text(
+                stringResource(Res.string.explore_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(horizontal = if (onBack != null) 4.dp else 16.dp, vertical = 12.dp),
+            )
+        }
         when {
             state.loading -> Box(Modifier.fillMaxSize())
             !state.signedIn -> GuestState(onSignIn, onSignUp, viewModel)
             !state.emailVerified -> VerifyEmailGate(state.email, state.gate, viewModel::resendVerification, viewModel::checkVerified)
             else -> TripPicker(state, onPickTrip, onNewTrip, onOpenSwipe)
+        }
+    }
+}
+
+/**
+ * Explore needs an account with a verified email (CLAUDE.md "Decisions already made"): a guest sees the sign-in state,
+ * an unverified account the verify gate, both under the Explore title; everyone else sees [content] (the Explore tab:
+ * Explore Inspirasi).
+ */
+@Composable
+fun ExploreAccountGate(
+    onSignIn: () -> Unit,
+    onSignUp: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: ExploreTripPickerViewModel = koinViewModel(),
+    content: @Composable () -> Unit,
+) {
+    val state by viewModel.state.collectAsState()
+    when {
+        state.loading -> Box(modifier.fillMaxSize())
+        state.signedIn && state.emailVerified -> content()
+        else -> Column(modifier.fillMaxSize().statusBarsPadding()) {
+            Text(
+                stringResource(Res.string.explore_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+            if (!state.signedIn) GuestState(onSignIn, onSignUp, viewModel)
+            else VerifyEmailGate(state.email, state.gate, viewModel::resendVerification, viewModel::checkVerified)
         }
     }
 }

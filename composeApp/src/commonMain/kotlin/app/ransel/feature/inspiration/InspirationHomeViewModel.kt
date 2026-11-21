@@ -84,6 +84,7 @@ class InspirationHomeViewModel(
         viewModelScope.launch {
             when (val result = repository.start(StartInspirationRequest(newId(), old.interests, old.text.ifBlank { null }))) {
                 is ApiResult.Success -> {
+                    analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationStarted(old.interests.size, old.text.isNotBlank()))
                     sessions.set(result.value.id)
                     mutable.value = mutable.value.copy(startState = InspirationStartState.Idle, sessionId = result.value.id)
                 }

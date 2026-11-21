@@ -110,8 +110,8 @@ val commonModule: Module = module {
     single<InspirationRepository> { ApiInspirationRepository(get()) }
     single { InspirationSessionStore(get()) }
     viewModelOf(::InspirationHomeViewModel)
-    viewModel { params -> InspirationInterviewViewModel(params.get(), get()) }
-    viewModel { params -> InspirationResultsViewModel(params.get(), get()) }
+    viewModel { params -> InspirationInterviewViewModel(params.get(), get(), get()) }
+    viewModel { params -> InspirationResultsViewModel(params.get(), get(), get()) }
     single { app.ransel.data.travel.TravelAnswerChanges() }
     viewModel { params ->
         app.ransel.feature.tripform.travel.TripAnswerViewModel(

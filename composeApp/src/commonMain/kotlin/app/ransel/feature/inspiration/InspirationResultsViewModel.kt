@@ -12,7 +12,11 @@ import app.ransel.shared.dto.InspirationQuestionDto
 import app.ransel.shared.dto.InspirationResultDto
 import app.ransel.shared.dto.InspirationSessionDto
 import app.ransel.shared.dto.SaveIdeaRequest
+import app.ransel.shared.dto.BuddyInterestRequest
+import app.ransel.shared.domain.inspirationInterestLabel
+import app.ransel.shared.model.InspirationChipKey
 import app.ransel.shared.model.InspirationStatus
+import app.ransel.shared.model.Interest
 import app.ransel.util.newId
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,11 +51,14 @@ data class InspirationResultsUiState(
 sealed interface InspirationResultsEvent {
     data object OutOfCredits : InspirationResultsEvent
     data class Saved(val removedOldest: Boolean, val newIdeaId: String) : InspirationResultsEvent
+    /** "Kabari saya" was recorded (or failed: [recorded] false). */
+    data class BuddyNoted(val recorded: Boolean) : InspirationResultsEvent
 }
 
 class InspirationResultsViewModel(
     private val sessionId: String,
     private val repository: InspirationRepository,
+    private val analytics: app.ransel.data.analytics.Analytics = app.ransel.data.analytics.NoAnalytics,
 ) : ViewModel() {
     private val mutable = MutableStateFlow(InspirationResultsUiState())
     val state: StateFlow<InspirationResultsUiState> = mutable.asStateFlow()
@@ -69,6 +76,7 @@ class InspirationResultsViewModel(
     fun askAgain() {
         if (mutable.value.askAgainLoading) return
         val old = mutable.value
+        analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationAskAgain(paid = old.askAgainFreeLeft <= 0))
         mutable.value = old.copy(
             askAgainOpen = true,
             askAgainLoading = true,
@@ -136,9 +144,41 @@ class InspirationResultsViewModel(
         viewModelScope.launch {
             val request = SaveIdeaRequest(id = newId(), sessionId = sessionId, cardId = card.id)
             when (val response = repository.save(request)) {
-                is ApiResult.Success -> events.send(InspirationResultsEvent.Saved(response.value.removedOldestId != null, response.value.idea.id))
+                is ApiResult.Success -> {
+                    analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationSaved)
+                    events.send(InspirationResultsEvent.Saved(response.value.removedOldestId != null, response.value.idea.id))
+                }
                 is ApiResult.Failure -> handleFailure(response.error, mutable.value, finishing = false)
             }
+        }
+    }
+
+    /** A card's detail sheet opened. */
+    fun cardOpened(card: InspirationCardDto) = analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationCardTapped(card.surprise))
+
+    /** "Bikin trip dari sini" tapped. */
+    fun makeTripTapped() = analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationMakeTrip)
+
+    /**
+     * The interests of this session, read from the profile header's INTEREST chip (the session sends labels, not
+     * constants): they preselect Seleramu in "Buat trip" so the user is not asked again (PRD "Handoff").
+     */
+    fun interestsForTrip(): Set<Interest> {
+        val chip = mutableValueProfileInterest() ?: return emptySet()
+        val text = chip.lowercase()
+        return Interest.entries.filter { i -> listOf("id", "en").any { inspirationInterestLabel(i, it).lowercase() in text } }.toSet()
+    }
+
+    private fun mutableValueProfileInterest(): String? =
+        mutable.value.result?.profile?.firstOrNull { it.key == InspirationChipKey.INTEREST }?.value
+
+    /** "Kabari saya" on the buddy sheet: records the demand with its consent time (the server keeps it 90 days). */
+    fun notifyBuddy() {
+        analytics.event(app.ransel.data.analytics.AnalyticsEvent.BuddyInterest)
+        viewModelScope.launch {
+            val interest = interestsForTrip().firstOrNull()
+            val result = repository.buddy(BuddyInterestRequest(sessionId = sessionId, interest = interest))
+            events.send(InspirationResultsEvent.BuddyNoted(result is ApiResult.Success))
         }
     }
 

@@ -111,9 +111,12 @@ fun InterviewScreen(
     onCreated: (tripId: String, signedIn: Boolean) -> Unit,
     onCreatedAndSearch: (tripId: String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: InterviewViewModel = koinViewModel(key = "interview-${door.name}") { parametersOf(door) },
+    /** From "Bikin trip dari sini": the destination and interests are filled in. */
+    prefill: InterviewPrefill? = null,
+    viewModel: InterviewViewModel = koinViewModel(key = "interview-${door.name}-${prefill?.hashCode() ?: 0}") { parametersOf(door) },
 ) {
     val state by viewModel.state.collectAsState()
+    LaunchedEffect(viewModel, prefill) { prefill?.let(viewModel::applyPrefill) }
     val template = stringResource(Res.string.interview_name_template)
     LaunchedEffect(template) { viewModel.setNameTemplate(template) }
     LaunchedEffect(viewModel) {

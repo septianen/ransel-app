@@ -1870,9 +1870,9 @@
     <string name="tour_home_create_body">Your itinerary, packing list and shared costs all live inside a trip.</string>
     <string name="tour_home_trips_title">All your trips</string>
     <string name="tour_home_trips_body">Ongoing, upcoming and finished. Trips friends invite you to show up here too.</string>
-    <string name="tour_home_explore_title">Find places by swiping</string>
-    <string name="tour_home_explore_body">Swipe right to save, left to skip. You get %1$d free credits a day; a new search uses %2$d.</string>
-    <string name="tour_home_explore_body_plain">Swipe right to save, left to skip. You get free credits every day.</string>
+    <string name="tour_home_explore_title">No destination yet? Ask AI</string>
+    <string name="tour_home_explore_body">Pick your interests, answer a few questions and get activity and region ideas. You get %1$d free credits a day; one Ask AI session uses %2$d.</string>
+    <string name="tour_home_explore_body_plain">Pick your interests, answer a few questions and get activity and region ideas. You get free credits every day.</string>
     <string name="tour_home_account_title">Credits, language and payment info</string>
     <string name="tour_home_account_body">It's all in Account. Want this tour again? Tap Replay tour there.</string>
     <string name="tour_trip_tabs_title">Everything about the trip is in these tabs</string>
@@ -2169,7 +2169,6 @@
     <string name="explore_step_left">About %1$d questions left</string>
     <string name="explore_interview_lost_title">This session has ended</string>
     <string name="explore_interview_lost_body">Start again to find new ideas.</string>
-    <string name="debug_inspiration_home">Open Explore Inspiration</string>
     <string name="explore_retry">Try again</string>
     <string name="explore_ai_title">Ask AI</string>
     <string name="explore_explainer">Ask AI asks 3–5 questions about what you like, then suggests 3–5 activities and areas. Great when you do not have a destination yet.</string>
@@ -2207,4 +2206,10 @@
     <string name="explore_level_value">Level · %1$s</string>
 
     <string name="explore_buddy_link">Find a buddy · coming soon — Notify me</string>
+    <string name="explore_buddy_sheet_title">Find a buddy</string>
+    <string name="explore_buddy_body">Finding a buddy is not available yet. If you like, we will let you know when it is ready.</string>
+    <string name="explore_buddy_consent">Your interest is kept for 90 days so we know which cities need this most.</string>
+    <string name="explore_buddy_notify">Notify me</string>
+    <string name="explore_buddy_later">Not now</string>
+    <string name="explore_buddy_noted">We noted your interest and will let you know when it is ready.</string>
 </resources>

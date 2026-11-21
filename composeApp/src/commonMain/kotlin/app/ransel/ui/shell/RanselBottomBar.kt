@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -21,10 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
@@ -35,7 +30,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import app.ransel.ui.preview.IrisPreview
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.explore_session_pending
 import ransel.composeapp.generated.resources.tab_account
 import ransel.composeapp.generated.resources.tab_explore
 import ransel.composeapp.generated.resources.tab_home
@@ -58,14 +52,14 @@ internal fun MainTab.tourTarget(): app.ransel.ui.tour.TourTarget? = when (this) 
 
 /**
  * Bottom navigation (design: 64 dp, hairline top border, no indicator pill, selected = primary +
- * filled icon). [exploreHasSession] shows the magenta dot on Explore for an unfinished swipe session.
+ * filled icon). No dot on Explore any more: an unfinished swipe session shows on the trip's "Cari inspirasi dengan AI"
+ * entry (PRD v0.8, 21 Nov 2026; [app.ransel.ui.components.SessionPendingDot]).
  */
 @Composable
 fun RanselBottomBar(
     selected: MainTab,
     onSelect: (MainTab) -> Unit,
     modifier: Modifier = Modifier,
-    exploreHasSession: Boolean = false,
 ) {
     Column(
         modifier
@@ -94,26 +88,6 @@ fun RanselBottomBar(
                     icon = {
                         Box(contentAlignment = Alignment.Center) {
                             Symbol(tab.symbol, filled = isSelected, size = 24.dp)
-                            if (tab == MainTab.EXPLORE && exploreHasSession) {
-                                val description = stringResource(Res.string.explore_session_pending)
-                                Box(
-                                    Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = 8.dp, y = (-2).dp)
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .semantics { contentDescription = description },
-                                ) {
-                                    Box(
-                                        Modifier
-                                            .align(Alignment.Center)
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.secondary),
-                                    )
-                                }
-                            }
                         }
                     },
                     label = {
@@ -134,5 +108,5 @@ fun RanselBottomBar(
 @Preview
 @Composable
 private fun RanselBottomBarPreview() = IrisPreview {
-    RanselBottomBar(selected = MainTab.HOME, onSelect = {}, exploreHasSession = true)
+    RanselBottomBar(selected = MainTab.HOME, onSelect = {})
 }

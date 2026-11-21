@@ -41,7 +41,6 @@ fun RanselNavigationRail(
     onSelect: (MainTab) -> Unit,
     onCreateTrip: () -> Unit,
     modifier: Modifier = Modifier,
-    exploreHasSession: Boolean = false,
 ) {
     Row96(modifier) {
         Box(
@@ -86,16 +85,6 @@ fun RanselNavigationRail(
                         tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    if (tab == MainTab.EXPLORE && exploreHasSession) {
-                        Box(
-                            Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 4.dp, end = 12.dp)
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.secondary),
-                        )
-                    }
                 }
                 Text(
                     stringResource(tab.label),

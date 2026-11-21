@@ -201,6 +201,21 @@ class InterviewViewModel(
         }
     }
 
+    private var prefilled = false
+
+    /**
+     * "Bikin trip dari sini" (Explore Inspirasi): the card's region becomes the destination (as text: an activity + region
+     * has no place id) and the interview's interests are preselected in Seleramu, so they are not asked again. Once per
+     * ViewModel; the dates and the duration are left to the user (the card's duration is a suggestion only, PRD v0.8).
+     */
+    fun applyPrefill(prefill: InterviewPrefill) {
+        if (prefilled) return
+        prefilled = true
+        val name = prefill.destination.trim().take(120)
+        if (name.isNotEmpty()) onDestinationPicked(DestinationChoice(name, countryCode = prefill.countryCode?.uppercase()?.takeIf { it.length == 2 }))
+        if (prefill.interests.isNotEmpty()) change { a, _ -> a.copy(taste = a.taste.copy(interests = prefill.interests)) }
+    }
+
     fun setNameTemplate(template: String) = _state.update { if (it.nameTemplate == template) it else it.copy(nameTemplate = template) }
 
     // ── answers ─────────────────────────────────────────────────────────────

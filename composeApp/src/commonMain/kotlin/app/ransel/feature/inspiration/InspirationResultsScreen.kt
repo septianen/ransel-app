@@ -30,6 +30,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -73,6 +74,8 @@ import ransel.composeapp.generated.resources.explore_access_value
 import ransel.composeapp.generated.resources.explore_ask_again
 import ransel.composeapp.generated.resources.explore_ask_again_paid
 import ransel.composeapp.generated.resources.explore_buddy_link
+import ransel.composeapp.generated.resources.explore_buddy_noted
+import ransel.composeapp.generated.resources.credits_error_generic
 import ransel.composeapp.generated.resources.explore_best_season_value
 import ransel.composeapp.generated.resources.explore_edit_hint
 import ransel.composeapp.generated.resources.explore_enough
@@ -101,8 +104,13 @@ fun InspirationResultsScreen(
     onBack: () -> Unit,
     onOpenSavedIdeas: () -> Unit,
     onOpenCredits: () -> Unit,
+    /** "Bikin trip dari sini": the card and the session's interests go to "Buat trip". */
+    onCreateTrip: (InspirationCardDto, Set<app.ransel.shared.model.Interest>) -> Unit = { _, _ -> },
 ) {
     val state by viewModel.state.collectAsState()
+    var buddyOpen by remember { mutableStateOf(false) }
+    val buddyNoted = stringResource(Res.string.explore_buddy_noted)
+    val buddyFailed = stringResource(Res.string.credits_error_generic)
     val snackbarHost = remember { SnackbarHostState() }
     val savedMessage = stringResource(Res.string.explore_saved_snackbar)
     val oldestMessage = stringResource(Res.string.explore_saved_oldest_removed)
@@ -119,6 +127,7 @@ fun InspirationResultsScreen(
                     if (event.removedOldest && result == SnackbarResult.ActionPerformed) viewModel.undoSave(event.newIdeaId)
                     if (!event.removedOldest && result == SnackbarResult.ActionPerformed) onOpenSavedIdeas()
                 }
+                is InspirationResultsEvent.BuddyNoted -> snackbarHost.showSnackbar(if (event.recorded) buddyNoted else buddyFailed)
             }
         }
     }
@@ -135,8 +144,16 @@ fun InspirationResultsScreen(
         onAnswerOther = viewModel::answerOther,
         onCloseQuestion = viewModel::closeAskAgain,
         onSave = viewModel::save,
-        onBuddy = {},
+        onBuddy = { buddyOpen = true },
+        onCreateTrip = { card ->
+            viewModel.makeTripTapped()
+            onCreateTrip(card, viewModel.interestsForTrip())
+        },
+        onCardOpened = viewModel::cardOpened,
     )
+    if (buddyOpen) {
+        BuddySheet(onNotify = { buddyOpen = false; viewModel.notifyBuddy() }, onDismiss = { buddyOpen = false })
+    }
 }
 
 @Composable
@@ -154,6 +171,8 @@ fun InspirationResultsContent(
     onCloseQuestion: () -> Unit = {},
     onSave: (InspirationCardDto) -> Unit = {},
     onBuddy: () -> Unit = {},
+    onCreateTrip: (InspirationCardDto) -> Unit = {},
+    onCardOpened: (InspirationCardDto) -> Unit = {},
 ) {
     var detailCard by remember { mutableStateOf<InspirationCardDto?>(null) }
     when {
@@ -189,12 +208,18 @@ fun InspirationResultsContent(
                             if (state.appendDividerAt == index) AgainDivider()
                             InspirationCard(
                                 item = item,
-                                onOpen = { detailCard = item.card },
+                                onOpen = {
+                                    onCardOpened(item.card)
+                                    detailCard = item.card
+                                },
                                 onSave = { onSave(item.card) },
                             )
                             Spacer(Modifier.height(16.dp))
                         }
-                        if (result.showFindBuddy) OutlinedButton(onClick = onBuddy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.explore_buddy_link)) }
+                        // an honest text link, not a button: the feature does not exist yet (spec Screen 3 "Buddy link")
+                        if (result.showFindBuddy) TextButton(onClick = onBuddy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                            Text(stringResource(Res.string.explore_buddy_link), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                         TextButton(onClick = onAskAgain, enabled = !state.askAgainLoading, modifier = Modifier.fillMaxWidth()) {
                             Text(if (state.askAgainPaidCost == null) stringResource(Res.string.explore_ask_again) else composeStringResource(Res.string.explore_ask_again_paid, state.askAgainPaidCost!!))
                         }
@@ -206,7 +231,7 @@ fun InspirationResultsContent(
         }
     }
     detailCard?.let { card ->
-        CardDetailSheet(card, onDismiss = { detailCard = null }, onCreateTrip = {}, onSave = { onSave(it); detailCard = null })
+        CardDetailSheet(card, onDismiss = { detailCard = null }, onCreateTrip = { onCreateTrip(it); detailCard = null }, onSave = { onSave(it); detailCard = null })
     }
     if (state.askAgainOpen) {
         AskAgainSheet(state, onAnswer, onOtherText, onOpenOther, onAnswerOther, onCloseQuestion)
