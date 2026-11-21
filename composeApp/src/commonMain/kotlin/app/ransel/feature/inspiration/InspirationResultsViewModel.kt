@@ -190,7 +190,11 @@ class InspirationResultsViewModel(
 
     private suspend fun handleFailure(error: ApiFailure, previous: InspirationResultsUiState, finishing: Boolean) {
         when {
-            error.code == ErrorCode.INSUFFICIENT_CREDITS -> events.send(InspirationResultsEvent.OutOfCredits)
+            error.code == ErrorCode.INSUFFICIENT_CREDITS -> {
+                // close the "Tanya lagi" sheet: it would otherwise keep spinning behind the credits screen
+                mutable.value = mutable.value.copy(askAgainOpen = false, askAgainLoading = false, askAgainQuestion = null)
+                events.send(InspirationResultsEvent.OutOfCredits)
+            }
             error.code == ErrorCode.NOT_FOUND -> mutable.value = previous.copy(loading = false, lostSession = true)
             error.code == ErrorCode.AI_UNAVAILABLE -> mutable.value = previous.copy(loading = false, askAgainLoading = false, inlineError = true, askAgainOpen = true)
             error.isConnection -> mutable.value = previous.copy(loading = false, askAgainLoading = false, offline = true)

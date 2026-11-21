@@ -11,6 +11,7 @@ import app.ransel.shared.model.InspirationStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import app.ransel.shared.api.ErrorCode
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
@@ -75,6 +76,16 @@ class InspirationResultsViewModelTest {
         vm.askAgain(); runCurrent()
         assertEquals(0, vm.state.value.askAgainFreeLeft)
         assertEquals(4, vm.state.value.askAgainPaidCost)
+    }
+
+    @Test fun askAgainWithoutCreditsClosesTheSheet() = runTest {
+        val repo = Repo()
+        repo.againResult = ApiResult.Failure(ApiFailure(ErrorCode.INSUFFICIENT_CREDITS, "No credits", 402))
+        val vm = InspirationResultsViewModel("sid", repo); runCurrent()
+        vm.askAgain(); runCurrent()
+        assertFalse(vm.state.value.askAgainOpen)
+        assertFalse(vm.state.value.askAgainLoading)
+        assertEquals(InspirationResultsEvent.OutOfCredits, vm.eventFlow.first())
     }
 
     @Test fun saveSuccessEmitsSavedSnackbarEvent() = runTest {
