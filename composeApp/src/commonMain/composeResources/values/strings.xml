@@ -2230,4 +2230,5 @@
     <string name="saved_ideas_empty_body">Save any idea you like from Ask AI. Saved ideas live in your account, so you can open them on another device.</string>
     <string name="saved_ideas_count_title">%1$d ideas</string>
     <string name="saved_ideas_meta">%1$s</string>
+    <string name="saved_ideas_meta_duration">%1$s · ≤ %2$d days</string>
 </resources>

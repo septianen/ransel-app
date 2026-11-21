@@ -85,10 +85,13 @@ import app.ransel.feature.inspiration.InspirationHomeViewModel
 import app.ransel.feature.inspiration.InspirationInterviewViewModel
 import app.ransel.feature.inspiration.InspirationResultsScreen
 import app.ransel.feature.inspiration.InspirationResultsViewModel
+import app.ransel.feature.inspiration.SavedIdeasScreen
+import app.ransel.feature.inspiration.SavedIdeasViewModel
 import app.ransel.navigation.InspirationHomeRoute
 import app.ransel.navigation.InspirationInterviewRoute
 import app.ransel.navigation.InspirationResultsRoute
 import app.ransel.navigation.InspirationSavedPlaceholderRoute
+import app.ransel.navigation.SavedIdeasRoute
 import app.ransel.feature.onboarding.OnboardingScreen
 import app.ransel.platform.SystemBarsAppearance
 import app.ransel.platform.applyAppLanguage
@@ -648,7 +651,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
                     onVerifyEmail = { navController.navigate(VerifyEmailRoute(manager.user?.email.orEmpty())) },
                     // "Punya trip? Cari untuk trip ini": the trip-first search keeps its picker one tap away
                     onTripSearch = { navController.navigate(ExploreTripPickerRoute) },
-                    onOpenSavedIdeas = { navController.navigate(InspirationSavedPlaceholderRoute) },
+                    onOpenSavedIdeas = { navController.navigate(SavedIdeasRoute) },
                 )
             }
         }
@@ -685,7 +688,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
         InspirationResultsScreen(
             viewModel = koinViewModel(key = "inspiration-results-$sessionId") { org.koin.core.parameter.parametersOf(sessionId) },
             onBack = { if (!navController.popBackStack<ExploreRoute>(inclusive = false)) navController.openTab(MainTab.EXPLORE) },
-            onOpenSavedIdeas = { navController.navigate(InspirationSavedPlaceholderRoute) },
+            onOpenSavedIdeas = { navController.navigate(SavedIdeasRoute) },
             onOpenCredits = { navController.navigate(CreditsRoute()) },
             // "Bikin trip dari sini": Buat trip with the card's region and the session's interests; dates stay open
             onCreateTrip = { card, interests ->
@@ -706,6 +709,18 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             Text(stringResource(Res.string.explore_saved_placeholder))
             Button(onClick = { navController.popBackStack() }) { Text(stringResource(Res.string.action_close)) }
         }
+    }
+    page<SavedIdeasRoute> {
+        val savedSessionManager: SessionManager = koinInject()
+        val savedSession by savedSessionManager.state.collectAsState()
+        SavedIdeasScreen(
+            viewModel = koinViewModel(),
+            signedIn = savedSession is SessionState.SignedIn,
+            onBack = { navController.popBackStack() },
+            onSignIn = { navController.navigate(SignInRoute) },
+            onSignUp = { navController.navigate(SignUpRoute) },
+            onAskAi = { navController.openTab(MainTab.EXPLORE) },
+        )
     }
     page<ExplorePreferencesRoute> { entry ->
         val route = entry.toRoute<ExplorePreferencesRoute>()

@@ -20,7 +20,6 @@ import app.ransel.content.stringResource
 import app.ransel.shared.dto.InspirationQuestionDto
 import app.ransel.shared.model.InspirationChipKey
 import app.ransel.ui.preview.IrisPreview
-import org.jetbrains.compose.resources.stringResource as composeStringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.explore_chip_edit_apply
@@ -36,6 +35,7 @@ import ransel.composeapp.generated.resources.explore_other_option
 import ransel.composeapp.generated.resources.explore_retry
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun ChipEditSheet(
     key: InspirationChipKey,
     value: String,
@@ -130,8 +130,8 @@ fun ChipEditContent(
                 )
             }
             Text(
-                if (freeLeft > 0) composeStringResource(Res.string.explore_chip_edit_free, freeLeft)
-                else composeStringResource(Res.string.explore_chip_edit_paid, extraCost),
+                if (freeLeft > 0) stringResource(Res.string.explore_chip_edit_free, freeLeft)
+                else stringResource(Res.string.explore_chip_edit_paid, extraCost),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -2213,4 +2213,5 @@
     <string name="saved_ideas_empty_body">Simpan inspirasi yang menarik dari hasil Tanya AI. Ide tersimpan ada di akunmu, jadi bisa dibuka di perangkat lain.</string>
     <string name="saved_ideas_count_title">%1$d ide</string>
     <string name="saved_ideas_meta">%1$s</string>
+    <string name="saved_ideas_meta_duration">%1$s · ≤ %2$d hari</string>
 </resources>
