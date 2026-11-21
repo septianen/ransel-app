@@ -2155,4 +2155,16 @@
     <string name="debug_inspiration_home">Buka Jelajah Inspirasi</string>
     <string name="explore_retry">Coba lagi</string>
     <string name="explore_ai_title">Tanya AI</string>
+    <string name="explore_explainer">Tanya AI menanyakan 3–5 hal soal seleramu, lalu memberi 3–5 ide aktivitas dan wilayah. Cocok kalau belum punya tujuan.</string>
+    <string name="explore_add_credits">Isi kredit</string>
+    <string name="explore_verify_email">Verifikasi email</string>
+    <string name="explore_discard_title">Keluar dari Tanya AI?</string>
+    <string name="explore_discard_body">Jawabanmu hilang, kredit belum dipotong.</string>
+    <string name="explore_start_failed_body">Tanya AI belum bisa dimulai. Coba lagi.</string>
+    <string name="explore_results_placeholder">Inspirasi berhasil dibuat. Layar hasil menyusul.</string>
+    <string name="explore_results_back">Kembali</string>
+    <string name="explore_saved_placeholder">Ide tersimpan segera hadir.</string>
+    <string name="explore_home_title">Jelajah</string>
+    <string name="explore_ask_cta_free">Tanya AI · gratis hari ini</string>
+    <string name="saved_ideas_title">Ide tersimpan</string>
 </resources>

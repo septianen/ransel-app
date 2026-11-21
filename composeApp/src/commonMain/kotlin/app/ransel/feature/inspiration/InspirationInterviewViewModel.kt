@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
     val inlineError: Boolean = false,
     val lostSession: Boolean = false,
     val otherText: String = "",
+    val otherOpen: Boolean = false,
+    val hasAnswers: Boolean = false,
 )
 sealed interface InspirationInterviewEvent {
     data object Results : InspirationInterviewEvent
@@ -39,6 +41,7 @@ class InspirationInterviewViewModel(private val sessionId: String, private val r
 
     fun load() = runRequest { repository.get(sessionId) }
     fun setOtherText(value: String) { mutable.value = mutable.value.copy(otherText = value.take(80)) }
+    fun openOther() { mutable.value = mutable.value.copy(otherOpen = true) }
     fun answer(optionId: String) = runRequest { repository.answer(sessionId, InspirationAnswerRequest(optionId = optionId)) }
     fun answerOther() {
         val text = mutable.value.otherText.trim()
@@ -54,7 +57,12 @@ class InspirationInterviewViewModel(private val sessionId: String, private val r
             when (val result = repositoryCall()) {
                 is ApiResult.Success -> {
                     val session = result.value
-                    mutable.value = InspirationInterviewUiState(session, session.question, loading = false)
+                    mutable.value = InspirationInterviewUiState(
+                        session = session,
+                        question = session.question,
+                        loading = false,
+                        hasAnswers = (session.question?.stepsDone ?: 0) > 0,
+                    )
                     when (session.status) {
                         InspirationStatus.READY -> if (!finishing) finish()
                         InspirationStatus.CHARGED -> events.send(InspirationInterviewEvent.Results)

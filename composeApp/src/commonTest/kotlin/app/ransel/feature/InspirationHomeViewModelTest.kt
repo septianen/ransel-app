@@ -68,6 +68,27 @@ class InspirationHomeViewModelTest {
         assertEquals("session-1", viewModel.state.value.sessionId)
     }
 
+    @Test fun dismissingOfflineErrorReturnsToIdle() = runTest {
+        val repo = FakeRepository(ApiResult.Failure(ApiFailure("NETWORK_UNAVAILABLE", "offline")))
+        val viewModel = vm(repo)
+        viewModel.start()
+        assertEquals(InspirationStartState.Offline, viewModel.state.value.startState)
+        viewModel.dismissError()
+        assertEquals(InspirationStartState.Idle, viewModel.state.value.startState)
+    }
+
+    @Test fun consumingSessionAllowsAnotherStart() = runTest {
+        val repo = FakeRepository(ApiResult.Success(session("session-1")))
+        val viewModel = vm(repo)
+        viewModel.start()
+        assertEquals("session-1", viewModel.state.value.sessionId)
+        viewModel.consumeStarted()
+        assertNull(viewModel.state.value.sessionId)
+        repo.result = ApiResult.Success(session("session-2"))
+        viewModel.start()
+        assertEquals("session-2", viewModel.state.value.sessionId)
+    }
+
     @Test fun mapsFiveErrorKinds() = runTest {
         suspend fun mapped(code: String, status: Int? = null, details: Map<String, String>? = null, connection: Boolean = false) = run {
             val repo = FakeRepository(ApiResult.Failure(ApiFailure(code, "error", status, details)))

@@ -2172,4 +2172,16 @@
     <string name="debug_inspiration_home">Open Explore Inspiration</string>
     <string name="explore_retry">Try again</string>
     <string name="explore_ai_title">Ask AI</string>
+    <string name="explore_explainer">Ask AI asks 3–5 questions about what you like, then suggests 3–5 activities and areas. Great when you do not have a destination yet.</string>
+    <string name="explore_add_credits">Add credits</string>
+    <string name="explore_verify_email">Verify email</string>
+    <string name="explore_discard_title">Leave Ask AI?</string>
+    <string name="explore_discard_body">Your answers will be lost; no credits have been charged.</string>
+    <string name="explore_start_failed_body">Ask AI could not start. Try again.</string>
+    <string name="explore_results_placeholder">Your ideas are ready. The results screen is coming soon.</string>
+    <string name="explore_results_back">Back</string>
+    <string name="explore_saved_placeholder">Saved ideas are coming soon.</string>
+    <string name="explore_home_title">Explore</string>
+    <string name="explore_ask_cta_free">Ask AI · free today</string>
+    <string name="saved_ideas_title">Saved ideas</string>
 </resources>

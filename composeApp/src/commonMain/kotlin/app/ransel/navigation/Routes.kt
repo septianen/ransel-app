@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object InspirationHomeRoute
 @Serializable data class InspirationInterviewRoute(val sessionId: String)
 @Serializable data object InspirationResultsPlaceholderRoute
+@Serializable data object InspirationSavedPlaceholderRoute
 /** Explore step 2: the form for one trip; null = a new trip (destination and dates are asked in the form). */
 @Serializable data class ExplorePreferencesRoute(val tripId: String? = null)
 @Serializable data object AccountRoute

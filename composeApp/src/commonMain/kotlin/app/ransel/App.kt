@@ -86,6 +86,7 @@ import app.ransel.feature.inspiration.InspirationInterviewViewModel
 import app.ransel.navigation.InspirationHomeRoute
 import app.ransel.navigation.InspirationInterviewRoute
 import app.ransel.navigation.InspirationResultsPlaceholderRoute
+import app.ransel.navigation.InspirationSavedPlaceholderRoute
 import app.ransel.feature.onboarding.OnboardingScreen
 import app.ransel.platform.SystemBarsAppearance
 import app.ransel.platform.applyAppLanguage
@@ -210,8 +211,13 @@ import app.ransel.feature.explore.SwipeViewModel
 import app.ransel.navigation.PlaceDetailRoute
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.album_default_drive
+import ransel.composeapp.generated.resources.action_close
 import ransel.composeapp.generated.resources.debug_component_gallery
 import ransel.composeapp.generated.resources.debug_inspiration_home
+import ransel.composeapp.generated.resources.explore_results_back
+import ransel.composeapp.generated.resources.explore_results_placeholder
+import ransel.composeapp.generated.resources.explore_saved_placeholder
+import ransel.composeapp.generated.resources.saved_ideas_title
 import ransel.composeapp.generated.resources.debug_seed_sample
 import ransel.composeapp.generated.resources.debug_show_onboarding
 import ransel.composeapp.generated.resources.placeholder_account_title
@@ -641,6 +647,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onOpenCredits = { navController.navigate(CreditsRoute()) },
             onVerifyEmail = { navController.navigate(VerifyEmailRoute(manager.user?.email.orEmpty())) },
             onTripSearch = { navController.navigate(ExploreRoute) },
+            onOpenSavedIdeas = { navController.navigate(InspirationSavedPlaceholderRoute) },
         )
     }
     page<InspirationInterviewRoute> { entry ->
@@ -654,8 +661,15 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
     }
     page<InspirationResultsPlaceholderRoute> {
         Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)) {
-            Text("Inspirasi berhasil dibuat. Layar hasil menyusul.")
-            Button(onClick = { navController.navigate(InspirationHomeRoute) }) { Text("Kembali") }
+            Text(stringResource(Res.string.explore_results_placeholder))
+            Button(onClick = { navController.navigate(InspirationHomeRoute) }) { Text(stringResource(Res.string.explore_results_back)) }
+        }
+    }
+    page<InspirationSavedPlaceholderRoute> {
+        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(Res.string.saved_ideas_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(Res.string.explore_saved_placeholder))
+            Button(onClick = { navController.popBackStack() }) { Text(stringResource(Res.string.action_close)) }
         }
     }
     page<ExplorePreferencesRoute> { entry ->

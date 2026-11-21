@@ -32,6 +32,9 @@ data class InspirationHomeUiState(
     val interests: List<Interest> = emptyList(),
     val limitReached: Boolean = false,
     val cost: Int = 0,
+    val dailyFreeLeft: Int = 0,
+    val dailyFreeLimit: Int = 0,
+    val availableCredits: Int = 0,
     val startState: InspirationStartState = InspirationStartState.Idle,
     val sessionId: String? = null,
     val rateLimitMinutes: Int? = null,
@@ -48,7 +51,14 @@ class InspirationHomeViewModel(
 
     init {
         viewModelScope.launch {
-            credits.state.collect { value -> mutable.value = mutable.value.copy(cost = value?.costs?.inspiration ?: 0) }
+            credits.state.collect { value ->
+                mutable.value = mutable.value.copy(
+                    cost = value?.costs?.inspiration ?: 0,
+                    dailyFreeLeft = value?.dailyFreeLeft ?: 0,
+                    dailyFreeLimit = value?.dailyFreeLimit ?: 0,
+                    availableCredits = value?.available ?: 0,
+                )
+            }
         }
     }
 
@@ -92,5 +102,13 @@ class InspirationHomeViewModel(
                 }
             }
         }
+    }
+
+    fun dismissError() {
+        mutable.value = mutable.value.copy(startState = InspirationStartState.Idle, rateLimitMinutes = null)
+    }
+
+    fun consumeStarted() {
+        mutable.value = mutable.value.copy(sessionId = null, startState = InspirationStartState.Idle)
     }
 }
