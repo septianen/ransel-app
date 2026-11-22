@@ -1,6 +1,7 @@
 package app.ransel.feature.interview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -45,7 +52,6 @@ import app.ransel.shared.domain.steps
 import app.ransel.shared.domain.summaryRows
 import app.ransel.shared.model.PriceLevel
 import app.ransel.ui.components.ConfirmDialog
-import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.dashedBorder
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.symbols.Symbol
@@ -270,14 +276,19 @@ private fun InterviewSummary(state: InterviewUiState, viewModel: InterviewViewMo
     val formatter = rememberDateFormatter()
     val rows = answers.summaryRows()
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        QuestionTitle(stringResource(Res.string.interview_summary_title), stringResource(Res.string.interview_summary_subtitle))
+        QuestionTitle(
+            stringResource(Res.string.interview_summary_title),
+            stringResource(Res.string.interview_summary_subtitle),
+            modifier = Modifier.padding(top = 16.dp),
+        )
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             rows.forEach { (row, filled) ->
                 when (row) {
-                    SummaryRow.NAME -> IrisTextField(
+                    SummaryRow.NAME -> SummaryEditableCard(
                         label = stringResource(Res.string.interview_summary_name),
                         value = state.tripName,
                         onValueChange = viewModel::onNameChange,
+                        trailingEdit = true,
                     )
                     SummaryRow.DESTINATION -> SummaryValueRow(
                         stringResource(Res.string.interview_summary_destination), state.destinationName, filled,
@@ -323,17 +334,84 @@ private fun InterviewSummary(state: InterviewUiState, viewModel: InterviewViewMo
                             )
                         }
                     }
-                    SummaryRow.BUDGET -> IrisTextField(
-                        label = stringResource(Res.string.interview_summary_budget),
-                        value = state.budgetDigits,
-                        onValueChange = viewModel::onBudgetChange,
-                        prefix = state.currency,
-                        placeholder = stringResource(Res.string.interview_summary_budget_hint),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        visualTransformation = ThousandsVisualTransformation,
-                    )
+                    SummaryRow.BUDGET -> {
+                        val budgetLabel = stringResource(Res.string.interview_summary_budget)
+                        val optionalSuffix = budgetLabel.substringAfterLast(" (", "")
+                        SummaryEditableCard(
+                            label = budgetLabel.substringBeforeLast(" (", budgetLabel),
+                            labelSuffix = optionalSuffix.takeIf { it.isNotEmpty() }?.let { "($it" },
+                            value = state.budgetDigits,
+                            onValueChange = viewModel::onBudgetChange,
+                            prefix = state.currency,
+                            placeholder = stringResource(Res.string.interview_summary_budget_hint),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            visualTransformation = ThousandsVisualTransformation,
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+/** Summary-only editable row: field controls match the sibling info cards without changing IrisTextField elsewhere. */
+@Composable
+private fun SummaryEditableCard(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    labelSuffix: String? = null,
+    placeholder: String? = null,
+    prefix: String? = null,
+    trailingEdit: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val interaction = androidx.compose.runtime.remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val focusRequester = androidx.compose.runtime.remember { FocusRequester() }
+    val valueStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+    val borderColor = if (focused) scheme.primary else scheme.outlineVariant
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .clip(IrisShape.lg)
+                .border(BorderStroke(if (focused) 2.dp else 1.dp, borderColor), IrisShape.lg)
+                .clickable(role = Role.Button) { focusRequester.requestFocus() }
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(label, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                    labelSuffix?.let {
+                        Text(" $it", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    prefix?.let { Text(it, style = valueStyle, color = scheme.onSurface) }
+                    Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                        if (value.isEmpty() && placeholder != null) Text(placeholder, style = valueStyle, color = scheme.onSurfaceVariant)
+                        BasicTextField(
+                            value = value,
+                            onValueChange = onValueChange,
+                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                            singleLine = true,
+                            interactionSource = interaction,
+                            keyboardOptions = keyboardOptions,
+                            visualTransformation = visualTransformation,
+                            textStyle = valueStyle.copy(color = scheme.onSurface),
+                            cursorBrush = SolidColor(scheme.primary),
+                        )
+                    }
+                }
+            }
+            if (trailingEdit) Symbol(Symbols.edit, size = 20.dp, tint = scheme.onSurfaceVariant)
         }
     }
 }
@@ -427,14 +505,14 @@ internal fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, onEdi
             androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     stringResource(Res.string.interview_summary_from, origin.name),
-                    Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { onEdit(InterviewStep.ORIGIN) }.padding(end = 6.dp),
+                    Modifier.clickable(role = Role.Button) { onEdit(InterviewStep.ORIGIN) }.padding(end = 6.dp),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = scheme.onSurface,
                 )
                 if (departure != null && !answers.isOverseas()) {
                     Text(
                         "· " + stringResource(departure.labelRes),
-                        Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { onEdit(InterviewStep.DEPARTURE) },
+                        Modifier.clickable(role = Role.Button) { onEdit(InterviewStep.DEPARTURE) },
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = scheme.onSurface,
                     )

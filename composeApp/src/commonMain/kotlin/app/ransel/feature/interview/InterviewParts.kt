@@ -126,8 +126,8 @@ internal fun InterviewHeader(
                 }
             }
         }
-        if (showProgress) Row(Modifier.fillMaxWidth().padding(start = 52.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+        if (showProgress) Row(Modifier.fillMaxWidth().padding(start = 52.dp, end = 12.dp).padding(top = if (done) 4.dp else 0.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, Modifier.weight(1f), style = if (done) MaterialTheme.typography.bodySmall else MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
             if (onSkipAll != null) {
                 TextButton(onClick = onSkipAll, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text(
