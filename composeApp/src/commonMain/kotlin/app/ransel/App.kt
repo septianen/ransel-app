@@ -79,6 +79,19 @@ import app.ransel.platform.requiresAccount
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.account.AccountScreen
+import app.ransel.feature.inspiration.InspirationHomeScreen
+import app.ransel.feature.inspiration.InspirationInterviewScreen
+import app.ransel.feature.inspiration.InspirationHomeViewModel
+import app.ransel.feature.inspiration.InspirationInterviewViewModel
+import app.ransel.feature.inspiration.InspirationResultsScreen
+import app.ransel.feature.inspiration.InspirationResultsViewModel
+import app.ransel.feature.inspiration.SavedIdeasScreen
+import app.ransel.feature.inspiration.SavedIdeasViewModel
+import app.ransel.navigation.InspirationHomeRoute
+import app.ransel.navigation.InspirationInterviewRoute
+import app.ransel.navigation.InspirationResultsRoute
+import app.ransel.navigation.InspirationSavedPlaceholderRoute
+import app.ransel.navigation.SavedIdeasRoute
 import app.ransel.feature.onboarding.OnboardingScreen
 import app.ransel.platform.SystemBarsAppearance
 import app.ransel.platform.applyAppLanguage
@@ -138,6 +151,7 @@ import app.ransel.navigation.CreateTripRoute
 import app.ransel.navigation.InterviewRoute
 import app.ransel.navigation.InviteFriendsRoute
 import app.ransel.feature.interview.InterviewScreen
+import app.ransel.feature.interview.InterviewPrefill
 import app.ransel.feature.invite.InviteFriendsScreen
 import app.ransel.navigation.EditTripRoute
 import app.ransel.navigation.TripAnswerRoute
@@ -146,6 +160,7 @@ import app.ransel.feature.tripform.travel.TripTasteScreen
 import app.ransel.shared.domain.TravelRow
 import app.ransel.navigation.ExplorePreferencesRoute
 import app.ransel.navigation.ExploreRoute
+import app.ransel.navigation.ExploreTripPickerRoute
 import app.ransel.navigation.HomeRoute
 import app.ransel.navigation.JoinTripRoute
 import app.ransel.navigation.SwipeRoute
@@ -163,6 +178,7 @@ import app.ransel.shared.model.Vote
 import kotlin.time.Clock
 import app.ransel.feature.explore.ExplorePreferencesScreen
 import app.ransel.feature.explore.ExploreTripPickerScreen
+import app.ransel.feature.explore.ExploreAccountGate
 import app.ransel.feature.explore.SwipeScreen
 import app.ransel.data.explore.ExploreSessionStore
 import app.ransel.feature.polls.CreatePollScreen
@@ -203,7 +219,12 @@ import app.ransel.feature.explore.SwipeViewModel
 import app.ransel.navigation.PlaceDetailRoute
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.album_default_drive
+import ransel.composeapp.generated.resources.action_close
 import ransel.composeapp.generated.resources.debug_component_gallery
+import ransel.composeapp.generated.resources.explore_results_back
+import ransel.composeapp.generated.resources.explore_results_placeholder
+import ransel.composeapp.generated.resources.explore_saved_placeholder
+import ransel.composeapp.generated.resources.saved_ideas_title
 import ransel.composeapp.generated.resources.debug_seed_sample
 import ransel.composeapp.generated.resources.debug_show_onboarding
 import ransel.composeapp.generated.resources.placeholder_account_title
@@ -615,7 +636,27 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onCreateTrip = { navController.navigate(InterviewRoute()) },
         )
     }
+    // The Explore tab opens Explore Inspirasi (owner, 21 Nov 2026); guests and unverified accounts see Explore's gates.
     tabPage<ExploreRoute>(MainTab.EXPLORE, navController) {
+        val manager: SessionManager = koinInject()
+        ExploreAccountGate(
+            onSignIn = { navController.navigate(SignInRoute) },
+            onSignUp = { navController.navigate(SignUpRoute) },
+        ) {
+            Box(Modifier.statusBarsPadding()) {
+                InspirationHomeScreen(
+                    viewModel = koinViewModel(),
+                    onStartInterview = { id -> navController.navigate(InspirationInterviewRoute(id)) },
+                    onOpenCredits = { navController.navigate(CreditsRoute()) },
+                    onVerifyEmail = { navController.navigate(VerifyEmailRoute(manager.user?.email.orEmpty())) },
+                    // "Punya trip? Cari untuk trip ini": the trip-first search keeps its picker one tap away
+                    onTripSearch = { navController.navigate(ExploreTripPickerRoute) },
+                    onOpenSavedIdeas = { navController.navigate(SavedIdeasRoute) },
+                )
+            }
+        }
+    }
+    page<ExploreTripPickerRoute> {
         ExploreTripPickerScreen(
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
@@ -623,6 +664,62 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             // "Trip baru": the interview (Layar 1 to the summary "Buat trip dan cari"), not a form of its own
             onNewTrip = { navController.navigate(InterviewRoute(InterviewDoor.EXPLORE.name)) },
             onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
+            onBack = { navController.popBackStack() },
+        )
+    }
+    // Kept for links to the old debug entry: Explore Inspirasi lives in the Explore tab now.
+    page<InspirationHomeRoute> {
+        LaunchedEffect(Unit) {
+            navController.popBackStack()
+            navController.openTab(MainTab.EXPLORE)
+        }
+    }
+    page<InspirationInterviewRoute> { entry ->
+        val sessionId = entry.toRoute<InspirationInterviewRoute>().sessionId
+        InspirationInterviewScreen(
+            viewModel = koinViewModel(key = "inspiration-$sessionId") { org.koin.core.parameter.parametersOf(sessionId) },
+            onResults = { navController.navigate(InspirationResultsRoute(sessionId)) },
+            onOutOfCredits = { navController.navigate(CreditsRoute()) },
+            onBack = { navController.popBackStack() },
+        )
+    }
+    page<InspirationResultsRoute> { entry ->
+        val sessionId = entry.toRoute<InspirationResultsRoute>().sessionId
+        InspirationResultsScreen(
+            viewModel = koinViewModel(key = "inspiration-results-$sessionId") { org.koin.core.parameter.parametersOf(sessionId) },
+            onBack = { if (!navController.popBackStack<ExploreRoute>(inclusive = false)) navController.openTab(MainTab.EXPLORE) },
+            onOpenSavedIdeas = { navController.navigate(SavedIdeasRoute) },
+            onOpenCredits = { navController.navigate(CreditsRoute()) },
+            // "Bikin trip dari sini": Buat trip with the card's region and the session's interests; dates stay open
+            onCreateTrip = { card, interests ->
+                navController.navigate(
+                    InterviewRoute(
+                        door = InterviewDoor.MY_TRIPS.name,
+                        destination = card.region,
+                        countryCode = card.countryCode,
+                        interests = interests.joinToString(",") { it.name }.ifEmpty { null },
+                    ),
+                )
+            },
+        )
+    }
+    page<InspirationSavedPlaceholderRoute> {
+        Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(Res.string.saved_ideas_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(Res.string.explore_saved_placeholder))
+            Button(onClick = { navController.popBackStack() }) { Text(stringResource(Res.string.action_close)) }
+        }
+    }
+    page<SavedIdeasRoute> {
+        val savedSessionManager: SessionManager = koinInject()
+        val savedSession by savedSessionManager.state.collectAsState()
+        SavedIdeasScreen(
+            viewModel = koinViewModel(),
+            signedIn = savedSession is SessionState.SignedIn,
+            onBack = { navController.popBackStack() },
+            onSignIn = { navController.navigate(SignInRoute) },
+            onSignUp = { navController.navigate(SignUpRoute) },
+            onAskAi = { navController.openTab(MainTab.EXPLORE) },
         )
     }
     page<ExplorePreferencesRoute> { entry ->
@@ -635,14 +732,10 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
         } else ExplorePreferencesScreen(
             tripId = route.tripId,
             onBack = { navController.popBackStack() },
-            // "Ganti": back to the picker, whichever way the form was opened (from Home or a trip: switch to the Explore tab).
+            // "Ganti": back to the trip picker, whichever way the form was opened (from Home, a trip or the picker).
             onChangeTrip = {
-                if (!navController.popBackStack<ExploreRoute>(inclusive = false)) {
-                    navController.navigate(ExploreRoute) {
-                        popUpTo(navController.graph.findStartDestination().id)
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                if (!navController.popBackStack<ExploreTripPickerRoute>(inclusive = false)) {
+                    navController.navigate(ExploreTripPickerRoute) { popUpTo<ExplorePreferencesRoute> { inclusive = true } }
                 }
             },
             // The form is done once the cards come: back from the swipe screen leads to where Explore was opened
@@ -995,6 +1088,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
         val session: SessionManager = koinInject()
         InterviewScreen(
             door = InterviewDoor.valueOf(route.door),
+            prefill = InterviewPrefill.fromRoute(route.destination, route.countryCode, route.interests),
             onLeave = { navController.popBackStack() },
             // "Buat trip dan cari": the swipe screen takes over; Back from it leads to where Jelajah was opened
             onCreatedAndSearch = { id -> navController.navigate(SwipeRoute(id, created = true)) { popUpTo<InterviewRoute> { inclusive = true } } },
@@ -1172,14 +1266,13 @@ private inline fun <reified T : Any> NavGraphBuilder.tabPage(
 ) {
     composable<T> {
         val expanded = rememberIsExpanded()
-        val exploreSessions by koinInject<ExploreSessionStore>().sessions.collectAsState()
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             // The tab applies its own status-bar inset; the bar takes the navigation-bar inset.
             contentWindowInsets = WindowInsets(0),
             bottomBar = {
                 if (!expanded) {
-                    RanselBottomBar(selected = tab, onSelect = navController::openTab, exploreHasSession = exploreSessions.values.any { !it.finished })
+                    RanselBottomBar(selected = tab, onSelect = navController::openTab)
                 }
             },
         ) { padding ->

@@ -71,6 +71,7 @@ import app.ransel.server.routes.packingTemplateRoutes
 import app.ransel.server.routes.placeDetailRoutes
 import app.ransel.server.routes.placePhotoRoutes
 import app.ransel.server.routes.recommendationRoutes
+import app.ransel.server.routes.inspirationRoutes
 import app.ransel.server.routes.votingRoutes
 import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
@@ -196,6 +197,8 @@ fun Application.module(
     val credits = CreditService(settings)
     val rounds = RoundService(config, photoSigner)
     val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits, rounds, searchLog)
+    // Explore Inspirasi (PRD v0.8): the AI interview of the Explore tab
+    val inspiration = app.ransel.server.ai.InspirationService(aiServices, credits, photoSigner, aiBudget::check)
     // Expense rates: the ECB 90-day history, once a day (tests have no network: they insert rows).
     val fxDaily = FxRateService(fxHttp?.let { http -> suspend { http.get(FxRateService.HISTORY_URL).body<String>() } })
     if (ecb != null) {
@@ -226,6 +229,7 @@ fun Application.module(
             runCatching { Notify.service?.purge() }
             runCatching { linkPreviews.purge() }
             runCatching { Monitoring.purge() }
+            runCatching { inspiration.purge() }
             recommendations.metrics.logSummary()
         }
     }
@@ -335,6 +339,7 @@ fun Application.module(
                 creditRoutes(credits)
                 notificationRoutes(notifications)
                 exploreRoutes(suggestions)
+                inspirationRoutes(inspiration)
                 popularPlaceRoute(placeSearch)
                 fxRoutes(fxDaily)
                 placeDetailRoutes(placeDetails)

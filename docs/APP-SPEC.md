@@ -77,6 +77,14 @@ Phase 5 design details are in the **AI recommendations** section.
 - Done when: an admin can find a user, adjust their credits, and the change shows in the user's credit history and the audit log.
 - Spec: `docs/specs/admin-spec.md`; design: Claude Design canvas "Karung".
 
+### Explore Inspirasi (after beta)
+
+- Features: the Explore tab opens an AI interview for users without a destination; the AI suggests an activity type + region (not shops or operators), shown as photo cards; ideas are saved per account in "Ide tersimpan"; "Bikin trip dari sini" opens the existing Buat trip flow. Paid with credits, one charge per successful session.
+- Platforms: **Android first.** iOS and Web follow after the owner has tested Android (same API, no separate backend). The repo has no `iosApp/` yet.
+- Learning: a server-side interview session (state in Postgres), idempotent credit charging per session, structured LLM output with fallback questions, usage limits and AI budget checks, log retention (90 days).
+- Done when: the acceptance list of PRD v0.8 passes on Android (`ransel/plan/prd-explore-inspirasi-2026-11-21.md`).
+- Spec: PRD "Explore Inspirasi" in `docs/PRD.md`; technical plan in `ransel/tech/`; design: artifact RANSEL — IRIS, page "Jelajah · Inspirasi".
+
 ## Data model
 
 Every table uses a client-generated UUID plus `created_at`, `updated_at`, and `deleted_at` (soft delete). These three columns make the Phase 3 offline-first sync possible. The SQL is in `db/migration` as V1–V4 (one file per phase); each table below exists in those files as written.

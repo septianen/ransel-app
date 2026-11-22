@@ -9,6 +9,8 @@ class ApiException(
     val code: String,
     message: String,
     val details: Map<String, String>? = null,
+    /** 429: sent as the `Retry-After` header (seconds). */
+    val retryAfterSeconds: Long? = null,
 ) : RuntimeException(message)
 
 fun tripNotFound() = ApiException(HttpStatusCode.NotFound, ErrorCode.TRIP_NOT_FOUND, "Trip not found")

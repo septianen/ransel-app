@@ -360,6 +360,7 @@ private fun entryTitle(entry: CreditLedgerEntryDto): String {
                 CreditAction.NEXT_BATCH -> Res.string.credits_action_next_batch
                 CreditAction.PLACE_DETAIL -> Res.string.credits_action_place_detail
                 CreditAction.RECEIPT -> Res.string.credits_action_receipt
+                CreditAction.INSPIRATION -> Res.string.credits_action_inspiration
                 CreditAction.SEARCH, null -> Res.string.credits_action_search
             }
         },

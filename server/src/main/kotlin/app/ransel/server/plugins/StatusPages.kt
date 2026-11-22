@@ -57,6 +57,7 @@ private fun causeChain(e: Throwable): String =
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<ApiException> { call, e ->
+            e.retryAfterSeconds?.let { call.response.headers.append(io.ktor.http.HttpHeaders.RetryAfter, it.toString()) }
             call.respondError(e.status, ApiError(e.code, e.message ?: e.code, e.details))
         }
         // Malformed JSON, wrong field types, unknown enum constants, bad UUIDs in the body.

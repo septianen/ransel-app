@@ -145,6 +145,11 @@ class AccountDeletionService(private val hasher: PasswordHasher) {
         PackingTemplates.deleteWhere { PackingTemplates.ownerId eq userId }
         RecommendationFeedback.deleteWhere { RecommendationFeedback.userId eq userId }
         AiSearchLog.deleteWhere { AiSearchLog.userId eq userId }
+        // Explore Inspirasi: sessions with their answers and log, saved ideas, "Kabari saya"
+        app.ransel.server.db.InspirationSessionLog.deleteWhere { app.ransel.server.db.InspirationSessionLog.userId eq userId }
+        app.ransel.server.db.InspirationSessions.deleteWhere { app.ransel.server.db.InspirationSessions.userId eq userId }
+        app.ransel.server.db.SavedIdeas.deleteWhere { app.ransel.server.db.SavedIdeas.userId eq userId }
+        app.ransel.server.db.BuddyInterest.deleteWhere { app.ransel.server.db.BuddyInterest.userId eq userId }
         UserActiveDays.deleteWhere { UserActiveDays.userId eq userId }
         ErrorCountUsers.deleteWhere { ErrorCountUsers.userId eq userId }
     }

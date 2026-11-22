@@ -6,6 +6,13 @@ import kotlinx.serialization.Serializable
 @Serializable data object HomeRoute
 @Serializable data object TripListRoute
 @Serializable data object ExploreRoute
+/** The trip-first search's trip picker; the Explore tab itself opens Explore Inspirasi (21 Nov 2026). */
+@Serializable data object ExploreTripPickerRoute
+@Serializable data object InspirationHomeRoute
+@Serializable data class InspirationInterviewRoute(val sessionId: String)
+@Serializable data class InspirationResultsRoute(val sessionId: String)
+@Serializable data object InspirationSavedPlaceholderRoute
+@Serializable data object SavedIdeasRoute
 /** Explore step 2: the form for one trip; null = a new trip (destination and dates are asked in the form). */
 @Serializable data class ExplorePreferencesRoute(val tripId: String? = null)
 @Serializable data object AccountRoute
@@ -24,7 +31,16 @@ import kotlinx.serialization.Serializable
 @Serializable data class TripRoute(val tripId: String, val tab: String = "OVERVIEW")
 @Serializable data object CreateTripRoute
 /** "Buat trip" as an interview (spec 16 Nov 2026). [door] is an `InterviewDoor` name: where the user came from. */
-@Serializable data class InterviewRoute(val door: String = "MY_TRIPS")
+/**
+ * "Buat trip" as an interview. [destination], [countryCode] and [interests] (comma-separated `Interest` names) prefill it
+ * from an Explore Inspirasi card ("Bikin trip dari sini"); the dates stay open ("Tanggal belum pasti" is allowed).
+ */
+@Serializable data class InterviewRoute(
+    val door: String = "MY_TRIPS",
+    val destination: String? = null,
+    val countryCode: String? = null,
+    val interests: String? = null,
+)
 /** Design AjakTeman: right after "Buat trip" (signed in), share the invite link or add friends by name. */
 @Serializable data class InviteFriendsRoute(val tripId: String)
 /** [share] = just created: the share sheet opens first ("Polling sudah dibuat"). */

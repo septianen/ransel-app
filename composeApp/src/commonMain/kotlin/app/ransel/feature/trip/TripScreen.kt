@@ -106,6 +106,9 @@ fun TripScreen(
     // null until the repository answers; its trip is null when the trip is gone (deleted, or the user left it)
     val answer by remember(tripId) { trips.observeTrip(tripId).map { TripAnswer(it) } }.collectAsState(initial = null)
     val trip = answer?.trip
+    // An unfinished swipe session of this trip: its dot sits on "Cari inspirasi dengan AI" (PRD v0.8, not the tab icon)
+    val exploreSessions by koinInject<app.ransel.data.explore.ExploreSessionStore>().sessions.collectAsState()
+    val explorePending = exploreSessions[tripId]?.let { !it.finished } == true
     var tab by rememberSaveable { mutableStateOf(initialTab) }
     // New-user tour: the first trip ever opened (tabs, then +), and a tip the first time each tab opens
     val tour: app.ransel.ui.tour.TourController = koinInject()
@@ -228,6 +231,7 @@ fun TripScreen(
                             current, onAddActivity, onOpenActivity,
                             onFillLocation = onFillLocation,
                             onExplore = if (signedIn) onExplore else null,
+                            explorePending = explorePending,
                             // The place text lives on the server: guests have no account to ask it with.
                             onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
                             onOpenPoll = if (signedIn) onOpenPoll else null,

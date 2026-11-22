@@ -84,6 +84,12 @@ data class AppConfig(
     val creditCostPlaceDetail: Int = 0,
     /** One receipt photo read by Gemini: about Rp50 of tokens (Rp130 on the fallback model) against Rp550–667 per credit. */
     val creditCostReceipt: Int = 1,
+    /** One Explore Inspirasi session: 3, the same as a new search (owner, 21 Nov 2026, after the spike). */
+    val creditCostInspiration: Int = 3,
+    /** Explore Inspirasi: new sessions per user per hour (PRD v0.8 decision 16); above it 429 RATE_LIMITED. */
+    val inspirationSessionsPerHour: Int = 10,
+    /** "Perbarui" on a saved idea: once per card per this many hours. */
+    val inspirationRefreshHours: Int = 24,
     /** Top-up packs shown by `GET /credits/packages`. */
     val creditPackages: List<CreditPack> = DEFAULT_CREDIT_PACKS,
     /** `purchasable` of `GET /credits/packages`: packs can be ordered (by email for now, the owner adds the credits in Karung). */
@@ -294,6 +300,9 @@ data class AppConfig(
                 creditCostNextBatch = env["CREDIT_COST_NEXT_BATCH"]?.toIntOrNull()?.coerceAtLeast(0) ?: 1,
                 creditCostPlaceDetail = env["CREDIT_COST_PLACE_DETAIL"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0,
                 creditCostReceipt = env["CREDIT_COST_RECEIPT"]?.toIntOrNull()?.coerceAtLeast(0) ?: 1,
+                creditCostInspiration = env["CREDIT_COST_INSPIRATION"]?.toIntOrNull()?.coerceAtLeast(0) ?: 3,
+                inspirationSessionsPerHour = env["INSPIRATION_SESSIONS_PER_HOUR"]?.toIntOrNull()?.coerceIn(1, 1000) ?: 10,
+                inspirationRefreshHours = env["INSPIRATION_REFRESH_HOURS"]?.toIntOrNull()?.coerceIn(1, 24 * 30) ?: 24,
                 creditPackages = parseCreditPacks(env["CREDIT_PACKAGES"]).ifEmpty { DEFAULT_CREDIT_PACKS },
                 creditPurchaseEnabled = env["CREDIT_PURCHASE_ENABLED"].toBoolean(),
                 androidUpdate = androidUpdate(env),

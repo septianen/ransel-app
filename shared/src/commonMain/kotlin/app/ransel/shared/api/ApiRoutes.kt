@@ -139,6 +139,19 @@ object ApiRoutes {
 
     // Phase 5 ─ Explore AI
     const val EXPLORE_SUGGESTIONS = "/explore/suggestions"         // GET ?tripId=[&destination=] | ?destination=[&month=YYYY-MM][&budgetMinor=&currency=&days=] (budget of a trip not saved yet: one person, answers suggestedPriceLevel; no month = the neutral month of a trip without dates, so a new Explore trip may have no dates) → ExploreSuggestionsResponse
+    // Explore Inspirasi (PRD v0.8): all bearer + verified email. Session and saved-idea ids are UUIDs made by the app.
+    const val INSPIRATION_SESSIONS = "/explore/inspiration/sessions" // POST StartInspirationRequest → 201 InspirationSessionDto (first question); 402 INSUFFICIENT_CREDITS (checked before any AI work), 429 RATE_LIMITED (max 10 new sessions per user per hour, Retry-After), 503 AI_PAUSED
+    fun inspirationSession(id: String) = "/explore/inspiration/sessions/$id"                   // GET → InspirationSessionDto (resume within 24 h; 404 NOT_FOUND after that or for another user's session)
+    fun inspirationAnswer(id: String) = "/explore/inspiration/sessions/$id/answers"           // POST InspirationAnswerRequest → InspirationSessionDto (next question, or READY when the slots are done); a failed AI step answers the fallback question and costs nothing
+    fun inspirationFinish(id: String) = "/explore/inspiration/sessions/$id/finish"           // POST → InspirationSessionDto (CHARGED with cards); "Sudah cukup" when no mandatory question is left, else 422 `session` = MANDATORY_PENDING; idempotent per session: a repeat never charges twice; 402 keeps the session READY
+    fun inspirationAskAgain(id: String) = "/explore/inspiration/sessions/$id/ask-again"      // POST → InspirationSessionDto (one more question; its answer appends cards); 1 free per session, then the next-batch price
+    fun inspirationProfile(id: String) = "/explore/inspiration/sessions/$id/profile"         // PATCH InspirationEditChipRequest → InspirationSessionDto (new cards, or a follow-up question when a mandatory rule switches on); 3 free per session, then the next-batch price
+    const val INSPIRATION_SAVED = "/explore/inspiration/saved"      // GET → SavedIdeasResponse (per account, newest first), POST SaveIdeaRequest → 201 SaveIdeaResponse (the 31st removes the oldest and names it for the undo snackbar)
+    fun inspirationSavedIdea(id: String) = "/explore/inspiration/saved/$id"                  // DELETE → 204; the idea leaves the list and can be restored for 24 h
+    fun inspirationSavedRestore(id: String) = "/explore/inspiration/saved/$id/restore"       // POST → 204: "Urungkan" of "Dihapus dari Ide tersimpan" brings a removed idea back within 24 h; 404 after that, 409 CONFLICT when the list is full (30) or the same card was saved again
+    fun inspirationSavedUndo(id: String) = "/explore/inspiration/saved/$id/undo"             // POST → 204: removes this save and restores the idea it pushed out (`SaveIdeaResponse.removedOldestId`)
+    fun inspirationSavedRefresh(id: String) = "/explore/inspiration/saved/$id/refresh"       // POST → SavedIdeaDto, free, once per card per 24 h (429 RATE_LIMITED with Retry-After after that)
+    const val INSPIRATION_BUDDY = "/explore/inspiration/buddy"       // POST BuddyInterestRequest → 204 ("Kabari saya": interest + consent time, per user)
     const val RECOMMENDATIONS = "/recommendations"                 // POST RecommendationRequest → RecommendationResponse
     fun recommendationSearch(searchId: String) =
         "/recommendations/searches/$searchId"                      // DELETE = cancel the search with this RecommendationRequest.searchId → CancelSearchResponse

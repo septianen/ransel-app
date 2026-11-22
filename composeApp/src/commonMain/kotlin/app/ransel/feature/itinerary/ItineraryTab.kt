@@ -214,6 +214,8 @@ fun ItineraryTab(
     onOpenActivity: (itemId: String) -> Unit,
     modifier: Modifier = Modifier,
     onExplore: (() -> Unit)? = null,
+    /** This trip has an unfinished swipe session: the "Cari inspirasi dengan AI" entry shows its dot (PRD v0.8). */
+    explorePending: Boolean = false,
     /** Opens the saved detail of an AI place (design `ItineraryLihatDetail`); null hides the info buttons. */
     onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
     /** Opens a poll (the DATE poll card of a trip without dates); null hides the card. */
@@ -282,6 +284,7 @@ fun ItineraryTab(
                 ownVehicle = app.ransel.shared.domain.isOwnVehicle(trip.departureMode),
                 destination = trip.destination,
                 onExplore = if (canEdit) onExplore else null,
+                explorePending = explorePending,
                 viewModel = viewModel,
                 onOpenPoll = onOpenPoll,
                 onFillLocation = onFillLocation,
@@ -323,6 +326,7 @@ private fun ItineraryContent(
     ownVehicle: Boolean,
     destination: String,
     onExplore: (() -> Unit)?,
+    explorePending: Boolean,
     viewModel: ItineraryViewModel,
     onOpenPoll: ((String) -> Unit)? = null,
     onFillLocation: ((String) -> Unit)? = null,
@@ -598,6 +602,7 @@ private fun ItineraryContent(
                         onEdit = onOpenActivity,
                         canEdit = canEdit,
                         onExplore = onExplore,
+                        explorePending = explorePending,
                         emptyTitle = stringResource(Res.string.itinerary_empty_title, state.selectedIndex + 1),
                         legs = legs,
                         onOpenLeg = { from, to -> openLeg = "$from|$to" },
@@ -813,6 +818,7 @@ private fun DaySection(
     onEdit: (String) -> Unit,
     canEdit: Boolean,
     onExplore: (() -> Unit)?,
+    explorePending: Boolean,
     emptyTitle: String,
     legs: List<LegDisplay>,
     onOpenLeg: (fromId: String, toId: String) -> Unit,
@@ -870,7 +876,7 @@ private fun DaySection(
             if (onOpenRoute != null) RouteTodayChip(onOpenRoute)
         }
         if (items.isEmpty()) {
-            EmptyDay(title = emptyTitle, onExplore = onExplore)
+            EmptyDay(title = emptyTitle, onExplore = onExplore, explorePending = explorePending)
             return@Column
         }
         items.forEachIndexed { index, item ->
@@ -1137,7 +1143,7 @@ private fun TimelineRow(
 }
 
 @Composable
-private fun EmptyDay(title: String, onExplore: (() -> Unit)?) {
+private fun EmptyDay(title: String, onExplore: (() -> Unit)?, explorePending: Boolean = false) {
     Column(
         Modifier.fillMaxWidth().padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1162,6 +1168,7 @@ private fun EmptyDay(title: String, onExplore: (() -> Unit)?) {
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(start = 8.dp),
                 )
+                if (explorePending) app.ransel.ui.components.SessionPendingDot(Modifier.padding(start = 6.dp))
             }
         }
     }

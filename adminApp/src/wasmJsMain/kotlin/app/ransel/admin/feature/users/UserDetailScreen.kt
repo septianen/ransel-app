@@ -102,6 +102,7 @@ import app.ransel.admin.generated.resources.done_password_reset
 import app.ransel.admin.generated.resources.done_sign_out_all
 import app.ransel.admin.generated.resources.ledger_action_next_batch
 import app.ransel.admin.generated.resources.ledger_action_place_detail
+import app.ransel.admin.generated.resources.ledger_action_inspiration
 import app.ransel.admin.generated.resources.ledger_action_receipt
 import app.ransel.admin.generated.resources.ledger_action_search
 import app.ransel.admin.generated.resources.ledger_adjust
@@ -540,6 +541,7 @@ private fun ledgerNote(entry: CreditLedgerEntryDto): String = when (entry.kind) 
                 CreditAction.NEXT_BATCH -> Res.string.ledger_action_next_batch
                 CreditAction.PLACE_DETAIL -> Res.string.ledger_action_place_detail
                 CreditAction.RECEIPT -> Res.string.ledger_action_receipt
+                CreditAction.INSPIRATION -> Res.string.ledger_action_inspiration
                 CreditAction.SEARCH, null -> Res.string.ledger_action_search
             },
         )

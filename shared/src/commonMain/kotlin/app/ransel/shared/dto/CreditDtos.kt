@@ -36,6 +36,8 @@ data class CreditCostsDto(
     val placeDetail: Int,
     /** Reading one receipt photo (POST /receipts/parse). Not charged when the receipt cannot be read. */
     val receipt: Int = 0,
+    /** One Explore Inspirasi session (POST /explore/inspiration/sessions/{id}/finish). Charged once, only when the cards are ready. */
+    val inspiration: Int = 0,
 )
 
 /** GET /credits/ledger, newest first. [delta] is negative for a spend, and for an ADJUSTMENT that took credits away ("Penyesuaian admin"). */

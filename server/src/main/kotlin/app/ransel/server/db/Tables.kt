@@ -849,3 +849,72 @@ object DestinationInterests : Table("destination_interests") {
     val curatedAt = timestamp("curated_at")
     override val primaryKey = PrimaryKey(destination, month, language)
 }
+
+// ── Explore Inspirasi (V11) ─────────────────────────────────────────────────
+
+object InspirationSessions : Table("inspiration_sessions") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val status = enumerationByName<app.ransel.shared.model.InspirationStatus>("status", 10)
+    val language = text("language")
+    val state = jsonb<app.ransel.server.ai.InspirationState>("state", Json)
+    val result = jsonb<app.ransel.server.ai.StoredInspirationResult>("result", Json).nullable()
+    val askAgainUsed = integer("ask_again_used")
+    val chipEditsUsed = integer("chip_edits_used")
+    val chargedAt = timestamp("charged_at").nullable()
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val expiresAt = timestamp("expires_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object InspirationSessionLog : Table("inspiration_session_log") {
+    val id = javaUUID("id")
+    val sessionId = javaUUID("session_id")
+    val userId = javaUUID("user_id")
+    val step = integer("step")
+    val kind = text("kind")
+    val slot = text("slot").nullable()
+    val questionSource = text("source").nullable()
+    val outcome = text("outcome")
+    val latencyMs = integer("latency_ms")
+    val question = text("question").nullable()
+    val choice = text("choice").nullable()
+    val creditsCharged = integer("credits_charged")
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object InspirationRules : Table("inspiration_rules") {
+    val id = integer("id")
+    val trigger = enumerationByName<app.ransel.shared.model.InspirationRuleTrigger>("trigger", 20)
+    val requirement = enumerationByName<app.ransel.shared.model.InspirationRequirement>("requirement", 20)
+    val active = bool("active")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object SavedIdeas : Table("saved_ideas") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val sessionId = javaUUID("session_id")
+    val cardId = text("card_id")
+    val card = jsonb<app.ransel.server.ai.StoredInspirationCard>("card", Json)
+    val profile = jsonb<List<app.ransel.shared.dto.InspirationChipDto>>("profile", Json)
+    val language = text("language")
+    val savedAt = timestamp("saved_at")
+    val refreshedAt = timestamp("refreshed_at")
+    val refreshRequestedAt = timestamp("refresh_requested_at").nullable()
+    val removedAt = timestamp("removed_at").nullable()
+    val removedBy = javaUUID("removed_by").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object BuddyInterest : Table("buddy_interest") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val sessionId = javaUUID("session_id").nullable()
+    val interest = enumerationByName<app.ransel.shared.model.Interest>("interest", 20).nullable()
+    val consentAt = timestamp("consent_at")
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
+}

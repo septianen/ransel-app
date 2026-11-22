@@ -152,6 +152,18 @@ private class MeteredLlm(private val inner: LlmClient, private val meter: UsageM
         meter.record(ProviderCall.LLM)
         return inner.readReceipt(image, mimeType)
     }
+
+    override suspend fun inspirationQuestion(input: InspirationQuestionInput): LlmInspirationQuestion {
+        budget()
+        meter.record(ProviderCall.LLM)
+        return inner.inspirationQuestion(input)
+    }
+
+    override suspend fun inspirationCards(input: InspirationCardsInput): LlmInspirationCards {
+        budget()
+        meter.record(ProviderCall.LLM)
+        return inner.inspirationCards(input)
+    }
 }
 
 private class MeteredPlaces(private val inner: PlacesClient, private val meter: UsageMeter) : PlacesClient {
