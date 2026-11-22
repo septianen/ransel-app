@@ -152,6 +152,24 @@ class TripTravelEditTest {
     }
 
     @Test
+    fun editTripRefreshesTasteSavedInTheSeparateTasteScreen() = runTest {
+        createSubangToBandung()
+        val editTrip = section()
+        until { editTrip.state.value.trip }
+        assertNull(editTrip.state.value.taste)
+
+        val tasteScreen = section()
+        tasteScreen.openTasteSheet()
+        tasteScreen.draftToggleInterest(Interest.FOOD)
+        tasteScreen.saveTasteSheet()
+        until { explore.taste("t1") }
+
+        assertNull(editTrip.state.value.taste, "the edit screen keeps its own ViewModel while the taste screen is open")
+        editTrip.refreshTaste()
+        assertEquals(setOf(Interest.FOOD), editTrip.state.value.taste?.interests)
+    }
+
+    @Test
     fun theSheetNeedsAnInterestToBeSaved() = runTest {
         createSubangToBandung()
         val vm = section()

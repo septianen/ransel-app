@@ -93,6 +93,9 @@ class TripTravelViewModel(
 
     fun closeTasteSheet() = _state.update { it.copy(draft = null) }
 
+    /** The taste editor is a separate navigation entry; re-read its local save when Edit trip resumes. */
+    fun refreshTaste() = _state.update { it.copy(taste = explore.taste(tripId)?.toTaste()) }
+
     private fun draft(change: (InterviewTaste) -> InterviewTaste) = _state.update { s -> s.draft?.let { s.copy(draft = change(it)) } ?: s }
     fun draftToggleInterest(interest: Interest) = draft { t -> t.copy(interests = if (interest in t.interests) t.interests - interest else t.interests + interest) }
     fun draftToggleExtra(label: String) = draft { t -> t.copy(extraInterests = if (label in t.extraInterests) t.extraInterests - label else t.extraInterests + label) }

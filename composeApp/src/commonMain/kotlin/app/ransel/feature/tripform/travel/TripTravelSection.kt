@@ -50,6 +50,7 @@ import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.TravelStyle
 import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.dashedBorder
+import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
 import app.ransel.ui.theme.IrisShape
@@ -98,6 +99,7 @@ fun TripTravelSection(
     viewModel: TripTravelViewModel = koinViewModel(key = "trip-travel-$tripId") { parametersOf(tripId) },
 ) {
     val state by viewModel.state.collectAsState()
+    RefreshOnReturn(viewModel::refreshTaste)
     val scope = rememberCoroutineScope()
     var reset by remember { mutableStateOf<ResetDialog?>(null) }
     LaunchedEffect(viewModel) {
