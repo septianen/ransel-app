@@ -84,7 +84,7 @@ val commonModule: Module = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::TripListViewModel)
     viewModelOf(::AccountViewModel)
-    viewModel { params -> InterviewViewModel(params.get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get(), get<ExploreSessionStore>(), get<CreditsStore>()) }
+    viewModel { params -> InterviewViewModel(params.get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get(), get<ExploreSessionStore>(), get<CreditsStore>(), get()) }
     viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get()) }
     viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get<TripRepository>(), get<TravelModeRepository>(), get<SyncStatus>()) }
     viewModel { params -> PackingViewModel(params.get(), get(), get()) }

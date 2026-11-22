@@ -691,16 +691,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onOpenSavedIdeas = { navController.navigate(SavedIdeasRoute) },
             onOpenCredits = { navController.navigate(CreditsRoute()) },
             // "Bikin trip dari sini": Buat trip with the card's region and the session's interests; dates stay open
-            onCreateTrip = { card, interests ->
-                navController.navigate(
-                    InterviewRoute(
-                        door = InterviewDoor.MY_TRIPS.name,
-                        destination = card.region,
-                        countryCode = card.countryCode,
-                        interests = interests.joinToString(",") { it.name }.ifEmpty { null },
-                    ),
-                )
-            },
+            onCreateTrip = { card, interests -> navController.openTripFromIdea(card, interests) },
         )
     }
     page<InspirationSavedPlaceholderRoute> {
@@ -720,6 +711,10 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
             onAskAi = { navController.openTab(MainTab.EXPLORE) },
+            // the same hand-off as the results feed (plan idea-to-trip-flow v2)
+            onCreateTrip = { idea ->
+                navController.openTripFromIdea(idea.card, app.ransel.feature.inspiration.interestsFromProfile(idea.profile))
+            },
         )
     }
     page<ExplorePreferencesRoute> { entry ->
@@ -1079,7 +1074,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
         val session: SessionManager = koinInject()
         InterviewScreen(
             door = InterviewDoor.valueOf(route.door),
-            prefill = InterviewPrefill.fromRoute(route.destination, route.countryCode, route.interests),
+            prefill = InterviewPrefill.fromRoute(route.destination, route.countryCode, route.interests, route.ideaActivity),
             onLeave = { navController.popBackStack() },
             // "Buat trip dan cari": the swipe screen takes over; Back from it leads to where Jelajah was opened
             onCreatedAndSearch = { id -> navController.navigate(SwipeRoute(id, created = true)) { popUpTo<InterviewRoute> { inclusive = true } } },
@@ -1244,6 +1239,22 @@ private fun NavHostController.openTripExplore(tripId: String, requests: app.rans
     navigate(TripRoute(tripId)) {
         if (replace && current != null) popUpTo(current.destination.id) { inclusive = true }
     }
+}
+
+/**
+ * "Bikin trip dari sini" (results feed and Ide tersimpan): Buat trip with the idea's region, country and interests; dates stay
+ * open. After "Buat trip" the idea's activity is one item in "Belum dijadwalkan". Nothing is charged.
+ */
+private fun NavHostController.openTripFromIdea(card: app.ransel.shared.dto.InspirationCardDto, interests: Set<app.ransel.shared.model.Interest>) {
+    navigate(
+        InterviewRoute(
+            door = InterviewDoor.MY_TRIPS.name,
+            destination = card.region,
+            countryCode = card.countryCode,
+            interests = interests.joinToString(",") { it.name }.ifEmpty { null },
+            ideaActivity = card.activity,
+        ),
+    )
 }
 
 private fun NavHostController.openTab(tab: MainTab) {

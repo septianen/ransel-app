@@ -283,14 +283,7 @@ class InspirationResultsViewModel(
      * The interests of this session, read from the profile header's INTEREST chip (the session sends labels, not
      * constants): they preselect Seleramu in "Buat trip" so the user is not asked again (PRD "Handoff").
      */
-    fun interestsForTrip(): Set<Interest> {
-        val chip = mutableValueProfileInterest() ?: return emptySet()
-        val text = chip.lowercase()
-        return Interest.entries.filter { i -> listOf("id", "en").any { inspirationInterestLabel(i, it).lowercase() in text } }.toSet()
-    }
-
-    private fun mutableValueProfileInterest(): String? =
-        mutable.value.result?.profile?.firstOrNull { it.key == InspirationChipKey.INTEREST }?.value
+    fun interestsForTrip(): Set<Interest> = interestsFromProfile(mutable.value.result?.profile.orEmpty())
 
     /** "Kabari saya" on the buddy sheet: records the demand with its consent time (the server keeps it 90 days). */
     fun notifyBuddy() {
@@ -374,4 +367,13 @@ class InspirationResultsViewModel(
 
     private fun feedCards(result: InspirationResultDto): List<InspirationFeedCard> =
         result.cards.map { InspirationFeedCard(it) } + listOfNotNull(result.surprise?.let { InspirationFeedCard(it, surprise = true) })
+}
+
+/**
+ * The interests of an Inspirasi session, read from its profile's INTEREST chip (the session sends labels, not constants):
+ * they preselect Seleramu in "Buat trip". Used by the results feed and by Ide tersimpan (a saved idea keeps its profile).
+ */
+fun interestsFromProfile(profile: List<app.ransel.shared.dto.InspirationChipDto>): Set<Interest> {
+    val text = profile.firstOrNull { it.key == InspirationChipKey.INTEREST }?.value?.lowercase() ?: return emptySet()
+    return Interest.entries.filter { i -> listOf("id", "en").any { inspirationInterestLabel(i, it).lowercase() in text } }.toSet()
 }
