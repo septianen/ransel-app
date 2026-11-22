@@ -11,6 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -18,8 +22,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.verticalScroll
@@ -334,34 +336,33 @@ private fun InterviewSummary(state: InterviewUiState, viewModel: InterviewViewMo
                             )
                         }
                     }
-                    SummaryRow.BUDGET -> {
-                        val budgetLabel = stringResource(Res.string.interview_summary_budget)
-                        val optionalSuffix = budgetLabel.substringAfterLast(" (", "")
-                        SummaryEditableCard(
-                            label = budgetLabel.substringBeforeLast(" (", budgetLabel),
-                            labelSuffix = optionalSuffix.takeIf { it.isNotEmpty() }?.let { "($it" },
-                            value = state.budgetDigits,
-                            onValueChange = viewModel::onBudgetChange,
-                            prefix = state.currency,
-                            placeholder = stringResource(Res.string.interview_summary_budget_hint),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            visualTransformation = ThousandsVisualTransformation,
-                        )
-                    }
+                    SummaryRow.BUDGET -> SummaryEditableCard(
+                        label = stringResource(Res.string.interview_summary_budget),
+                        value = state.budgetDigits,
+                        onValueChange = viewModel::onBudgetChange,
+                        prefix = state.currency,
+                        placeholder = stringResource(Res.string.interview_summary_budget_hint),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        visualTransformation = ThousandsVisualTransformation,
+                    )
                 }
             }
         }
     }
 }
 
-/** Summary-only editable row: field controls match the sibling info cards without changing IrisTextField elsewhere. */
+/**
+ * Summary-only editable row (spec "summary consistency", 22 Nov 2026): the same card as the info rows (radius 16,
+ * outlineVariant 1 dp, min 56 dp, small grey label inside, bold value, placeholder of the same size in grey, focus = 2 dp
+ * primary border without a height change). [IrisTextField] elsewhere is unchanged. The whole card is the text field
+ * (decorationBox): a tap anywhere focuses it, and TalkBack reads the label with the value.
+ */
 @Composable
 private fun SummaryEditableCard(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    labelSuffix: String? = null,
     placeholder: String? = null,
     prefix: String? = null,
     trailingEdit: Boolean = false,
@@ -371,49 +372,45 @@ private fun SummaryEditableCard(
     val scheme = MaterialTheme.colorScheme
     val interaction = androidx.compose.runtime.remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
-    val focusRequester = androidx.compose.runtime.remember { FocusRequester() }
     val valueStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-    val borderColor = if (focused) scheme.primary else scheme.outlineVariant
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .clip(IrisShape.lg)
-                .border(BorderStroke(if (focused) 2.dp else 1.dp, borderColor), IrisShape.lg)
-                .clickable(role = Role.Button) { focusRequester.requestFocus() }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = label },
+        singleLine = true,
+        interactionSource = interaction,
+        keyboardOptions = keyboardOptions,
+        visualTransformation = visualTransformation,
+        textStyle = valueStyle.copy(color = scheme.onSurface),
+        cursorBrush = SolidColor(scheme.primary),
+        decorationBox = { field ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .clip(IrisShape.lg)
+                    // the inner padding shrinks by the extra 1 dp when focused, so the height does not change
+                    .border(BorderStroke(if (focused) 2.dp else 1.dp, if (focused) scheme.primary else scheme.outlineVariant), IrisShape.lg)
+                    .padding(horizontal = if (focused) 13.dp else 14.dp, vertical = if (focused) 9.dp else 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(label, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-                    labelSuffix?.let {
-                        Text(" $it", style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        prefix?.let { Text(it, style = valueStyle, color = scheme.onSurface) }
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            if (value.isEmpty() && placeholder != null) Text(placeholder, style = valueStyle, color = scheme.onSurfaceVariant)
+                            field()
+                        }
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    prefix?.let { Text(it, style = valueStyle, color = scheme.onSurface) }
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                        if (value.isEmpty() && placeholder != null) Text(placeholder, style = valueStyle, color = scheme.onSurfaceVariant)
-                        BasicTextField(
-                            value = value,
-                            onValueChange = onValueChange,
-                            modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
-                            singleLine = true,
-                            interactionSource = interaction,
-                            keyboardOptions = keyboardOptions,
-                            visualTransformation = visualTransformation,
-                            textStyle = valueStyle.copy(color = scheme.onSurface),
-                            cursorBrush = SolidColor(scheme.primary),
-                        )
-                    }
-                }
+                if (trailingEdit) Symbol(Symbols.edit, size = 20.dp, tint = scheme.onSurfaceVariant)
             }
-            if (trailingEdit) Symbol(Symbols.edit, size = 20.dp, tint = scheme.onSurfaceVariant)
-        }
-    }
+        },
+    )
 }
 
 /** A summary row: its label, its value and a chevron; not filled = a dashed box that says "Belum diisi · Isi". */
@@ -489,36 +486,42 @@ internal fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, onEdi
         )
         return
     }
+    val valueStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+    val showDeparture = departure != null && !answers.isOverseas()
+    // The card opens "how to get there" (the departure step); "Dari <kota>" is its own target for the origin. Both span the
+    // card's full height (min 56 dp), so neither is a small text target; before they were 48 dp text lines, which made
+    // the card taller than its siblings (owner's screenshot, 22 Nov 2026).
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
+            .height(androidx.compose.foundation.layout.IntrinsicSize.Min)
             .clip(IrisShape.lg)
             .border(1.dp, scheme.outlineVariant, IrisShape.lg)
-            .summaryCardClickable(onClick = { onEdit(answers.departureSummaryEditStep()) })
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .summaryCardClickable(onClick = { onEdit(answers.departureSummaryEditStep()) }),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        val originColumn = Modifier
+            .weight(1f, fill = !showDeparture)
+            .fillMaxHeight()
+            .then(if (showDeparture) Modifier.summaryCardClickable(onClick = { onEdit(InterviewStep.ORIGIN) }).testTag(LEAVING_ORIGIN_TAG) else Modifier)
+            .padding(start = 14.dp, end = if (showDeparture) 4.dp else 14.dp, top = 10.dp, bottom = 10.dp)
+        Column(originColumn, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
             Text(stringResource(Res.string.interview_summary_departure), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    stringResource(Res.string.interview_summary_from, origin.name),
-                    Modifier.clickable(role = Role.Button) { onEdit(InterviewStep.ORIGIN) }.padding(end = 6.dp),
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = scheme.onSurface,
-                )
-                if (departure != null && !answers.isOverseas()) {
-                    Text(
-                        "· " + stringResource(departure.labelRes),
-                        Modifier.clickable(role = Role.Button) { onEdit(InterviewStep.DEPARTURE) },
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = scheme.onSurface,
-                    )
-                }
-            }
+            Text(stringResource(Res.string.interview_summary_from, origin.name), style = valueStyle, color = scheme.onSurface)
         }
-        Symbol(Symbols.chevronRight, size = 20.dp, tint = scheme.onSurfaceVariant)
+        Row(
+            Modifier.then(if (showDeparture) Modifier.weight(1f) else Modifier).fillMaxHeight().padding(end = 14.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+        ) {
+            if (showDeparture && departure != null) {
+                Text("· " + stringResource(departure.labelRes), Modifier.weight(1f), style = valueStyle, color = scheme.onSurface)
+            }
+            Symbol(Symbols.chevronRight, size = 20.dp, tint = scheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterVertically))
+        }
     }
 }
+
+/** The origin target inside the Leaving card ("Dari <kota>"), for tests. */
+internal const val LEAVING_ORIGIN_TAG = "interview_summary_leaving_origin"

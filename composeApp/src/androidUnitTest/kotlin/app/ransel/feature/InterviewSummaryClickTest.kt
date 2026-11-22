@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -62,5 +64,31 @@ class InterviewSummaryClickTest {
         }
         rule.onNodeWithTag("interview_summary_leaving").assertHasClickAction().performClick()
         rule.runOnIdle { assertEquals(InterviewStep.DEPARTURE, edited) }
+    }
+
+    @Test
+    fun tappingTheOriginInTheLeavingCardOpensTheOrigin() {
+        val facts = InterviewCityFacts()
+        val answers = InterviewAnswers()
+            .withDestination(InterviewDestination("Bandung", "p-bdg", -6.9175, 107.6191, "ID"), facts)
+            .withOrigin(TripOriginDto("Subang", -6.5694, 107.7606, countryCode = "ID"), facts)
+            .withDeparture(DepartureMode.OWN_MOTORCYCLE, facts)
+        val state = InterviewUiState(
+            door = InterviewDoor.MY_TRIPS,
+            answers = answers,
+            screen = app.ransel.feature.interview.InterviewScreen.Summary,
+        )
+        var edited: InterviewStep? = null
+        rule.setContent {
+            IrisTheme(ThemeMode.LIGHT) {
+                DepartureSummaryRow(state = state, filled = true, onEdit = { edited = it })
+            }
+        }
+        // a full-height target (min 48 dp) of its own, not a small text line
+        rule.onNodeWithTag(app.ransel.feature.interview.LEAVING_ORIGIN_TAG)
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+        rule.runOnIdle { assertEquals(InterviewStep.ORIGIN, edited) }
     }
 }
