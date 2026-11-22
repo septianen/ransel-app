@@ -1060,7 +1060,7 @@
     <string name="group_action_explore_vote_hint">Geser ide dari AI, lalu biarkan grup memilih.</string>
     <string name="group_action_explore_vote_no_destination">Tentukan tujuan dulu</string>
     <string name="group_action_explore_solo">Cari tempat dengan AI</string>
-    <string name="group_action_explore_solo_hint">Swipe tempat yang cocok untuk trip ini.</string>
+    <string name="group_action_explore_solo_hint">Geser tempat yang cocok untuk trip ini.</string>
     <string name="group_action_explore_free">Gratis hari ini</string>
     <string name="group_action_poll">Buat polling</string>
     <string name="group_action_poll_hint">Biar semua ikut memilih tanggal, penginapan, atau tempat makan.</string>
