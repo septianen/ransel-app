@@ -110,9 +110,10 @@ class InspirationResultsViewModelTest {
         val repo = Repo(); val vm = InspirationResultsViewModel("sid", repo); runCurrent()
         val event = async { vm.eventFlow.first() }
         vm.save(card("c1")); runCurrent()
-        assertEquals(InspirationResultsEvent.Saved(false, "saved-1"), event.await())
+        assertEquals(InspirationResultsEvent.Saved(false, "saved-1", "c1"), event.await())
         assertEquals("sid", repo.lastSaveRequest?.sessionId)
         assertEquals("c1", repo.lastSaveRequest?.cardId)
+        assertContains(vm.state.value.savedCardIds, "c1")
     }
 
     @Test fun oldestRemovalEmitsUndoEventAndUndoCallsRepository() = runTest {

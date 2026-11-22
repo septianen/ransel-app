@@ -2231,4 +2231,6 @@
     <string name="saved_ideas_count_title">%1$d ideas</string>
     <string name="saved_ideas_meta">%1$s</string>
     <string name="saved_ideas_meta_duration">%1$s · ≤ %2$d days</string>
+    <string name="explore_results_leave_title">Return to Explore?</string>
+    <string name="explore_results_leave_body">These results will be lost if you go back.</string>
 </resources>

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,6 +55,7 @@ import app.ransel.shared.dto.InspirationCardDto
 import app.ransel.shared.dto.InspirationChipDto
 import app.ransel.shared.model.Interest
 import app.ransel.ui.components.FullScreenState
+import app.ransel.ui.components.ConfirmDialog
 import app.ransel.ui.components.SkeletonCards
 import app.ransel.ui.components.UndoSnackbar
 import app.ransel.ui.preview.IrisPreview
@@ -68,6 +71,7 @@ import kotlin.time.Instant
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_close
+import ransel.composeapp.generated.resources.action_cancel
 import ransel.composeapp.generated.resources.action_undo
 import ransel.composeapp.generated.resources.ai_paused_title
 import ransel.composeapp.generated.resources.explore_activity_region
@@ -94,6 +98,8 @@ import ransel.composeapp.generated.resources.explore_saved_view
 import ransel.composeapp.generated.resources.explore_saved_oldest_removed
 import ransel.composeapp.generated.resources.explore_saved_snackbar
 import ransel.composeapp.generated.resources.explore_surprise_chip
+import ransel.composeapp.generated.resources.explore_results_leave_title
+import ransel.composeapp.generated.resources.explore_results_leave_body
 import ransel.composeapp.generated.resources.explore_again_divider
 import ransel.composeapp.generated.resources.saved_ideas_title
 import ransel.composeapp.generated.resources.swipe_photo_credit_google
@@ -191,13 +197,17 @@ fun InspirationResultsContent(
     onChipEditClose: () -> Unit = {},
 ) {
     var detailCard by remember { mutableStateOf<InspirationCardDto?>(null) }
+    var confirmLeave by remember { mutableStateOf(false) }
+    BackHandler(enabled = detailCard == null && !state.askAgainOpen && !state.chipEditOpen) { confirmLeave = true }
     when {
         state.lostSession -> FullScreenState(
+            modifier = Modifier.statusBarsPadding(),
             title = stringResource(Res.string.explore_interview_lost_title),
             body = stringResource(Res.string.explore_interview_lost_body),
             primaryLabel = stringResource(Res.string.action_back), onPrimary = onBack,
         )
         state.offline -> FullScreenState(
+            modifier = Modifier.statusBarsPadding(),
             title = stringResource(Res.string.state_connection_title),
             body = stringResource(Res.string.explore_offline),
             primaryLabel = stringResource(Res.string.explore_retry), onPrimary = onRetry,
@@ -205,6 +215,7 @@ fun InspirationResultsContent(
         )
         state.loading && state.result == null -> SkeletonCards(cards = 3)
         else -> Scaffold(
+            modifier = Modifier.statusBarsPadding(),
             snackbarHost = {
                 SnackbarHost(snackbarHost) { data ->
                     UndoSnackbar(data.visuals.message, actionLabel = data.visuals.actionLabel, onAction = { data.performAction() })
@@ -213,7 +224,7 @@ fun InspirationResultsContent(
             containerColor = MaterialTheme.colorScheme.background,
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
-                ResultsTopBar(onBack, onOpenSavedIdeas)
+                ResultsTopBar(onBookmark = onOpenSavedIdeas, onBack = { confirmLeave = true })
                 val result = state.result
                 if (result != null) {
                     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
@@ -230,11 +241,13 @@ fun InspirationResultsContent(
                                     detailCard = item.card
                                 },
                                 onSave = { onSave(item.card) },
+                                saved = item.card.id in state.savedCardIds,
                                 modifier = Modifier.graphicsLayer(alpha = if (state.recalculating) 0.38f else 1f),
                             )
                             Spacer(Modifier.height(16.dp))
                         }
-                        // an honest text link, not a button: the feature does not exist yet (spec Screen 3 "Buddy link")
+                    }
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                         if (result.showFindBuddy) TextButton(onClick = onBuddy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                             Text(stringResource(Res.string.explore_buddy_link), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -272,6 +285,16 @@ fun InspirationResultsContent(
             onDismiss = onChipEditClose,
         )
     }
+    if (confirmLeave) {
+        ConfirmDialog(
+            title = stringResource(Res.string.explore_results_leave_title),
+            body = stringResource(Res.string.explore_results_leave_body),
+            confirmLabel = stringResource(Res.string.action_back),
+            dismissLabel = stringResource(Res.string.action_cancel),
+            onConfirm = { confirmLeave = false; onBack() },
+            onDismiss = { confirmLeave = false },
+        )
+    }
 }
 
 @Composable
@@ -302,7 +325,7 @@ private fun ProfileHeader(profile: List<InspirationChipDto>, onEdit: (Inspiratio
 }
 
 @Composable
-private fun InspirationCard(item: InspirationFeedCard, onOpen: () -> Unit, onSave: () -> Unit, modifier: Modifier = Modifier) {
+private fun InspirationCard(item: InspirationFeedCard, onOpen: () -> Unit, onSave: () -> Unit, saved: Boolean, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth().clickable(onClick = onOpen),
         shape = RoundedCornerShape(24.dp),
@@ -326,8 +349,8 @@ private fun InspirationCard(item: InspirationFeedCard, onOpen: () -> Unit, onSav
                     Box(Modifier.fillMaxWidth().height(64.dp).align(Alignment.BottomCenter).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = .4f)))))
                     Text(item.card.photoAttribution ?: "", Modifier.align(Alignment.BottomStart).padding(12.dp), style = MaterialTheme.typography.bodySmall, color = Color.White)
                 }
-                IconButton(onClick = onSave, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(48.dp).clip(CircleShape).background(Color.Black.copy(alpha = .4f))) {
-                    Symbol(Symbols.bookmark, tint = Color.White, contentDescription = stringResource(Res.string.explore_save))
+                IconButton(onClick = onSave, enabled = !saved, modifier = Modifier.align(Alignment.TopEnd).padding(8.dp).size(48.dp).clip(CircleShape).background(Color.Black.copy(alpha = .4f))) {
+                    Symbol(Symbols.bookmark, filled = saved, tint = Color.White, contentDescription = stringResource(Res.string.explore_save))
                 }
                 if (item.surprise) {
                     Surface(Modifier.align(Alignment.TopStart).padding(12.dp), color = MaterialTheme.colorScheme.tertiaryContainer, shape = CircleShape) {
