@@ -1,6 +1,7 @@
 package app.ransel.feature.interview
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -10,10 +11,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -25,7 +35,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -45,7 +54,6 @@ import app.ransel.shared.domain.steps
 import app.ransel.shared.domain.summaryRows
 import app.ransel.shared.model.PriceLevel
 import app.ransel.ui.components.ConfirmDialog
-import app.ransel.ui.components.IrisTextField
 import app.ransel.ui.components.dashedBorder
 import app.ransel.ui.format.rememberDateFormatter
 import app.ransel.ui.symbols.Symbol
@@ -270,14 +278,19 @@ private fun InterviewSummary(state: InterviewUiState, viewModel: InterviewViewMo
     val formatter = rememberDateFormatter()
     val rows = answers.summaryRows()
     Column(modifier.verticalScroll(rememberScrollState()).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        QuestionTitle(stringResource(Res.string.interview_summary_title), stringResource(Res.string.interview_summary_subtitle))
+        QuestionTitle(
+            stringResource(Res.string.interview_summary_title),
+            stringResource(Res.string.interview_summary_subtitle),
+            modifier = Modifier.padding(top = 16.dp),
+        )
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             rows.forEach { (row, filled) ->
                 when (row) {
-                    SummaryRow.NAME -> IrisTextField(
+                    SummaryRow.NAME -> SummaryEditableCard(
                         label = stringResource(Res.string.interview_summary_name),
                         value = state.tripName,
                         onValueChange = viewModel::onNameChange,
+                        trailingEdit = true,
                     )
                     SummaryRow.DESTINATION -> SummaryValueRow(
                         stringResource(Res.string.interview_summary_destination), state.destinationName, filled,
@@ -323,7 +336,7 @@ private fun InterviewSummary(state: InterviewUiState, viewModel: InterviewViewMo
                             )
                         }
                     }
-                    SummaryRow.BUDGET -> IrisTextField(
+                    SummaryRow.BUDGET -> SummaryEditableCard(
                         label = stringResource(Res.string.interview_summary_budget),
                         value = state.budgetDigits,
                         onValueChange = viewModel::onBudgetChange,
@@ -336,6 +349,68 @@ private fun InterviewSummary(state: InterviewUiState, viewModel: InterviewViewMo
             }
         }
     }
+}
+
+/**
+ * Summary-only editable row (spec "summary consistency", 22 Nov 2026): the same card as the info rows (radius 16,
+ * outlineVariant 1 dp, min 56 dp, small grey label inside, bold value, placeholder of the same size in grey, focus = 2 dp
+ * primary border without a height change). [IrisTextField] elsewhere is unchanged. The whole card is the text field
+ * (decorationBox): a tap anywhere focuses it, and TalkBack reads the label with the value.
+ */
+@Composable
+private fun SummaryEditableCard(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String? = null,
+    prefix: String? = null,
+    trailingEdit: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val interaction = androidx.compose.runtime.remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val valueStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = label },
+        singleLine = true,
+        interactionSource = interaction,
+        keyboardOptions = keyboardOptions,
+        visualTransformation = visualTransformation,
+        textStyle = valueStyle.copy(color = scheme.onSurface),
+        cursorBrush = SolidColor(scheme.primary),
+        decorationBox = { field ->
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .clip(IrisShape.lg)
+                    // the inner padding shrinks by the extra 1 dp when focused, so the height does not change
+                    .border(BorderStroke(if (focused) 2.dp else 1.dp, if (focused) scheme.primary else scheme.outlineVariant), IrisShape.lg)
+                    .padding(horizontal = if (focused) 13.dp else 14.dp, vertical = if (focused) 9.dp else 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(label, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        prefix?.let { Text(it, style = valueStyle, color = scheme.onSurface) }
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                            if (value.isEmpty() && placeholder != null) Text(placeholder, style = valueStyle, color = scheme.onSurfaceVariant)
+                            field()
+                        }
+                    }
+                }
+                if (trailingEdit) Symbol(Symbols.edit, size = 20.dp, tint = scheme.onSurfaceVariant)
+            }
+        },
+    )
 }
 
 /** A summary row: its label, its value and a chevron; not filled = a dashed box that says "Belum diisi · Isi". */
@@ -411,36 +486,42 @@ internal fun DepartureSummaryRow(state: InterviewUiState, filled: Boolean, onEdi
         )
         return
     }
+    val valueStyle = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+    val showDeparture = departure != null && !answers.isOverseas()
+    // The card opens "how to get there" (the departure step); "Dari <kota>" is its own target for the origin. Both span the
+    // card's full height (min 56 dp), so neither is a small text target; before they were 48 dp text lines, which made
+    // the card taller than its siblings (owner's screenshot, 22 Nov 2026).
     Row(
         modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
+            .height(androidx.compose.foundation.layout.IntrinsicSize.Min)
             .clip(IrisShape.lg)
             .border(1.dp, scheme.outlineVariant, IrisShape.lg)
-            .summaryCardClickable(onClick = { onEdit(answers.departureSummaryEditStep()) })
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .summaryCardClickable(onClick = { onEdit(answers.departureSummaryEditStep()) }),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        val originColumn = Modifier
+            .weight(1f, fill = !showDeparture)
+            .fillMaxHeight()
+            .then(if (showDeparture) Modifier.summaryCardClickable(onClick = { onEdit(InterviewStep.ORIGIN) }).testTag(LEAVING_ORIGIN_TAG) else Modifier)
+            .padding(start = 14.dp, end = if (showDeparture) 4.dp else 14.dp, top = 10.dp, bottom = 10.dp)
+        Column(originColumn, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
             Text(stringResource(Res.string.interview_summary_departure), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-            androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    stringResource(Res.string.interview_summary_from, origin.name),
-                    Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { onEdit(InterviewStep.ORIGIN) }.padding(end = 6.dp),
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = scheme.onSurface,
-                )
-                if (departure != null && !answers.isOverseas()) {
-                    Text(
-                        "· " + stringResource(departure.labelRes),
-                        Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { onEdit(InterviewStep.DEPARTURE) },
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = scheme.onSurface,
-                    )
-                }
-            }
+            Text(stringResource(Res.string.interview_summary_from, origin.name), style = valueStyle, color = scheme.onSurface)
         }
-        Symbol(Symbols.chevronRight, size = 20.dp, tint = scheme.onSurfaceVariant)
+        Row(
+            Modifier.then(if (showDeparture) Modifier.weight(1f) else Modifier).fillMaxHeight().padding(end = 14.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+        ) {
+            if (showDeparture && departure != null) {
+                Text("· " + stringResource(departure.labelRes), Modifier.weight(1f), style = valueStyle, color = scheme.onSurface)
+            }
+            Symbol(Symbols.chevronRight, size = 20.dp, tint = scheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterVertically))
+        }
     }
 }
+
+/** The origin target inside the Leaving card ("Dari <kota>"), for tests. */
+internal const val LEAVING_ORIGIN_TAG = "interview_summary_leaving_origin"
