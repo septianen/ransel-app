@@ -35,6 +35,10 @@ fun Route.inspirationRoutes(service: InspirationService) {
         requireVerifiedEmail(call.userId())
         call.respondData(HttpStatusCode.OK, service.answer(call.userId(), call.parameters["id"].orEmpty(), body))
     }
+    post("${ApiRoutes.INSPIRATION_SESSIONS}/{id}/back") {
+        requireVerifiedEmail(call.userId())
+        call.respondData(HttpStatusCode.OK, service.back(call.userId(), call.parameters["id"].orEmpty()))
+    }
     post("${ApiRoutes.INSPIRATION_SESSIONS}/{id}/finish") {
         requireVerifiedEmail(call.userId())
         call.respondData(HttpStatusCode.OK, service.finish(call.userId(), call.parameters["id"].orEmpty()))

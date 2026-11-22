@@ -18,23 +18,34 @@ import kotlinx.serialization.json.putJsonObject
 object InspirationPrompt {
     private val json = kotlinx.serialization.json.Json { encodeDefaults = false }
 
-    /** What an interest means to the model. NIGHTLIFE ("Musik & event") also covers concerts, festivals and events. */
-    private fun meaning(interest: Interest): String = when (interest) {
-        Interest.NIGHTLIFE -> "NIGHTLIFE = music & events: concerts, festivals, events, and nightlife"
-        Interest.NATURE -> "NATURE = wildlife & nature"
-        Interest.ADVENTURE -> "ADVENTURE = sports & outdoors"
-        Interest.RELAX -> "RELAX = healing, slow and restful trips"
-        Interest.PHOTO -> "PHOTO = photography"
-        Interest.CULTURE -> "CULTURE = history & culture"
-        Interest.FOOD -> "FOOD = food and culinary trips"
-        Interest.SHOPPING -> "SHOPPING = shopping"
+    /**
+     * An interest for the model: its constant, the app's chip label in the session language (the only name the user sees,
+     * so the model must use it in any text) and, in brackets, what it covers. NIGHTLIFE ("Musik & event") also covers
+     * concerts, festivals and events. Before 22 Nov 2026 only English meanings went in and the model copied them into
+     * Indonesian subtitles ("kombinasi wildlife & nature").
+     */
+    private fun meaning(interest: Interest, language: String): String {
+        val covers = when (interest) {
+            Interest.NIGHTLIFE -> "concerts, festivals, events, nightlife"
+            Interest.NATURE -> "wildlife, nature"
+            Interest.ADVENTURE -> "sports, outdoor activities"
+            Interest.RELAX -> "slow, restful trips"
+            Interest.PHOTO -> "photography"
+            Interest.CULTURE -> "history, culture"
+            Interest.FOOD -> "food, culinary trips"
+            Interest.SHOPPING -> "shopping"
+        }
+        return "${interest.name}: \"${inspirationInterestLabel(interest, language)}\" ($covers)"
     }
 
     private fun languageRule(language: String) = if (language == "en") {
-        "Write every text in English, plain and friendly, sentence case, no slang, no emoji, no exclamation marks."
+        "Write every text in English, plain and friendly. Sentence case: start every sentence and every title with a capital " +
+            "letter, the rest lowercase except names. No slang, no emoji, no exclamation marks. Name an interest only by its " +
+            "label in quotes from chosenInterests."
     } else {
-        "Tulis semua teks dalam bahasa Indonesia baku yang sopan, sapaan \"kamu\" (bukan \"Anda\"), huruf kecil kalimat biasa, " +
-            "tanpa slang (tanpa gw/lo), tanpa emoji, tanpa tanda seru."
+        "Tulis semua teks dalam bahasa Indonesia baku yang sopan, sapaan \"kamu\" (bukan \"Anda\"). Huruf kapital di awal " +
+            "setiap kalimat dan judul, sisanya huruf kecil kecuali nama. Tanpa slang (tanpa gw/lo), tanpa emoji, tanpa tanda " +
+            "seru. Jangan pakai kata bahasa Inggris; sebut minat hanya dengan label dalam tanda kutip dari chosenInterests."
     }
 
     fun questionSystem(): String = """
@@ -57,7 +68,7 @@ object InspirationPrompt {
     fun questionUser(input: InspirationQuestionInput): String = buildJsonObject {
         put("language", input.language)
         put("languageRule", languageRule(input.language))
-        putJsonArray("chosenInterests") { input.interests.forEach { add(kotlinx.serialization.json.JsonPrimitive(meaning(it))) } }
+        putJsonArray("chosenInterests") { input.interests.forEach { add(kotlinx.serialization.json.JsonPrimitive(meaning(it, input.language))) } }
         put("heroText", input.text ?: "")
         put("answers", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(InspirationAnswer.serializer()), input.answers))
         put("slotToAsk", input.slot.name)
@@ -90,7 +101,7 @@ object InspirationPrompt {
     fun cardsUser(input: InspirationCardsInput): String = buildJsonObject {
         put("language", input.language)
         put("languageRule", languageRule(input.language))
-        putJsonArray("chosenInterests") { input.interests.forEach { add(kotlinx.serialization.json.JsonPrimitive(meaning(it))) } }
+        putJsonArray("chosenInterests") { input.interests.forEach { add(kotlinx.serialization.json.JsonPrimitive(meaning(it, input.language))) } }
         put("heroText", input.text ?: "")
         put("answers", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(InspirationAnswer.serializer()), input.answers))
         input.distance?.let { put("distance", it.name) }

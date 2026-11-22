@@ -55,6 +55,11 @@ data class InspirationState(
     val mode: InspirationMode = InspirationMode.INTERVIEW,
     /** Profile chips the user changed on the results header. */
     val overrides: Map<InspirationChipKey, String> = emptyMap(),
+    /**
+     * The state before each interview answer (newest last, without their own history), so "Back" puts the previous
+     * question on screen again exactly as it was: no AI call and no new wording.
+     */
+    val history: List<InspirationState> = emptyList(),
 )
 
 /** A card plus the place whose photo it shows; the photo link is signed again whenever the card is sent. */
