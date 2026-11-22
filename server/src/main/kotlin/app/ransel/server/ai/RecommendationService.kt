@@ -220,6 +220,7 @@ class RecommendationService(
                 liked = feedback.filter { it[RecommendationFeedback.action] == FeedbackAction.LIKE }.take(20).map { it[RecommendationFeedback.placeName] },
                 skipped = feedback.filter { it[RecommendationFeedback.action] == FeedbackAction.SKIP }.take(20).map { it[RecommendationFeedback.placeName] },
                 count = CANDIDATES_ASKED,
+                transport = trip.transport,
             )
             generate(query).also {
                 if (it.isNotEmpty()) {
@@ -539,7 +540,8 @@ class RecommendationService(
             body.style.name,
             normalizeDestination(body.notes.orEmpty()),
             "detail-v1", // entries cached before the detail text existed do not carry it: a new key refills them
-        ).joinToString("|")
+        ).plus(listOfNotNull(trip.transport?.let { "transport=${it.name}" })) // absent = the key of before, cache kept
+            .joinToString("|")
         return MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
     }
 
@@ -550,6 +552,8 @@ class RecommendationService(
         val endDate: LocalDate?,
         val baseCurrency: String = "IDR",
         val center: Pair<Double, Double>? = null,
+        /** How the group gets around there ([tripTransport]); null = unknown. */
+        val transport: TripTransport? = null,
     ) {
         val searchStart: LocalDate get() = startDate ?: UndatedTrip.startDate()
         val searchDays: Int get() = if (startDate != null && endDate != null) startDate.daysUntil(endDate) + 1 else UndatedTrip.DAYS
@@ -562,6 +566,7 @@ class RecommendationService(
         TripFacts(
             row[Trips.destination], row[Trips.startDate]?.toKotlinLocalDate(), row[Trips.endDate]?.toKotlinLocalDate(), row[Trips.baseCurrency].trim(),
             center = if (lat != null && lng != null) lat to lng else null,
+            transport = tripTransport(row[Trips.localTransport], row[Trips.mainTravelMode]),
         )
     }
 

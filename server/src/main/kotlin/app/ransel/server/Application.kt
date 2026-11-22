@@ -60,6 +60,7 @@ import app.ransel.server.routes.contentRoutes
 import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
 import app.ransel.server.routes.travelModeRoutes
+import app.ransel.server.routes.tripTasteRoutes
 import app.ransel.server.routes.commentRoutes
 import app.ransel.server.routes.invitePreviewRoutes
 import app.ransel.server.routes.linkPreviewRoutes
@@ -320,6 +321,7 @@ fun Application.module(
                 tripRoutes()
                 itineraryRoutes()
                 travelModeRoutes()
+                tripTasteRoutes()
                 packingRoutes()
                 expenseRoutes()
                 syncRoutes(SyncService())

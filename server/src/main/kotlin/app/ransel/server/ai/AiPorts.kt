@@ -36,7 +36,33 @@ data class LlmQuery(
     val onlyCategory: Category? = null,
     /** Poll search: a budget in words ("up to about 50 USD per night"); the model treats it as a wish, not a filter. */
     val budget: String? = null,
+    /**
+     * How the group gets around at the destination (plan explore-trip-one-tap): the trip's local transport, else its main
+     * travel mode. Shapes how spread out the places may be. Null = unknown, no prompt line.
+     */
+    val transport: TripTransport? = null,
 )
+
+/** The trip's way of getting around, for the prompt. */
+enum class TripTransport { MOTORCYCLE, CAR, RIDE_HAILING, PUBLIC_TRANSPORT, TAXI }
+
+/** Local transport first (the creator's own answer for the destination); "Belum tahu" falls back to the main mode. */
+fun tripTransport(
+    local: app.ransel.shared.model.LocalTransport?,
+    main: app.ransel.shared.model.MainTravelMode?,
+): TripTransport? = when (local) {
+    app.ransel.shared.model.LocalTransport.RENT_MOTORCYCLE -> TripTransport.MOTORCYCLE
+    app.ransel.shared.model.LocalTransport.RENT_CAR -> TripTransport.CAR
+    app.ransel.shared.model.LocalTransport.RIDE_HAILING -> TripTransport.RIDE_HAILING
+    app.ransel.shared.model.LocalTransport.PUBLIC_TRANSPORT -> TripTransport.PUBLIC_TRANSPORT
+    app.ransel.shared.model.LocalTransport.TAXI -> TripTransport.TAXI
+    app.ransel.shared.model.LocalTransport.UNKNOWN, null -> when (main) {
+        app.ransel.shared.model.MainTravelMode.MOTORCYCLE -> TripTransport.MOTORCYCLE
+        app.ransel.shared.model.MainTravelMode.CAR -> TripTransport.CAR
+        app.ransel.shared.model.MainTravelMode.PUBLIC_TRANSPORT -> TripTransport.PUBLIC_TRANSPORT
+        null -> null
+    }
+}
 
 /** One suggestion from the LLM. Nothing here is trusted until a place with that name is found. */
 @Serializable
