@@ -175,6 +175,51 @@ class InspirationHandoffTest {
         assertNull(InterviewPrefill.fromRoute("  ", null, "NATURE"))
     }
 
+    @Test
+    fun aTripFromAnIdeaGetsOneUnscheduledItemAndTheIdeasInterests() = runTest {
+        val store = InMemoryStore()
+        val explore = app.ransel.data.explore.ExploreSessionStore(InMemoryPreferencesRepository())
+        val vm = InterviewViewModel(
+            InterviewDoor.MY_TRIPS, InMemoryTripRepository(store), InMemoryPreferencesRepository(), null, null,
+            explore = explore, itinerary = app.ransel.data.fake.InMemoryItineraryRepository(store),
+        )
+        vm.setNameTemplate("Trip ke %s")
+        val prefill = InterviewPrefill.fromRoute("Khao Yai, Thailand", "th", "NATURE,RELAX", "  Berjalan santai di taman nasional ")!!
+        vm.applyPrefill(prefill); runCurrent()
+        assertEquals("Trip ke Khao Yai, Thailand", vm.state.value.tripName)
+        vm.onDatesUndecided(true)
+        vm.next(); vm.skipInterview()
+        vm.create()
+        val event = vm.eventFlow.first()
+        val tripId = assertIs<app.ransel.feature.interview.InterviewEvent.Created>(event).tripId
+        val trip = store.trips.value.single()
+        assertNull(trip.startDate, "dates stay open")
+        val item = store.items.value.single { it.tripId == tripId }
+        assertEquals("Berjalan santai di taman nasional", item.title)
+        assertNull(item.dayDate, "Belum dijadwalkan, not on a day")
+        assertEquals("Khao Yai, Thailand", item.placeName)
+        assertEquals(PlaceKind.AREA, item.placeKind)
+        assertNull(item.notes, "no AI note")
+        assertNull(item.placeId)
+        // the idea's interests are the trip's Seleramu (uploaded to the server when the trip is opened)
+        assertEquals(listOf(Interest.NATURE, Interest.RELAX), explore.taste(tripId)?.interests)
+    }
+
+    @Test
+    fun aTripWithoutAnIdeaGetsNoItem() = runTest {
+        val store = InMemoryStore()
+        val vm = InterviewViewModel(
+            InterviewDoor.MY_TRIPS, InMemoryTripRepository(store), InMemoryPreferencesRepository(), null, null,
+            itinerary = app.ransel.data.fake.InMemoryItineraryRepository(store),
+        )
+        vm.applyPrefill(InterviewPrefill.fromRoute("Khao Yai, Thailand", "th", "NATURE")!!); runCurrent()
+        vm.onDatesUndecided(true)
+        vm.next(); vm.skipInterview()
+        vm.create()
+        vm.eventFlow.first()
+        assertTrue(store.items.value.isEmpty())
+    }
+
     private companion object {
         val at: Instant = Instant.parse("2026-11-21T00:00:00Z")
         fun card(id: String, surprise: Boolean = false) = InspirationCardDto(id, "Activity $id", "Region $id", why = "Fits", surprise = surprise)

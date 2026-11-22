@@ -174,6 +174,8 @@ class InterviewViewModel(
     private val explore: ExploreSessionStore? = null,
     /** The balance shown on the Jelajah summary ("Saldo 27 kredit · sisa 24 setelah mencari"). */
     private val creditsStore: CreditsStore? = null,
+    /** Where the idea's activity goes after "Buat trip" from an Explore Inspirasi card; null in tests that do not need it. */
+    private val itinerary: app.ransel.data.repository.ItineraryRepository? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InterviewUiState(door = door, signedIn = session?.user != null))
     val state: StateFlow<InterviewUiState> = _state.asStateFlow()
@@ -202,6 +204,8 @@ class InterviewViewModel(
     }
 
     private var prefilled = false
+    /** The idea's activity and its region, added to the new trip as one unscheduled item. */
+    private var ideaItem: Pair<String, String>? = null
 
     /**
      * "Bikin trip dari sini" (Explore Inspirasi): the card's region becomes the destination (as text: an activity + region
@@ -214,6 +218,8 @@ class InterviewViewModel(
         val name = prefill.destination.trim().take(120)
         if (name.isNotEmpty()) onDestinationPicked(DestinationChoice(name, countryCode = prefill.countryCode?.uppercase()?.takeIf { it.length == 2 }))
         if (prefill.interests.isNotEmpty()) change { a, _ -> a.copy(taste = a.taste.copy(interests = prefill.interests)) }
+        val activity = prefill.activity
+        if (activity != null && name.isNotEmpty()) ideaItem = activity to name
     }
 
     fun setNameTemplate(template: String) = _state.update { if (it.nameTemplate == template) it else it.copy(nameTemplate = template) }
@@ -503,6 +509,7 @@ class InterviewViewModel(
                     ),
                 )
                 analytics.event(AnalyticsEvent.TripCreated)
+                addIdeaItem(id)
                 val title = s.tripName.trim().ifEmpty { destination.name }
                 val form = s.toExploreForm(id, title)
                 // the answers of W4 are the trip's Seleramu on both doors (per trip, per device)
@@ -520,6 +527,27 @@ class InterviewViewModel(
             }.onFailure {
                 _state.update { st -> st.copy(creating = false, createFailed = true) }
             }
+        }
+    }
+
+    /**
+     * From an idea: one item in "Belum dijadwalkan" (no day), title = the activity, place = the region as an area (no point),
+     * no note and no label: AI-made items look the same whatever their source (owner, seq 1077). Free: no request is made.
+     * A failure here does not undo the trip.
+     */
+    private suspend fun addIdeaItem(tripId: String) {
+        val (activity, region) = ideaItem ?: return
+        val repo = itinerary ?: return
+        runCatching {
+            repo.save(
+                tripId,
+                app.ransel.shared.dto.ItineraryItemInput(
+                    id = newId(), dayDate = null, title = activity, category = app.ransel.shared.model.Category.ATTRACTION,
+                    placeName = region, placeKind = app.ransel.shared.dto.PlaceKind.AREA,
+                    placeCity = region.substringBefore(',').trim().ifEmpty { null },
+                    source = app.ransel.shared.model.ItemSource.AI,
+                ),
+            )
         }
     }
 

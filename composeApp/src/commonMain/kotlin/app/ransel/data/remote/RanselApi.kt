@@ -114,6 +114,8 @@ import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
 import app.ransel.shared.dto.TravelModeDto
 import app.ransel.shared.dto.TravelModeInput
+import app.ransel.shared.dto.TripTasteDto
+import app.ransel.shared.dto.TripTasteResponse
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
 import app.ransel.shared.dto.TripDocumentsDto
@@ -276,6 +278,12 @@ class RanselApi(
         send(HttpMethod.Put, ApiRoutes.travelModes(tripId), input)
     suspend fun deleteTravelMode(tripId: String, id: String): ApiResult<Unit> =
         delete(ApiRoutes.travelMode(tripId, id))
+
+    /** The trip's Seleramu (plan explore-trip-one-tap): every member reads it; `taste` is null while nobody saved one. */
+    suspend fun tripTaste(tripId: String): ApiResult<TripTasteResponse> = get(ApiRoutes.tripTaste(tripId))
+    /** OWNER, EDITOR: replaces the whole Seleramu. */
+    suspend fun saveTripTaste(tripId: String, taste: TripTasteDto): ApiResult<TripTasteResponse> =
+        send(HttpMethod.Put, ApiRoutes.tripTaste(tripId), taste)
 
     // ── packing ─────────────────────────────────────────────────────────────
     suspend fun packing(tripId: String): ApiResult<List<PackingItemDto>> = get(ApiRoutes.packing(tripId))

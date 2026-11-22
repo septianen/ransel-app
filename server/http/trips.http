@@ -38,3 +38,14 @@ Content-Type: application/json
 ### Delete (soft)
 DELETE {{host}}/trips/{{tripId}}
 Authorization: Bearer {{token}}
+
+### The trip's Seleramu ("Cari tempat" opens prefilled). Any member. taste = null when nothing is saved yet
+GET {{host}}/trips/{{tripId}}/taste
+Authorization: Bearer {{token}}
+
+### Save the whole Seleramu (OWNER, EDITOR). 422 extraInterests TOO_MANY (> 5) / TOO_LONG (> 40), notes TOO_LONG (> 500)
+PUT {{host}}/trips/{{tripId}}/taste
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{ "interests": ["FOOD", "NATURE"], "extraInterests": ["Sakura"], "style": "SANTAI", "priceLevel": "MEDIUM", "notes": "tanpa babi" }

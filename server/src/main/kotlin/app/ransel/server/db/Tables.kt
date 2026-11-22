@@ -267,6 +267,19 @@ object TravelModes : Table("travel_modes") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** V12: a trip's Seleramu ("Cari tempat" starts from it on every device). One row per trip. */
+object TripTastes : Table("trip_tastes") {
+    val tripId = javaUUID("trip_id")
+    val interests = array<String>("interests")
+    val extraInterests = array<String>("extra_interests")
+    val style = enumerationByName<app.ransel.shared.model.TravelStyle>("style", 10).nullable()
+    val priceLevel = enumerationByName<app.ransel.shared.model.PriceLevel>("price_level", 10).nullable()
+    val notes = text("notes").nullable()
+    val updatedBy = javaUUID("updated_by").nullable()
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(tripId)
+}
+
 object PackingItems : Table("packing_items") {
     val id = javaUUID("id")
     val tripId = javaUUID("trip_id")

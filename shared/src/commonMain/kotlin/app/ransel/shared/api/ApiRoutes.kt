@@ -24,6 +24,9 @@ object ApiRoutes {
     fun dayOrder(tripId: String, date: String) =
         "/trips/$tripId/days/$date/order"                          // PUT DayOrderRequest (date = ISO yyyy-MM-dd)
 
+    // The trip's Seleramu (plan explore-trip-one-tap, 22 Nov 2026): what "Cari tempat" starts from on every device.
+    fun tripTaste(tripId: String) = "/trips/$tripId/taste"         // GET → TripTasteResponse (VIEWER+), PUT TripTasteDto → TripTasteResponse (EDITOR+); 422 per field (validateTripTaste)
+
     // Per-leg travel mode between two itinerary items (Getting there sheet).
     fun travelModes(tripId: String) = "/trips/$tripId/travel-modes" // GET list, PUT TravelModeInput → TravelModeDto (EDITOR+)
     fun travelMode(tripId: String, id: String) =

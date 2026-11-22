@@ -63,6 +63,8 @@ class TripTravelViewModel(
     private val preferences: PreferencesRepository,
     private val answerChanges: TravelAnswerChanges,
     private val sync: SyncStatus = NoSyncStatus,
+    /** The trip's Seleramu on the server (plan explore-trip-one-tap); null = this device only (tests). */
+    private val tastes: app.ransel.data.explore.TripTasteRepository? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(TripTravelUiState(taste = explore.taste(tripId)?.toTaste()))
     val state: StateFlow<TripTravelUiState> = _state.asStateFlow()
@@ -74,6 +76,12 @@ class TripTravelViewModel(
 
     init {
         viewModelScope.launch { trips.observeTrip(tripId).filterNotNull().collect { t -> _state.update { it.copy(trip = t) } } }
+        // the server's Seleramu replaces this device's copy (another member or device may have changed it)
+        if (tastes != null && session?.user != null) viewModelScope.launch {
+            val trip = trips.observeTrip(tripId).filterNotNull().first()
+            val taste = tastes.load(trip, canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR))
+            _state.update { it.copy(taste = taste) }
+        }
     }
 
     // ── the sheet ───────────────────────────────────────────────────────────
@@ -84,6 +92,9 @@ class TripTravelViewModel(
     }
 
     fun closeTasteSheet() = _state.update { it.copy(draft = null) }
+
+    /** The taste editor is a separate navigation entry; re-read its local save when Edit trip resumes. */
+    fun refreshTaste() = _state.update { it.copy(taste = explore.taste(tripId)?.toTaste()) }
 
     private fun draft(change: (InterviewTaste) -> InterviewTaste) = _state.update { s -> s.draft?.let { s.copy(draft = change(it)) } ?: s }
     fun draftToggleInterest(interest: Interest) = draft { t -> t.copy(interests = if (interest in t.interests) t.interests - interest else t.interests + interest) }
@@ -101,7 +112,7 @@ class TripTravelViewModel(
         val before = explore.taste(tripId)
         _state.update { it.copy(taste = draft, draft = null) }
         viewModelScope.launch {
-            explore.saveTaste(draft.toForm(trip, s.budgetPriceLevel))
+            if (tastes != null) tastes.save(trip, draft, s.budgetPriceLevel) else explore.saveTaste(draft.toForm(trip, s.budgetPriceLevel))
             answerChanges.post(AnswerChange(tripId = tripId, row = TravelRow.TASTE, tasteChanged = true, undoTaste = before))
         }
     }
@@ -137,7 +148,9 @@ class TripTravelViewModel(
             change.undo?.let { trips.update(change.tripId, it) }
             if (change.tasteChanged) {
                 val before = change.undoTaste
-                if (before != null) explore.saveTaste(before) else explore.clearTaste(change.tripId)
+                val trip = _state.value.trip
+                if (tastes != null && trip != null) tastes.save(trip, before?.toTaste())
+                else if (before != null) explore.saveTaste(before) else explore.clearTaste(change.tripId)
                 _state.update { it.copy(taste = before?.toTaste()) }
             }
         }

@@ -41,9 +41,10 @@ fun CardDetailSheet(
     onDismiss: () -> Unit,
     onCreateTrip: (InspirationCardDto) -> Unit,
     onSave: (InspirationCardDto) -> Unit,
+    showSaveButton: Boolean = true,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, shape = IrisShape.xl) {
-        CardDetailContent(card, onCreateTrip, onSave)
+        CardDetailContent(card, onCreateTrip, onSave, showSaveButton)
     }
 }
 
@@ -52,6 +53,7 @@ fun CardDetailContent(
     card: InspirationCardDto,
     onCreateTrip: (InspirationCardDto) -> Unit = {},
     onSave: (InspirationCardDto) -> Unit = {},
+    showSaveButton: Boolean = true,
 ) {
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
@@ -87,9 +89,11 @@ fun CardDetailContent(
             Text(stringResource(Res.string.explore_create_trip))
         }
         Text(stringResource(Res.string.explore_create_trip_note), modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton(onClick = { onSave(card) }, modifier = Modifier.fillMaxWidth()) {
-            Symbol(Symbols.bookmark, size = 18.dp)
-            Text(stringResource(Res.string.explore_save), modifier = Modifier.padding(start = 8.dp))
+        if (showSaveButton) {
+            OutlinedButton(onClick = { onSave(card) }, modifier = Modifier.fillMaxWidth()) {
+                Symbol(Symbols.bookmark, size = 18.dp)
+                Text(stringResource(Res.string.explore_save), modifier = Modifier.padding(start = 8.dp))
+            }
         }
     }
 }
@@ -109,3 +113,4 @@ private val skillPreview = InspirationCardDto(
 )
 @Preview @Composable private fun SkillCardSheetPreview() = IrisPreview { CardDetailContent(skillPreview) }
 @Preview @Composable private fun AbroadCardSheetPreview() = IrisPreview { CardDetailContent(skillPreview.copy(visaNote = "Visa wisata diperlukan", costRange = null)) }
+@Preview @Composable private fun SavedCardSheetPreview() = IrisPreview { CardDetailContent(skillPreview, showSaveButton = false) }
