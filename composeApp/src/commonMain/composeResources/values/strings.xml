@@ -2160,6 +2160,7 @@
     <string name="explore_rate_limited_body">You have started 10 Ask AI sessions in the last hour. Try again later; no credits were taken.</string>
     <string name="explore_rate_limited_body_minutes">You have started 10 Ask AI sessions in the last hour. Try again in %1$d minutes; no credits were taken.</string>
     <string name="explore_question_generating">Preparing your question…</string>
+    <string name="explore_ideas_generating">Preparing new ideas…</string>
     <string name="explore_question_failed">Couldn’t load the question. No credits were taken.</string>
     <string name="explore_other_option">Other</string>
     <string name="explore_other_hint">Write your own answer</string>

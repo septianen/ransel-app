@@ -68,6 +68,7 @@ import org.jetbrains.compose.resources.stringResource as composeStringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Instant
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.explore_ideas_generating
 import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_close
 import ransel.composeapp.generated.resources.action_cancel
@@ -426,24 +427,43 @@ private fun AskAgainSheet(
         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (state.askAgainLoading && state.askAgainQuestion == null) SkeletonCards(cards = 3, cardHeight = 64.dp)
             state.askAgainQuestion?.let { question ->
+                // the tapped option shows a spinner while the new cards are built (owner, 22 Nov 2026: a tap gave no sign
+                // for several seconds); the others are disabled so a second tap cannot start another round
+                var tapped by remember(question) { mutableStateOf<String?>(null) }
+                val building = state.askAgainLoading
                 Text(question.text, style = MaterialTheme.typography.headlineSmall)
                 if (state.inlineError) Text(stringResource(Res.string.explore_no_credits_taken), color = MaterialTheme.colorScheme.error)
                 else question.options.forEach { option ->
-                    OutlinedButton(onClick = { onAnswer(option.id) }, modifier = Modifier.fillMaxWidth().height(64.dp)) {
-                        Column(Modifier.fillMaxWidth()) {
-                            Text(option.title, style = MaterialTheme.typography.titleMedium)
-                            option.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    val isTapped = building && tapped == option.id
+                    OutlinedButton(
+                        onClick = { tapped = option.id; onAnswer(option.id) },
+                        enabled = !building,
+                        border = if (isTapped) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(option.title, style = MaterialTheme.typography.titleMedium)
+                                option.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                            }
+                            if (isTapped) androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         }
                     }
                 }
-                if (question.allowOther && !state.otherOpen) TextButton(onClick = onOpenOther) {
+                if (building && !state.inlineError) {
+                    app.ransel.feature.inspiration.components.GeneratingLine(stringResource(Res.string.explore_ideas_generating))
+                }
+                if (question.allowOther && !state.otherOpen && !building) TextButton(onClick = onOpenOther) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Symbol(Symbols.editNote, size = 18.dp); Text(stringResource(Res.string.explore_other_option))
                     }
                 }
                 if (question.allowOther && state.otherOpen) {
                     androidx.compose.material3.OutlinedTextField(state.otherText, onOtherText, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(Res.string.explore_other_hint)) })
-                    IconButton(onClick = onAnswerOther, enabled = state.otherText.isNotBlank()) { Symbol(Symbols.check, contentDescription = stringResource(Res.string.explore_other_option)) }
+                    IconButton(onClick = { tapped = OTHER_ANSWER; onAnswerOther() }, enabled = !building && state.otherText.isNotBlank()) {
+                        if (building && tapped == OTHER_ANSWER) androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        else Symbol(Symbols.check, contentDescription = stringResource(Res.string.explore_other_option))
+                    }
                 }
             }
         }
@@ -488,3 +508,6 @@ private val previewCards = listOf(
         ),
     )
 }
+
+/** The "Lainnya" answer in [AskAgainSheet]; option ids come from the server and are never blank. */
+private const val OTHER_ANSWER = ""
