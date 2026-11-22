@@ -91,6 +91,8 @@ object InspirationPrompt {
         the user has. Costs are a rough range per person in rupiah (costMinIdr, costMaxIdr), an estimate.
         For a skill activity never suggest a spot above the user's stated level; list licences or certification in
         requirements. For abroad trips write visaNote as a short passport/visa estimate.
+        access, bestSeason and level are short chip labels: at most 4 words each (for example "Pesawat ke Heho",
+        "Okt–Mar", "Pemula"); the details go in why and requirements.
         profile: 3-5 chips that sum up the user (keys INTEREST, LEVEL, DURATION, DISTANCE, BUDGET, STYLE), short values.
         overrides are chips the user changed on purpose: they win over the answers.
         When refresh is given, return exactly that card again (same activity and region) with current information, in cards.

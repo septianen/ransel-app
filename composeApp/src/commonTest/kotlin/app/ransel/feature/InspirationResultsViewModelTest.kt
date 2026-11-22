@@ -123,8 +123,11 @@ class InspirationResultsViewModelTest {
         vm.save(card("c1")); runCurrent()
         val saved = event.await() as InspirationResultsEvent.Saved
         assertTrue(saved.removedOldest)
-        vm.undoSave(saved.newIdeaId); runCurrent()
+        assertContains(vm.state.value.savedCardIds, "c1")
+        vm.undoSave(saved.newIdeaId, saved.cardId); runCurrent()
         assertEquals(listOf("saved-1"), repo.undoIds)
+        // the save was undone: its bookmark is empty again and it can be saved anew
+        assertFalse("c1" in vm.state.value.savedCardIds)
     }
 
     @Test fun insufficientCreditsEmitsOutOfCredits() = runTest {

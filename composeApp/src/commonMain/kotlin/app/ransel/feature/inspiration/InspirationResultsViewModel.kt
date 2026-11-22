@@ -302,8 +302,13 @@ class InspirationResultsViewModel(
         }
     }
 
-    fun undoSave(newIdeaId: String) {
-        viewModelScope.launch { repository.undo(newIdeaId) }
+    /** "Urungkan" of the 31st save: the new save goes (its bookmark empties again), the oldest idea comes back. */
+    fun undoSave(newIdeaId: String, cardId: String) {
+        viewModelScope.launch {
+            if (repository.undo(newIdeaId) is ApiResult.Success) {
+                mutable.update { it.copy(savedCardIds = it.savedCardIds - cardId) }
+            }
+        }
     }
 
     private suspend fun applySession(

@@ -33,7 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -132,7 +131,7 @@ fun InspirationResultsScreen(
                     val message = if (event.removedOldest) oldestMessage else savedMessage
                     val action = if (event.removedOldest) undoAction else viewAction
                     val result = snackbarHost.showSnackbar(message, actionLabel = action, duration = SnackbarDuration.Long)
-                    if (event.removedOldest && result == SnackbarResult.ActionPerformed) viewModel.undoSave(event.newIdeaId)
+                    if (event.removedOldest && result == SnackbarResult.ActionPerformed) viewModel.undoSave(event.newIdeaId, event.cardId)
                     if (!event.removedOldest && result == SnackbarResult.ActionPerformed) onOpenSavedIdeas()
                 }
                 is InspirationResultsEvent.BuddyNoted -> snackbarHost.showSnackbar(if (event.recorded) buddyNoted else buddyFailed)
@@ -198,7 +197,10 @@ fun InspirationResultsContent(
 ) {
     var detailCard by remember { mutableStateOf<InspirationCardDto?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
-    BackHandler(enabled = detailCard == null && !state.askAgainOpen && !state.chipEditOpen) { confirmLeave = true }
+    // the system back asks too (Android back, the browser's back on the web); open sheets handle their own back first
+    if (detailCard == null && !state.askAgainOpen && !state.chipEditOpen && !confirmLeave) {
+        app.ransel.navigation.SheetBackHandler { confirmLeave = true }
+    }
     when {
         state.lostSession -> FullScreenState(
             modifier = Modifier.statusBarsPadding(),
@@ -364,14 +366,26 @@ private fun InspirationCard(item: InspirationFeedCard, onOpen: () -> Unit, onSav
             Column(Modifier.padding(horizontal = 16.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(composeStringResource(Res.string.explore_activity_region, item.card.activity, item.card.region), style = MaterialTheme.typography.titleLarge)
                 Text(item.card.why, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // FlowRow: in a Row a long first chip squeezed the others to a letter per line, which made the card very
+                // tall (owner's device test, bug #6)
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     listOfNotNull(
                         item.card.access?.let { composeStringResource(Res.string.explore_access_value, it) },
                         item.card.bestSeason?.let { composeStringResource(Res.string.explore_best_season_value, it) },
                         item.card.level?.let { composeStringResource(Res.string.explore_level_value, it) },
                     ).forEach { value ->
                         Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(8.dp)) {
-                            Text(value, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                value,
+                                Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            )
                         }
                     }
                 }
