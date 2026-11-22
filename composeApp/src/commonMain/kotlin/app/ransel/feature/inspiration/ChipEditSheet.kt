@@ -22,6 +22,7 @@ import app.ransel.shared.model.InspirationChipKey
 import app.ransel.ui.preview.IrisPreview
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.explore_ideas_generating
 import ransel.composeapp.generated.resources.explore_chip_edit_apply
 import ransel.composeapp.generated.resources.explore_chip_edit_free
 import ransel.composeapp.generated.resources.explore_chip_edit_paid
@@ -103,6 +104,7 @@ fun ChipEditContent(
                     Text(stringResource(Res.string.explore_chip_edit_apply))
                 }
             }
+            if (loading) app.ransel.feature.inspiration.components.GeneratingLine(stringResource(Res.string.explore_ideas_generating))
         } else {
             if (key == InspirationChipKey.DISTANCE) {
                 val options = listOf(
@@ -142,6 +144,7 @@ fun ChipEditContent(
             ) {
                 Text(stringResource(Res.string.explore_chip_edit_apply))
             }
+            if (loading) app.ransel.feature.inspiration.components.GeneratingLine(stringResource(Res.string.explore_ideas_generating))
         }
     }
 }
@@ -151,4 +154,7 @@ fun ChipEditContent(
 }
 @Preview @Composable private fun PaidChipEditPreview() = IrisPreview {
     ChipEditContent(InspirationChipKey.DISTANCE, "same_city", 0, 3)
+}
+@Preview @Composable private fun LoadingChipEditPreview() = IrisPreview {
+    ChipEditContent(InspirationChipKey.LEVEL, "Mahir", 2, 3, loading = true)
 }

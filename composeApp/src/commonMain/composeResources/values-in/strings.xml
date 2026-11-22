@@ -2143,6 +2143,7 @@
     <string name="explore_rate_limited_body">Kamu sudah memulai 10 sesi Tanya AI dalam satu jam. Coba lagi nanti; kreditmu tidak dipotong.</string>
     <string name="explore_rate_limited_body_minutes">Kamu sudah memulai 10 sesi Tanya AI dalam satu jam. Coba lagi dalam %1$d menit; kreditmu tidak dipotong.</string>
     <string name="explore_question_generating">Menyiapkan pertanyaan…</string>
+    <string name="explore_ideas_generating">Menyiapkan ide baru…</string>
     <string name="explore_question_failed">Pertanyaan gagal dimuat. Tidak ada kredit yang dipotong.</string>
     <string name="explore_other_option">Lainnya</string>
     <string name="explore_other_hint">Tulis jawabanmu sendiri</string>
