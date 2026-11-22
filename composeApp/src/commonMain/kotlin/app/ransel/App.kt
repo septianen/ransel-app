@@ -936,6 +936,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
             onEditTrip = { navController.navigate(EditTripRoute(route.tripId)) },
             onMembers = { navController.navigate(MembersRoute(route.tripId)) },
             onExplore = { navController.openExplore(route.tripId, signedIn()) },
+            onResumeExplore = { navController.navigate(SwipeRoute(route.tripId)) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onOpenActivity = { id -> navController.navigate(ActivityDetailRoute(route.tripId, id)) },
             onFillLocation = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null, openPlace = true)) },

@@ -1,5 +1,6 @@
 package app.ransel.feature.trip
 
+import app.ransel.feature.trips.phase
 import app.ransel.ui.tour.tourTarget
 import app.ransel.ui.RefreshOnReturn
 import app.ransel.shared.dto.TripDto
@@ -76,6 +77,8 @@ fun TripScreen(
     onEditTrip: () -> Unit,
     onMembers: () -> Unit,
     onExplore: () -> Unit,
+    /** "Cari tempat dengan AI" in the + sheet while this trip has an unfinished swipe session: back into it, no new search. */
+    onResumeExplore: (() -> Unit)? = null,
     onAddActivity: (dayDate: String?) -> Unit,
     onOpenActivity: (itemId: String) -> Unit,
     /** "Isi lokasi" on the day's mini map: the activity's form with the place picker open. */
@@ -279,6 +282,15 @@ fun TripScreen(
             onDismiss = { actionSheetOpen = false },
             onDocument = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenDocuments(true) }) else null,
             onAlbum = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenAlbums(true) }) else null,
+            // the trip-first search for this trip (preferences, then swipe; 2+ members vote on the cards, voting spec)
+            onExplore = if (current != null && app.ransel.feature.group.canSearchPlacesFromSheet(current.myRole, current.phase(app.ransel.util.today()))) ({
+                actionSheetOpen = false
+                if (explorePending && onResumeExplore != null) onResumeExplore() else onExplore()
+            }) else null,
+            exploreSolo = solo,
+            // the search price from the server; nothing while it is unknown or when the unfinished session resumes for free
+            explorePrice = app.ransel.feature.group.explorePrice(app.ransel.feature.credits.rememberCredits().value, resumes = explorePending),
+            exploreBlocked = current?.destination.isNullOrBlank(),
         )
     }
     if (kindSheetOpen) {

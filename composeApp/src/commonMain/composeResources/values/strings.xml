@@ -1066,6 +1066,12 @@
     <string name="group_signin_body">Sign in to invite friends, add them by name and comment on the plan.</string>
     <string name="group_fab_description">Add to the group</string>
     <string name="group_sheet_title">What would you like to do?</string>
+    <string name="group_action_explore_vote">Find ideas to vote on</string>
+    <string name="group_action_explore_vote_hint">Swipe through AI ideas, then let the group vote.</string>
+    <string name="group_action_explore_vote_no_destination">Set a destination first</string>
+    <string name="group_action_explore_solo">Find places with AI</string>
+    <string name="group_action_explore_solo_hint">Swipe places that fit this trip.</string>
+    <string name="group_action_explore_free">Free today</string>
     <string name="group_action_poll">Create a poll</string>
     <string name="group_action_poll_hint">Let everyone pick the dates, the stay or a place to eat.</string>
     <string name="group_action_invite">Invite members</string>
