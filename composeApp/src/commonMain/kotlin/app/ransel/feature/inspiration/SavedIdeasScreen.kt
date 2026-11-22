@@ -192,7 +192,7 @@ fun SavedIdeasContent(
         }
     }
     detail?.let { idea ->
-        CardDetailSheet(idea.card, onDismiss = { detail = null }, onCreateTrip = {}, onSave = { })
+        CardDetailSheet(idea.card, onDismiss = { detail = null }, onCreateTrip = {}, onSave = { }, showSaveButton = false)
     }
 }
 
