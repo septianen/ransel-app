@@ -39,6 +39,7 @@ class SavedIdeasViewModelTest {
         override suspend fun get(id: String) = ApiResult.Failure(ApiFailure("x", "x"))
         override suspend fun answer(id: String, request: InspirationAnswerRequest) = ApiResult.Failure(ApiFailure("x", "x"))
         override suspend fun finish(id: String) = ApiResult.Failure(ApiFailure("x", "x"))
+        override suspend fun back(id: String): ApiResult<InspirationSessionDto> = ApiResult.Failure(ApiFailure("CONFLICT", "none"))
         override suspend fun askAgain(id: String) = ApiResult.Failure(ApiFailure("x", "x"))
         override suspend fun editChip(id: String, request: InspirationEditChipRequest) = ApiResult.Failure(ApiFailure("x", "x"))
         override suspend fun saved(): ApiResult<SavedIdeasResponse> { savedCalls++; return ApiResult.Success(SavedIdeasResponse(ideas)) }

@@ -42,6 +42,9 @@ class InspirationHandoffTest {
         override suspend fun get(id: String) = ApiResult.Success(session)
         override suspend fun answer(id: String, request: InspirationAnswerRequest) = answerResult
         override suspend fun finish(id: String) = answerResult
+        var backResult: ApiResult<InspirationSessionDto> = ApiResult.Failure(ApiFailure("CONFLICT", "none", 409))
+        var backCalls = 0
+        override suspend fun back(id: String): ApiResult<InspirationSessionDto> { backCalls++; return backResult }
         override suspend fun askAgain(id: String) = ApiResult.Success(session)
         override suspend fun editChip(id: String, request: InspirationEditChipRequest) = ApiResult.Success(session)
         override suspend fun saved() = ApiResult.Success(SavedIdeasResponse(emptyList()))
@@ -115,6 +118,42 @@ class InspirationHandoffTest {
             ),
             analytics.events,
         )
+    }
+
+    @Test
+    fun backGoesOneQuestionBackAndLeavesOnTheFirst() = runTest {
+        fun question(slot: InspirationSlot, done: Int) = InspirationQuestionDto(
+            slot, "Q $slot", listOf(InspirationOptionDto("a", "A"), InspirationOptionDto("b", "B"), InspirationOptionDto("c", "C")),
+            stepsDone = done,
+        )
+        val repo = Repo(InspirationSessionDto("sid", InspirationStatus.ACTIVE, question(InspirationSlot.DETAIL, 1), expiresAt = at))
+        repo.backResult = ApiResult.Success(InspirationSessionDto("sid", InspirationStatus.ACTIVE, question(InspirationSlot.DISTANCE, 0), expiresAt = at))
+        val vm = InspirationInterviewViewModel("sid", repo); runCurrent()
+        vm.back(); runCurrent()
+        assertEquals(1, repo.backCalls)
+        assertEquals(InspirationSlot.DISTANCE, vm.state.value.question?.slot)
+        assertFalse(vm.state.value.hasAnswers)
+        // on the first question Back leaves without asking the server
+        vm.back(); runCurrent()
+        assertEquals(1, repo.backCalls)
+        assertEquals(app.ransel.feature.inspiration.InspirationInterviewEvent.Leave, vm.eventFlow.first())
+    }
+
+    @Test
+    fun backThatTheServerRefusesLeavesAndAnOpenLainnyaClosesFirst() = runTest {
+        val q = InspirationQuestionDto(
+            InspirationSlot.CONTEXT, "Q", listOf(InspirationOptionDto("a", "A"), InspirationOptionDto("b", "B"), InspirationOptionDto("c", "C")),
+            stepsDone = 2,
+        )
+        val repo = Repo(InspirationSessionDto("sid", InspirationStatus.ACTIVE, q, expiresAt = at))
+        val vm = InspirationInterviewViewModel("sid", repo); runCurrent()
+        vm.openOther()
+        vm.back()
+        assertFalse(vm.state.value.otherOpen)
+        assertEquals(0, repo.backCalls)
+        vm.back(); runCurrent()
+        assertEquals(1, repo.backCalls)
+        assertEquals(app.ransel.feature.inspiration.InspirationInterviewEvent.Leave, vm.eventFlow.first())
     }
 
     @Test

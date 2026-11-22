@@ -9,6 +9,8 @@ interface InspirationRepository {
     suspend fun get(id: String): ApiResult<InspirationSessionDto>
     suspend fun answer(id: String, request: InspirationAnswerRequest): ApiResult<InspirationSessionDto>
     suspend fun finish(id: String): ApiResult<InspirationSessionDto>
+    /** "Back" in the interview: the previous question again. */
+    suspend fun back(id: String): ApiResult<InspirationSessionDto>
     suspend fun askAgain(id: String): ApiResult<InspirationSessionDto>
     suspend fun editChip(id: String, request: InspirationEditChipRequest): ApiResult<InspirationSessionDto>
     suspend fun saved(): ApiResult<SavedIdeasResponse>
@@ -26,6 +28,7 @@ class ApiInspirationRepository(private val api: RanselApi) : InspirationReposito
     override suspend fun get(id: String) = api.inspirationSession(id)
     override suspend fun answer(id: String, request: InspirationAnswerRequest) = api.answerInspiration(id, request)
     override suspend fun finish(id: String) = api.finishInspiration(id)
+    override suspend fun back(id: String) = api.backInspiration(id)
     override suspend fun askAgain(id: String) = api.askAgainInspiration(id)
     override suspend fun editChip(id: String, request: InspirationEditChipRequest) = api.editInspirationChip(id, request)
     override suspend fun saved() = api.savedIdeas()

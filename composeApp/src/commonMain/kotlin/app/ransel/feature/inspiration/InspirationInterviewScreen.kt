@@ -75,9 +75,12 @@ fun InspirationInterviewScreen(
             when (event) {
                 InspirationInterviewEvent.Results -> onResults()
                 InspirationInterviewEvent.OutOfCredits -> onOutOfCredits()
+                InspirationInterviewEvent.Leave -> onBack()
             }
         }
     }
+    // the system back walks the questions back like the arrow; "×" stays "leave"
+    app.ransel.navigation.SheetBackHandler(onBack = viewModel::back)
     InspirationInterviewContent(
         state = state,
         onAnswer = viewModel::answer,
@@ -87,6 +90,7 @@ fun InspirationInterviewScreen(
         onFinish = viewModel::enough,
         onRetry = viewModel::retry,
         onBack = onBack,
+        onStepBack = viewModel::back,
     )
 }
 
@@ -100,6 +104,8 @@ fun InspirationInterviewContent(
     onFinish: () -> Unit = {},
     onRetry: () -> Unit = {},
     onBack: () -> Unit = {},
+    /** The back arrow: the previous question ([onBack] leaves: "×", lost session). */
+    onStepBack: () -> Unit = onBack,
 ) {
     var confirmDiscard by remember { mutableStateOf(false) }
     if (state.lostSession) {
@@ -123,7 +129,7 @@ fun InspirationInterviewContent(
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onStepBack) {
                 Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
             }
             Text(stringResource(Res.string.explore_ai_title), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
