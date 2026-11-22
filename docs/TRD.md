@@ -236,6 +236,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | POST ★ | /explore/inspiration/sessions | Explore Inspirasi: start a session (client UUID, up to 5 interests, optional text); answers the first question. Checks credits first (402), max 10 new sessions per user per hour (429 `RATE_LIMITED`) | Inspirasi |
 | GET ★ | /explore/inspiration/sessions/{id} | Resume a session (24 h) | Inspirasi |
 | POST ★ | /explore/inspiration/sessions/{id}/answers | Answer a question (option or "Lainnya"); next question or READY | Inspirasi |
+| POST ★ | /explore/inspiration/sessions/{id}/back | Back one step: the last answer is dropped and the previous question comes back (no AI call); 409 on the first question or after the cards | Inspirasi |
 | POST ★ | /explore/inspiration/sessions/{id}/finish | Build the cards and charge once per session (idempotent); 402 keeps the session | Inspirasi |
 | POST ★ | /explore/inspiration/sessions/{id}/ask-again | "Tanya lagi": 1 free per session, then the next-batch price; the answer appends cards | Inspirasi |
 | PATCH ★ | /explore/inspiration/sessions/{id}/profile | Edit a profile chip: 3 free per session, then the next-batch price | Inspirasi |

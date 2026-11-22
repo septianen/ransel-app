@@ -40,6 +40,7 @@ class InspirationResultsViewModelTest {
         override suspend fun get(id: String): ApiResult<InspirationSessionDto> { getCalls++; return getResult }
         override suspend fun answer(id: String, request: InspirationAnswerRequest) = answerResult
         override suspend fun finish(id: String) = answerResult
+        override suspend fun back(id: String): ApiResult<InspirationSessionDto> = ApiResult.Failure(ApiFailure("CONFLICT", "none"))
         override suspend fun askAgain(id: String) = againResult
         override suspend fun editChip(id: String, request: InspirationEditChipRequest): ApiResult<InspirationSessionDto> { editRequest = request; return editResult }
         override suspend fun saved() = ApiResult.Success(SavedIdeasResponse(emptyList()))
@@ -109,9 +110,10 @@ class InspirationResultsViewModelTest {
         val repo = Repo(); val vm = InspirationResultsViewModel("sid", repo); runCurrent()
         val event = async { vm.eventFlow.first() }
         vm.save(card("c1")); runCurrent()
-        assertEquals(InspirationResultsEvent.Saved(false, "saved-1"), event.await())
+        assertEquals(InspirationResultsEvent.Saved(false, "saved-1", "c1"), event.await())
         assertEquals("sid", repo.lastSaveRequest?.sessionId)
         assertEquals("c1", repo.lastSaveRequest?.cardId)
+        assertContains(vm.state.value.savedCardIds, "c1")
     }
 
     @Test fun oldestRemovalEmitsUndoEventAndUndoCallsRepository() = runTest {
@@ -121,8 +123,11 @@ class InspirationResultsViewModelTest {
         vm.save(card("c1")); runCurrent()
         val saved = event.await() as InspirationResultsEvent.Saved
         assertTrue(saved.removedOldest)
-        vm.undoSave(saved.newIdeaId); runCurrent()
+        assertContains(vm.state.value.savedCardIds, "c1")
+        vm.undoSave(saved.newIdeaId, saved.cardId); runCurrent()
         assertEquals(listOf("saved-1"), repo.undoIds)
+        // the save was undone: its bookmark is empty again and it can be saved anew
+        assertFalse("c1" in vm.state.value.savedCardIds)
     }
 
     @Test fun insufficientCreditsEmitsOutOfCredits() = runTest {

@@ -172,7 +172,11 @@ class InspirationService(
                 question.options.firstOrNull { it.id == optionId } ?: throw validationFailed(mapOf("optionId" to "INVALID"))
             }
             val answerText = option?.title ?: scrub(body.otherText.orEmpty().trim())
-            var state = record(session.state, question, option, answerText)
+            val before = session.state
+            var state = record(before, question, option, answerText)
+            if (before.mode == InspirationMode.INTERVIEW) {
+                state = state.copy(history = (before.history + before.copy(history = emptyList())).takeLast(MAX_HISTORY))
+            }
             logChoice(id, state.stepsAsked, answerText)
 
             when (state.mode) {
@@ -207,6 +211,23 @@ class InspirationService(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * "Back" in the interview: the last answer goes and the question before it is shown again, as it was. Only while the
+     * interview runs (ACTIVE or READY, never once the cards are paid for) and not on the first question (409 CONFLICT).
+     */
+    suspend fun back(userId: UUID, rawId: String): InspirationSessionDto {
+        val id = parseId(rawId, "sessionId")
+        return lockFor(sessionLocks, id).withLock {
+            val session = load(userId, id)
+            val state = session.state
+            val open = session.status == InspirationStatus.ACTIVE || session.status == InspirationStatus.READY
+            if (!open || state.mode != InspirationMode.INTERVIEW || state.history.isEmpty()) throw conflict("There is no earlier question")
+            val previous = state.history.last().copy(history = state.history.dropLast(1))
+            save(id, InspirationStatus.ACTIVE, previous)
+            dto(load(userId, id))
         }
     }
 
@@ -578,7 +599,7 @@ class InspirationService(
             writeLog(sessionId, userId, state.stepsAsked + 1, "QUESTION", slot, InspirationQuestionSource.FALLBACK, "FALLBACK", elapsed(started), null)
             return null
         }
-        val q = InspirationQuestionDto(slot = slot, text = answer.question.trim().take(200), options = options, source = InspirationQuestionSource.LLM)
+        val q = InspirationQuestionDto(slot = slot, text = sentence(answer.question.trim().take(200)), options = options, source = InspirationQuestionSource.LLM)
         next = ask(next, q, requirement)
         writeLog(sessionId, userId, next.stepsAsked, "QUESTION", slot, InspirationQuestionSource.LLM, "OK", elapsed(started), q.text)
         return next
@@ -612,13 +633,13 @@ class InspirationService(
     private fun cleanOptions(raw: List<LlmInspirationOption>, slot: InspirationSlot, interests: List<Interest>, language: String): List<InspirationOptionDto> {
         val seen = mutableSetOf<String>()
         val options = raw.mapIndexedNotNull { i, o ->
-            val title = o.title.trim().take(80)
+            val title = sentence(o.title.trim().take(80))
             if (title.isEmpty() || !seen.add(title.lowercase())) return@mapIndexedNotNull null
             val id = o.id.trim().takeIf { it.isNotEmpty() && it.length <= 40 } ?: "o${i + 1}"
             InspirationOptionDto(
                 id = id,
                 title = title,
-                subtitle = o.subtitle?.trim()?.take(80)?.takeIf { it.isNotEmpty() },
+                subtitle = o.subtitle?.trim()?.take(80)?.takeIf { it.isNotEmpty() }?.let(::sentence),
                 interests = o.interests.mapNotNull { n -> Interest.entries.firstOrNull { it.name == n.trim().uppercase() } }.distinct(),
             )
         }.distinctBy { it.id }
@@ -713,9 +734,9 @@ class InspirationService(
     }
 
     private fun sanitize(c: LlmInspirationCard, state: InspirationState, language: String, visa: Boolean): InspirationCardDto? {
-        val activity = c.activity.trim().take(80)
+        val activity = sentence(c.activity.trim().take(80))
         val region = c.region.trim().take(80)
-        val why = c.why.trim().take(200)
+        val why = sentence(c.why.trim().take(200))
         if (activity.isEmpty() || region.isEmpty() || why.isEmpty()) return null
         val min = c.costMinIdr?.takeIf { it > 0 }
         val max = c.costMaxIdr?.takeIf { it > 0 }
@@ -726,12 +747,12 @@ class InspirationService(
             region = region,
             countryCode = c.countryCode?.trim()?.uppercase()?.takeIf { it.length == 2 && it.all(Char::isLetter) },
             why = why,
-            access = c.access?.trim()?.take(80)?.takeIf { it.isNotEmpty() },
-            bestSeason = c.bestSeason?.trim()?.take(80)?.takeIf { it.isNotEmpty() },
-            level = c.level?.trim()?.take(60)?.takeIf { it.isNotEmpty() },
-            requirements = c.requirements.map { it.trim().take(120) }.filter { it.isNotEmpty() }.take(6),
+            access = c.access?.trim()?.take(80)?.takeIf { it.isNotEmpty() }?.let(::sentence),
+            bestSeason = c.bestSeason?.trim()?.take(80)?.takeIf { it.isNotEmpty() }?.let(::sentence),
+            level = c.level?.trim()?.take(60)?.takeIf { it.isNotEmpty() }?.let(::sentence),
+            requirements = c.requirements.map { sentence(it.trim().take(120)) }.filter { it.isNotEmpty() }.take(6),
             costRange = cost,
-            visaNote = if (visa) (c.visaNote?.trim()?.take(200)?.takeIf { it.isNotEmpty() } ?: defaultVisaNote(language)) else null,
+            visaNote = if (visa) (c.visaNote?.trim()?.take(200)?.takeIf { it.isNotEmpty() }?.let(::sentence) ?: defaultVisaNote(language)) else null,
             safetyLine = if (state.skillActivity) safetyLine(language) else null,
             durationDays = c.durationDays?.takeIf { it in 1..60 },
         )
@@ -783,7 +804,7 @@ class InspirationService(
         if (state.interests.isNotEmpty()) chips[InspirationChipKey.INTEREST] = InspirationPrompt.interestLabels(state.interests, language)
         raw.forEach { chip ->
             val key = InspirationChipKey.entries.firstOrNull { it.name == chip.key.trim().uppercase() } ?: return@forEach
-            val value = chip.value.trim().take(40)
+            val value = sentence(chip.value.trim().take(40))
             if (value.isNotEmpty() && key !in chips) chips[key] = value
         }
         state.overrides.forEach { (k, v) -> chips[k] = v }
@@ -1012,12 +1033,20 @@ class InspirationService(
 
     companion object {
         private const val MAX_ADVANCE_ROUNDS = 6
+        /** Answers that "Back" can undo: more than a whole interview (6 steps + city + mandatory questions). */
+        private const val MAX_HISTORY = 12
         private const val CARD_ATTEMPTS = 2
         private const val CARDS_TIMEOUT_MS = 30_000L
         private const val PHOTO_CACHE_MAX = 5_000
 
         private val EMAIL = Regex("""[\w.+-]+@[\w-]+(\.[\w-]+)+""")
         private val PHONE = Regex("""\+?\d[\d\s().-]{7,}\d""")
+
+        /**
+         * Sentence case on the first letter: the model sometimes writes everything lowercase ("kombinasi pengalaman …",
+         * owner's device test, 22 Nov 2026). Only the first letter changes; names inside keep their case.
+         */
+        fun sentence(text: String): String = text.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
 
         /** Free text keeps its meaning but loses anything that looks like an email or a phone number (PRD "Tracking"). */
         fun scrub(text: String): String = PHONE.replace(EMAIL.replace(text, "[email]"), "[phone]")

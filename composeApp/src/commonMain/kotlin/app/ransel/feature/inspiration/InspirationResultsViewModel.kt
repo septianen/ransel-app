@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
  data class InspirationFeedCard(val card: InspirationCardDto, val surprise: Boolean = false)
@@ -45,6 +46,7 @@ data class InspirationResultsUiState(
     val askAgainFreeLeft: Int = 0,
     val extraCost: Int = 0,
     val appendDividerAt: Int? = null,
+    val savedCardIds: Set<String> = emptySet(),
     val chipEditsFreeLeft: Int = 0,
     val chipEditOpen: Boolean = false,
     val chipEditKey: InspirationChipKey? = null,
@@ -59,7 +61,7 @@ data class InspirationResultsUiState(
 
 sealed interface InspirationResultsEvent {
     data object OutOfCredits : InspirationResultsEvent
-    data class Saved(val removedOldest: Boolean, val newIdeaId: String) : InspirationResultsEvent
+    data class Saved(val removedOldest: Boolean, val newIdeaId: String, val cardId: String) : InspirationResultsEvent
     data object SaveFailed : InspirationResultsEvent
     /** A chip edit failed (not 402, not a lost session): the sheet stays open for another try. */
     data object ChipEditFailed : InspirationResultsEvent
@@ -257,12 +259,14 @@ class InspirationResultsViewModel(
     }
 
     fun save(card: InspirationCardDto) {
+        if (card.id in mutable.value.savedCardIds) return
         viewModelScope.launch {
             val request = SaveIdeaRequest(id = newId(), sessionId = sessionId, cardId = card.id)
             when (val response = repository.save(request)) {
                 is ApiResult.Success -> {
                     analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationSaved)
-                    events.send(InspirationResultsEvent.Saved(response.value.removedOldestId != null, response.value.idea.id))
+                    mutable.update { it.copy(savedCardIds = it.savedCardIds + card.id) }
+                    events.send(InspirationResultsEvent.Saved(response.value.removedOldestId != null, response.value.idea.id, card.id))
                 }
                 is ApiResult.Failure -> events.send(InspirationResultsEvent.SaveFailed)
             }
@@ -298,8 +302,13 @@ class InspirationResultsViewModel(
         }
     }
 
-    fun undoSave(newIdeaId: String) {
-        viewModelScope.launch { repository.undo(newIdeaId) }
+    /** "Urungkan" of the 31st save: the new save goes (its bookmark empties again), the oldest idea comes back. */
+    fun undoSave(newIdeaId: String, cardId: String) {
+        viewModelScope.launch {
+            if (repository.undo(newIdeaId) is ApiResult.Success) {
+                mutable.update { it.copy(savedCardIds = it.savedCardIds - cardId) }
+            }
+        }
     }
 
     private suspend fun applySession(

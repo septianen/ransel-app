@@ -2214,4 +2214,6 @@
     <string name="saved_ideas_count_title">%1$d ide</string>
     <string name="saved_ideas_meta">%1$s</string>
     <string name="saved_ideas_meta_duration">%1$s · ≤ %2$d hari</string>
+    <string name="explore_results_leave_title">Kembali ke Jelajah?</string>
+    <string name="explore_results_leave_body">Hasil ini akan hilang jika kamu kembali.</string>
 </resources>

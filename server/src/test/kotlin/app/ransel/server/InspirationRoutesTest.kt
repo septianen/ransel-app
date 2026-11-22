@@ -437,6 +437,66 @@ class InspirationRoutesTest {
     }
 
     @Test
+    fun backShowsThePreviousQuestionAgainWithoutAnAiCall() {
+        val llm = InspirationLlm()
+        apiTest(ai = AiServices(llm, PhotoPlaces)) {
+            val id = UUID.randomUUID().toString()
+            val first = start(listOf(Interest.NATURE), id = id).data().jsonObject
+            assertEquals("DISTANCE", first.question!!.str("slot"))
+            // nothing before the first question
+            assertEquals(HttpStatusCode.Conflict, post("$SESSIONS/$id/back").status)
+
+            val detail = answer(id, "abroad").data().jsonObject
+            assertEquals("DETAIL", detail.question!!.str("slot"))
+            val calls = llm.questionCalls
+            val backed = post("$SESSIONS/$id/back")
+            assertEquals(HttpStatusCode.OK, backed.status, backed.jsonBody().toString())
+            val again = backed.data().jsonObject
+            assertEquals("ACTIVE", again.status)
+            assertEquals(first.question!!.str("text"), again.question!!.str("text"))
+            assertEquals(0, again.question!!.getValue("stepsDone").jsonPrimitive.int)
+            assertEquals(calls, llm.questionCalls, "back makes no AI call")
+            // the earlier answer is gone: a different answer takes another path
+            val sameCity = answer(id, "same_city").data().jsonObject
+            assertEquals("Kota mana?", sameCity.question!!.str("text"))
+
+            // once the cards are paid for there is no way back
+            val (done, _) = answerAll(id, sameCity)
+            assertEquals("READY", done.status)
+            post("$SESSIONS/$id/finish")
+            assertEquals(HttpStatusCode.Conflict, post("$SESSIONS/$id/back").status)
+            assertEquals(3, spentOn("INSPIRATION", userId))
+        }
+    }
+
+    @Test
+    fun aiTextsStartWithACapitalAndThePromptUsesTheAppLabels() {
+        val llm = InspirationLlm().apply {
+            facts = { input ->
+                if (input.slot != InspirationSlot.DETAIL) null
+                else LlmInspirationQuestion(
+                    question = "kombinasi pengalaman apa yang kamu mau?",
+                    options = listOf(LlmInspirationOption("a", "petualangan alam", "satwa & alam"), LlmInspirationOption("b", "B"), LlmInspirationOption("c", "C")),
+                )
+            }
+        }
+        apiTest(ai = AiServices(llm, PhotoPlaces)) {
+            val id = UUID.randomUUID().toString()
+            start(listOf(Interest.NATURE), id = id)
+            val detail = answer(id, "domestic").data().jsonObject.question!!
+            assertEquals("Kombinasi pengalaman apa yang kamu mau?", detail.str("text"))
+            val option = detail.getValue("options").jsonArray[0].jsonObject
+            assertEquals("Petualangan alam", option.str("title"))
+            assertEquals("Satwa & alam", option.str("subtitle"))
+        }
+        val prompt = app.ransel.server.ai.InspirationPrompt.questionUser(
+            InspirationQuestionInput("id", listOf(Interest.NATURE, Interest.RELAX), null, emptyList(), InspirationSlot.COMBINATION),
+        )
+        assertTrue("Satwa & alam" in prompt && "Healing" in prompt, prompt)
+        assertTrue("huruf kecil kalimat biasa" !in prompt)
+    }
+
+    @Test
     fun aRemovedIdeaCanBeRestoredWithin24Hours() {
         apiTest(ai = AiServices(InspirationLlm(), PhotoPlaces)) {
             val sessionId = UUID.randomUUID().toString()
@@ -491,7 +551,7 @@ class InspirationRoutesTest {
             val refreshed = post("$SAVED/$ideaId/refresh")
             assertEquals(HttpStatusCode.OK, refreshed.status, refreshed.jsonBody().toString())
             val idea = refreshed.data().jsonObject
-            assertEquals("fresh", idea.getValue("card").jsonObject.str("why"))
+            assertEquals("Fresh", idea.getValue("card").jsonObject.str("why"), "AI texts start with a capital")
             assertEquals("c1", idea.getValue("card").jsonObject.str("id"))
             assertNotNull(idea.str("canRefreshAt"))
 

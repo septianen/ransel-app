@@ -658,6 +658,8 @@ class RanselApi(
     suspend fun startInspiration(request: StartInspirationRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_SESSIONS, request)
     suspend fun inspirationSession(id: String): ApiResult<InspirationSessionDto> = get(ApiRoutes.inspirationSession(id))
     suspend fun answerInspiration(id: String, request: InspirationAnswerRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Post, ApiRoutes.inspirationAnswer(id), request)
+    /** Back one step: the last answer is dropped and the previous question comes back (409 on the first question). */
+    suspend fun backInspiration(id: String): ApiResult<InspirationSessionDto> = call(HttpMethod.Post, ApiRoutes.inspirationBack(id)) { it.body<ApiResponse<InspirationSessionDto>>().data }
     suspend fun finishInspiration(id: String): ApiResult<InspirationSessionDto> = call(HttpMethod.Post, ApiRoutes.inspirationFinish(id)) { it.body<ApiResponse<InspirationSessionDto>>().data }
     suspend fun askAgainInspiration(id: String): ApiResult<InspirationSessionDto> = call(HttpMethod.Post, ApiRoutes.inspirationAskAgain(id)) { it.body<ApiResponse<InspirationSessionDto>>().data }
     suspend fun editInspirationChip(id: String, request: InspirationEditChipRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Patch, ApiRoutes.inspirationProfile(id), request)

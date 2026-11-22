@@ -29,6 +29,8 @@ import kotlinx.coroutines.launch
 sealed interface InspirationInterviewEvent {
     data object Results : InspirationInterviewEvent
     data object OutOfCredits : InspirationInterviewEvent
+    /** Back on the first question: the interview closes (the session stays resumable for 24 h). */
+    data object Leave : InspirationInterviewEvent
 }
 
 class InspirationInterviewViewModel(
@@ -69,6 +71,43 @@ class InspirationInterviewViewModel(
         analytics.event(app.ransel.data.analytics.AnalyticsEvent.InspirationStep(slot, other))
     }
     fun retry() = load()
+
+    /**
+     * The back arrow and the system back: one question back (owner, 22 Nov 2026), the answers before it stay. On the first
+     * question, or when the server has nothing earlier (409), the interview closes.
+     */
+    fun back() {
+        val current = mutable.value
+        if (current.loading) return
+        if (current.otherOpen) {
+            mutable.value = current.copy(otherOpen = false, otherText = "")
+            return
+        }
+        val stepsDone = current.question?.stepsDone ?: 0
+        if (current.lostSession || stepsDone == 0) {
+            viewModelScope.launch { events.send(InspirationInterviewEvent.Leave) }
+            return
+        }
+        mutable.value = current.copy(loading = true, inlineError = false)
+        viewModelScope.launch {
+            when (val result = repository.back(sessionId)) {
+                is ApiResult.Success -> mutable.value = InspirationInterviewUiState(
+                    session = result.value,
+                    question = result.value.question,
+                    loading = false,
+                    hasAnswers = (result.value.question?.stepsDone ?: 0) > 0,
+                )
+                is ApiResult.Failure ->
+                    if (result.error.code == ErrorCode.CONFLICT) {
+                        mutable.value = current
+                        events.send(InspirationInterviewEvent.Leave)
+                    } else {
+                        // the question stays on screen; a failed step back is like a failed step
+                        mutable.value = current.copy(loading = false, inlineError = true)
+                    }
+            }
+        }
+    }
 
     private fun runRequest(finishing: Boolean = false, repositoryCall: suspend () -> ApiResult<InspirationSessionDto>) {
         val previous = mutable.value

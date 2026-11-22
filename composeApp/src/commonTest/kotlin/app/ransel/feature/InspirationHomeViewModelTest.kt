@@ -30,6 +30,7 @@ class InspirationHomeViewModelTest {
         override suspend fun get(id: String) = result
         override suspend fun answer(id: String, request: InspirationAnswerRequest) = result
         override suspend fun finish(id: String) = result
+        override suspend fun back(id: String): ApiResult<InspirationSessionDto> = ApiResult.Failure(ApiFailure("CONFLICT", "none"))
         override suspend fun askAgain(id: String) = result
         override suspend fun editChip(id: String, request: InspirationEditChipRequest) = result
         override suspend fun saved() = ApiResult.Success(SavedIdeasResponse(emptyList()))

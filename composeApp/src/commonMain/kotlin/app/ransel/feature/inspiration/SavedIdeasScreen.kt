@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -141,6 +142,7 @@ fun SavedIdeasContent(
     var detail by remember { mutableStateOf<SavedIdeaDto?>(null) }
     when {
         !signedIn -> FullScreenState(
+            modifier = Modifier.statusBarsPadding(),
             title = stringResource(Res.string.explore_guest_title),
             body = stringResource(Res.string.explore_guest_body),
             primaryLabel = stringResource(Res.string.explore_guest_sign_in), onPrimary = onSignIn,
@@ -148,12 +150,14 @@ fun SavedIdeasContent(
         )
         state.loading && !state.loaded -> SkeletonList(rows = 5)
         state.failure != null && state.ideas.isEmpty() -> FullScreenState(
+            modifier = Modifier.statusBarsPadding(),
             title = stringResource(Res.string.credits_error_generic),
             body = stringResource(Res.string.credits_error_generic),
             primaryLabel = stringResource(Res.string.explore_retry), onPrimary = onRetry,
             secondaryLabel = stringResource(Res.string.action_back), onSecondary = onBack,
         )
         state.ideas.isEmpty() -> FullScreenState(
+            modifier = Modifier.statusBarsPadding(),
             title = stringResource(Res.string.saved_ideas_empty_title),
             body = stringResource(Res.string.saved_ideas_empty_body),
             illustration = painterResource(Res.drawable.ic_binocular),
@@ -161,6 +165,7 @@ fun SavedIdeasContent(
             primaryLabel = stringResource(Res.string.explore_ai_title), onPrimary = onAskAi,
         )
         else -> Scaffold(
+            modifier = Modifier.statusBarsPadding(),
             snackbarHost = { SnackbarHost(snackbarHost) { UndoSnackbar(it.visuals.message, actionLabel = it.visuals.actionLabel, onAction = { it.performAction() }) } },
             containerColor = MaterialTheme.colorScheme.background,
         ) { padding ->

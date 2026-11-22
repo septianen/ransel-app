@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -75,9 +76,12 @@ fun InspirationInterviewScreen(
             when (event) {
                 InspirationInterviewEvent.Results -> onResults()
                 InspirationInterviewEvent.OutOfCredits -> onOutOfCredits()
+                InspirationInterviewEvent.Leave -> onBack()
             }
         }
     }
+    // the system back walks the questions back like the arrow; "×" stays "leave"
+    app.ransel.navigation.SheetBackHandler(onBack = viewModel::back)
     InspirationInterviewContent(
         state = state,
         onAnswer = viewModel::answer,
@@ -87,6 +91,7 @@ fun InspirationInterviewScreen(
         onFinish = viewModel::enough,
         onRetry = viewModel::retry,
         onBack = onBack,
+        onStepBack = viewModel::back,
     )
 }
 
@@ -100,10 +105,13 @@ fun InspirationInterviewContent(
     onFinish: () -> Unit = {},
     onRetry: () -> Unit = {},
     onBack: () -> Unit = {},
+    /** The back arrow: the previous question ([onBack] leaves: "×", lost session). */
+    onStepBack: () -> Unit = onBack,
 ) {
     var confirmDiscard by remember { mutableStateOf(false) }
     if (state.lostSession) {
         FullScreenState(
+            modifier = Modifier.statusBarsPadding(),
             title = stringResource(Res.string.explore_interview_lost_title),
             body = stringResource(Res.string.explore_interview_lost_body),
             primaryLabel = stringResource(Res.string.action_close),
@@ -121,9 +129,9 @@ fun InspirationInterviewContent(
             onDismiss = { confirmDiscard = false },
         )
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onStepBack) {
                 Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
             }
             Text(stringResource(Res.string.explore_ai_title), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
@@ -133,11 +141,12 @@ fun InspirationInterviewContent(
         }
         val question = state.question
         val progress = ((question?.stepsDone ?: 0) + (question?.skippedSlots?.size ?: 0)).coerceIn(0, 5)
+        val filledSegments = (progress + if (question != null) 1 else 0).coerceIn(0, 5)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
             repeat(5) { index ->
                 Box(
                     Modifier.weight(1f).height(4.dp).background(
-                        if (index < progress) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                        if (index < filledSegments) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
                         RoundedCornerShape(4.dp),
                     ),
                 )
