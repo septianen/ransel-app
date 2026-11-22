@@ -2086,6 +2086,14 @@
     <string name="interview_credits_balance_short">Saldo %1$d kredit</string>
     <string name="interview_create_offline_note">Pencarian butuh internet. Cari lagi dari Jelajah.</string>
     <string name="interview_taste_sheet_title">Ubah seleramu</string>
+    <string name="trip_explore_banner">Cari inspirasi tempat untuk tripmu</string>
+    <string name="trip_explore_banner_resume">Lanjutkan cari tempat</string>
+    <string name="trip_explore_banner_no_destination">Atur tujuan dulu</string>
+    <string name="trip_explore_sheet_title">Cari tempat di %1$s</string>
+    <string name="trip_explore_search">Cari tempat</string>
+    <string name="trip_explore_search_credits">Cari tempat · %1$d kredit</string>
+    <string name="trip_explore_search_free">Cari tempat · Gratis hari ini</string>
+    <string name="trip_explore_group_line">Hasilnya divoting semua anggota.</string>
     <string name="interview_taste_sheet_error">Pilih minimal satu minat untuk pencarian.</string>
     <string name="interview_taste_sheet_counter">%1$d/%2$d</string>
     <string name="interview_price_from_budget">Dari budget trip</string>

@@ -2103,6 +2103,14 @@
     <string name="interview_credits_balance_short">Balance %1$d credits</string>
     <string name="interview_create_offline_note">Searching needs internet. Search again from Explore.</string>
     <string name="interview_taste_sheet_title">Change your taste</string>
+    <string name="trip_explore_banner">Find place ideas for your trip</string>
+    <string name="trip_explore_banner_resume">Continue finding places</string>
+    <string name="trip_explore_banner_no_destination">Set a destination first</string>
+    <string name="trip_explore_sheet_title">Find places in %1$s</string>
+    <string name="trip_explore_search">Search places</string>
+    <string name="trip_explore_search_credits">Search places · %1$d credits</string>
+    <string name="trip_explore_search_free">Search places · Free today</string>
+    <string name="trip_explore_group_line">Every member votes on the results.</string>
     <string name="interview_taste_sheet_error">Pick at least one interest for the search.</string>
     <string name="interview_taste_sheet_counter">%1$d/%2$d</string>
     <string name="interview_price_from_budget">From the trip budget</string>

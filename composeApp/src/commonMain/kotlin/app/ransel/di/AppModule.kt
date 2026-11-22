@@ -27,7 +27,6 @@ import app.ransel.feature.inspiration.InspirationHomeViewModel
 import app.ransel.feature.inspiration.InspirationInterviewViewModel
 import app.ransel.feature.inspiration.InspirationResultsViewModel
 import app.ransel.feature.inspiration.SavedIdeasViewModel
-import app.ransel.feature.explore.ExplorePreferencesViewModel
 import app.ransel.feature.explore.ExploreTripPickerViewModel
 import app.ransel.feature.explore.PlaceDetailViewModel
 import app.ransel.feature.explore.SwipeViewModel
@@ -122,7 +121,7 @@ val commonModule: Module = module {
     }
     viewModel { params ->
         app.ransel.feature.tripform.travel.TripTravelViewModel(
-            params.get<String>(0), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get(), get(),
+            params.get<String>(0), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get(), get(), get(),
         )
     }
     single { PushRegistration(get(), get(), get()) }
@@ -138,7 +137,9 @@ val commonModule: Module = module {
         app.ransel.ui.tour.TourController(get(), { (session.state.value as? app.ransel.data.auth.SessionState.SignedIn)?.user?.id }, get())
     }
     viewModelOf(::ExploreTripPickerViewModel)
-    viewModel { params -> ExplorePreferencesViewModel(params.get(), get(), get(), get(), get()) }
+    single { app.ransel.data.explore.TripTasteRepository(get(), get()) }
+    single { app.ransel.data.explore.TripExploreRequests() }
+    viewModel { params -> app.ransel.feature.explore.TripExploreViewModel(params.get(), get(), get(), get(), get(), get()) }
     viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> PlaceDetailViewModel(params.get(), get(), get()) }
     single { VotingStore() }

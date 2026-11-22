@@ -176,7 +176,6 @@ import app.ransel.shared.domain.InterviewDoor
 import app.ransel.shared.domain.hoursLeft
 import app.ransel.shared.model.Vote
 import kotlin.time.Clock
-import app.ransel.feature.explore.ExplorePreferencesScreen
 import app.ransel.feature.explore.ExploreTripPickerScreen
 import app.ransel.feature.explore.ExploreAccountGate
 import app.ransel.feature.explore.SwipeScreen
@@ -626,7 +625,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onOpenNotifications = { navController.navigate(NotificationsRoute) },
             onOpenRecap = { navController.navigate(RecapRoute(it)) },
             // "Coba": the preferences step on a new trip ("Trip baru"), full screen over Home.
-            onExplore = { navController.openExplore(null, signedIn()) },
+            onExplore = { navController.openExplore(signedIn()) },
         )
     }
     tabPage<TripListRoute>(MainTab.TRIPS, navController) {
@@ -657,10 +656,11 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
         }
     }
     page<ExploreTripPickerRoute> {
+        val exploreRequests: app.ransel.data.explore.TripExploreRequests = koinInject()
         ExploreTripPickerScreen(
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
-            onPickTrip = { navController.navigate(ExplorePreferencesRoute(it)) },
+            onPickTrip = { navController.openTripExplore(it, exploreRequests) },
             // "Trip baru": the interview (Layar 1 to the summary "Buat trip dan cari"), not a form of its own
             onNewTrip = { navController.navigate(InterviewRoute(InterviewDoor.EXPLORE.name)) },
             onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) },
@@ -729,29 +729,20 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             LaunchedEffect(Unit) {
                 navController.navigate(InterviewRoute(InterviewDoor.EXPLORE.name)) { popUpTo<ExplorePreferencesRoute> { inclusive = true } }
             }
-        } else ExplorePreferencesScreen(
-            tripId = route.tripId,
-            onBack = { navController.popBackStack() },
-            // "Ganti": back to the trip picker, whichever way the form was opened (from Home, a trip or the picker).
-            onChangeTrip = {
-                if (!navController.popBackStack<ExploreTripPickerRoute>(inclusive = false)) {
-                    navController.navigate(ExploreTripPickerRoute) { popUpTo<ExplorePreferencesRoute> { inclusive = true } }
-                }
-            },
-            // The form is done once the cards come: back from the swipe screen leads to where Explore was opened
-            // (Home, the Explore tab or the trip), so the form cannot run the search (and make the trip) again.
-            onOpenSwipe = { tripId -> navController.navigate(SwipeRoute(tripId)) { popUpTo<ExplorePreferencesRoute> { inclusive = true } } },
-        )
+        } else {
+            // the trip form is gone too (plan explore-trip-one-tap v4): an old link opens the trip with its "Cari tempat" sheet
+            val exploreRequests: app.ransel.data.explore.TripExploreRequests = koinInject()
+            LaunchedEffect(Unit) { navController.openTripExplore(route.tripId, exploreRequests, replace = true) }
+        }
     }
     page<SwipeRoute> { entry ->
         val swipeRoute = entry.toRoute<SwipeRoute>()
+        val exploreRequests: app.ransel.data.explore.TripExploreRequests = koinInject()
         SwipeScreen(
             tripId = swipeRoute.tripId,
             onClose = { navController.popBackStack() },
-            // Back to the form of the same trip, filled in with the last answers.
-            onChangePreferences = {
-                navController.navigate(ExplorePreferencesRoute(swipeRoute.tripId)) { popUpTo<SwipeRoute> { inclusive = true } }
-            },
+            // Back to the trip's "Cari tempat" sheet, filled in with its Seleramu.
+            onChangePreferences = { navController.openTripExplore(swipeRoute.tripId, exploreRequests, replace = true) },
             onOpenItinerary = { id ->
                 navController.navigate(TripRoute(id, TripTab.ITINERARY.name)) { popUpTo<SwipeRoute> { inclusive = true } }
             },
@@ -935,8 +926,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
             onBack = { navController.popBackStack() },
             onEditTrip = { navController.navigate(EditTripRoute(route.tripId)) },
             onMembers = { navController.navigate(MembersRoute(route.tripId)) },
-            onExplore = { navController.openExplore(route.tripId, signedIn()) },
-            onResumeExplore = { navController.navigate(SwipeRoute(route.tripId)) },
+            onOpenSwipe = { navController.navigate(SwipeRoute(route.tripId)) },
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onOpenActivity = { id -> navController.navigate(ActivityDetailRoute(route.tripId, id)) },
             onFillLocation = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null, openPlace = true)) },
@@ -1233,11 +1223,27 @@ private fun androidx.compose.animation.AnimatedContentTransitionScope<NavBackSta
     initialState.isTab() && targetState.isTab()
 
 /** Opens a bottom tab, keeping each tab's own back stack and scroll position. */
-/** Explore's preferences step, or sign-in for a guest (Explore needs an account; a guest's search only failed). */
-private fun NavHostController.openExplore(tripId: String?, signedIn: Boolean) {
+/** Jelajah's interview, or sign-in for a guest (Explore needs an account). A trip's search is its own "Cari tempat" sheet. */
+private fun NavHostController.openExplore(signedIn: Boolean) {
     if (!signedIn) navigate(SignInRoute) { launchSingleTop = true }
-    else if (tripId == null) navigate(InterviewRoute(InterviewDoor.EXPLORE.name))
-    else navigate(ExplorePreferencesRoute(tripId))
+    else navigate(InterviewRoute(InterviewDoor.EXPLORE.name))
+}
+
+/**
+ * The trip's "Cari tempat" sheet (plan explore-trip-one-tap v4; the old form is gone): back to the trip screen below when it
+ * is that trip's, else a new one, which opens the sheet once it shows the trip.
+ */
+private fun NavHostController.openTripExplore(tripId: String, requests: app.ransel.data.explore.TripExploreRequests, replace: Boolean = false) {
+    requests.open(tripId)
+    val below = previousBackStackEntry
+    if (replace && below != null && below.destination.hasRoute<TripRoute>() && below.toRoute<TripRoute>().tripId == tripId) {
+        popBackStack()
+        return
+    }
+    val current = currentBackStackEntry
+    navigate(TripRoute(tripId)) {
+        if (replace && current != null) popUpTo(current.destination.id) { inclusive = true }
+    }
 }
 
 private fun NavHostController.openTab(tab: MainTab) {
