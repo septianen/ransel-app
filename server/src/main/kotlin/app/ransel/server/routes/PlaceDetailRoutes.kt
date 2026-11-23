@@ -17,7 +17,7 @@ fun Route.placeDetailRoutes(service: PlaceDetailService) {
     rateLimit(SuggestionsRateLimit) {
         get("/places/{placeId}/detail") {
             val q = call.request.queryParameters
-            val dto = service.get(call.parameters["placeId"].orEmpty(), q["name"], q["currency"])
+            val dto = service.get(call.parameters["placeId"].orEmpty(), q["name"], q["currency"], cacheOnly = q["cacheOnly"] == "true")
             call.respondData(HttpStatusCode.OK, dto)
         }
     }
