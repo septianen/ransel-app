@@ -165,7 +165,7 @@ object ApiRoutes {
     /** Signed image proxy, no bearer: `RecommendationItem.photoUrl` is this path plus `?exp=&sig=`, relative to [BASE]. */
     fun placePhoto(placeId: String) = "/places/photo/$placeId"     // GET → image bytes, 404 if no photo
     /** Bearer. Query: `name` (the item title, needed only when the server has no saved text to rebuild from) and `currency` (the trip currency for the cost estimate). For opening a place again from the itinerary. */
-    fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended
+    fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended; ?cacheOnly=true → only the saved text (expired too) or none, never a Places or LLM call, never 404
 
     // Place search. PLACES_AUTOCOMPLETE, PLACES_REVERSE and place(...) are open to guests: the bearer token is optional, and the limit is 60 requests a minute per user, or per address without a token. PLACES_POPULAR still needs a bearer. The static paths win over {placeId}.
     const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] [&scope=DESTINATION|ACTIVITY, default DESTINATION; ACTIVITY = any kind of place for an itinerary activity, 422 `scope` = INVALID otherwise] → PlaceSuggestionsDto
