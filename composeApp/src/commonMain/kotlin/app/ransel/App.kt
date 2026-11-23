@@ -79,14 +79,11 @@ import app.ransel.platform.requiresAccount
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.account.AccountScreen
+import app.ransel.feature.inspiration.ExploreTabScreen
 import app.ransel.feature.inspiration.InspirationHomeScreen
 import app.ransel.feature.inspiration.InspirationInterviewScreen
-import app.ransel.feature.inspiration.InspirationHomeViewModel
-import app.ransel.feature.inspiration.InspirationInterviewViewModel
 import app.ransel.feature.inspiration.InspirationResultsScreen
-import app.ransel.feature.inspiration.InspirationResultsViewModel
 import app.ransel.feature.inspiration.SavedIdeasScreen
-import app.ransel.feature.inspiration.SavedIdeasViewModel
 import app.ransel.navigation.InspirationHomeRoute
 import app.ransel.navigation.InspirationInterviewRoute
 import app.ransel.navigation.InspirationResultsRoute
@@ -635,7 +632,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onCreateTrip = { navController.navigate(InterviewRoute()) },
         )
     }
-    // The Explore tab opens Explore Inspirasi (owner, 21 Nov 2026); guests and unverified accounts see Explore's gates.
+    // Saved ideas (≥ 1) are the Explore tab; otherwise the Ask AI form. Guests and unverified accounts see the gates.
     tabPage<ExploreRoute>(MainTab.EXPLORE, navController) {
         val manager: SessionManager = koinInject()
         ExploreAccountGate(
@@ -643,12 +640,17 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onSignUp = { navController.navigate(SignUpRoute) },
         ) {
             Box(Modifier.statusBarsPadding()) {
-                InspirationHomeScreen(
-                    viewModel = koinViewModel(),
+                ExploreTabScreen(
+                    savedViewModel = koinViewModel(),
+                    homeViewModel = koinViewModel(),
                     onStartInterview = { id -> navController.navigate(InspirationInterviewRoute(id)) },
                     onOpenCredits = { navController.navigate(CreditsRoute()) },
                     onVerifyEmail = { navController.navigate(VerifyEmailRoute(manager.user?.email.orEmpty())) },
                     onOpenSavedIdeas = { navController.navigate(SavedIdeasRoute) },
+                    onAskAi = { navController.navigate(InspirationHomeRoute) },
+                    onCreateTrip = { idea ->
+                        navController.openTripFromIdea(idea.card, app.ransel.feature.inspiration.interestsFromProfile(idea.profile))
+                    },
                 )
             }
         }
@@ -665,11 +667,20 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onBack = { navController.popBackStack() },
         )
     }
-    // Kept for links to the old debug entry: Explore Inspirasi lives in the Explore tab now.
+    // New search pushed from the Explore tab FAB when saved ideas already fill the tab.
     page<InspirationHomeRoute> {
-        LaunchedEffect(Unit) {
-            navController.popBackStack()
-            navController.openTab(MainTab.EXPLORE)
+        val manager: SessionManager = koinInject()
+        Box(Modifier.statusBarsPadding()) {
+            InspirationHomeScreen(
+                viewModel = koinViewModel(),
+                onStartInterview = { id -> navController.navigate(InspirationInterviewRoute(id)) },
+                onOpenCredits = { navController.navigate(CreditsRoute()) },
+                onVerifyEmail = { navController.navigate(VerifyEmailRoute(manager.user?.email.orEmpty())) },
+                onOpenSavedIdeas = {
+                    if (!navController.popBackStack<ExploreRoute>(inclusive = false)) navController.navigate(SavedIdeasRoute)
+                },
+                onBack = { navController.popBackStack() },
+            )
         }
     }
     page<InspirationInterviewRoute> { entry ->

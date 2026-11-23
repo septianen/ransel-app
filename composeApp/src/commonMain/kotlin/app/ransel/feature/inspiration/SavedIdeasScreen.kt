@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
 import app.ransel.data.remote.apiImageUrl
@@ -142,11 +143,17 @@ fun SavedIdeasContent(
     onRemove: (SavedIdeaDto) -> Unit = {},
     onRefresh: (SavedIdeaDto) -> Unit = {},
     onRetry: () -> Unit = {},
+    showSnackbarHost: Boolean = true,
+    showBack: Boolean = true,
+    title: String = stringResource(Res.string.saved_ideas_title),
+    applyStatusBarsPadding: Boolean = true,
+    listBottomSpace: Dp = 0.dp,
 ) {
     var detail by remember { mutableStateOf<SavedIdeaDto?>(null) }
+    val statusBars = if (applyStatusBarsPadding) Modifier.statusBarsPadding() else Modifier
     when {
         !signedIn -> FullScreenState(
-            modifier = Modifier.statusBarsPadding(),
+            modifier = statusBars,
             title = stringResource(Res.string.explore_guest_title),
             body = stringResource(Res.string.explore_guest_body),
             primaryLabel = stringResource(Res.string.explore_guest_sign_in), onPrimary = onSignIn,
@@ -154,14 +161,14 @@ fun SavedIdeasContent(
         )
         state.loading && !state.loaded -> SkeletonList(rows = 5)
         state.failure != null && state.ideas.isEmpty() -> FullScreenState(
-            modifier = Modifier.statusBarsPadding(),
+            modifier = statusBars,
             title = stringResource(Res.string.credits_error_generic),
             body = stringResource(Res.string.credits_error_generic),
             primaryLabel = stringResource(Res.string.explore_retry), onPrimary = onRetry,
             secondaryLabel = stringResource(Res.string.action_back), onSecondary = onBack,
         )
         state.ideas.isEmpty() -> FullScreenState(
-            modifier = Modifier.statusBarsPadding(),
+            modifier = statusBars,
             title = stringResource(Res.string.saved_ideas_empty_title),
             body = stringResource(Res.string.saved_ideas_empty_body),
             illustration = painterResource(Res.drawable.ic_binocular),
@@ -169,17 +176,33 @@ fun SavedIdeasContent(
             primaryLabel = stringResource(Res.string.explore_ai_title), onPrimary = onAskAi,
         )
         else -> Scaffold(
-            modifier = Modifier.statusBarsPadding(),
-            snackbarHost = { SnackbarHost(snackbarHost) { UndoSnackbar(it.visuals.message, actionLabel = it.visuals.actionLabel, onAction = { it.performAction() }) } },
+            modifier = statusBars,
+            snackbarHost = {
+                if (showSnackbarHost) {
+                    SnackbarHost(snackbarHost) { UndoSnackbar(it.visuals.message, actionLabel = it.visuals.actionLabel, onAction = { it.performAction() }) }
+                }
+            },
             containerColor = MaterialTheme.colorScheme.background,
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
-                Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) { Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back)) }
-                    Text(stringResource(Res.string.saved_ideas_title), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                    Text(stringResource(Res.string.saved_ideas_count, state.ideas.size), Modifier.padding(end = 12.dp), style = MaterialTheme.typography.bodySmall)
+                Row(
+                    Modifier.fillMaxWidth().height(56.dp).padding(horizontal = if (showBack) 4.dp else 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (showBack) {
+                        IconButton(onClick = onBack) { Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back)) }
+                    }
+                    Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        stringResource(Res.string.saved_ideas_count, state.ideas.size),
+                        Modifier.padding(end = if (showBack) 12.dp else 0.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
-                Column(Modifier.weight(1f).verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    Modifier.weight(1f).verticalScroll(androidx.compose.foundation.rememberScrollState()).padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     state.ideas.forEach { idea ->
                         SavedIdeaRow(
                             idea = idea,
@@ -191,6 +214,7 @@ fun SavedIdeasContent(
                             onRefresh = { onRefresh(idea) },
                         )
                     }
+                    if (listBottomSpace > 0.dp) Spacer(Modifier.height(listBottomSpace))
                 }
             }
         }
@@ -267,3 +291,14 @@ private val savedPreview = SavedIdeaDto(
 @Preview @Composable private fun SavedIdeasStalePreview() = IrisPreview { SavedIdeasContent(SavedIdeasUiState(ideas = listOf(savedPreview), loaded = true, staleIds = setOf("saved-1")), true) }
 @Preview @Composable private fun SavedIdeasDisabledRefreshPreview() = IrisPreview { SavedIdeasContent(SavedIdeasUiState(ideas = listOf(savedPreview), loaded = true, staleIds = setOf("saved-1"), waitingRefreshIds = setOf("saved-1")), true) }
 @Preview @Composable private fun SavedIdeasEmptyPreview() = IrisPreview { SavedIdeasContent(SavedIdeasUiState(loaded = true), true) }
+@Preview @Composable private fun SavedIdeasAsExploreTabPreview() = IrisPreview {
+    SavedIdeasContent(
+        state = SavedIdeasUiState(ideas = listOf(savedPreview), loaded = true),
+        signedIn = true,
+        showBack = false,
+        title = "Jelajah",
+        applyStatusBarsPadding = false,
+        listBottomSpace = 96.dp,
+        showSnackbarHost = false,
+    )
+}
