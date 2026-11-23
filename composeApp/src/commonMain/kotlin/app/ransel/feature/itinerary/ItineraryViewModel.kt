@@ -394,6 +394,7 @@ class ItineraryViewModel(
         if (autoRunning.value) return
         val s = state.value
         val plan = previewAutoSchedule() ?: return
+        if (plan.count == 0) return
         val byId = s.unscheduled.associateBy { it.id }
         autoRunning.value = true
         viewModelScope.launch {
