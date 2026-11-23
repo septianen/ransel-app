@@ -3,10 +3,12 @@ name: Deploy server
 # Builds the server distribution, pushes the image to GHCR and rolls it out on the VPS over SSH.
 # Needs the repository secrets listed in deploy/README.md.
 #
-# Two targets on the same VPS (deploy/README.md "Staging"):
-#   production  push to main            -> api.ransel.app             /opt/ransel      127.0.0.1:8080
-#   staging     push to develop, or     -> api-staging.ransel.app     /opt/ransel-dev  127.0.0.1:8090
-#               Run workflow on any branch with target "staging"
+# Production only when Release calls this with production: true (MAJOR / MINOR / PATCH from main).
+# github.event_name inside this file is the caller's event, so it is not a workflow_call signal.
+# A push, including to main, and Run workflow deploy staging and do not bump the app version.
+#   production  Release workflow (RELEASE_TYPE set)  -> api.ransel.app          /opt/ransel      127.0.0.1:8080
+#   staging     push to main or develop, or          -> api-staging.ransel.app  /opt/ransel-dev  127.0.0.1:8090
+#               Run workflow, or Release with none
 # The deploy job runs in the GitHub Environment of the target; staging's own secrets there override the repository ones.
 on:
   push:
@@ -18,15 +20,21 @@ on:
       - "deploy/**"
       - ".github/workflows/deploy-server.yml"
   workflow_dispatch:
+  workflow_call:
     inputs:
-      target:
-        description: "Where to deploy (production only from main)"
-        type: choice
-        options: [staging, production]
-        default: staging
+      production:
+        description: "true deploys production from ref. false deploys staging."
+        type: boolean
+        required: false
+        default: false
+      ref:
+        description: "Commit to build. Required when production is true (the bumped SHA)."
+        type: string
+        required: false
+        default: ""
 
 concurrency:
-  group: deploy-server-${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+  group: ${{ inputs.production && 'deploy-server-production' || 'deploy-server-staging' }}
   cancel-in-progress: false
 
 permissions:
@@ -41,6 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -69,11 +79,12 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    environment: ${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+    environment: ${{ inputs.production && 'production' || 'staging' }}
     steps:
       - name: Target settings
         env:
-          TARGET: ${{ inputs.target || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+          PRODUCTION: ${{ inputs.production }}
+          DEPLOY_REF: ${{ inputs.ref }}
           # Staging uses its own variable names: a variable missing in the staging Environment would otherwise fall
           # back to the repository (production) value and deploy over production.
           PROD_DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
@@ -82,8 +93,20 @@ jobs:
           APP_BASE_URL: ${{ vars.APP_BASE_URL }}
           CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
         run: |
+          # production is the boolean Release passes. A push leaves it false, so this stays on staging.
+          if [ "$PRODUCTION" = true ]; then
+            if [ -z "$DEPLOY_REF" ]; then
+              echo "::error::production deploy requires the bumped commit SHA from prepare" >&2
+              exit 1
+            fi
+            TARGET=production
+            REF="$DEPLOY_REF"
+          else
+            TARGET=staging
+            REF="${DEPLOY_REF:-$GITHUB_SHA}"
+          fi
+          echo "IMAGE_SHA=$REF" >> "$GITHUB_ENV"
           if [ "$TARGET" = production ]; then
-            if [ "$GITHUB_REF" != refs/heads/main ]; then echo "production deploys only from main" >&2; exit 1; fi
             {
               echo "APP_ENV=production"
               echo "DEPLOY_PATH=${PROD_DEPLOY_PATH:-/opt/ransel}"
@@ -117,6 +140,8 @@ jobs:
           fi
 
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.IMAGE_SHA }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -138,7 +163,7 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE }}:${{ env.IMAGE_CHANNEL }}
-            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:${{ env.IMAGE_SHA }}
 
       - name: Prepare SSH
         env:
@@ -207,7 +232,7 @@ jobs:
 
           # The env file travels over stdin, so secrets never appear in a command line or in the log.
           {
-            echo "SERVER_IMAGE=$IMAGE:${{ github.sha }}"
+            echo "SERVER_IMAGE=$IMAGE:${{ env.IMAGE_SHA }}"
             echo "APP_ENV=$APP_ENV"
             echo "HOST_PORT=$HOST_PORT"
             echo "ANDROID_PACKAGE=$ANDROID_PACKAGE"
@@ -248,7 +273,7 @@ jobs:
             echo "AI_BUDGET_MODE=${AI_BUDGET_MODE:-KEEP_GOING}"
             echo "LLM_MODELS=$LLM_MODELS"
             echo "SUGGESTIONS_RATE_LIMIT_PER_HOUR=${SUGGESTIONS_RATE_LIMIT_PER_HOUR:-60}"
-            echo "APP_VERSION=${{ github.sha }}"
+            echo "APP_VERSION=${{ env.IMAGE_SHA }}"
           } | $SSH "umask 077 && cat > '$DEPLOY_PATH/.env'"
 
           printf '%s' "$GHCR_TOKEN" | $SSH "docker login ghcr.io -u '${{ github.actor }}' --password-stdin"

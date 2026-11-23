@@ -28,6 +28,7 @@ kotlin {
             api(compose.foundation)
             api(compose.material3)
             api(compose.components.resources)
+            implementation(libs.compose.ui.tooling.preview)
         }
     }
 }

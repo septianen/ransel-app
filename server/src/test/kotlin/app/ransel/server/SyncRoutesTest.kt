@@ -5,11 +5,14 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.PackingItemDto
+import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
+import app.ransel.shared.dto.TravelModeDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.domain.LegKind
 import app.ransel.shared.model.Category
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -68,8 +71,12 @@ private fun item(
     sort: Double = 1.0,
     updatedAt: Instant = Clock.System.now(),
     deletedAt: Instant? = null,
+    links: List<String>? = null,
+    bookingUrl: String? = null,
+    placeKind: PlaceKind? = null,
+    placeCity: String? = null,
 ) = ItineraryItemDto(
-    id = id, tripId = tripId, dayDate = day,
+    id = id, tripId = tripId, dayDate = day, links = links, bookingUrl = bookingUrl, placeKind = placeKind, placeCity = placeCity,
     startTime = day?.let { LocalTime(10, 0) }, endTime = day?.let { LocalTime(11, 0) },
     title = title, category = Category.ATTRACTION, sortOrder = sort,
     createdAt = Clock.System.now(), updatedAt = updatedAt, deletedAt = deletedAt,
@@ -109,6 +116,50 @@ class SyncRoutesTest {
     }
 
     @Test
+    fun aTravelModePushesAndPullsAndAViewerCannotWrite() = apiTest {
+        val tripId = id()
+        val from = id()
+        val to = id()
+        val modeId = id()
+        val stamp = Clock.System.now()
+        push(
+            SyncChanges(
+                trips = listOf(trip(tripId)),
+                itineraryItems = listOf(item(tripId, from, title = "A"), item(tripId, to, title = "B", sort = 2.0)),
+                travelModes = listOf(
+                    TravelModeDto(modeId, tripId, from, to, LegKind.WALK, stamp, stamp),
+                ),
+            ),
+        )
+        val pulled = pull().changes.travelModes.single()
+        assertEquals(modeId, pulled.id)
+        assertEquals("WALK", pulled.mode.name)
+        assertEquals(from, pulled.fromItemId)
+
+        val later = stamp + 1.minutes
+        push(
+            SyncChanges(
+                travelModes = listOf(TravelModeDto(modeId, tripId, from, to, LegKind.CAR, stamp, later)),
+            ),
+        )
+        assertEquals("CAR", pull().changes.travelModes.single { it.id == modeId }.mode.name)
+
+        val owner = session()
+        val code = post("/trips/$tripId/invites", """{"role":"VIEWER","expiresAt":"2099-01-01T00:00:00Z"}""")
+            .data().jsonObject.getValue("code").jsonPrimitive.content
+        signUp()
+        post("/invites/$code/accept")
+        val asViewer = push(
+            SyncChanges(
+                travelModes = listOf(TravelModeDto(id(), tripId, from, to, LegKind.MOTORCYCLE, Clock.System.now(), Clock.System.now() + 2.minutes)),
+            ),
+        )
+        assertEquals("FORBIDDEN", asViewer.rejected.single().code)
+        use(owner)
+        assertEquals("CAR", pull().changes.travelModes.single { it.deletedAt == null }.mode.name)
+    }
+
+    @Test
     fun newerEditWinsAndOlderEditIsRejectedAsConflict() = apiTest {
         val tripId = id()
         val itemId = id()
@@ -122,6 +173,38 @@ class SyncRoutesTest {
         assertEquals("CONFLICT", stale.rejected.single().code)
 
         assertEquals("Phone edit", pull().changes.itineraryItems.single().title)
+    }
+
+    @Test
+    fun linksTravelWithTheItemAndAnOlderAppDoesNotWipeTheOthers() = apiTest {
+        val tripId = id()
+        val itemId = id()
+        push(SyncChanges(trips = listOf(trip(tripId)), itineraryItems = listOf(item(tripId, itemId, links = listOf("tiket.com/a", "https://b.example/2")))))
+        val pulled = pull().changes.itineraryItems.single()
+        assertEquals(listOf("https://tiket.com/a", "https://b.example/2"), pulled.links)
+        assertEquals("https://tiket.com/a", pulled.bookingUrl)
+
+        // an app from before the list: no `links`, its single field still holds the first address
+        push(SyncChanges(itineraryItems = listOf(item(tripId, itemId, title = "Old app edit", bookingUrl = "https://tiket.com/a", updatedAt = Clock.System.now() + 1.minutes))))
+        val after = pull().changes.itineraryItems.single()
+        assertEquals("Old app edit", after.title)
+        assertEquals(listOf("https://tiket.com/a", "https://b.example/2"), after.links)
+    }
+
+    @Test
+    fun placeKindAndCityTravelWithTheItem() = apiTest {
+        val tripId = id()
+        val itemId = id()
+        push(SyncChanges(trips = listOf(trip(tripId)), itineraryItems = listOf(item(tripId, itemId, placeKind = PlaceKind.CITY, placeCity = "Bandung"))))
+        val pulled = pull().changes.itineraryItems.single()
+        assertEquals(PlaceKind.CITY, pulled.placeKind)
+        assertEquals("Bandung", pulled.placeCity)
+
+        // the same item pushed again without them (a place typed as text) clears them
+        push(SyncChanges(itineraryItems = listOf(item(tripId, itemId, updatedAt = Clock.System.now() + 1.minutes))))
+        val after = pull().changes.itineraryItems.single()
+        assertEquals(null, after.placeKind)
+        assertEquals(null, after.placeCity)
     }
 
     @Test

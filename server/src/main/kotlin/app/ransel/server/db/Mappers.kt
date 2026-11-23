@@ -10,7 +10,9 @@ import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.PaymentMethodDto
 import app.ransel.shared.dto.SettlementDto
+import app.ransel.shared.dto.TravelModeDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.TripOriginDto
 import app.ransel.shared.dto.TripPlaceDto
 import app.ransel.shared.model.Role
 import kotlinx.datetime.toKotlinLocalDate
@@ -40,6 +42,12 @@ fun ResultRow.toTripDto(role: Role) = TripDto(
     countryCode = this[Trips.countryCode],
     localCurrency = this[Trips.localCurrency],
     timeZone = this[Trips.timeZone],
+    origin = this[Trips.originName]?.let { name ->
+        TripOriginDto(name, this[Trips.originLat], this[Trips.originLng], this[Trips.originPlaceId], this[Trips.originCountryCode])
+    },
+    departureMode = this[Trips.departureMode],
+    localTransport = this[Trips.localTransport],
+    mainTravelMode = this[Trips.mainTravelMode],
     createdAt = this[Trips.createdAt].toTimestamp(),
     updatedAt = this[Trips.updatedAt].toTimestamp(),
     deletedAt = this[Trips.deletedAt]?.toTimestamp(),
@@ -57,14 +65,28 @@ fun ResultRow.toItineraryItemDto() = ItineraryItemDto(
     placeId = this[ItineraryItems.placeId],
     lat = this[ItineraryItems.lat],
     lng = this[ItineraryItems.lng],
+    placeKind = this[ItineraryItems.placeKind],
+    placeCity = this[ItineraryItems.placeCity],
     durationMin = this[ItineraryItems.durationMin],
     notes = this[ItineraryItems.notes],
     bookingUrl = this[ItineraryItems.bookingUrl],
+    links = this[ItineraryItems.links],
     source = this[ItineraryItems.itemSource],
     sortOrder = this[ItineraryItems.sortOrder],
     createdAt = this[ItineraryItems.createdAt].toTimestamp(),
     updatedAt = this[ItineraryItems.updatedAt].toTimestamp(),
     deletedAt = this[ItineraryItems.deletedAt]?.toTimestamp(),
+)
+
+fun ResultRow.toTravelModeDto() = TravelModeDto(
+    id = this[TravelModes.id].toString(),
+    tripId = this[TravelModes.tripId].toString(),
+    fromItemId = this[TravelModes.fromItemId].toString(),
+    toItemId = this[TravelModes.toItemId].toString(),
+    mode = this[TravelModes.mode],
+    createdAt = this[TravelModes.createdAt].toTimestamp(),
+    updatedAt = this[TravelModes.updatedAt].toTimestamp(),
+    deletedAt = this[TravelModes.deletedAt]?.toTimestamp(),
 )
 
 fun ResultRow.toPackingItemDto() = PackingItemDto(
@@ -110,6 +132,7 @@ fun ResultRow.toExpenseDto(
     splits: List<ExpenseSplitDto> = emptyList(),
     payers: List<ExpensePayerDto> = emptyList(),
     items: List<ExpenseItemDto> = emptyList(),
+    receipts: Map<java.util.UUID, String> = emptyMap(),
 ) = ExpenseDto(
     id = this[Expenses.id].toString(),
     tripId = this[Expenses.tripId].toString(),
@@ -133,6 +156,7 @@ fun ResultRow.toExpenseDto(
     itemsSplit = this[Expenses.itemsSplit],
     fxSource = this[Expenses.fxSource],
     fxDate = this[Expenses.fxDate]?.toKotlinLocalDate(),
+    receiptDocumentId = receipts[this[Expenses.id]],
     createdAt = this[Expenses.createdAt].toTimestamp(),
     updatedAt = this[Expenses.updatedAt].toTimestamp(),
     deletedAt = this[Expenses.deletedAt]?.toTimestamp(),

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -101,7 +102,7 @@ private fun ActivityPickerContent(
         val unscheduled = shown.filter { it.dayDate == null }.sortedBy { it.sortOrder }
         scheduled + listOfNotNull(unscheduled.takeIf { it.isNotEmpty() }?.let { ActivityDay(null, it) })
     }
-    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onBack), contentAlignment = Alignment.Center) {
                 Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
@@ -149,7 +150,7 @@ private fun ActivityPickerContent(
                             Text(item.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                             item.startTime?.let { t ->
                                 Text(
-                                    "${t.hour.toString().padStart(2, '0')}.${t.minute.toString().padStart(2, '0')}",
+                                    "${t.hour.toString().padStart(2, '0')}:${t.minute.toString().padStart(2, '0')}",
                                     style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant,
                                 )
                             }

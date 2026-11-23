@@ -45,22 +45,25 @@ fun tripBalances(
 
 /**
  * "Per item" split of a receipt. Each item is split equally between its members (the remainder to the payer when they
- * share it, else the first member). Items without members (tax, service) are spread over everyone in proportion to
- * their item totals; that rounding remainder goes to the payer when they have items, else to the largest share.
+ * share it, else the first member). Tax and service ([ExpenseItemDto.isTax], and any line with no members) are spread
+ * over everyone in proportion to their item totals; that rounding remainder goes to the payer when they have items,
+ * else to the largest share. A line marked [ExpenseItemDto.isTax] is always an extra, even when it lists members.
  * When every item with members is free there is no proportion, so the extras are split equally between those members.
  * The shares add up to the sum of [items]. Members of no item get nothing.
  */
 fun splitByItems(items: List<ExpenseItemDto>, payerId: String): Map<String, Long> {
     require(items.isNotEmpty()) { "at least one item" }
     require(items.all { it.amountMinor >= 0 }) { "negative item" }
-    val shared = items.filter { it.memberIds.isNotEmpty() }
+    val shared = items.filter { !it.isTax && it.memberIds.isNotEmpty() }
     require(shared.isNotEmpty()) { "no item has members" }
     val base = LinkedHashMap<String, Long>()
     for (item in shared) {
         if (item.amountMinor == 0L) continue
         for ((id, share) in splitEqually(item.amountMinor, item.memberIds, payerId)) base[id] = (base[id] ?: 0) + share
     }
-    val extra = items.filter { it.memberIds.isEmpty() }.sumOf { it.amountMinor }
+    // isTax is the tax line even if someone was ticked on it. A line with no members is still an extra, so a row
+    // saved before isTax existed (empty members, flag false) keeps the same split.
+    val extra = items.filter { it.isTax || it.memberIds.isEmpty() }.sumOf { it.amountMinor }
     val itemsTotal = base.values.sum()
     if (extra == 0L) return base
     if (itemsTotal == 0L) return splitEqually(extra, shared.flatMap { it.memberIds }.distinct(), payerId)
@@ -73,6 +76,13 @@ fun splitByItems(items: List<ExpenseItemDto>, payerId: String): Map<String, Long
 
 /** Total of the receipt lines, for the "items must match the total" check (SPLIT_TOTAL_MISMATCH). */
 fun itemsTotal(items: List<ExpenseItemDto>): Long = items.sumOf { it.amountMinor }
+
+/**
+ * Save needs one line that is not tax and costs more than 0. A tax-only receipt, or a renamed tax line with no
+ * item beside it, is not enough. The name is not consulted.
+ */
+fun hasChargeableReceiptItem(items: List<ExpenseItemDto>): Boolean =
+    items.any { !it.isTax && it.amountMinor > 0 }
 
 /**
  * The estimate a STAY poll winner turns into: NIGHT = price × nights, PERSON = price × people (for the whole stay),

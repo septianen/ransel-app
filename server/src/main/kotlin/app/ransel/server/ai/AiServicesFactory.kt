@@ -15,6 +15,8 @@ private object NotConfiguredLlm : LlmClient {
     override suspend fun suggestInterests(destination: String, month: String, language: String): InterestSuggestions =
         throw notConfigured()
     override suspend fun describe(name: String, address: String?): LlmPlaceText = throw notConfigured()
+    override suspend fun inspirationQuestion(input: InspirationQuestionInput): LlmInspirationQuestion = throw notConfigured()
+    override suspend fun inspirationCards(input: InspirationCardsInput): LlmInspirationCards = throw notConfigured()
 }
 
 private object NotConfiguredPlaces : PlacesClient {

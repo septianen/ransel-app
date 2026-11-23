@@ -28,9 +28,11 @@ import kotlinx.datetime.LocalDate
 
 sealed interface HomeUiState {
     data object Loading : HomeUiState
+    /**
+     * No ongoing or upcoming trip to feature: zero trips, or only finished ones.
+     * Recap for a recently ended trip still sits above the empty state on Home.
+     */
     data object Empty : HomeUiState
-    /** Only finished trips: Home shows the recap and the Explore invitation, no trip card (owner, 3 Nov 2026). */
-    data object NothingAhead : HomeUiState
     data class Content(
         val trip: TripDto,
         val summary: TripSummaryDto,
@@ -54,7 +56,7 @@ class HomeViewModel(
             val today = today()
             val featured = pickFeaturedTrip(list, today)
             if (featured == null) {
-                flowOf<HomeUiState>(if (list.isEmpty()) HomeUiState.Empty else HomeUiState.NothingAhead)
+                flowOf<HomeUiState>(HomeUiState.Empty)
             } else {
                 combine(trips.observeSummary(featured.id), memberCounts) { summary, counts ->
                     HomeUiState.Content(

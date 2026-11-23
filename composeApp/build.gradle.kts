@@ -111,12 +111,21 @@ kotlin {
                 implementation(libs.androidx.test.ext.junit)
             }
         }
+        // Robolectric host tests: the soft-update dialog (Nanti, scrim, Back) without an emulator.
+        val androidUnitTest by getting {
+            dependencies {
+                implementation(libs.compose.ui.test.junit4)
+                implementation(libs.robolectric)
+            }
+        }
         androidMain.dependencies {
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.messaging)
             implementation(libs.firebase.analytics)
             implementation(libs.firebase.crashlytics)
             implementation(libs.androidx.activity.compose)
+            // the day's mini map in the itinerary
+            implementation(libs.maps.compose)
             // one coarse fix for "Gunakan lokasi saat ini"
             implementation(libs.play.services.location)
             // "Lanjutkan dengan Google": Credential Manager's Google sheet
@@ -167,20 +176,42 @@ compose.resources {
     customDirectory("commonMain", layout.dir(composeResourcesWithId.map { it.destinationDir }))
 }
 
+// version.properties at the repo root is the only source of versionName and versionCode.
+// The Release workflow bumps it. Builds, including CI, do not.
+val ranselAppVersion = Properties().apply {
+    val versionFile = rootProject.file("version.properties")
+    check(versionFile.isFile) { "Missing $versionFile (versionName and versionCode)." }
+    versionFile.inputStream().use { load(it) }
+}
+val ranselVersionName = ranselAppVersion.getProperty("versionName")?.trim().orEmpty()
+val ranselVersionCode = ranselAppVersion.getProperty("versionCode")?.trim().orEmpty()
+check(ranselVersionName.isNotEmpty() && ranselVersionCode.isNotEmpty()) {
+    "version.properties must set versionName and versionCode"
+}
+
 android {
     namespace = "app.ransel"
     compileSdk = 36
 
+    // Google Maps SDK key for Android (restricted to our package names and signing certificates, so it may sit in the
+    // APK): the MAPS_API_KEY_ANDROID environment variable (a GitHub secret on CI) or MAPS_API_KEY in secrets.properties
+    // (git-ignored). Without it the app still builds and the mini map shows its "failed to load" card.
+    val mapsApiKey = providers.environmentVariable("MAPS_API_KEY_ANDROID").orNull?.takeIf { it.isNotBlank() }
+        ?: rootProject.file("secrets.properties").takeIf { it.exists() }?.let { file ->
+            Properties().apply { file.inputStream().use { load(it) } }.getProperty("MAPS_API_KEY")
+        }.orEmpty()
+
     defaultConfig {
         applicationId = "app.ransel"
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
         minSdk = 24
         targetSdk = 36
-        // CI passes -Pransel.versionCode=<run number> so each distributed build installs over the previous one.
-        versionCode = (project.findProperty("ransel.versionCode") as String?)?.toInt() ?: 1
-        versionName = "1.0.1"
+        versionCode = ranselVersionCode.toInt()
+        versionName = ranselVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { buildConfig = true }
+    testOptions.unitTests.isIncludeAndroidResources = true
 
     // Release signing: keystore.properties in the repo root (git-ignored, see keystore.properties.example) or the
     // RANSEL_KEYSTORE_* environment variables on CI. Without either, assembleRelease builds an unsigned APK.

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -27,6 +28,9 @@ import app.ransel.ui.theme.IrisShape
  * Sheet that adapts to the window: a bottom sheet on phones (top corners 24 dp, 20 dp padding, scrim
  * 40%), and a centered dialog card (max 480 dp wide) on wide web windows, where a full-width bottom
  * sheet would stretch across the screen.
+ *
+ * IME padding lives here because a sheet is its own window: [App] page/tab `imePadding()` does not
+ * reach it, and `enableEdgeToEdge` means `adjustResize` will not lift the sheet on its own.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,7 +57,7 @@ fun AdaptiveSheet(
                 ) {
                     // No scrolling here: sheets that can be long (currency list, expense form) scroll
                     // themselves, and nested vertical scrolling is not allowed.
-                    Column(Modifier.padding(20.dp), content = content)
+                    Column(Modifier.padding(20.dp).imePadding(), content = content)
                 }
             }
         }
@@ -75,7 +79,8 @@ fun AdaptiveSheet(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .padding(bottom = 20.dp)
-                    .navigationBarsPadding(),
+                    .navigationBarsPadding()
+                    .imePadding(),
                 content = content,
             )
         }

@@ -4,6 +4,8 @@ import app.ransel.server.db.ExpenseSplits
 import app.ransel.server.db.Expenses
 import app.ransel.server.db.ItineraryItems
 import app.ransel.server.db.PackingItems
+import app.ransel.server.db.TravelModes
+import app.ransel.server.db.toTravelModeDto
 import app.ransel.server.db.PersonalItems
 import app.ransel.server.db.toPersonalItemDto
 import app.ransel.server.db.Settlements
@@ -22,6 +24,7 @@ import app.ransel.shared.domain.dayFitsTrip
 import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.domain.validateTrip
 import app.ransel.shared.domain.validateTripLocale
+import app.ransel.shared.domain.validateTripOrigin
 import app.ransel.shared.domain.validateTripPlace
 import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.SYNC_MAX_TRIPS_PER_PAGE
@@ -37,7 +40,9 @@ import app.ransel.shared.dto.SyncPullResponse
 import app.ransel.shared.dto.SyncPushResponse
 import app.ransel.shared.dto.SyncRejection
 import app.ransel.shared.dto.SyncRowRef
+import app.ransel.shared.dto.TravelModeDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.domain.validateTravelMode
 import app.ransel.shared.dto.TripMemberDto
 import app.ransel.shared.model.Role
 import app.ransel.shared.model.SettlementStatus
@@ -73,7 +78,7 @@ import kotlin.time.toJavaInstant
 class SyncService {
     fun push(userId: UUID, changes: SyncChanges): SyncPushResponse {
         val total = changes.trips.size + changes.itineraryItems.size + changes.packingItems.size + changes.personalItems.size +
-            changes.expenses.size + changes.settlements.size
+            changes.expenses.size + changes.settlements.size + changes.travelModes.size
         if (total > MAX_ROWS) {
             throw ApiException(
                 HttpStatusCode.UnprocessableEntity, ErrorCode.VALIDATION_FAILED, "Too many rows in one batch",
@@ -102,6 +107,7 @@ class SyncService {
                 }
             }
             changes.itineraryItems.forEach { dto -> attempt(ENTITY_ITEM, dto.id) { pushItem(userId, dto) } }
+            changes.travelModes.forEach { dto -> attempt(ENTITY_TRAVEL_MODE, dto.id) { pushTravelMode(userId, dto) } }
             changes.packingItems.forEach { dto -> attempt(ENTITY_PACKING, dto.id) { pushPacking(userId, dto) } }
             changes.personalItems.forEach { dto -> attempt(ENTITY_PERSONAL, dto.id) { pushPersonal(userId, dto) } }
             changes.expenses.forEach { dto -> attempt(ENTITY_EXPENSE, dto.id) { pushExpense(userId, dto) } }
@@ -163,6 +169,13 @@ class SyncService {
                 else inTrips and ((ItineraryItems.updatedAt greater sinceJava) or (ItineraryItems.tripId inList newTripIds))
             }.map { it.toItineraryItemDto() }
 
+        val travelModes = if (allTripIds.isEmpty()) emptyList() else TravelModes.selectAll()
+            .where {
+                val inTrips = TravelModes.tripId inList allTripIds
+                if (sinceJava == null) inTrips
+                else inTrips and ((TravelModes.updatedAt greater sinceJava) or (TravelModes.tripId inList newTripIds))
+            }.map { it.toTravelModeDto() }
+
         val packing = if (allTripIds.isEmpty()) emptyList() else PackingItems.selectAll()
             .where {
                 val inTrips = PackingItems.tripId inList allTripIds
@@ -190,8 +203,9 @@ class SyncService {
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) })
         val payers = ExpenseService.loadPayers(expenseRows.map { it[Expenses.id] })
         val expenseItems = ExpenseService.loadItems(expenseRows.map { it[Expenses.id] })
+        val receipts = DocumentService.receiptsOf(expenseRows.map { it[Expenses.id] })
         val expenses = expenseRows.map {
-            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), expenseItems[it[Expenses.id]].orEmpty())
+            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), expenseItems[it[Expenses.id]].orEmpty(), receipts)
         }
 
         val settlements = if (allTripIds.isEmpty()) emptyList() else Settlements.selectAll()
@@ -229,6 +243,7 @@ class SyncService {
         SyncPullResponse(
             changes = SyncChanges(
                 trips = trips, itineraryItems = items, packingItems = packing, personalItems = personal, expenses = expenses, settlements = settlements,
+                travelModes = travelModes,
                 members = members,
             ),
             serverTime = serverTime.toTimestamp(),
@@ -241,7 +256,7 @@ class SyncService {
     private fun pushTrip(userId: UUID, dto: TripDto) {
         val id = uuid(dto.id, "id")
         val problems = validateTrip(dto.title, dto.startDate, dto.endDate, dto.baseCurrency, dto.budgetMinor) + validateTripPlace(dto.destinationPlace) +
-            validateTripLocale(dto.countryCode, dto.localCurrency, dto.timeZone)
+            validateTripLocale(dto.countryCode, dto.localCurrency, dto.timeZone) + validateTripOrigin(dto.origin)
         if (problems.isNotEmpty()) throw validation(problems)
 
         val existing = Trips.selectAll().where { Trips.id eq id }.singleOrNull()
@@ -257,6 +272,7 @@ class SyncService {
                 it[budgetMinor] = dto.budgetMinor
                 TripService.fillPlace(it, dto.destinationPlace)
                 TripService.fillLocale(it, dto.countryCode, dto.localCurrency, dto.timeZone)
+                TripService.fillInterview(it, dto.origin, dto.departureMode, dto.localTransport, dto.mainTravelMode)
                 it[createdAt] = dto.createdAt.toJavaInstant()
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
             }
@@ -279,6 +295,7 @@ class SyncService {
         Trips.update({ Trips.id eq id }) {
             TripService.placeUpdate(it, dto.destinationPlace, nameChanged = existing[Trips.destination] != dto.destination)
             TripService.localeUpdate(it, dto.countryCode, dto.localCurrency, dto.timeZone, nameChanged = existing[Trips.destination] != dto.destination)
+            TripService.interviewUpdate(it, dto.origin, dto.departureMode, dto.localTransport, dto.mainTravelMode, dto.replaceTravelAnswers)
             it[title] = dto.title.trim()
             it[destination] = dto.destination
             it[startDate] = dto.startDate?.toJavaLocalDate()
@@ -291,6 +308,7 @@ class SyncService {
         if (dto.deletedAt != null && existing[Trips.deletedAt] == null) {
             val now = Instant.now()
             ItineraryItems.update({ (ItineraryItems.tripId eq id) and ItineraryItems.deletedAt.isNull() }) { it[deletedAt] = now }
+            TravelModes.update({ (TravelModes.tripId eq id) and TravelModes.deletedAt.isNull() }) { it[deletedAt] = now }
             PackingItems.update({ (PackingItems.tripId eq id) and PackingItems.deletedAt.isNull() }) { it[deletedAt] = now }
             Expenses.update({ (Expenses.tripId eq id) and Expenses.deletedAt.isNull() }) { it[deletedAt] = now }
         }
@@ -303,8 +321,8 @@ class SyncService {
         val asSent = ItineraryItemInput(
             id = dto.id, dayDate = dto.dayDate, startTime = dto.startTime, endTime = dto.endTime, title = dto.title,
             category = dto.category, placeName = dto.placeName, placeId = dto.placeId, lat = dto.lat, lng = dto.lng,
-            durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, source = dto.source,
-            sortOrder = dto.sortOrder,
+            placeKind = dto.placeKind, placeCity = dto.placeCity, durationMin = dto.durationMin, notes = dto.notes, bookingUrl = dto.bookingUrl, links = dto.links,
+            source = dto.source, sortOrder = dto.sortOrder,
         )
         val problems = ItineraryService.validate(asSent)
         if (problems.isNotEmpty()) throw validation(problems)
@@ -326,9 +344,56 @@ class SyncService {
         } else {
             if (existing[ItineraryItems.tripId] != tripId) throw conflict("Item belongs to another trip")
             requireNewer(dto.updatedAt, existing[ItineraryItems.updatedAt])
+            val kept = existing[ItineraryItems.links]
             ItineraryItems.update({ ItineraryItems.id eq id }) {
                 it[deletedAt] = dto.deletedAt?.toJavaInstant()
-                ItineraryService.fill(it, input)
+                ItineraryService.fill(it, input, kept)
+            }
+        }
+    }
+
+    private fun pushTravelMode(userId: UUID, dto: TravelModeDto) {
+        val id = uuid(dto.id, "id")
+        val tripId = uuid(dto.tripId, "tripId")
+        val fromId = uuid(dto.fromItemId, "fromItemId")
+        val toId = uuid(dto.toItemId, "toItemId")
+        requireEditorOnLiveTrip(tripId, userId)
+        val problems = validateTravelMode(dto.fromItemId, dto.toItemId, dto.mode) + TravelModeService.itemsInTrip(tripId, fromId, toId)
+        if (problems.isNotEmpty()) throw validation(problems)
+
+        val byId = TravelModes.selectAll().where { TravelModes.id eq id }.singleOrNull()
+        val byPair = TravelModes.selectAll()
+            .where { (TravelModes.fromItemId eq fromId) and (TravelModes.toItemId eq toId) }
+            .singleOrNull()
+        when {
+            byId != null -> {
+                if (byId[TravelModes.tripId] != tripId) throw conflict("Travel mode belongs to another trip")
+                requireNewer(dto.updatedAt, byId[TravelModes.updatedAt])
+                TravelModes.update({ TravelModes.id eq id }) {
+                    it[TravelModes.fromItemId] = fromId
+                    it[TravelModes.toItemId] = toId
+                    it[mode] = dto.mode
+                    it[deletedAt] = dto.deletedAt?.toJavaInstant()
+                }
+            }
+            byPair != null -> {
+                if (byPair[TravelModes.tripId] != tripId) throw conflict("Travel mode belongs to another trip")
+                requireNewer(dto.updatedAt, byPair[TravelModes.updatedAt])
+                TravelModes.update({ TravelModes.id eq byPair[TravelModes.id] }) {
+                    it[mode] = dto.mode
+                    it[deletedAt] = dto.deletedAt?.toJavaInstant()
+                }
+            }
+            else -> {
+                TravelModes.insert {
+                    it[TravelModes.id] = id
+                    it[TravelModes.tripId] = tripId
+                    it[fromItemId] = fromId
+                    it[toItemId] = toId
+                    it[mode] = dto.mode
+                    it[createdAt] = dto.createdAt.toJavaInstant()
+                    it[deletedAt] = dto.deletedAt?.toJavaInstant()
+                }
             }
         }
     }
@@ -481,6 +546,8 @@ class SyncService {
         ExpenseService.replaceSplits(id, input.splits)
         ExpenseService.replacePayers(id, input.payers)
         ExpenseService.replaceItems(id, input.items)
+        // a deleted expense takes its receipt photo with it
+        if (dto.deletedAt != null) DocumentService.detachReceipt(id)
         // Only a new expense notifies (or an estimate that became a payment); a retry or another edit does not.
         val wasEstimate = existing?.get(Expenses.isEstimate) == true
         if (dto.deletedAt == null && !input.isEstimate && (existing == null || wasEstimate)) Notify.emit { expenseAdded(tripId, id, userId) }
@@ -608,5 +675,6 @@ class SyncService {
         const val ENTITY_PERSONAL = "personalItem"
         const val ENTITY_EXPENSE = "expense"
         const val ENTITY_SETTLEMENT = "settlement"
+        const val ENTITY_TRAVEL_MODE = "travelMode"
     }
 }

@@ -8,9 +8,11 @@ import androidx.lifecycle.viewModelScope
 import app.ransel.data.repository.ItineraryRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.shared.domain.activityDurationMinutes
+import app.ransel.shared.domain.activityLinks
 import app.ransel.shared.domain.endsNextDay
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.model.Category
 import app.ransel.shared.model.ItemSource
@@ -40,12 +42,24 @@ data class ActivityFormState(
     val start: LocalTime? = null,
     val end: LocalTime? = null,
     val placeName: String = "",
+    /** Short address of a place picked from a suggestion (shown under the name; not stored, so empty on edit). */
+    val placeSecondary: String? = null,
+    /** Google place id, with [lat] / [lng]: set by a suggestion or a place of this trip, empty for free text. */
+    val placeId: String? = null,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    /** What the picked place is and its city; saved with the activity (V9). Null for typed text. */
+    val placeKind: PlaceKind? = null,
+    val placeCity: String? = null,
     val notes: String = "",
-    val bookingUrl: String = "",
+    /** The "Link" rows (spec "Banyak link di aktivitas"); empty rows are dropped when saving. */
+    val links: LinkDraft = LinkDraft(),
     val showErrors: Boolean = false,
     val saving: Boolean = false,
 ) {
     val titleError: Boolean get() = showErrors && title.isBlank()
+    /** The place has a point on the map (green pin); free text has none ("Tanpa titik di peta"). */
+    val placeHasPoint: Boolean get() = lat != null && lng != null
     /** End earlier than start = the activity ends the next day (23:00–01:00 = 2 h). */
     val endsNextDay: Boolean get() = endsNextDay(start, end)
     val durationMin: Int? get() = activityDurationMinutes(start, end)?.takeIf { it > 0 }
@@ -88,7 +102,10 @@ class ActivityFormViewModel(
                         loading = false, tripTitle = trip?.title.orEmpty(), days = days,
                         title = item.title, category = item.category, day = item.dayDate?.takeIf { days.isNotEmpty() },
                         start = item.startTime, end = item.endTime, placeName = item.placeName.orEmpty(),
-                        notes = item.notes.orEmpty(), bookingUrl = item.bookingUrl.orEmpty(),
+                        placeId = item.placeId, lat = item.lat, lng = item.lng,
+                        placeKind = item.placeKind, placeCity = item.placeCity,
+                        notes = item.notes.orEmpty(),
+                        links = LinkDraft.of(item.activityLinks(), legacyText = item.bookingUrl),
                     )
                 }
             }
@@ -100,13 +117,35 @@ class ActivityFormViewModel(
     fun onDay(v: LocalDate?) = _state.update { it.copy(day = v) }
     fun onStart(v: LocalTime?) = _state.update { it.copy(start = v) }
     fun onEnd(v: LocalTime?) = _state.update { it.copy(end = v) }
-    fun onPlace(v: String) = _state.update { it.copy(placeName = v) }
+
+    /**
+     * A place chosen in the picker: the name, its id and its point (all empty for free text, which also drops an old
+     * id and point). An empty title takes the name of a place picked from a suggestion.
+     */
+    fun onPlacePicked(choice: PlaceChoice) = _state.update {
+        it.copy(
+            placeName = choice.name,
+            placeSecondary = choice.secondary,
+            placeId = choice.placeId,
+            lat = choice.lat,
+            lng = choice.lng,
+            placeKind = choice.kind,
+            placeCity = choice.city,
+            title = if (it.title.isBlank() && choice.fromSuggestion) choice.name else it.title,
+        )
+    }
+
+    /** The X of the field: name, id and point go together. */
+    fun onPlaceCleared() = _state.update { it.copy(placeName = "", placeSecondary = null, placeId = null, lat = null, lng = null, placeKind = null, placeCity = null) }
+
     fun onNotes(v: String) = _state.update { it.copy(notes = v) }
-    fun onBooking(v: String) = _state.update { it.copy(bookingUrl = v) }
+    fun onLinkChange(key: Int, v: String) = _state.update { it.copy(links = it.links.change(key, v)) }
+    fun onLinkRemove(key: Int) = _state.update { it.copy(links = it.links.remove(key)) }
+    fun onLinkAdd() = _state.update { it.copy(links = it.links.add()) }
 
     fun save() {
         val s = _state.value
-        if (s.saving) return
+        if (s.saving || !s.links.canSave) return
         if (s.title.isBlank()) {
             _state.update { it.copy(showErrors = true) }
             return
@@ -121,6 +160,7 @@ class ActivityFormViewModel(
             val unchanged = previous != null && previous.dayDate == s.day && previous.startTime == startTime
             val sortOrder = if (unchanged) previous!!.sortOrder else sortOrderForStart(siblings, startTime)
             val scheduled = s.day != null
+            val savedLinks = s.links.links()
             itinerary.save(
                 tripId,
                 ItineraryItemInput(
@@ -132,12 +172,17 @@ class ActivityFormViewModel(
                     title = s.title.trim(),
                     category = s.category,
                     placeName = s.placeName.trim().ifEmpty { null },
-                    placeId = previous?.placeId,
-                    lat = previous?.lat,
-                    lng = previous?.lng,
+                    placeId = s.placeId.takeIf { s.placeName.isNotBlank() },
+                    // a point comes as a pair or not at all (the contract refuses half a point)
+                    lat = s.lat.takeIf { s.placeName.isNotBlank() && s.placeHasPoint },
+                    lng = s.lng.takeIf { s.placeName.isNotBlank() && s.placeHasPoint },
+                    placeKind = s.placeKind.takeIf { s.placeName.isNotBlank() },
+                    placeCity = s.placeCity.takeIf { s.placeName.isNotBlank() },
                     durationMin = s.durationMin ?: previous?.durationMin,
                     notes = s.notes.trim().ifEmpty { null },
-                    bookingUrl = s.bookingUrl.trim().ifEmpty { null },
+                    // the list is the whole truth (empty = no link); bookingUrl stays the first one for apps from before the list
+                    bookingUrl = savedLinks.firstOrNull(),
+                    links = savedLinks,
                     source = previous?.source ?: ItemSource.MANUAL,
                     sortOrder = sortOrder,
                 ),

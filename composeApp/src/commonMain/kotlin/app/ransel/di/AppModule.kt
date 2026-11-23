@@ -7,6 +7,9 @@ import app.ransel.feature.home.HomeViewModel
 import app.ransel.feature.itinerary.ActivityFormViewModel
 import app.ransel.feature.itinerary.ItineraryViewModel
 import app.ransel.data.credit.CreditsStore
+import app.ransel.data.repository.TravelModeRepository
+import app.ransel.data.repository.TripRepository
+import app.ransel.data.sync.SyncStatus
 import app.ransel.data.notification.NotificationTarget
 import app.ransel.data.voting.VotingStore
 import app.ransel.feature.voting.VoteViewModel
@@ -17,7 +20,13 @@ import app.ransel.feature.credits.CreditsViewModel
 import app.ransel.feature.notifications.NotificationSettingsViewModel
 import app.ransel.feature.notifications.NotificationsViewModel
 import app.ransel.data.explore.ExploreSessionStore
-import app.ransel.feature.explore.ExplorePreferencesViewModel
+import app.ransel.data.inspiration.ApiInspirationRepository
+import app.ransel.data.inspiration.InspirationRepository
+import app.ransel.data.inspiration.InspirationSessionStore
+import app.ransel.feature.inspiration.InspirationHomeViewModel
+import app.ransel.feature.inspiration.InspirationInterviewViewModel
+import app.ransel.feature.inspiration.InspirationResultsViewModel
+import app.ransel.feature.inspiration.SavedIdeasViewModel
 import app.ransel.feature.explore.ExploreTripPickerViewModel
 import app.ransel.feature.explore.PlaceDetailViewModel
 import app.ransel.feature.explore.SwipeViewModel
@@ -31,6 +40,7 @@ import app.ransel.feature.members.MembersViewModel
 import app.ransel.feature.packing.PackingTemplatesViewModel
 import app.ransel.feature.packing.PackingViewModel
 import app.ransel.feature.trip.TripSidePanelViewModel
+import app.ransel.feature.interview.InterviewViewModel
 import app.ransel.feature.tripform.TripFormViewModel
 import app.ransel.feature.trips.TripListViewModel
 import app.ransel.data.auth.AuthRepository
@@ -74,14 +84,15 @@ val commonModule: Module = module {
     viewModelOf(::HomeViewModel)
     viewModelOf(::TripListViewModel)
     viewModelOf(::AccountViewModel)
+    viewModel { params -> InterviewViewModel(params.get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get(), get<ExploreSessionStore>(), get<CreditsStore>()) }
     viewModel { params -> TripFormViewModel(params.getOrNull(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get()) }
-    viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get(), get<RanselApi>(), get<SessionManager>()) }
+    viewModel { params -> ItineraryViewModel(params.get(), get(), get(), get(), get<RanselApi>(), get<SessionManager>(), get<TripRepository>(), get<TravelModeRepository>(), get<SyncStatus>()) }
     viewModel { params -> PackingViewModel(params.get(), get(), get()) }
     // parametersOf(tripId) = the trip-wide list; parametersOf(tripId, true) = the user's Pribadi list
     viewModel { params -> PackingTemplatesViewModel(params.get(), get(), get(), if (params.values.getOrNull(1) == true) get() else null) }
     viewModel { params -> app.ransel.feature.packing.GroupPackingViewModel(params.get(), get(), get(), get(), get()) }
     viewModel { params -> TripSidePanelViewModel(params.get(), get(), get()) }
-    viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get(), get(), get()) }
+    viewModel { params -> ExpensesViewModel(params.get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.expenses.receipt.ReceiptViewModel(params.get(), get(), get(), get()) }
     viewModel { app.ransel.feature.account.PaymentMethodsViewModel(get(), get()) }
     viewModel { app.ransel.feature.destination.DestinationPickerViewModel(get(), get(), get()) }
@@ -91,15 +102,32 @@ val commonModule: Module = module {
     viewModel { app.ransel.feature.account.DeleteAccountViewModel(get(), get(), get(), get(), get()) }
     viewModelOf(::ChangePasswordViewModel)
     viewModel { params -> app.ransel.feature.recap.RecapViewModel(params.get(), get(), get(), get(), get(), get()) }
-    viewModel { params -> app.ransel.feature.documents.DocumentsViewModel(params.get(), get(), get(), get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.documents.DocumentsViewModel(params.get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.albums.AlbumsViewModel(params.get(), get(), get(), get()) }
     viewModel { params -> app.ransel.feature.albums.AlbumGalleryViewModel(params.get(), get()) }
     viewModel { params -> app.ransel.feature.guest.GuestPageViewModel(params.get(), get(), get(), get()) }
     single { CreditsStore() }
+    single<InspirationRepository> { ApiInspirationRepository(get()) }
+    single { InspirationSessionStore(get()) }
+    viewModelOf(::InspirationHomeViewModel)
+    viewModel { params -> InspirationInterviewViewModel(params.get(), get(), get()) }
+    viewModel { params -> InspirationResultsViewModel(params.get(), get(), get()) }
+    viewModelOf(::SavedIdeasViewModel)
+    single { app.ransel.data.travel.TravelAnswerChanges() }
+    viewModel { params ->
+        app.ransel.feature.tripform.travel.TripAnswerViewModel(
+            params.get<String>(0), app.ransel.shared.domain.TravelRow.valueOf(params.get<String>(1)), get(), get<RanselApi>(), get<SessionManager>(), get(), get(),
+        )
+    }
+    viewModel { params ->
+        app.ransel.feature.tripform.travel.TripTravelViewModel(
+            params.get<String>(0), get(), get(), get<RanselApi>(), get<SessionManager>(), get(), get(), get(), get(),
+        )
+    }
     single { PushRegistration(get(), get(), get()) }
     single { NotificationsStore() }
     single { NotificationTarget() }
-    viewModelOf(::CreditsViewModel)
+    viewModel { params -> CreditsViewModel(get(), get(), get(), params.getOrNull<String>(), get()) }
     viewModelOf(::NotificationsViewModel)
     viewModelOf(::NotificationSettingsViewModel)
     single { ExploreSessionStore(get(), get()) }
@@ -109,8 +137,10 @@ val commonModule: Module = module {
         app.ransel.ui.tour.TourController(get(), { (session.state.value as? app.ransel.data.auth.SessionState.SignedIn)?.user?.id }, get())
     }
     viewModelOf(::ExploreTripPickerViewModel)
-    viewModel { params -> ExplorePreferencesViewModel(params.getOrNull(), get(), get(), get(), get(), get()) }
-    viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get(), get()) }
+    single { app.ransel.data.explore.TripTasteRepository(get(), get()) }
+    single { app.ransel.data.explore.TripExploreRequests() }
+    viewModel { params -> app.ransel.feature.explore.TripExploreViewModel(params.get(), get(), get(), get(), get(), get()) }
+    viewModel { params -> SwipeViewModel(params.get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { params -> PlaceDetailViewModel(params.get(), get(), get()) }
     single { VotingStore() }
     viewModel { params -> VoteViewModel(params[0], params[1], params[2], get(), get(), get(), get(), get(), get(), get()) }
@@ -124,6 +154,13 @@ val commonModule: Module = module {
     // two String parameters: take them by position
     viewModel { params -> PollViewModel(params.get<String>(0), params.get<String>(1), get(), get(), get()) }
     viewModel { params -> CreatePollViewModel(params.get(), params.get(), get(), get()) }
+    viewModel { params -> app.ransel.feature.itinerary.PlacePickerViewModel(params.get<String>(), get(), get(), get()) }
+    viewModel { params ->
+        val session = get<SessionManager>()
+        app.ransel.feature.itinerary.ActivityDetailViewModel(
+            params.get<String>(0), params.get<String>(1), get(), get(), get<RanselApi>(),
+            signedIn = { session.state.value is app.ransel.data.auth.SessionState.SignedIn },
+        ) }
     viewModel { params -> ActivityFormViewModel(
             tripId = params.get<String>(0),
             itemId = params.get<String?>(1),

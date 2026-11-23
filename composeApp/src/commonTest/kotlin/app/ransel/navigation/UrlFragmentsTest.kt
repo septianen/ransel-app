@@ -14,7 +14,9 @@ class UrlFragmentsTest {
         assertEquals("#/trips/$trip", urlFragmentForRoute(TripRoute(trip)))
         assertEquals("#/trips/$trip/expenses", urlFragmentForRoute(TripRoute(trip, "EXPENSES")))
         assertEquals("#/trips/$trip/polls/p1", urlFragmentForRoute(PollRoute(trip, "p1", share = true)))
-        assertEquals("#/account/credits", urlFragmentForRoute(CreditsRoute))
+        assertEquals("#/account/credits", urlFragmentForRoute(CreditsRoute()))
+        assertEquals("#/account/profile", urlFragmentForRoute(ProfileSecurityRoute))
+        assertEquals("#/account/payment", urlFragmentForRoute(PaymentRoute))
         assertEquals("#/account/password", urlFragmentForRoute(ChangePasswordRoute))
     }
 
@@ -34,9 +36,12 @@ class UrlFragmentsTest {
         assertEquals(MembersRoute(trip), routeForUrlFragment("#/trips/$trip/members"))
         assertEquals(PollRoute(trip, "p1"), routeForUrlFragment("#/trips/$trip/polls/p1"))
         assertEquals(ExploreRoute, routeForUrlFragment("#/explore"))
+        assertEquals(ExploreTripPickerRoute, routeForUrlFragment("#/explore/trips"))
+        assertEquals("#/explore/trips", urlFragmentForRoute(ExploreTripPickerRoute))
+        assertEquals("#/explore/ask", urlFragmentForRoute(InspirationHomeRoute))
         assertEquals(NotificationSettingsRoute, routeForUrlFragment("#/notifications/settings"))
         // every address it reads back is the one it writes
-        listOf(TripRoute(trip, "PACKING"), RecapRoute(trip), AllTransactionsRoute(trip), CreditsRoute, AccountRoute, ChangePasswordRoute).forEach {
+        listOf(TripRoute(trip, "PACKING"), RecapRoute(trip), AllTransactionsRoute(trip), CreditsRoute(), AccountRoute, ProfileSecurityRoute, PaymentRoute, ChangePasswordRoute).forEach {
             assertEquals(it, routeForUrlFragment(urlFragmentForRoute(it)))
         }
     }

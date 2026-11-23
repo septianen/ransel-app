@@ -28,6 +28,27 @@ interface TripDao {
 }
 
 @Dao
+interface TravelModeDao {
+    @Query("SELECT * FROM travel_modes WHERE tripId = :tripId AND deletedAt IS NULL")
+    fun observe(tripId: String): Flow<List<TravelModeEntity>>
+
+    @Query("SELECT * FROM travel_modes WHERE fromItemId = :fromItemId AND toItemId = :toItemId")
+    suspend fun getByPair(fromItemId: String, toItemId: String): TravelModeEntity?
+
+    @Query("SELECT * FROM travel_modes WHERE id = :id")
+    suspend fun get(id: String): TravelModeEntity?
+
+    @Upsert
+    suspend fun upsert(entity: TravelModeEntity)
+
+    @Query(
+        "UPDATE travel_modes SET deletedAt = :now, updatedAt = :now, syncState = 'PENDING' " +
+            "WHERE tripId = :tripId AND deletedAt IS NULL",
+    )
+    suspend fun softDeleteByTrip(tripId: String, now: Long)
+}
+
+@Dao
 interface ItineraryDao {
     /** Unscheduled (dayDate NULL) first, then by day and sortOrder. */
     @Query(
@@ -125,6 +146,30 @@ interface ExpenseDao {
 }
 
 @Dao
+interface PendingReceiptDao {
+    @Query("SELECT * FROM pending_receipts WHERE tripId = :tripId")
+    fun observe(tripId: String): Flow<List<PendingReceiptEntity>>
+
+    @Query("SELECT * FROM pending_receipts WHERE status = 'WAITING' ORDER BY createdAt")
+    suspend fun waiting(): List<PendingReceiptEntity>
+
+    @Query("SELECT * FROM pending_receipts WHERE expenseId = :expenseId")
+    suspend fun get(expenseId: String): PendingReceiptEntity?
+
+    @Upsert
+    suspend fun put(entity: PendingReceiptEntity)
+
+    @Query("UPDATE pending_receipts SET status = :status, attempts = :attempts WHERE expenseId = :expenseId")
+    suspend fun setStatus(expenseId: String, status: String, attempts: Int)
+
+    @Query("DELETE FROM pending_receipts WHERE expenseId = :expenseId")
+    suspend fun delete(expenseId: String)
+
+    @Query("DELETE FROM pending_receipts")
+    suspend fun deleteAll()
+}
+
+@Dao
 interface PreferenceDao {
     @Query("SELECT * FROM preferences")
     fun observeAll(): Flow<List<PreferenceEntity>>
@@ -161,12 +206,16 @@ interface SyncDao {
     @Query("SELECT * FROM personal_items WHERE syncState = 'PENDING'")
     suspend fun pendingPersonal(): List<PersonalItemEntity>
 
+    @Query("SELECT * FROM travel_modes WHERE syncState = 'PENDING'")
+    suspend fun pendingTravelModes(): List<TravelModeEntity>
+
     @Query(
         "SELECT id FROM trips WHERE syncState = 'PENDING' UNION ALL " +
             "SELECT id FROM itinerary_items WHERE syncState = 'PENDING' UNION ALL " +
             "SELECT id FROM packing_items WHERE syncState = 'PENDING' UNION ALL " +
             "SELECT id FROM expenses WHERE syncState = 'PENDING' UNION ALL " +
-            "SELECT id FROM personal_items WHERE syncState = 'PENDING'",
+            "SELECT id FROM personal_items WHERE syncState = 'PENDING' UNION ALL " +
+            "SELECT id FROM travel_modes WHERE syncState = 'PENDING'",
     )
     fun observePendingIds(): Flow<List<String>>
 
@@ -185,13 +234,17 @@ interface SyncDao {
     @Query("UPDATE personal_items SET syncState = :state WHERE id = :id AND updatedAt = :updatedAt AND syncState = 'PENDING'")
     suspend fun setPersonalState(id: String, updatedAt: Long, state: String)
 
+    @Query("UPDATE travel_modes SET syncState = :state WHERE id = :id AND updatedAt = :updatedAt AND syncState = 'PENDING'")
+    suspend fun setTravelModeState(id: String, updatedAt: Long, state: String)
+
     /** Rows the server refused, with their trip (a trip row is its own trip). */
     @Query(
         "SELECT id, id AS tripId, 'trip' AS entity FROM trips WHERE syncState = 'REJECTED' UNION ALL " +
             "SELECT id, tripId, 'itineraryItem' AS entity FROM itinerary_items WHERE syncState = 'REJECTED' UNION ALL " +
             "SELECT id, tripId, 'packingItem' AS entity FROM packing_items WHERE syncState = 'REJECTED' UNION ALL " +
             "SELECT id, tripId, 'expense' AS entity FROM expenses WHERE syncState = 'REJECTED' UNION ALL " +
-            "SELECT id, tripId, 'personalItem' AS entity FROM personal_items WHERE syncState = 'REJECTED'",
+            "SELECT id, tripId, 'personalItem' AS entity FROM personal_items WHERE syncState = 'REJECTED' UNION ALL " +
+            "SELECT id, tripId, 'travelMode' AS entity FROM travel_modes WHERE syncState = 'REJECTED'",
     )
     suspend fun rejectedRows(): List<RejectedRow>
 
@@ -209,6 +262,9 @@ interface SyncDao {
 
     @Query("DELETE FROM personal_items WHERE syncState = 'REJECTED'")
     suspend fun deleteRejectedPersonal()
+
+    @Query("DELETE FROM travel_modes WHERE syncState = 'REJECTED'")
+    suspend fun deleteRejectedTravelModes()
 
     @Query("SELECT * FROM personal_items WHERE id = :id")
     suspend fun personal(id: String): PersonalItemEntity?
@@ -231,6 +287,9 @@ interface SyncDao {
     @Query("SELECT * FROM expenses WHERE id = :id")
     suspend fun expense(id: String): ExpenseEntity?
 
+    @Query("SELECT * FROM travel_modes WHERE id = :id")
+    suspend fun travelMode(id: String): TravelModeEntity?
+
     @Upsert
     suspend fun putTrip(entity: TripEntity)
 
@@ -242,6 +301,9 @@ interface SyncDao {
 
     @Upsert
     suspend fun putExpense(entity: ExpenseEntity)
+
+    @Upsert
+    suspend fun putTravelMode(entity: TravelModeEntity)
 
     // Guest data becomes the account's data on first sign-in: re-own, then send everything.
     @Query("SELECT COUNT(*) FROM trips WHERE ownerId = :guestId")
@@ -289,6 +351,9 @@ interface SyncDao {
     @Query("UPDATE expenses SET syncState = 'PENDING'")
     suspend fun markAllExpensesPending()
 
+    @Query("UPDATE travel_modes SET syncState = 'PENDING'")
+    suspend fun markAllTravelModesPending()
+
     @Query("DELETE FROM trips")
     suspend fun clearTrips()
 
@@ -300,6 +365,9 @@ interface SyncDao {
 
     @Query("DELETE FROM expenses")
     suspend fun clearExpenses()
+
+    @Query("DELETE FROM travel_modes")
+    suspend fun clearTravelModes()
 }
 
 /** One row with syncState REJECTED; [entity] uses the sync wire names ("expense", "itineraryItem", ...). */

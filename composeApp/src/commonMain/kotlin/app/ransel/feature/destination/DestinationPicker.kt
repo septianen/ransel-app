@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -105,7 +106,7 @@ fun DestinationPicker(
     val around = stringResource(Res.string.destination_around, "%s")
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+        Surface(Modifier.fillMaxSize().imePadding(), color = MaterialTheme.colorScheme.surface) {
             DestinationPickerContent(
                 state = state,
                 focus = focus,
@@ -176,48 +177,74 @@ fun DestinationPickerContent(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (state.typing) {
-                Column {
-                    state.suggestions.forEach { s ->
-                        PlaceRow(kindSymbol(s.kind), highlighted(s.name, s.matchRanges), secondaryWithKind(s.secondary, s.kind)) { onPick(s) }
-                    }
-                    PlaceRow(Symbols.editNote, highlighted(stringResource(Res.string.destination_use_typed, state.query.trim()), emptyList()), null, onClick = onUseTyped)
-                }
-                Note(
-                    Symbols.info,
-                    stringResource(if (state.fallback) Res.string.destination_fallback else Res.string.destination_suggestions_note),
-                )
-                if (!state.fallback && state.suggestions.isNotEmpty()) {
-                    Text(stringResource(Res.string.destination_attribution), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
-                }
-                return@Column
-            }
+            DestinationResults(state, onPick, onUseTyped, onRecent, onPopular, onArea, onUseLocation, onOpenSettings)
+        }
+    }
+}
 
-            if (state.online) LocationSection(state.location, onUseLocation, onArea, onOpenSettings)
+/**
+ * What sits under the search field: the suggestions of the typed text, or (before typing) "Gunakan lokasi saat ini", the
+ * recent destinations and the popular ones. The full-screen picker and Layar 1 of the interview (under its own field, on the
+ * same screen) share it. [maxRecents] and [maxSuggestions] cap the lists where the screen has less room.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun DestinationResults(
+    state: DestinationPickerUiState,
+    onPick: (PlaceSuggestionDto) -> Unit,
+    onUseTyped: () -> Unit,
+    onRecent: (RecentDestination) -> Unit,
+    onPopular: (app.ransel.shared.dto.PopularDestinationDto) -> Unit,
+    onArea: (NearbyAreaDto) -> Unit,
+    onUseLocation: () -> Unit,
+    onOpenSettings: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    maxRecents: Int = Int.MAX_VALUE,
+    maxSuggestions: Int = Int.MAX_VALUE,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (state.typing) {
+            Column {
+                state.suggestions.take(maxSuggestions).forEach { s ->
+                    PlaceRow(kindSymbol(s.kind), highlighted(s.name, s.matchRanges), secondaryWithKind(s.secondary, s.kind)) { onPick(s) }
+                }
+                PlaceRow(Symbols.editNote, highlighted(stringResource(Res.string.destination_use_typed, state.query.trim()), emptyList()), null, onClick = onUseTyped)
+            }
+            Note(
+                Symbols.info,
+                stringResource(if (state.fallback) Res.string.destination_fallback else Res.string.destination_suggestions_note),
+            )
+            if (!state.fallback && state.suggestions.isNotEmpty()) {
+                Text(stringResource(Res.string.destination_attribution), style = MaterialTheme.typography.labelSmall, color = scheme.onSurfaceVariant)
+            }
+            return@Column
+        }
 
-            if (state.recents.isNotEmpty()) {
-                Column {
-                    SectionTitle(Res.string.destination_recent)
-                    state.recents.forEach { r ->
-                        PlaceRow(Symbols.schedule, highlighted(r.name, emptyList()), r.secondary) { onRecent(r) }
-                    }
+        if (state.online) LocationSection(state.location, onUseLocation, onArea, onOpenSettings)
+
+        if (state.recents.isNotEmpty()) {
+            Column {
+                SectionTitle(Res.string.destination_recent)
+                state.recents.take(maxRecents).forEach { r ->
+                    PlaceRow(Symbols.schedule, highlighted(r.name, emptyList()), r.secondary) { onRecent(r) }
                 }
             }
-            if (state.popular.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionTitle(Res.string.destination_popular)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        state.popular.forEach { p ->
-                            Text(
-                                p.name,
-                                Modifier
-                                    .clip(CircleShape)
-                                    .border(1.dp, scheme.outlineVariant, CircleShape)
-                                    .clickable(role = Role.Button) { onPopular(p) }
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                                style = MaterialTheme.typography.labelLarge,
-                            )
-                        }
+        }
+        if (state.popular.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionTitle(Res.string.destination_popular)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    state.popular.forEach { p ->
+                        Text(
+                            p.name,
+                            Modifier
+                                .clip(CircleShape)
+                                .border(1.dp, scheme.outlineVariant, CircleShape)
+                                .clickable(role = Role.Button) { onPopular(p) }
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            style = MaterialTheme.typography.labelLarge,
+                        )
                     }
                 }
             }

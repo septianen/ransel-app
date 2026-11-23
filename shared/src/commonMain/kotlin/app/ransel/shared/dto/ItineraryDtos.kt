@@ -23,10 +23,27 @@ data class ItineraryItemDto(
     val placeId: String? = null,
     val lat: Double? = null,
     val lng: Double? = null,
+    /**
+     * What the place is, from the suggestion it was picked from (`PlaceSuggestionDto.kind`): CITY, REGENCY, PROVINCE and
+     * COUNTRY are an area, anything else a point (`domain.isPointPlace`). null = not known (typed text, a place saved
+     * before this field): treated as a point when it has coordinates. Server: V8 `itinerary_items.place_kind`.
+     */
+    val placeKind: PlaceKind? = null,
+    /**
+     * The city, regency or district the place is in, the first part of the suggestion's second line ("Labuan Bajo"); null =
+     * not known. Only for display (the city chip of a day with places in several cities). Server: V8 `place_city`.
+     */
+    val placeCity: String? = null,
     /** Estimated duration in minutes (from the AI); used when scheduling an unscheduled place. */
     val durationMin: Int? = null,
     val notes: String? = null,
+    /** The old single link: the first of [links] for an app from before the list. */
     val bookingUrl: String? = null,
+    /**
+     * Links of the activity (booking, Instagram ...), up to 5, normalized web addresses; the server always sends it.
+     * null = not sent (an app from before the list); see `domain.activityLinks`.
+     */
+    val links: List<String>? = null,
     val source: ItemSource = ItemSource.MANUAL,
     /** Fractional; insert between A and B = (A + B) / 2. Ordered per (tripId, dayDate). */
     val sortOrder: Double = 0.0,
@@ -54,9 +71,20 @@ data class ItineraryItemInput(
     val placeId: String? = null,
     val lat: Double? = null,
     val lng: Double? = null,
+    /** See [ItineraryItemDto.placeKind]; an app from before the field sends null, which clears it (the place was re-picked or typed). */
+    val placeKind: PlaceKind? = null,
+    /** See [ItineraryItemDto.placeCity]. */
+    val placeCity: String? = null,
     val durationMin: Int? = null,
     val notes: String? = null,
+    /** For an app from before the list: it is the first link, and the other links of the item are kept. */
     val bookingUrl: String? = null,
+    /**
+     * The links, up to 5 (422 `links` = TOO_MANY, `links[i]` = INVALID for one that is not a web address); empty rows are
+     * dropped, an address without a scheme becomes https, duplicates are kept once. null = not sent: [bookingUrl] then
+     * replaces only the first link. Sending a list makes it the whole truth and [bookingUrl] is ignored.
+     */
+    val links: List<String>? = null,
     val source: ItemSource = ItemSource.MANUAL,
     val sortOrder: Double = 0.0,
 )

@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.Surface
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalUriHandler
@@ -75,7 +76,11 @@ import ransel.composeapp.generated.resources.*
 fun CreditsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: CreditsViewModel = koinViewModel(),
+    /** The trip whose search waits for credits; null = the plain screen from Akun. */
+    tripId: String? = null,
+    /** "Lanjut mencari": run that search now (the trip's Seleramu is already its session). */
+    onContinueSearch: (tripId: String) -> Unit = {},
+    viewModel: CreditsViewModel = koinViewModel(key = "credits-$tripId") { org.koin.core.parameter.parametersOf(tripId) },
 ) {
     RefreshOnReturn(viewModel::load)
     val state by viewModel.state.collectAsState()
@@ -85,6 +90,7 @@ fun CreditsScreen(
         onRetry = viewModel::load,
         onCodeChange = viewModel::onCodeChange,
         onRedeem = viewModel::redeem,
+        onContinueSearch = tripId?.let { id -> { onContinueSearch(id) } },
         modifier = modifier.statusBarsPadding(),
     )
 }
@@ -97,6 +103,8 @@ fun CreditsContent(
     onCodeChange: (String) -> Unit,
     onRedeem: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Set when a search waits for credits: the context line and, once the balance is enough, "Lanjut mencari". */
+    onContinueSearch: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxSize()) {
         TopBar(onBack)
@@ -105,9 +113,12 @@ fun CreditsContent(
             state.loading && credits == null -> SkeletonList()
             state.failure != null && credits == null -> LoadFailure(state.failure, onRetry, onBack)
             credits != null -> Column(
-                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 24.dp).navigationBarsPadding(),
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
+                if (onContinueSearch != null && state.searchTripTitle != null) {
+                    SearchContextLine(credits, state.searchTripTitle)
+                }
                 BalanceCard(credits)
                 VoucherSection(state, onCodeChange, onRedeem)
                 // Web only (owner, 1 Nov 2026): store rules on digital goods mean Android and iOS show no packs at all.
@@ -117,6 +128,46 @@ fun CreditsContent(
                 HistorySection(state.ledger)
             }
         }
+        // a search waits and the balance is enough now: the sticky button runs it
+        val wallet = state.credits
+        if (onContinueSearch != null && wallet != null && wallet.available >= wallet.costs.search) {
+            Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shadowElevation = 8.dp) {
+                Column(
+                    Modifier.navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        stringResource(Res.string.credits_continue_cost, wallet.costs.search, wallet.available - wallet.costs.search),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    androidx.compose.material3.Button(
+                        onClick = onContinueSearch,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                    ) { Text(stringResource(Res.string.credits_continue_search), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)) }
+                }
+            }
+        }
+    }
+}
+
+/** "Butuh 3 kredit untuk mencari di trip Bandung", and "Kreditmu sekarang cukup untuk mencari" once the balance allows it. */
+@Composable
+private fun SearchContextLine(credits: CreditsDto, tripTitle: String) {
+    val enough = credits.available >= credits.costs.search
+    Row(
+        Modifier.fillMaxWidth().clip(IrisShape.lg).background(MaterialTheme.colorScheme.surfaceContainer).padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Symbol(if (enough) Symbols.checkCircle else Symbols.info, size = 20.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            if (enough) stringResource(Res.string.credits_context_enough)
+            else stringResource(Res.string.credits_context_needs, credits.costs.search, tripTitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -309,6 +360,7 @@ private fun entryTitle(entry: CreditLedgerEntryDto): String {
                 CreditAction.NEXT_BATCH -> Res.string.credits_action_next_batch
                 CreditAction.PLACE_DETAIL -> Res.string.credits_action_place_detail
                 CreditAction.RECEIPT -> Res.string.credits_action_receipt
+                CreditAction.INSPIRATION -> Res.string.credits_action_inspiration
                 CreditAction.SEARCH, null -> Res.string.credits_action_search
             }
         },

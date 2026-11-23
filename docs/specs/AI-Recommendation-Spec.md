@@ -4,11 +4,11 @@ Oct 16, 2026 · @SEN
 
 ## Summary
 
-Explore AI (Phase 5) suggests real places for one trip; the user swipes right to save a place into that trip's Unscheduled box. This spec is the single source for the Explore flow, the preference form and the recommendation request. Where PRD, TRD or App Spec say otherwise about Explore, this spec wins.
+Trip-first place search (Phase 5) suggests real places for one trip; the user swipes right to save a place into that trip's Unscheduled box. **Scope (updated 21 Nov 2026):** this spec covers the search that is opened **from inside a trip** ("Cari inspirasi dengan AI", "Cari tempat"). It no longer describes the Explore tab's first screen: the tab opens Explore Inspirasi (`docs/PRD.md` "Explore Inspirasi"), and the trip picker below is the first step of the inside-trip flow, not of the tab. This spec is the single source for the trip-first flow, its preference form and the recommendation request. For the rest of the Explore tab (Inspirasi, Ide tersimpan) the PRD wins.
 
 Decisions agreed on 16 Oct 2026:
 
-- Explore always starts by choosing a trip: an existing ongoing or upcoming trip, or a new trip created when the search starts.
+- The trip-first search always knows its trip: an existing ongoing or upcoming trip, or a new trip created when the search starts. (Updated 21 Nov 2026: this applies to the flow opened from inside a trip; the Explore tab itself is no longer locked to a trip.)
 - Dates always come from the trip. The destination starts as the trip's and can be changed for one search (updated 23 Oct 2026, replaces the optional focus area): a Yogyakarta trip extended to Solo explores Solo without editing the trip.
 - Budget becomes a **price level** (`$` / `$$` / `$$$`) relative to local prices, preselected from the trip budget when there is one.
 - Interests are split into **core interests** (fixed, valid everywhere) and **destination interests** (3–5 chips suggested by AI per destination and month, cached).
@@ -16,7 +16,7 @@ Decisions agreed on 16 Oct 2026:
 
 ## User flow
 
-The Explore tab opens the trip picker; the form comes second and always knows its trip.
+The trip-first search opens from inside a trip (updated 21 Nov 2026; before, the Explore tab opened it). The picker is the first step of this flow; the form comes second and always knows its trip. The Explore tab itself opens Explore Inspirasi.
 
 &#91;embedded content: Explore flow · 2 entries, 2 shortcuts, 1 search\]
 

@@ -90,9 +90,32 @@ enum class Interest { NATURE, FOOD, CULTURE, SHOPPING, ADVENTURE, NIGHTLIFE, PHO
 @Serializable
 enum class TravelStyle { SANTAI, PADAT }
 
+/**
+ * "Ke {destinasi} naik apa?" (interview W2, plan "Wawancara Buat trip"): how the trip's creator gets to the destination.
+ * The trip between cities is never given a travel time. OWN_MOTORCYCLE and OWN_CAR are "own vehicle": no rental
+ * suggestion for the trip and no W3 question ([isOwnVehicle] in domain/TripInterview.kt).
+ */
+@Serializable
+enum class DepartureMode { OWN_MOTORCYCLE, OWN_CAR, TRAVEL_SHUTTLE, BUS, TRAIN, PLANE, FERRY }
+
+/**
+ * "Di sana keliling pakai apa?" (interview W3): how the creator gets around at the destination. UNKNOWN = the user
+ * picked "Belum tahu" (an answer, not the same as no answer, which is null on the trip).
+ */
+@Serializable
+enum class LocalTransport { RENT_MOTORCYCLE, RENT_CAR, RIDE_HAILING, PUBLIC_TRANSPORT, TAXI, UNKNOWN }
+
+/**
+ * The trip's main way of moving between places (plan "Perjalanan antar tempat"): sets the speed of the 1–50 km legs
+ * between activities and the Google Maps travel mode. PUBLIC_TRANSPORT has no time estimate (the legs only open Maps in
+ * transit mode). Filled from the interview answers by `mainTravelModeOf`, changeable by an OWNER or EDITOR.
+ */
+@Serializable
+enum class MainTravelMode { MOTORCYCLE, CAR, PUBLIC_TRANSPORT }
+
 /** What an Explore credit was spent on (`CreditLedgerEntryDto.action`). */
 @Serializable
-enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL, RECEIPT }
+enum class CreditAction { SEARCH, NEXT_BATCH, PLACE_DETAIL, RECEIPT, INSPIRATION }
 
 /** Why a ledger row exists. SPEND is negative; ADJUSTMENT (an admin's correction) may be either sign; every other kind adds credits. */
 @Serializable
@@ -167,16 +190,20 @@ enum class SettingKey {
     SUGGESTIONS_PER_HOUR,
     /** The LLM model, one of the server's allow-list (`LLM_MODEL`, `LLM_MODELS`). */
     LLM_MODEL,
-    /** Lowest Android version allowed to run without a prompt, "1.2.3"; "" = no update prompt (`ANDROID_MIN_VERSION`). */
+    /**
+     * Android `VERSION_NAME` below this gets the full-screen update gate, "1.2.3"; "" = no hard floor
+     * (`ANDROID_MIN_VERSION`). iOS and web are not checked.
+     */
     ANDROID_MIN_VERSION,
-    /** "true" = an Android app below [ANDROID_MIN_VERSION] cannot dismiss the update dialog (`ANDROID_FORCE_UPDATE`). */
-    ANDROID_FORCE_UPDATE,
-    /** Where the Android update dialog sends people, an https link (`ANDROID_STORE_URL`). */
+    /**
+     * Android `VERSION_NAME` at least [ANDROID_MIN_VERSION] and below this gets one "Update tersedia" dialog per
+     * process, "1.2.3"; "" = no soft offer (`ANDROID_LATEST_VERSION`).
+     */
+    ANDROID_LATEST_VERSION,
+    /** Bahasa Indonesia body of both update screens (`ANDROID_UPDATE_MESSAGE`). Blank = the app's own sentence. */
+    ANDROID_UPDATE_MESSAGE,
+    /** Where the update screens send people, an https link (`ANDROID_STORE_URL`). Blank = no prompt. */
     ANDROID_STORE_URL,
-    /** Same three for iOS (`IOS_MIN_VERSION`, `IOS_FORCE_UPDATE`, `IOS_STORE_URL`). */
-    IOS_MIN_VERSION,
-    IOS_FORCE_UPDATE,
-    IOS_STORE_URL,
 }
 
 /** What an installed app should do about its version: nothing, offer the update, or insist on it. */
@@ -256,3 +283,44 @@ enum class FxSource { DAILY, MANUAL }
 /** Account → Info pembayaran: a bank account or an e-wallet. */
 @Serializable
 enum class PaymentMethodKind { BANK, EWALLET }
+
+/** Kind of a day off in Indonesia: a national holiday (tanggal merah) or a cuti bersama (collective leave day). */
+@Serializable
+enum class HolidayType { NATIONAL, CUTI_BERSAMA }
+
+// ── Explore Inspirasi (PRD v0.8, `docs/PRD.md` "Explore Inspirasi") ─────────────────────────────────────────────────
+
+/** The fixed slot order of the interview; the question inside a slot is dynamic. [INTEREST] is answered on the hero. */
+@Serializable
+enum class InspirationSlot { INTEREST, COMBINATION, DISTANCE, DETAIL, CONTEXT, OPTIONAL }
+
+/** Slot 3: how far the user wants to go. Never needs the location permission. */
+@Serializable
+enum class InspirationDistance { SAME_CITY, DOMESTIC, ABROAD, ANY }
+
+/**
+ * Where a session stands. ACTIVE = a question waits; READY = the cards are built and not paid yet (a 402 at the end keeps
+ * the session here for 24 h); CHARGED = paid once and final; FAILED = nothing was charged; EXPIRED = past 24 h.
+ */
+@Serializable
+enum class InspirationStatus { ACTIVE, READY, CHARGED, FAILED, EXPIRED }
+
+/** Whether the AI wrote a question or the pre-written fallback for its slot was shown (the 4 s step timeout). */
+@Serializable
+enum class InspirationQuestionSource { LLM, FALLBACK }
+
+/** The parts of the profile header; each is an editable chip. */
+@Serializable
+enum class InspirationChipKey { INTEREST, LEVEL, DURATION, DISTANCE, BUDGET, STYLE }
+
+/** What a mandatory rule asks for. [VISA_NOTE] is a note on the cards ("perkiraan AI, cek lagi"), not a question. */
+@Serializable
+enum class InspirationRequirement { LEVEL, BUDDY, BUDGET, VISA_NOTE }
+
+/** What switches a mandatory rule on. */
+@Serializable
+enum class InspirationRuleTrigger { SKILL_ACTIVITY, SHOPPING, ABROAD }
+
+/** The two ways to get new cards inside a paid session; both are free a few times (see `InspirationLimits`). */
+@Serializable
+enum class InspirationRefine { ASK_AGAIN, CHIP_EDIT }

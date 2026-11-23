@@ -1,7 +1,11 @@
 package app.ransel.server.db
 
 import app.ransel.shared.dto.InterestChipDto
+import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.model.CategoryKind
+import app.ransel.shared.model.DepartureMode
+import app.ransel.shared.model.LocalTransport
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.ErrorDisplay
 import app.ransel.shared.model.SettingKey
 import app.ransel.shared.model.Category
@@ -9,6 +13,7 @@ import app.ransel.shared.model.CommentTarget
 import app.ransel.shared.model.PollKind
 import app.ransel.shared.model.PollPriceUnit
 import app.ransel.shared.model.PollStatus
+import app.ransel.shared.domain.LegKind
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.PackingCategory
 import app.ransel.shared.model.PaymentMethod
@@ -89,6 +94,15 @@ object Trips : Table("trips") {
     val countryCode = char("country_code", 2).nullable()
     val localCurrency = char("local_currency", 3).nullable()
     val timeZone = text("time_zone").nullable()
+    /** V8: the interview's city of departure (name, centre, optional Google place id and country) and its answers; all null = not answered. */
+    val originName = text("origin_name").nullable()
+    val originLat = double("origin_lat").nullable()
+    val originLng = double("origin_lng").nullable()
+    val originPlaceId = text("origin_place_id").nullable()
+    val originCountryCode = char("origin_country_code", 2).nullable()
+    val departureMode = enumerationByName<DepartureMode>("departure_mode", 24).nullable()
+    val localTransport = enumerationByName<LocalTransport>("local_transport", 24).nullable()
+    val mainTravelMode = enumerationByName<MainTravelMode>("main_travel_mode", 24).nullable()
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
@@ -224,15 +238,60 @@ object ItineraryItems : Table("itinerary_items") {
     val placeId = text("place_id").nullable()
     val lat = double("lat").nullable()
     val lng = double("lng").nullable()
+    /** What the place is and its city, from the suggestion it was picked from (V9). */
+    val placeKind = enumerationByName<PlaceKind>("place_kind", 16).nullable()
+    val placeCity = text("place_city").nullable()
     val durationMin = integer("duration_min").nullable()
     val notes = text("notes").nullable()
+    /** The first link, kept for apps from before the list; [links] is the truth (V6). */
     val bookingUrl = text("booking_url").nullable()
+    val links = jsonb<List<String>>("links", Json)
     val itemSource = enumerationByName<ItemSource>("source", 16)
     val sortOrder = double("sort_order")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
     val deletedAt = timestamp("deleted_at").nullable()
     override val primaryKey = PrimaryKey(id)
+}
+
+/** How a pair of itinerary items is travelled (Getting there). V10. */
+object TravelModes : Table("travel_modes") {
+    val id = javaUUID("id")
+    val tripId = javaUUID("trip_id")
+    val fromItemId = javaUUID("from_item_id")
+    val toItemId = javaUUID("to_item_id")
+    val mode = enumerationByName<LegKind>("mode", 20)
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val deletedAt = timestamp("deleted_at").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+/** V13: the idea card behind an item made by "Bikin trip dari sini" (Activity details, no AI call). One row per item. */
+object ItineraryIdeaDetails : Table("itinerary_idea_details") {
+    val itemId = javaUUID("item_id")
+    val tripId = javaUUID("trip_id")
+    val card = jsonb<app.ransel.shared.dto.InspirationCardDto>("card", Json)
+    val photoPlaceId = text("photo_place_id").nullable()
+    val regionPlaceId = text("region_place_id").nullable()
+    val lat = double("lat").nullable()
+    val lng = double("lng").nullable()
+    val updatedBy = javaUUID("updated_by").nullable()
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(itemId)
+}
+
+/** V12: a trip's Seleramu ("Cari tempat" starts from it on every device). One row per trip. */
+object TripTastes : Table("trip_tastes") {
+    val tripId = javaUUID("trip_id")
+    val interests = array<String>("interests")
+    val extraInterests = array<String>("extra_interests")
+    val style = enumerationByName<app.ransel.shared.model.TravelStyle>("style", 10).nullable()
+    val priceLevel = enumerationByName<app.ransel.shared.model.PriceLevel>("price_level", 10).nullable()
+    val notes = text("notes").nullable()
+    val updatedBy = javaUUID("updated_by").nullable()
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(tripId)
 }
 
 object PackingItems : Table("packing_items") {
@@ -332,6 +391,8 @@ object ExpenseItems : Table("expense_items") {
     val name = text("name")
     val amountMinor = long("amount_minor")
     val memberIds = jsonb<List<String>>("member_ids", Json)
+    /** V4: tax and service. Not derived from the name. */
+    val isTax = bool("is_tax")
     override val primaryKey = PrimaryKey(expenseId, sortOrder)
 }
 
@@ -470,6 +531,8 @@ object TripDocuments : Table("trip_documents") {
     val mime = text("mime").nullable()
     val sizeBytes = long("size_bytes").nullable()
     val itineraryItemId = javaUUID("itinerary_item_id").nullable()
+    /** The expense this is the receipt photo of (V7); one live document per expense. */
+    val expenseId = javaUUID("expense_id").nullable()
     val uploadedByMemberId = javaUUID("uploaded_by_member_id")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
@@ -812,4 +875,73 @@ object DestinationInterests : Table("destination_interests") {
     val curatedBy = javaUUID("curated_by").nullable()
     val curatedAt = timestamp("curated_at")
     override val primaryKey = PrimaryKey(destination, month, language)
+}
+
+// ── Explore Inspirasi (V11) ─────────────────────────────────────────────────
+
+object InspirationSessions : Table("inspiration_sessions") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val status = enumerationByName<app.ransel.shared.model.InspirationStatus>("status", 10)
+    val language = text("language")
+    val state = jsonb<app.ransel.server.ai.InspirationState>("state", Json)
+    val result = jsonb<app.ransel.server.ai.StoredInspirationResult>("result", Json).nullable()
+    val askAgainUsed = integer("ask_again_used")
+    val chipEditsUsed = integer("chip_edits_used")
+    val chargedAt = timestamp("charged_at").nullable()
+    val createdAt = timestamp("created_at")
+    val updatedAt = timestamp("updated_at")
+    val expiresAt = timestamp("expires_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object InspirationSessionLog : Table("inspiration_session_log") {
+    val id = javaUUID("id")
+    val sessionId = javaUUID("session_id")
+    val userId = javaUUID("user_id")
+    val step = integer("step")
+    val kind = text("kind")
+    val slot = text("slot").nullable()
+    val questionSource = text("source").nullable()
+    val outcome = text("outcome")
+    val latencyMs = integer("latency_ms")
+    val question = text("question").nullable()
+    val choice = text("choice").nullable()
+    val creditsCharged = integer("credits_charged")
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object InspirationRules : Table("inspiration_rules") {
+    val id = integer("id")
+    val trigger = enumerationByName<app.ransel.shared.model.InspirationRuleTrigger>("trigger", 20)
+    val requirement = enumerationByName<app.ransel.shared.model.InspirationRequirement>("requirement", 20)
+    val active = bool("active")
+    override val primaryKey = PrimaryKey(id)
+}
+
+object SavedIdeas : Table("saved_ideas") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val sessionId = javaUUID("session_id")
+    val cardId = text("card_id")
+    val card = jsonb<app.ransel.server.ai.StoredInspirationCard>("card", Json)
+    val profile = jsonb<List<app.ransel.shared.dto.InspirationChipDto>>("profile", Json)
+    val language = text("language")
+    val savedAt = timestamp("saved_at")
+    val refreshedAt = timestamp("refreshed_at")
+    val refreshRequestedAt = timestamp("refresh_requested_at").nullable()
+    val removedAt = timestamp("removed_at").nullable()
+    val removedBy = javaUUID("removed_by").nullable()
+    override val primaryKey = PrimaryKey(id)
+}
+
+object BuddyInterest : Table("buddy_interest") {
+    val id = javaUUID("id")
+    val userId = javaUUID("user_id")
+    val sessionId = javaUUID("session_id").nullable()
+    val interest = enumerationByName<app.ransel.shared.model.Interest>("interest", 20).nullable()
+    val consentAt = timestamp("consent_at")
+    val createdAt = timestamp("created_at")
+    override val primaryKey = PrimaryKey(id)
 }

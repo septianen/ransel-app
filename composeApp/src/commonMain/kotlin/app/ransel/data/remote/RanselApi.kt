@@ -10,6 +10,15 @@ import app.ransel.shared.api.ErrorCode
 import app.ransel.data.auth.ApiAuth
 import app.ransel.shared.model.DevicePlatform
 import app.ransel.shared.dto.AccountDeletionPreviewDto
+import app.ransel.shared.dto.StartInspirationRequest
+import app.ransel.shared.dto.InspirationSessionDto
+import app.ransel.shared.dto.InspirationAnswerRequest
+import app.ransel.shared.dto.InspirationEditChipRequest
+import app.ransel.shared.dto.SavedIdeasResponse
+import app.ransel.shared.dto.SaveIdeaRequest
+import app.ransel.shared.dto.SaveIdeaResponse
+import app.ransel.shared.dto.SavedIdeaDto
+import app.ransel.shared.dto.BuddyInterestRequest
 import app.ransel.shared.dto.ChangePasswordRequest
 import app.ransel.shared.dto.DeleteAccountRequest
 import app.ransel.shared.dto.AddMemberRequest
@@ -48,6 +57,7 @@ import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncPushResponse
 import app.ransel.shared.dto.BalancesDto
 import app.ransel.shared.dto.ExploreSuggestionsResponse
+import app.ransel.shared.dto.CancelSearchResponse
 import app.ransel.shared.dto.FeedbackRequest
 import app.ransel.shared.dto.PlaceDetailDto
 import app.ransel.shared.dto.RecommendationRequest
@@ -69,6 +79,7 @@ import app.ransel.shared.dto.CreateSettlementRequest
 import app.ransel.shared.dto.SettlementDto
 import app.ransel.shared.dto.FxRateDto
 import app.ransel.shared.dto.PlaceDto
+import app.ransel.shared.dto.PlaceSearchScope
 import app.ransel.shared.dto.PlaceSuggestionsDto
 import app.ransel.shared.dto.PopularDestinationDto
 import app.ransel.shared.dto.ReverseGeocodeDto
@@ -101,6 +112,10 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.TravelModeDto
+import app.ransel.shared.dto.TravelModeInput
+import app.ransel.shared.dto.TripTasteDto
+import app.ransel.shared.dto.TripTasteResponse
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
 import app.ransel.shared.dto.TripDocumentsDto
@@ -256,6 +271,20 @@ class RanselApi(
         delete(ApiRoutes.itineraryItem(tripId, itemId))
     suspend fun reorderDay(tripId: String, date: LocalDate, request: DayOrderRequest): ApiResult<List<ItineraryItemDto>> =
         send(HttpMethod.Put, ApiRoutes.dayOrder(tripId, date.toString()), request)
+
+    suspend fun travelModes(tripId: String): ApiResult<List<TravelModeDto>> =
+        get(ApiRoutes.travelModes(tripId))
+    suspend fun putTravelMode(tripId: String, input: TravelModeInput): ApiResult<TravelModeDto> =
+        send(HttpMethod.Put, ApiRoutes.travelModes(tripId), input)
+    suspend fun deleteTravelMode(tripId: String, id: String): ApiResult<Unit> =
+        delete(ApiRoutes.travelMode(tripId, id))
+
+
+    /** The trip's Seleramu (plan explore-trip-one-tap): every member reads it; `taste` is null while nobody saved one. */
+    suspend fun tripTaste(tripId: String): ApiResult<TripTasteResponse> = get(ApiRoutes.tripTaste(tripId))
+    /** OWNER, EDITOR: replaces the whole Seleramu. */
+    suspend fun saveTripTaste(tripId: String, taste: TripTasteDto): ApiResult<TripTasteResponse> =
+        send(HttpMethod.Put, ApiRoutes.tripTaste(tripId), taste)
 
     // ── packing ─────────────────────────────────────────────────────────────
     suspend fun packing(tripId: String): ApiResult<List<PackingItemDto>> = get(ApiRoutes.packing(tripId))
@@ -502,14 +531,25 @@ class RanselApi(
 
     // ── destination search ──────────────────────────────────────────────────
     /** Cancelled with the caller's coroutine, so a newer key press drops the older request. */
-    suspend fun placeAutocomplete(query: String, session: String?, near: Pair<Double, Double>? = null): ApiResult<PlaceSuggestionsDto> =
+    /** [scope] null = the destination search (the parameter is left out); ACTIVITY = any kind of place for an activity. */
+    suspend fun placeAutocomplete(
+        query: String,
+        session: String?,
+        near: Pair<Double, Double>? = null,
+        scope: PlaceSearchScope? = null,
+    ): ApiResult<PlaceSuggestionsDto> =
         call(HttpMethod.Get, ApiRoutes.PLACES_AUTOCOMPLETE, bodyOf = {
             parameter("q", query)
             session?.let { parameter("session", it) }
             near?.let { parameter("near", "${it.first},${it.second}") }
+            scope?.let { parameter("scope", it.name) }
         }) { it.body<ApiResponse<PlaceSuggestionsDto>>().data }
-    suspend fun place(placeId: String, session: String?): ApiResult<PlaceDto> =
-        call(HttpMethod.Get, ApiRoutes.place(placeId), bodyOf = { session?.let { parameter("session", it) } }) {
+    /** [scope] ACTIVITY skips the time zone lookup on the server (an activity does not need it). */
+    suspend fun place(placeId: String, session: String?, scope: PlaceSearchScope? = null): ApiResult<PlaceDto> =
+        call(HttpMethod.Get, ApiRoutes.place(placeId), bodyOf = {
+            session?.let { parameter("session", it) }
+            scope?.let { parameter("scope", it.name) }
+        }) {
             it.body<ApiResponse<PlaceDto>>().data
         }
     /** The coordinates go to the server once and are not kept anywhere. */
@@ -573,6 +613,10 @@ class RanselApi(
         destination: String? = null,
         month: String? = null,
         language: String? = null,
+        /** The budget of a trip that is not saved yet (one person, [budgetDays] days): the answer carries `suggestedPriceLevel`. */
+        budgetMinor: Long? = null,
+        budgetCurrency: String? = null,
+        budgetDays: Int? = null,
     ): ApiResult<ExploreSuggestionsResponse> = call(
         HttpMethod.Get,
         ApiRoutes.EXPLORE_SUGGESTIONS,
@@ -580,24 +624,32 @@ class RanselApi(
             tripId?.let { parameter("tripId", it) }
             destination?.let { parameter("destination", it) }
             month?.let { parameter("month", it) }
+            budgetMinor?.let { parameter("budgetMinor", it) }
+            budgetCurrency?.let { parameter("currency", it) }
+            budgetDays?.let { parameter("days", it) }
             language?.let { header(HttpHeaders.AcceptLanguage, it) }
         },
     ) { it.body<ApiResponse<ExploreSuggestionsResponse>>().data }
 
     suspend fun recommend(request: RecommendationRequest): ApiResult<RecommendationResponse> =
         send(HttpMethod.Post, ApiRoutes.RECOMMENDATIONS, request, timeoutMillis = RECOMMENDATION_TIMEOUT_MILLIS)
+    /** "Batalkan pencarian": asks the server to stop the search that was sent with this `searchId` (see [CancelSearchResponse]). */
+    suspend fun cancelSearch(searchId: String): ApiResult<CancelSearchResponse> =
+        call(HttpMethod.Delete, ApiRoutes.recommendationSearch(searchId)) { it.body<ApiResponse<CancelSearchResponse>>().data }
     suspend fun sendFeedback(request: FeedbackRequest): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.RECOMMENDATION_FEEDBACK, bodyOf = { contentType(ContentType.Application.Json); setBody(request) }) { }
     suspend fun undoFeedback(tripId: String, placeId: String): ApiResult<Unit> =
         delete(ApiRoutes.recommendationFeedback(tripId, placeId))
 
     /** Detail text of a place for the itinerary entry; [name] only matters when the server must rebuild an expired text. */
-    suspend fun placeDetail(placeId: String, name: String?, currency: String?): ApiResult<PlaceDetailDto> = call(
+    /** [cacheOnly]: only the saved text (or just name + photo), never a Places or LLM call on the server. */
+    suspend fun placeDetail(placeId: String, name: String?, currency: String?, cacheOnly: Boolean = false): ApiResult<PlaceDetailDto> = call(
         HttpMethod.Get,
         ApiRoutes.placeDetail(placeId),
         bodyOf = {
             name?.let { parameter("name", it) }
             currency?.let { parameter("currency", it) }
+            if (cacheOnly) parameter("cacheOnly", "true")
         },
     ) { it.body<ApiResponse<PlaceDetailDto>>().data }
 
@@ -612,6 +664,24 @@ class RanselApi(
         call(HttpMethod.Post, ApiRoutes.roundClose(tripId, roundId)) { }
     suspend fun decideRound(tripId: String, roundId: String, placeIds: List<String>): ApiResult<Unit> =
         call(HttpMethod.Post, ApiRoutes.roundDecide(tripId, roundId), bodyOf = { contentType(ContentType.Application.Json); setBody(DecideRequest(placeIds)) }) { }
+
+    // ── Explore Inspirasi ───────────────────────────────────────────────────
+    suspend fun startInspiration(request: StartInspirationRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_SESSIONS, request)
+    suspend fun inspirationSession(id: String): ApiResult<InspirationSessionDto> = get(ApiRoutes.inspirationSession(id))
+    suspend fun answerInspiration(id: String, request: InspirationAnswerRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Post, ApiRoutes.inspirationAnswer(id), request)
+    /** Back one step: the last answer is dropped and the previous question comes back (409 on the first question). */
+    suspend fun backInspiration(id: String): ApiResult<InspirationSessionDto> = call(HttpMethod.Post, ApiRoutes.inspirationBack(id)) { it.body<ApiResponse<InspirationSessionDto>>().data }
+    suspend fun finishInspiration(id: String): ApiResult<InspirationSessionDto> = call(HttpMethod.Post, ApiRoutes.inspirationFinish(id)) { it.body<ApiResponse<InspirationSessionDto>>().data }
+    suspend fun askAgainInspiration(id: String): ApiResult<InspirationSessionDto> = call(HttpMethod.Post, ApiRoutes.inspirationAskAgain(id)) { it.body<ApiResponse<InspirationSessionDto>>().data }
+    suspend fun editInspirationChip(id: String, request: InspirationEditChipRequest): ApiResult<InspirationSessionDto> = send(HttpMethod.Patch, ApiRoutes.inspirationProfile(id), request)
+    suspend fun savedIdeas(): ApiResult<SavedIdeasResponse> = get(ApiRoutes.INSPIRATION_SAVED)
+    suspend fun saveIdea(request: SaveIdeaRequest): ApiResult<SaveIdeaResponse> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_SAVED, request)
+    suspend fun deleteSavedIdea(id: String): ApiResult<Unit> = delete(ApiRoutes.inspirationSavedIdea(id))
+    suspend fun undoSavedIdea(id: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.inspirationSavedUndo(id)) { }
+    /** "Urungkan" after "Dihapus dari Ide tersimpan": the removed idea comes back (24 h; 409 CONFLICT when the list is full). */
+    suspend fun restoreSavedIdea(id: String): ApiResult<Unit> = call(HttpMethod.Post, ApiRoutes.inspirationSavedRestore(id)) { }
+    suspend fun refreshSavedIdea(id: String): ApiResult<SavedIdeaDto> = call(HttpMethod.Post, ApiRoutes.inspirationSavedRefresh(id)) { it.body<ApiResponse<SavedIdeaDto>>().data }
+    suspend fun registerBuddyInterest(request: BuddyInterestRequest): ApiResult<Unit> = send(HttpMethod.Post, ApiRoutes.INSPIRATION_BUDDY, request)
 
     // ── Explore credits ─────────────────────────────────────────────────────
     suspend fun credits(): ApiResult<CreditsDto> = get(ApiRoutes.CREDITS)

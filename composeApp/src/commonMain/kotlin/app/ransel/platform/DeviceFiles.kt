@@ -7,6 +7,8 @@ package app.ransel.platform
 interface DeviceFiles {
     val keepsFiles: Boolean
     suspend fun has(name: String): Boolean
+    /** The bytes of a kept file (the in-app photo viewer shows them without a signal); null when it is not kept. */
+    suspend fun read(name: String): ByteArray? = null
     suspend fun save(name: String, bytes: ByteArray)
     /** Opens a kept file in the phone's viewer (PDF reader, gallery). */
     suspend fun open(name: String)

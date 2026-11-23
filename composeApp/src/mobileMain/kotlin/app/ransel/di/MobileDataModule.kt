@@ -3,6 +3,8 @@ package app.ransel.di
 import app.ransel.data.local.RanselDatabase
 import app.ransel.data.local.RoomExpenseRepository
 import app.ransel.data.local.RoomItineraryRepository
+import app.ransel.data.local.RoomTravelModeRepository
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.local.RoomPackingRepository
 import app.ransel.data.local.RoomPersonalItemRepository
 import app.ransel.data.repository.PersonalItemRepository
@@ -28,8 +30,10 @@ import org.koin.dsl.module
 val mobileDataModule = module {
     single<TripRepository> { RoomTripRepository(get<RanselDatabase>(), currentUserId(get())) }
     single<ItineraryRepository> { RoomItineraryRepository(get<RanselDatabase>()) }
+    single<TravelModeRepository> { RoomTravelModeRepository(get<RanselDatabase>()) }
     single<PackingRepository> { RoomPackingRepository(get<RanselDatabase>()) }
     single<PersonalItemRepository> { RoomPersonalItemRepository(get<RanselDatabase>(), currentUserId(get())) }
+    single<app.ransel.data.repository.ReceiptPhotoRepository> { app.ransel.data.local.RoomReceiptPhotoRepository(get<RanselDatabase>()) }
     single<ExpenseRepository> { RoomExpenseRepository(get<RanselDatabase>(), currentUserId(get())) }
     single<PreferencesRepository> { RoomPreferencesRepository(get<RanselDatabase>()) }
 

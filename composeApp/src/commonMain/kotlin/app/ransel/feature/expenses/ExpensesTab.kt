@@ -106,6 +106,8 @@ fun ExpensesTab(
     /** True = switch to Saldo once (a payment tapped in "Semua transaksi"); [onBalancesOpened] resets it. */
     openBalances: Boolean = false,
     onBalancesOpened: () -> Unit = {},
+    /** "Kelola dokumen" when the trip's document storage is full; null hides the button. */
+    onManageDocuments: (() -> Unit)? = null,
     viewModel: ExpensesViewModel = koinViewModel(key = "expenses-${trip.id}") { parametersOf(trip) },
 ) {
     RefreshOnReturn {
@@ -118,6 +120,7 @@ fun ExpensesTab(
     val members by viewModel.members.collectAsState()
     val balances by viewModel.balances.collectAsState()
     val money by viewModel.money.collectAsState()
+    val queuedReceipts by viewModel.queuedReceipts.collectAsState()
     val shared = members.size > 1
     val canEdit = trip.myRole.atLeast(app.ransel.shared.model.Role.EDITOR)
     val isOwner = trip.myRole == app.ransel.shared.model.Role.OWNER
@@ -261,8 +264,8 @@ fun ExpensesTab(
             trip = trip,
             members = members,
             myMemberId = myMemberId,
-            onSave = {
-                viewModel.save(it)
+            onSave = { input, photo ->
+                viewModel.save(input, photo)
                 receipt = false
             },
             onDismiss = { receipt = false },
@@ -304,10 +307,15 @@ fun ExpensesTab(
             ExpenseSheet(
                 trip = trip,
                 existing = existing,
-                onSave = {
-                    viewModel.save(it)
+                onSave = { input, photo ->
+                    viewModel.save(input, photo)
                     sheet = null
                 },
+                receiptsSupported = viewModel.receiptsSupported,
+                queuedReceipt = existing?.let { queuedReceipts[it.id] },
+                onRetryReceipt = { existing?.let { viewModel.retryReceipt(it.id) } },
+                onDiscardReceipt = { existing?.let { viewModel.discardReceipt(it.id) } },
+                onManageDocuments = onManageDocuments,
                 onDelete = existing?.let {
                     {
                         viewModel.delete(it.id)

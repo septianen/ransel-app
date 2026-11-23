@@ -13,6 +13,7 @@ import app.ransel.server.ai.PlacesQuotaException
 import app.ransel.server.ai.PlacesClient
 import app.ransel.shared.model.Category
 import io.ktor.client.statement.readRawBytes
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -576,6 +577,54 @@ class RecommendationRoutesTest {
     }
 
     @Test
+    fun suggestionsOfATripNotSavedYetUseTheBudgetOfTheRequest() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places), fx = FakeFx) {
+            suspend fun level(query: String) = get("/explore/suggestions?destination=Lombok&month=2026-11$query").data().jsonObject
+
+            // 5.000.000 over 4 days for one person = 1.250.000 a day = about $78, between $30 and $90
+            val medium = level("&budgetMinor=5000000&currency=IDR&days=4")
+            assertEquals("MEDIUM", medium.str("suggestedPriceLevel"))
+            assertEquals("1250000", medium.str("budgetPerPersonPerDayMinor"))
+            assertEquals("LOW", level("&budgetMinor=1000000&currency=IDR&days=4").str("suggestedPriceLevel"))
+            assertEquals("HIGH", level("&budgetMinor=20000000&currency=IDR&days=4").str("suggestedPriceLevel"))
+
+            // no budget, or a budget without a currency: the chips only, never an error
+            assertNull(level("")["suggestedPriceLevel"])
+            val noCurrency = level("&budgetMinor=5000000&days=4")
+            assertNull(noCurrency["suggestedPriceLevel"])
+            assertTrue(noCurrency.getValue("interests").jsonArray.isNotEmpty())
+            // no days = a trip without dates: the neutral length every undated trip uses
+            assertTrue(level("&budgetMinor=5000000&currency=IDR").containsKey("suggestedPriceLevel"))
+        }
+    }
+
+    @Test
+    fun suggestionsWithoutAMonthUseTheNeutralMonthOfATripWithoutDates() {
+        val (llm, places) = fakes()
+        apiTest(ai = AiServices(llm, places)) {
+            val neutral = app.ransel.server.ai.UndatedTrip.month()
+            val general = get("/explore/suggestions?destination=Kyoto")
+            assertEquals(HttpStatusCode.OK, general.status, general.bodyAsText())
+            assertEquals(listOf("Diving", "Pura laut", "Sawah terasering"), general.data().jsonObject.getValue("interests").jsonArray.map { it.jsonPrimitive.content })
+            assertEquals(1, llm.interestCalls.get())
+
+            // the same answer is what a trip without dates reads, and what a request for that month reads
+            get("/explore/suggestions?destination=%20kyoto%20&month=$neutral")
+            assertEquals(1, llm.interestCalls.get(), "no month and the neutral month share one cache entry")
+            // another month is another entry, as before
+            get("/explore/suggestions?destination=Kyoto&month=2000-01")
+            assertEquals(2, llm.interestCalls.get())
+
+            // a month that is sent must still be valid, empty included
+            assertEquals("VALIDATION_FAILED", get("/explore/suggestions?destination=Kyoto&month=").errorCode())
+            assertEquals("VALIDATION_FAILED", get("/explore/suggestions?destination=Kyoto&month=2026-13").errorCode())
+            // and a destination is still needed
+            assertEquals("VALIDATION_FAILED", get("/explore/suggestions").errorCode())
+        }
+    }
+
+    @Test
     fun suggestionsAccessAndValidation() {
         val (llm, places) = fakes()
         apiTest(ai = AiServices(llm, places)) {
@@ -600,6 +649,12 @@ class RecommendationRoutesTest {
             var waited = 0
             while (llm.interestCalls.get() == 0 && waited++ < 50) kotlinx.coroutines.delay(100)
             assertEquals(1, llm.interestCalls.get(), "creating a trip asks for its destination interests in the background")
+            // the fake counts a call when it starts, the cache row is written a moment later: wait for the row, or the
+            // request below can beat the background job to the cache and ask again (a flaky 2 on a busy CI runner)
+            waited = 0
+            while (TestDb.column("SELECT count(*) FROM explore_suggestions_cache").single() == "0" && waited++ < 50) {
+                kotlinx.coroutines.delay(100)
+            }
             get("/explore/suggestions?destination=Flores&month=2026-11")
             assertEquals(1, llm.interestCalls.get(), "and the form then reads them from the cache")
         }

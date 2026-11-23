@@ -147,6 +147,9 @@ fun GroupTab(
     onInvite: (() -> Unit)? = null,
     /** "Mulai polling tanggal" on a trip without dates and no open DATE poll (OWNER, EDITOR); null = not offered. */
     onStartDatePoll: (() -> Unit)? = null,
+    /** The small "Cari tempat" banner under the countdown; null = not shown. */
+    exploreBanner: app.ransel.feature.explore.TripExploreBanner? = null,
+    onExploreBanner: () -> Unit = {},
     viewModel: GroupViewModel = koinViewModel(key = "group-${trip.id}") { parametersOf(trip.id) },
 ) {
     RefreshOnReturn(viewModel::load)
@@ -183,6 +186,8 @@ fun GroupTab(
         onInvite = onInvite,
         onStartDatePoll = onStartDatePoll,
         loading = state.loading && state.members.isEmpty(),
+        exploreBanner = exploreBanner,
+        onExploreBanner = onExploreBanner,
     )
 }
 
@@ -220,6 +225,8 @@ fun GroupContent(
     onStartDatePoll: (() -> Unit)? = null,
     /** The first load: shimmer cards under the countdown instead of sections popping in one by one. */
     loading: Boolean = false,
+    exploreBanner: app.ransel.feature.explore.TripExploreBanner? = null,
+    onExploreBanner: () -> Unit = {},
 ) {
     val dates = rememberDateFormatter()
     // a trip without dates shows its open DATE poll as a card under the countdown (design ItineraryPolling), not twice
@@ -237,6 +244,8 @@ fun GroupContent(
         } else if (signedIn && undated && onStartDatePoll != null) {
             StartDatePollCard(onStartDatePoll)
         }
+        // plan explore-trip-one-tap v4: one small row under the hero, the same for group and solo trips
+        if (exploreBanner != null) app.ransel.feature.explore.TripExploreBannerRow(exploreBanner, onExploreBanner)
 
         if (!signedIn) {
             SignInCard()

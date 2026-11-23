@@ -44,6 +44,37 @@ class ItineraryRoutesTest {
     }
 
     @Test
+    fun placeKindAndCityAreStoredAndAPutWithoutThemClearsThem() = apiTest {
+        val trip = newTrip()
+        val id = UUID.randomUUID().toString()
+        val withPlace = itemJson(id).dropLast(1) + ""","placeName":"Stasiun Bandung","placeId":"g1","lat":-6.91,"lng":107.6,"placeKind":"AREA","placeCity":"  Bandung "}"""
+        val created = post("/trips/$trip/itinerary", withPlace)
+        assertEquals(HttpStatusCode.Created, created.status)
+        assertEquals("AREA", created.data().jsonObject.str("placeKind"))
+        assertEquals("Bandung", created.data().jsonObject.str("placeCity"))
+        val listed = get("/trips/$trip/itinerary").data().jsonArray.single().jsonObject
+        assertEquals("AREA", listed.str("placeKind"))
+        assertEquals("Bandung", listed.str("placeCity"))
+
+        // a replace without them clears them, like lat and lng (the place was re-picked or typed)
+        val replaced = put("/trips/$trip/itinerary/$id", itemJson(id))
+        assertEquals(HttpStatusCode.OK, replaced.status)
+        assertNull(replaced.data().jsonObject.str("placeKind"))
+        assertNull(replaced.data().jsonObject.str("placeCity"))
+    }
+
+    @Test
+    fun aTooLongCityIsRejectedAndAnUnknownKindIsA400() = apiTest {
+        val trip = newTrip()
+        val long = "x".repeat(121)
+        val tooLong = post("/trips/$trip/itinerary", itemJson().dropLast(1) + ""","placeCity":"$long"}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, tooLong.status)
+        assertEquals("TOO_LONG", tooLong.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("placeCity"))
+        val unknown = post("/trips/$trip/itinerary", itemJson().dropLast(1) + ""","placeKind":"PLANET"}""")
+        assertEquals(HttpStatusCode.BadRequest, unknown.status)
+    }
+
+    @Test
     fun overnightActivityIsAccepted() = apiTest {
         val trip = newTrip()
         val response = post("/trips/$trip/itinerary", itemJson(start = "23:00", end = "01:00"))
@@ -124,5 +155,53 @@ class ItineraryRoutesTest {
         val summary = get("/trips/$trip").data().jsonObject.getValue("summary").jsonObject
         assertEquals(1, summary.str("unscheduledCount")?.toInt())
         assertEquals(0, summary.str("activityCount")?.toInt())
+    }
+
+    private fun JsonObject.linkList() = this["links"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
+
+    @Test
+    fun linksAreNormalizedDedupedAndMirrorTheFirstOneInBookingUrl() = apiTest {
+        val trip = newTrip()
+        val id = UUID.randomUUID().toString()
+        val body = itemJson(id).dropLast(1) + ""","links":["tiket.com/hotel/x"," https://www.instagram.com/kuta ","https://tiket.com/hotel/x"]}"""
+        val created = post("/trips/$trip/itinerary", body)
+        assertEquals(HttpStatusCode.Created, created.status)
+        val item = created.data().jsonObject
+        assertEquals(listOf("https://tiket.com/hotel/x", "https://www.instagram.com/kuta"), item.linkList())
+        assertEquals("https://tiket.com/hotel/x", item.str("bookingUrl"))
+
+        // a list is the whole truth: [] clears everything, bookingUrl with it
+        val cleared = put("/trips/$trip/itinerary/$id", itemJson(id).dropLast(1) + ""","links":[]}""").data().jsonObject
+        assertEquals(emptyList(), cleared.linkList())
+        assertNull(cleared["bookingUrl"]?.takeIf { it.toString() != "null" })
+    }
+
+    @Test
+    fun anAppFromBeforeTheListKeepsTheOtherLinksWhenItSavesAnotherField() = apiTest {
+        val trip = newTrip()
+        val id = UUID.randomUUID().toString()
+        post("/trips/$trip/itinerary", itemJson(id).dropLast(1) + ""","links":["https://a.example/1","https://b.example/2","https://c.example/3"]}""")
+
+        // old app: no `links`, only bookingUrl, here replaced by another address
+        val edited = put("/trips/$trip/itinerary/$id", itemJson(id, title = "Renamed").dropLast(1) + ""","bookingUrl":"https://new.example/x"}""").data().jsonObject
+        assertEquals(listOf("https://new.example/x", "https://b.example/2", "https://c.example/3"), edited.linkList())
+
+        // old app that clears its single link field (no bookingUrl, no list): only the first link goes
+        val cleared = put("/trips/$trip/itinerary/$id", itemJson(id, title = "Renamed again")).data().jsonObject
+        assertEquals(listOf("https://b.example/2", "https://c.example/3"), cleared.linkList())
+        assertEquals("https://b.example/2", cleared.str("bookingUrl"))
+    }
+
+    @Test
+    fun tooManyOrBrokenLinksAreRejected() = apiTest {
+        val trip = newTrip()
+        val six = (1..6).joinToString(",") { "\"https://x.example/$it\"" }
+        val tooMany = post("/trips/$trip/itinerary", itemJson().dropLast(1) + ""","links":[$six]}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, tooMany.status)
+        assertEquals("TOO_MANY", tooMany.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("links"))
+
+        val broken = post("/trips/$trip/itinerary", itemJson().dropLast(1) + ""","links":["https://ok.example","not a link"]}""")
+        assertEquals(HttpStatusCode.UnprocessableEntity, broken.status)
+        assertEquals("INVALID", broken.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("links[1]"))
     }
 }

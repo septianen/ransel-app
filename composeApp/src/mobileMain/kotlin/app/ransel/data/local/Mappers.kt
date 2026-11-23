@@ -2,11 +2,15 @@ package app.ransel.data.local
 
 import app.ransel.data.remote.ApiJson
 import app.ransel.shared.dto.ExpenseDto
+import app.ransel.shared.dto.PlaceKind
 import app.ransel.shared.dto.ExpenseItemDto
 import app.ransel.shared.dto.ExpensePayerDto
 import app.ransel.shared.dto.ExpenseSplitDto
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import app.ransel.shared.domain.LegKind
 import app.ransel.shared.dto.ItineraryItemDto
+import app.ransel.shared.dto.TravelModeDto
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PersonalItemDto
 import app.ransel.shared.dto.TripDto
@@ -16,6 +20,10 @@ import app.ransel.shared.model.Category
 import app.ransel.shared.model.FxSource
 import app.ransel.shared.model.ItemSource
 import app.ransel.shared.model.PackingCategory
+import app.ransel.shared.dto.TripOriginDto
+import app.ransel.shared.model.DepartureMode
+import app.ransel.shared.model.LocalTransport
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.PaymentMethod
 import app.ransel.shared.model.Role
 import kotlinx.datetime.LocalDate
@@ -34,7 +42,37 @@ fun TripEntity.toDto() = TripDto(
     baseCurrency = baseCurrency, budgetMinor = budgetMinor, coverUrl = coverUrl, myRole = enumOr(myRole, Role.OWNER),
     destinationPlace = tripPlace(),
     countryCode = countryCode, localCurrency = localCurrency, timeZone = timeZone,
+    origin = tripOrigin(),
+    departureMode = departureMode?.let { name -> DepartureMode.entries.firstOrNull { it.name == name } },
+    localTransport = localTransport?.let { name -> LocalTransport.entries.firstOrNull { it.name == name } },
+    mainTravelMode = mainTravelMode?.let { name -> MainTravelMode.entries.firstOrNull { it.name == name } },
+    // this device holds all four answers, so a push of this trip may clear one (contract 16 Nov 2026)
+    replaceTravelAnswers = true,
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
+)
+
+private fun TripEntity.tripOrigin(): TripOriginDto? {
+    val name = originName ?: return null
+    return TripOriginDto(name, originLat, originLng, originPlaceId, originCountryCode)
+}
+
+/** The interview answers as sent: what a new trip, and a trip pulled from the server, stores. */
+fun TripEntity.withInterview(origin: TripOriginDto?, departure: DepartureMode?, local: LocalTransport?, main: MainTravelMode?) = copy(
+    originName = origin?.name?.trim(), originLat = origin?.lat, originLng = origin?.lng, originPlaceId = origin?.placeId,
+    originCountryCode = origin?.countryCode?.uppercase(),
+    departureMode = departure?.name, localTransport = local?.name, mainTravelMode = main?.name,
+)
+
+/** Same rule as the server: an answer that is not sent keeps the stored one (an older app does not send them; Lewati writes nothing). */
+fun TripEntity.keepingInterview(origin: TripOriginDto?, departure: DepartureMode?, local: LocalTransport?, main: MainTravelMode?) = copy(
+    originName = if (origin != null) origin.name.trim() else originName,
+    originLat = if (origin != null) origin.lat else originLat,
+    originLng = if (origin != null) origin.lng else originLng,
+    originPlaceId = if (origin != null) origin.placeId else originPlaceId,
+    originCountryCode = if (origin != null) origin.countryCode?.uppercase() else originCountryCode,
+    departureMode = departure?.name ?: departureMode,
+    localTransport = local?.name ?: localTransport,
+    mainTravelMode = main?.name ?: mainTravelMode,
 )
 
 private fun TripEntity.tripPlace(): TripPlaceDto? {
@@ -53,11 +91,25 @@ fun TripEntity.withPlace(place: TripPlaceDto?) = copy(
     destViewportJson = place?.viewport?.let { ApiJson.encodeToString(ViewportDto.serializer(), it) },
 )
 
+fun TravelModeEntity.toDto() = TravelModeDto(
+    id = id, tripId = tripId, fromItemId = fromItemId, toItemId = toItemId,
+    mode = enumOr(mode, LegKind.WALK),
+    createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
+)
+
+fun TravelModeDto.toEntity() = TravelModeEntity(
+    id = id, tripId = tripId, fromItemId = fromItemId, toItemId = toItemId, mode = mode.name,
+    createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
+    syncState = SyncState.SYNCED,
+)
+
 fun ItineraryItemEntity.toDto() = ItineraryItemDto(
     id = id, tripId = tripId, dayDate = dayDate?.let(LocalDate::parse),
     startTime = startTime?.let(LocalTime::parse), endTime = endTime?.let(LocalTime::parse),
     title = title, category = enumOr(category, Category.OTHER), placeName = placeName, placeId = placeId,
-    lat = lat, lng = lng, durationMin = durationMin, notes = notes, bookingUrl = bookingUrl,
+    lat = lat, lng = lng, placeKind = placeKind?.let { name -> PlaceKind.entries.firstOrNull { it.name == name } }, placeCity = placeCity,
+    durationMin = durationMin, notes = notes, bookingUrl = bookingUrl,
+    links = linksJson.toLinks(),
     source = enumOr(source, ItemSource.MANUAL), sortOrder = sortOrder,
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
@@ -89,6 +141,7 @@ fun ExpenseEntity.toDto() = ExpenseDto(
     splits = splitsJson.toSplits(),
     isEstimate = isEstimate, items = itemsJson.toItems(), itemsSplit = itemsJson.toItems().itemsDecideSplits(),
     fxSource = fxSource?.let { s -> FxSource.entries.firstOrNull { it.name == s } }, fxDate = fxDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+    receiptDocumentId = receiptDocumentId,
     createdAt = createdAt.toInstant(), updatedAt = updatedAt.toInstant(), deletedAt = deletedAt?.toInstant(),
 )
 
@@ -102,12 +155,14 @@ fun TripDto.toEntity() = TripEntity(
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED, myRole = myRole.name,
     countryCode = countryCode, localCurrency = localCurrency, timeZone = timeZone,
-).withPlace(destinationPlace)
+).withPlace(destinationPlace).withInterview(origin, departureMode, localTransport, mainTravelMode)
 
 fun ItineraryItemDto.toEntity() = ItineraryItemEntity(
     id = id, tripId = tripId, dayDate = dayDate?.toString(), startTime = startTime?.toString(),
     endTime = endTime?.toString(), title = title, category = category.name, placeName = placeName,
-    placeId = placeId, lat = lat, lng = lng, durationMin = durationMin, notes = notes, bookingUrl = bookingUrl,
+    placeId = placeId, lat = lat, lng = lng, placeKind = placeKind?.name, placeCity = placeCity,
+    durationMin = durationMin, notes = notes, bookingUrl = bookingUrl,
+    linksJson = links.toLinksJson(),
     source = source.name, sortOrder = sortOrder,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
@@ -125,7 +180,7 @@ fun ExpenseDto.toEntity() = ExpenseEntity(
     category = category.name, paymentMethod = paymentMethod.name, note = note, spentAt = spentAt.toMillis(),
     paidByMemberId = paidByMemberId, splitsJson = splits.toSplitsJson(), payersJson = payers.toPayersJson(),
     isEstimate = isEstimate, itemsJson = items.toItemsJson(),
-    fxSource = fxSource?.name, fxDate = fxDate?.toString(),
+    fxSource = fxSource?.name, fxDate = fxDate?.toString(), receiptDocumentId = receiptDocumentId,
     createdAt = createdAt.toMillis(), updatedAt = updatedAt.toMillis(), deletedAt = deletedAt?.toMillis(),
     syncState = SyncState.SYNCED,
 )
@@ -160,3 +215,12 @@ fun List<ExpenseSplitDto>.toSplitsJson(): String? =
 
 fun String?.toSplits(): List<ExpenseSplitDto> =
     if (isNullOrEmpty()) emptyList() else runCatching { ApiJson.decodeFromString(splitsSerializer, this) }.getOrDefault(emptyList())
+
+private val linksSerializer = ListSerializer(String.serializer())
+
+/** The links of an activity as stored in `linksJson`; null (an app from before the list, or an older server) stays null. */
+internal fun List<String>?.toLinksJson(): String? = this?.let { ApiJson.encodeToString(linksSerializer, it) }
+
+internal fun String?.toLinks(): List<String>? =
+    this?.let { runCatching { ApiJson.decodeFromString(linksSerializer, it) }.getOrNull() }
+

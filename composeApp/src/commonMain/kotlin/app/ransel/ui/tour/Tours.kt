@@ -28,7 +28,7 @@ import ransel.composeapp.generated.resources.tour_trip_tabs_title
  * numbered again (a user with trips has no "Buat trip pertama" button, so Home's replay has 3 steps).
  */
 
-/** Beranda: Buat trip pertama → Trip → Jelajah (credits from the server, [credits] = daily free, new search) → Akun. */
+/** Beranda: Buat trip pertama → Trip → Jelajah (credits from the server, [credits] = daily free, one Tanya AI session) → Akun. */
 fun homeTour(credits: Pair<Int, Int>?): List<TourStep> = listOf(
     TourStep(TourTarget.HOME_CREATE, Res.string.tour_home_create_title, Res.string.tour_home_create_body),
     TourStep(TourTarget.TAB_TRIPS, Res.string.tour_home_trips_title, Res.string.tour_home_trips_body),

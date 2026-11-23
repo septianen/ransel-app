@@ -13,6 +13,7 @@ import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
 import app.ransel.server.plugins.tripNotFound
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.domain.hasChargeableReceiptItem
 import app.ransel.shared.domain.isValidCurrency
 import app.ransel.shared.domain.itemsTotal
 import app.ransel.shared.domain.splitByItems
@@ -95,6 +96,7 @@ object ExpenseService {
         transaction {
             load(tripId, expenseId)
             Expenses.update({ Expenses.id eq expenseId }) { it[deletedAt] = Instant.now() }
+            DocumentService.detachReceipt(expenseId)
         }
     }
 
@@ -124,8 +126,9 @@ object ExpenseService {
     }
 
     /**
-     * With receipt items the splits come from domain.splitByItems; the items must add up to the amount. Items that are
-     * only the receipt's lines (itemsSplit = false) are kept as they are, without members, and the splits stay.
+     * With receipt items the amount is their sum in every split mode. Tax is [ExpenseItemDto.isTax], and a receipt
+     * needs one non-tax line above 0. itemsSplit = true replaces the splits with domain.splitByItems. itemsSplit =
+     * false keeps the lines without members and leaves the splits as sent.
      */
     internal fun withItemSplits(body: ExpenseInput, payer: UUID): ExpenseInput {
         if (body.items.isEmpty()) return body
@@ -135,10 +138,10 @@ object ExpenseService {
                 if (body.items.any { it.name.isBlank() || it.name.length > 120 }) put("items", "INVALID_NAME")
                 if (body.items.any { it.amountMinor < 0 }) put("items", "MUST_NOT_BE_NEGATIVE")
                 if (body.items.any { item -> item.memberIds.any { runCatching { UUID.fromString(it) }.isFailure } }) put("items", "INVALID_UUID")
-                if (body.itemsSplit && body.items.all { it.memberIds.isEmpty() }) put("items", "NO_MEMBERS")
+                if (!containsKey("items") && !hasChargeableReceiptItem(body.items)) put("items", "TAX_ONLY")
+                else if (!containsKey("items") && body.itemsSplit && body.items.all { it.memberIds.isEmpty() }) put("items", "NO_MEMBERS")
             },
         )
-        if (!body.itemsSplit) return body.copy(items = body.items.map { it.copy(memberIds = emptyList()) })
         val total = itemsTotal(body.items)
         if (total != body.amountMinor) {
             throw ApiException(
@@ -148,6 +151,7 @@ object ExpenseService {
                 mapOf("items" to "SUM_${total}_AMOUNT_${body.amountMinor}"),
             )
         }
+        if (!body.itemsSplit) return body.copy(items = body.items.map { it.copy(memberIds = emptyList()) })
         val shares = splitByItems(body.items, payer.toString())
         return body.copy(splits = shares.filterValues { it > 0 }.map { ExpenseSplitDto(it.key, it.value) })
     }
@@ -163,8 +167,9 @@ object ExpenseService {
             .groupBy({ it[ExpenseSplits.expenseId] }, { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) })
         val payers = loadPayers(rows.map { it[Expenses.id] })
         val items = loadItems(rows.map { it[Expenses.id] })
+        val receipts = DocumentService.receiptsOf(rows.map { it[Expenses.id] })
         return rows.map {
-            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), items[it[Expenses.id]].orEmpty())
+            it.toExpenseDto(splits[it[Expenses.id]].orEmpty().sortedBy { s -> s.memberId }, payers[it[Expenses.id]].orEmpty(), items[it[Expenses.id]].orEmpty(), receipts)
         }
     }
 
@@ -173,7 +178,9 @@ object ExpenseService {
         if (expenseIds.isEmpty()) emptyMap() else ExpenseItems.selectAll()
             .where { ExpenseItems.expenseId inList expenseIds }
             .orderBy(ExpenseItems.sortOrder)
-            .groupBy({ it[ExpenseItems.expenseId] }, { ExpenseItemDto(it[ExpenseItems.name], it[ExpenseItems.amountMinor], it[ExpenseItems.memberIds]) })
+            .groupBy({ it[ExpenseItems.expenseId] }, {
+                ExpenseItemDto(it[ExpenseItems.name], it[ExpenseItems.amountMinor], it[ExpenseItems.memberIds], it[ExpenseItems.isTax])
+            })
 
     /** Payer rows of the given expenses; an expense with one payer has none. */
     internal fun loadPayers(expenseIds: Collection<UUID>): Map<UUID, List<ExpensePayerDto>> =
@@ -188,7 +195,7 @@ object ExpenseService {
         val splits = ExpenseSplits.selectAll().where { ExpenseSplits.expenseId eq expenseId }
             .map { ExpenseSplitDto(it[ExpenseSplits.memberId].toString(), it[ExpenseSplits.shareMinor]) }
             .sortedBy { it.memberId }
-        return row.toExpenseDto(splits, loadPayers(listOf(expenseId))[expenseId].orEmpty(), loadItems(listOf(expenseId))[expenseId].orEmpty())
+        return row.toExpenseDto(splits, loadPayers(listOf(expenseId))[expenseId].orEmpty(), loadItems(listOf(expenseId))[expenseId].orEmpty(), DocumentService.receiptsOf(listOf(expenseId)))
     }
 
     internal fun replaceItems(expenseId: UUID, items: List<ExpenseItemDto>) {
@@ -200,6 +207,7 @@ object ExpenseService {
                 this[ExpenseItems.name] = item.name.trim()
                 this[ExpenseItems.amountMinor] = item.amountMinor
                 this[ExpenseItems.memberIds] = item.memberIds
+                this[ExpenseItems.isTax] = item.isTax
             }
         }
     }

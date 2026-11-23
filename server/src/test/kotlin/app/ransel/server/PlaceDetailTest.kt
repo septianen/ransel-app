@@ -141,6 +141,30 @@ class PlaceDetailTest {
     }
 
     @Test
+    fun cacheOnlyNeverLooksUpOrWritesAndServesTheSavedText() {
+        val llm = DetailLlm(listOf(withText))
+        apiTest(ai = AiServices(llm, DetailPlaces(setOf("Kuta", "TanahLot"))), fx = DetailFx) {
+            // a hand-picked place nobody searched: just the name and the photo, no lookup, no LLM, not 404
+            val manual = get("/places/pid-TanahLot/detail?name=TanahLot&currency=IDR&cacheOnly=true")
+            assertEquals(HttpStatusCode.OK, manual.status)
+            val body = manual.data().jsonObject
+            assertEquals("TanahLot", body.str("name"))
+            assertTrue(body["about"] == null || body.getValue("about").toString() == "null")
+            assertTrue(body.str("photoUrl").startsWith("/places/photo/pid-TanahLot?exp="))
+            assertEquals(0, llm.describeCalls.get())
+            // and nothing was written: without cacheOnly it is still rebuilt once
+            get("/places/pid-TanahLot/detail?name=TanahLot")
+            assertEquals(1, llm.describeCalls.get())
+
+            // a place from a search keeps its text
+            post("/recommendations", request(trip()))
+            val saved = get("/places/pid-Kuta/detail?currency=IDR&cacheOnly=true").data().jsonObject
+            assertEquals("Pantai terkenal.", saved.str("about"))
+            assertEquals(1, llm.describeCalls.get())
+        }
+    }
+
+    @Test
     fun anUnknownPlaceOrAMissingNameIs404() {
         apiTest(ai = AiServices(DetailLlm(emptyList()), DetailPlaces(setOf("TanahLot")))) {
             assertEquals(HttpStatusCode.NotFound, get("/places/pid-Nowhere/detail?name=Nowhere").status)

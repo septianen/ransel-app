@@ -4,6 +4,7 @@ import app.ransel.data.repository.AppLanguage
 import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.repository.PackingRepository
 import app.ransel.data.repository.PersonalItemRepository
 import app.ransel.shared.dto.CreatePersonalItemRequest
@@ -25,6 +26,8 @@ import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.LOCAL_USER_ID
 import app.ransel.shared.dto.PackingItemDto
 import app.ransel.shared.dto.PatchPackingItemRequest
+import app.ransel.shared.dto.TravelModeDto
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.dto.UpdateTripRequest
@@ -48,6 +51,7 @@ class InMemoryStore {
     val packing = MutableStateFlow<List<PackingItemDto>>(emptyList())
     val expenses = MutableStateFlow<List<ExpenseDto>>(emptyList())
     val personal = MutableStateFlow<List<PersonalItemDto>>(emptyList())
+    val travelModes = MutableStateFlow<List<TravelModeDto>>(emptyList())
 }
 
 class InMemoryPersonalItemRepository(private val store: InMemoryStore, private val ownerMemberId: (String) -> String) : PersonalItemRepository {
@@ -111,6 +115,8 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
             budgetMinor = request.budgetMinor, createdAt = stamp, updatedAt = stamp,
             destinationPlace = request.destinationPlace,
             countryCode = request.countryCode, localCurrency = request.localCurrency, timeZone = request.timeZone,
+            origin = request.origin, departureMode = request.departureMode, localTransport = request.localTransport,
+            mainTravelMode = request.mainTravelMode,
         )
         store.trips.update { it + trip }
     }
@@ -144,7 +150,13 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
                     if (sent || it.destination != request.destination) {
                         t.copy(countryCode = request.countryCode, localCurrency = request.localCurrency, timeZone = request.timeZone)
                     } else t
-                }
+                }.copy(
+                    // an answer that is not sent keeps the stored one, like the server, unless the request holds all four
+                    origin = if (request.replaceTravelAnswers) request.origin else request.origin ?: it.origin,
+                    departureMode = if (request.replaceTravelAnswers) request.departureMode else request.departureMode ?: it.departureMode,
+                    localTransport = if (request.replaceTravelAnswers) request.localTransport else request.localTransport ?: it.localTransport,
+                    mainTravelMode = if (request.replaceTravelAnswers) request.mainTravelMode else request.mainTravelMode ?: it.mainTravelMode,
+                )
             }
         }
     }
@@ -162,6 +174,30 @@ class InMemoryTripRepository(private val store: InMemoryStore) : TripRepository 
     }
 }
 
+class InMemoryTravelModeRepository(private val store: InMemoryStore) : TravelModeRepository {
+    override fun observe(tripId: String): Flow<List<TravelModeDto>> = store.travelModes.map { list ->
+        list.filter { it.tripId == tripId && it.deletedAt == null }
+    }
+
+    override suspend fun save(tripId: String, input: TravelModeInput): Boolean {
+        val stamp = now()
+        store.travelModes.update { list ->
+            val existing = list.firstOrNull { it.fromItemId == input.fromItemId && it.toItemId == input.toItemId }
+            val row = TravelModeDto(
+                id = existing?.id ?: input.id,
+                tripId = tripId,
+                fromItemId = input.fromItemId,
+                toItemId = input.toItemId,
+                mode = input.mode,
+                createdAt = existing?.createdAt ?: stamp,
+                updatedAt = stamp,
+            )
+            if (existing == null) list + row else list.map { if (it.id == existing.id) row else it }
+        }
+        return true
+    }
+}
+
 class InMemoryItineraryRepository(private val store: InMemoryStore) : ItineraryRepository {
     override fun observe(tripId: String): Flow<List<ItineraryItemDto>> = store.items.map { list ->
         list.filter { it.tripId == tripId && it.deletedAt == null }
@@ -175,8 +211,9 @@ class InMemoryItineraryRepository(private val store: InMemoryStore) : ItineraryR
             val item = ItineraryItemDto(
                 id = input.id, tripId = tripId, dayDate = input.dayDate, startTime = input.startTime,
                 endTime = input.endTime, title = input.title, category = input.category, placeName = input.placeName,
-                placeId = input.placeId, lat = input.lat, lng = input.lng, durationMin = input.durationMin,
-                notes = input.notes, bookingUrl = input.bookingUrl, source = input.source, sortOrder = input.sortOrder,
+                placeId = input.placeId, lat = input.lat, lng = input.lng, placeKind = input.placeKind, placeCity = input.placeCity,
+                durationMin = input.durationMin,
+                notes = input.notes, bookingUrl = input.bookingUrl, links = input.links, source = input.source, sortOrder = input.sortOrder,
                 createdAt = existing?.createdAt ?: stamp, updatedAt = stamp,
             )
             if (existing == null) list + item else list.map { if (it.id == input.id) item else it }

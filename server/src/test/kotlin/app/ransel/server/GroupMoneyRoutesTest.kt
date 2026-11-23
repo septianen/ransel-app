@@ -195,12 +195,49 @@ class GroupMoneyRoutesTest {
     }
 
     @Test
+    fun editingReceiptLinesComesBackTheSame() = apiTest {
+        val g = group()
+        val id = UUID.randomUUID().toString()
+        val first = """[{"name":"Nasi campur","amountMinor":100000,"memberIds":["${g.ma}"]},{"name":"Pajak","amountMinor":10000}]"""
+        val created = post("/trips/${g.tripId}/expenses", expenseJson(110_000, id = id, extra = ""","items":$first"""))
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        val edited = """[{"name":"Nasi goreng","amountMinor":144000,"memberIds":["${g.ma}","${g.mc}"]},""" +
+            """{"name":"Sate lilit","amountMinor":130000,"memberIds":["${g.mb}"]},{"name":"Pajak","amountMinor":26000}]"""
+        val updated = put("/trips/${g.tripId}/expenses/$id", expenseJson(300_000, id = id, extra = ""","items":$edited"""))
+        assertEquals(HttpStatusCode.OK, updated.status, updated.bodyAsText())
+        val listed = get("/trips/${g.tripId}/expenses").data().jsonArray.single().jsonObject
+        val lines = listed.getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("Nasi goreng", "Sate lilit", "Pajak"), lines.map { it.str("name") })
+        assertEquals(listOf(144_000L, 130_000L, 26_000L), lines.map { it.long("amountMinor") })
+        assertEquals(listOf(g.ma, g.mc), lines[0].getValue("memberIds").jsonArray.map { it.jsonPrimitive.content })
+        assertEquals(listOf(g.mb), lines[1].getValue("memberIds").jsonArray.map { it.jsonPrimitive.content })
+        assertTrue(lines[2].getValue("memberIds").jsonArray.isEmpty())
+    }
+
+    @Test
+    fun editingAnExpenseDoesNotSpendACredit() = apiTest {
+        val g = group()
+        val id = UUID.randomUUID().toString()
+        val items = """[{"name":"Nasi campur","amountMinor":50000,"memberIds":["${g.ma}","${g.mb}"]}]"""
+        val created = post("/trips/${g.tripId}/expenses", expenseJson(50_000, id = id, extra = ""","items":$items"""))
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        val before = get("/credits").data().jsonObject
+        val edited = """[{"name":"Nasi goreng","amountMinor":60000,"memberIds":["${g.ma}"]}]"""
+        val updated = put("/trips/${g.tripId}/expenses/$id", expenseJson(60_000, id = id, extra = ""","items":$edited"""))
+        assertEquals(HttpStatusCode.OK, updated.status, updated.bodyAsText())
+        val after = get("/credits").data().jsonObject
+        assertEquals(before.long("balance"), after.long("balance"))
+        assertEquals(before.long("dailyFreeLeft"), after.long("dailyFreeLeft"))
+        assertEquals(before.getValue("costs").jsonObject.long("receipt"), after.getValue("costs").jsonObject.long("receipt"))
+    }
+
+    @Test
     fun receiptLinesWithoutAPerItemSplitAreKeptAndTheSplitsStay() = apiTest {
         val g = group()
-        // "Bagi rata" on a scanned receipt: the lines are only shown, they need not add up and carry no members
+        // "Bagi rata": the lines are shown and carry no members. The amount is their sum (130_000 + 120_000).
         val lines = """[{"name":"Nasi campur","amountMinor":130000,"memberIds":["${g.ma}"]},{"name":"Es kelapa","amountMinor":120000}]"""
-        val splits = mapOf(g.ma to 100_000L, g.mb to 100_000L, g.mc to 100_000L)
-        val created = post("/trips/${g.tripId}/expenses", expenseJson(300_000, splits, extra = ""","items":$lines,"itemsSplit":false"""))
+        val splits = mapOf(g.ma to 100_000L, g.mb to 100_000L, g.mc to 50_000L)
+        val created = post("/trips/${g.tripId}/expenses", expenseJson(250_000, splits, extra = ""","items":$lines,"itemsSplit":false"""))
         assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
         val body = created.data().jsonObject
         assertEquals(splits, body.getValue("splits").jsonArray.map { it.jsonObject }.associate { it.str("memberId") to it.long("shareMinor") })
@@ -212,6 +249,44 @@ class GroupMoneyRoutesTest {
         val listed = get("/trips/${g.tripId}/expenses").data().jsonArray.single().jsonObject
         assertEquals(false, listed.getValue("itemsSplit").jsonPrimitive.boolean)
         assertEquals(2, listed.getValue("items").jsonArray.size)
+        assertTrue(listed.getValue("items").jsonArray.all { !it.jsonObject.getValue("isTax").jsonPrimitive.boolean })
+    }
+
+    @Test
+    fun anEqualSplitWhoseLinesDoNotMatchTheAmountIsRejected() = apiTest {
+        val g = group()
+        val lines = """[{"name":"Nasi goreng","amountMinor":38000},{"name":"Es teh","amountMinor":20000},{"name":"Ayam bakar","amountMinor":64600}]"""
+        val splits = mapOf(g.ma to 58_800L, g.mb to 58_800L)
+        val rejected = post(
+            "/trips/${g.tripId}/expenses",
+            expenseJson(117_600, splits, extra = ""","items":$lines,"itemsSplit":false"""),
+        )
+        assertEquals("SPLIT_TOTAL_MISMATCH", rejected.errorCode(), rejected.bodyAsText())
+    }
+
+    @Test
+    fun aTaxOnlyReceiptIsRejectedAndTheTaxFlagSurvivesARename() = apiTest {
+        val g = group()
+        val taxOnly = """[{"name":"Pajak PB1","amountMinor":9600,"isTax":true}]"""
+        val rejected = post(
+            "/trips/${g.tripId}/expenses",
+            expenseJson(9_600, extra = ""","items":$taxOnly,"itemsSplit":false"""),
+        )
+        assertEquals("VALIDATION_FAILED", rejected.errorCode(), rejected.bodyAsText())
+        assertEquals("TAX_ONLY", rejected.jsonBody().getValue("error").jsonObject.getValue("details").jsonObject.str("items"))
+
+        val lines = """[{"name":"Nasi goreng","amountMinor":35000},{"name":"Service charge","amountMinor":9600,"isTax":true}]"""
+        val splits = mapOf(g.ma to 22_300L, g.mb to 22_300L)
+        val created = post(
+            "/trips/${g.tripId}/expenses",
+            expenseJson(44_600, splits, extra = ""","items":$lines,"itemsSplit":false"""),
+        )
+        assertEquals(HttpStatusCode.Created, created.status, created.bodyAsText())
+        val items = created.data().jsonObject.getValue("items").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("Nasi goreng", "Service charge"), items.map { it.str("name") })
+        assertEquals(listOf(false, true), items.map { it.getValue("isTax").jsonPrimitive.boolean })
+        assertTrue(items.all { it.getValue("memberIds").jsonArray.isEmpty() })
+        assertEquals(44_600L, created.data().jsonObject.long("amountMinor"))
     }
 
     @Test

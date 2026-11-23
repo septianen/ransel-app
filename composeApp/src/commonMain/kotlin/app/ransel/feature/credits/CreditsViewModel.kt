@@ -7,6 +7,8 @@ import app.ransel.data.credit.CreditsStore
 import app.ransel.data.remote.ApiFailure
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
+import app.ransel.data.repository.TripRepository
+import kotlinx.coroutines.flow.first
 import app.ransel.shared.dto.CreditLedgerEntryDto
 import app.ransel.shared.dto.CreditPackagesResponse
 import app.ransel.shared.dto.CreditsDto
@@ -31,12 +33,17 @@ data class CreditsUiState(
     val redeemed: Int? = null,
     /** Put in the order email so the owner knows which account gets the credits. */
     val accountEmail: String = "",
+    /** Opened from "Tambah kredit" of a search that waits: the name of that trip (null = the plain Kredit screen). */
+    val searchTripTitle: String? = null,
 )
 
 class CreditsViewModel(
     private val api: RanselApi,
     private val store: CreditsStore,
     sessionManager: SessionManager,
+    /** The trip whose search waits for credits (the "Butuh 3 kredit untuk mencari" context), or null. */
+    private val searchTripId: String? = null,
+    trips: TripRepository? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
         CreditsUiState(credits = store.state.value, loading = store.state.value == null, accountEmail = sessionManager.user?.email.orEmpty()),
@@ -45,6 +52,12 @@ class CreditsViewModel(
 
     init {
         load()
+        if (searchTripId != null && trips != null) {
+            viewModelScope.launch {
+                val title = trips.observeTrip(searchTripId).first()?.title
+                _state.update { it.copy(searchTripTitle = title) }
+            }
+        }
     }
 
     fun load() {

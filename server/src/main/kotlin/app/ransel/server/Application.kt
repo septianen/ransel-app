@@ -47,6 +47,7 @@ import app.ransel.server.routes.creditRoutes
 import app.ransel.server.routes.balanceRoutes
 import app.ransel.server.routes.paymentMethodRoutes
 import app.ransel.server.routes.placeRoutes
+import app.ransel.server.routes.popularPlaceRoute
 import app.ransel.server.routes.fxRoutes
 import app.ransel.server.service.FxRateService
 import app.ransel.server.service.PlaceSearchService
@@ -58,6 +59,8 @@ import app.ransel.server.routes.appUpdateRoutes
 import app.ransel.server.routes.contentRoutes
 import app.ransel.server.routes.healthRoutes
 import app.ransel.server.routes.itineraryRoutes
+import app.ransel.server.routes.travelModeRoutes
+import app.ransel.server.routes.tripTasteRoutes
 import app.ransel.server.routes.commentRoutes
 import app.ransel.server.routes.invitePreviewRoutes
 import app.ransel.server.routes.linkPreviewRoutes
@@ -67,8 +70,10 @@ import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
 import app.ransel.server.routes.packingTemplateRoutes
 import app.ransel.server.routes.placeDetailRoutes
+import app.ransel.server.routes.itineraryIdeaRoutes
 import app.ransel.server.routes.placePhotoRoutes
 import app.ransel.server.routes.recommendationRoutes
+import app.ransel.server.routes.inspirationRoutes
 import app.ransel.server.routes.votingRoutes
 import app.ransel.server.routes.syncRoutes
 import app.ransel.server.routes.tripRoutes
@@ -191,9 +196,12 @@ fun Application.module(
     val content = ContentService(suggestions)
     val fxRates = fx ?: ecb ?: NoFxRates
     val placeDetails = PlaceDetailService(aiServices, photoSigner, fxRates, aiMetrics)
+    val itineraryIdeas = app.ransel.server.service.ItineraryIdeaService(aiServices, photoSigner)
     val credits = CreditService(settings)
     val rounds = RoundService(config, photoSigner)
     val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits, rounds, searchLog)
+    // Explore Inspirasi (PRD v0.8): the AI interview of the Explore tab
+    val inspiration = app.ransel.server.ai.InspirationService(aiServices, credits, photoSigner, aiBudget::check)
     // Expense rates: the ECB 90-day history, once a day (tests have no network: they insert rows).
     val fxDaily = FxRateService(fxHttp?.let { http -> suspend { http.get(FxRateService.HISTORY_URL).body<String>() } })
     if (ecb != null) {
@@ -224,6 +232,7 @@ fun Application.module(
             runCatching { Notify.service?.purge() }
             runCatching { linkPreviews.purge() }
             runCatching { Monitoring.purge() }
+            runCatching { inspiration.purge() }
             recommendations.metrics.logSummary()
         }
     }
@@ -303,10 +312,19 @@ fun Application.module(
             val photos = PhotoService(config)
             imageFileRoutes(photos)
             ogRoutes(invites, config.appBaseUrl)
+            // Place search is open to guests (owner, 12 Nov 2026, like the invite preview). A bearer token is still read when
+            // there is one, so a signed-in user keeps their own rate limit; a guest is limited per address.
+            val placeSearch = PlaceSearchService(aiServices.placeSearch)
+            authenticate(JWT_AUTH, optional = true) {
+                placeRoutes(placeSearch)
+            }
             authenticate(JWT_AUTH) {
                 meRoutes(auth, verification, app.ransel.server.service.AccountDeletionService(hasher))
                 tripRoutes()
                 itineraryRoutes()
+                travelModeRoutes()
+                tripTasteRoutes()
+                itineraryIdeaRoutes(itineraryIdeas)
                 packingRoutes()
                 expenseRoutes()
                 syncRoutes(SyncService())
@@ -326,7 +344,8 @@ fun Application.module(
                 creditRoutes(credits)
                 notificationRoutes(notifications)
                 exploreRoutes(suggestions)
-                placeRoutes(PlaceSearchService(aiServices.placeSearch))
+                inspirationRoutes(inspiration)
+                popularPlaceRoute(placeSearch)
                 fxRoutes(fxDaily)
                 placeDetailRoutes(placeDetails)
                 adminRoutes(admin, AdminMonitoringService(config, requestStats, settings), settings, content)

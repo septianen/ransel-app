@@ -12,11 +12,14 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 
 /** Account → Tema: Ikuti sistem / Terang / Gelap. Stored in local preferences. */
@@ -92,6 +95,33 @@ fun Modifier.irisCard(
         .then(if (edge) Modifier.border(1.dp, colors.outlineVariant, shape) else Modifier)
 }
 
+/**
+ * elevation-3 from `docs/design/iris/tokens.md`: dialog, FAB, bottom sheet.
+ * Two layers, `0 4px 8px` and `0 12px 28px`.
+ */
+@Composable
+fun Modifier.irisElevation3(shape: Shape): Modifier {
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val near = if (dark) 0.6f else 0.08f
+    val far = if (dark) 0.6f else 0.12f
+    return this
+        .dropShadow(shape, Shadow(radius = 8.dp, color = Color.Black.copy(alpha = near), offset = DpOffset(0.dp, 4.dp)))
+        .dropShadow(shape, Shadow(radius = 28.dp, color = Color.Black.copy(alpha = far), offset = DpOffset(0.dp, 12.dp)))
+}
+
+/**
+ * elevation-4 from `docs/design/iris/tokens.md`: an action bar stuck to the bottom of the screen, shadow upward
+ * (`0 -2px 12px`).
+ */
+@Composable
+fun Modifier.irisElevation4(): Modifier {
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    return dropShadow(
+        androidx.compose.ui.graphics.RectangleShape,
+        Shadow(radius = 12.dp, color = Color.Black.copy(alpha = if (dark) 0.6f else 0.08f), offset = DpOffset(0.dp, (-2).dp)),
+    )
+}
+
 @Composable
 fun IrisTheme(
     mode: ThemeMode = ThemeMode.SYSTEM,
@@ -105,6 +135,7 @@ fun IrisTheme(
     CompositionLocalProvider(
         LocalIrisAccents provides IrisAccents(),
         LocalIrisSpacing provides IrisSpacing(),
+        LocalIrisWarning provides if (dark) IrisWarningDark else IrisWarningLight,
     ) {
         MaterialTheme(
             colorScheme = if (dark) IrisDarkColors else IrisLightColors,
@@ -121,4 +152,6 @@ object IrisTheme {
         @Composable @ReadOnlyComposable get() = LocalIrisAccents.current
     val spacing: IrisSpacing
         @Composable @ReadOnlyComposable get() = LocalIrisSpacing.current
+    val warning: IrisWarning
+        @Composable @ReadOnlyComposable get() = LocalIrisWarning.current
 }

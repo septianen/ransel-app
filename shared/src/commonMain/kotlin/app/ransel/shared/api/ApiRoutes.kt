@@ -21,8 +21,18 @@ object ApiRoutes {
     fun itinerary(tripId: String) = "/trips/$tripId/itinerary"     // GET list, POST ItineraryItemInput
     fun itineraryItem(tripId: String, itemId: String) =
         "/trips/$tripId/itinerary/$itemId"                         // PUT ItineraryItemInput (also used to schedule), DELETE
+    fun itineraryItemIdea(tripId: String, itemId: String) =
+        "/trips/$tripId/itinerary/$itemId/idea"                    // GET → ItineraryIdeaDto (VIEWER+; 404 NOT_FOUND = none), PUT InspirationCardDto → ItineraryIdeaDto (EDITOR+; the item must be in the trip)
     fun dayOrder(tripId: String, date: String) =
         "/trips/$tripId/days/$date/order"                          // PUT DayOrderRequest (date = ISO yyyy-MM-dd)
+
+    // The trip's Seleramu (plan explore-trip-one-tap, 22 Nov 2026): what "Cari tempat" starts from on every device.
+    fun tripTaste(tripId: String) = "/trips/$tripId/taste"         // GET → TripTasteResponse (VIEWER+), PUT TripTasteDto → TripTasteResponse (EDITOR+); 422 per field (validateTripTaste)
+
+    // Per-leg travel mode between two itinerary items (Getting there sheet).
+    fun travelModes(tripId: String) = "/trips/$tripId/travel-modes" // GET list, PUT TravelModeInput → TravelModeDto (EDITOR+)
+    fun travelMode(tripId: String, id: String) =
+        "/trips/$tripId/travel-modes/$id"                          // DELETE (soft, EDITOR+) → 204
 
     // Phase 2 ─ packing
     fun packing(tripId: String) = "/trips/$tripId/packing"         // GET list, POST CreatePackingItemRequest
@@ -79,8 +89,8 @@ object ApiRoutes {
     fun guestPersonalItem(code: String, itemId: String) = "/guest/$code/personal-items/$itemId" // PATCH GuestTickRequest → PersonalItemDto
     fun guestAlbumItems(code: String, albumId: String) = "/guest/$code/albums/$albumId/items" // GET ?pageToken= → AlbumItemsDto (no name needed, like the page)
     // Trip documents (stage 9). Online only.
-    fun documents(tripId: String) = "/trips/$tripId/documents"    // GET → TripDocumentsDto; POST CreateDocumentRequest (link, JSON) or multipart meta+file → 201 TripDocumentDto (EDITOR+); 413 FILE_TOO_LARGE / STORAGE_FULL, 415 UNSUPPORTED_FILE
-    fun document(tripId: String, docId: String) = "/trips/$tripId/documents/$docId" // PATCH PatchDocumentRequest → TripDocumentDto, DELETE → 204 (uploader or OWNER)
+    fun documents(tripId: String) = "/trips/$tripId/documents"    // GET → TripDocumentsDto; POST CreateDocumentRequest (link, JSON) or multipart meta+file → 201 TripDocumentDto (EDITOR+; a FILE with `expenseId` is that expense's receipt photo); 413 FILE_TOO_LARGE / STORAGE_FULL, 415 UNSUPPORTED_FILE
+    fun document(tripId: String, docId: String) = "/trips/$tripId/documents/$docId" // PATCH PatchDocumentRequest → TripDocumentDto, DELETE → 204 (uploader or OWNER; a receipt photo takes its expense with it)
     fun documentDownload(tripId: String, docId: String) = "/trips/$tripId/documents/$docId/download" // GET → DocumentDownloadDto (any member)
     fun documentFile(docId: String) = "/files/documents/$docId"  // GET ?exp=&sig= (public, signed for 15 minutes) → the bytes
 
@@ -133,21 +143,37 @@ object ApiRoutes {
     fun applyTemplate(tripId: String) = "/trips/$tripId/packing/apply-template" // POST ApplyTemplateRequest → List<PackingItemDto>
 
     // Phase 5 ─ Explore AI
-    const val EXPLORE_SUGGESTIONS = "/explore/suggestions"         // GET ?tripId=[&destination=] | ?destination=&month=YYYY-MM → ExploreSuggestionsResponse
+    const val EXPLORE_SUGGESTIONS = "/explore/suggestions"         // GET ?tripId=[&destination=] | ?destination=[&month=YYYY-MM][&budgetMinor=&currency=&days=] (budget of a trip not saved yet: one person, answers suggestedPriceLevel; no month = the neutral month of a trip without dates, so a new Explore trip may have no dates) → ExploreSuggestionsResponse
+    // Explore Inspirasi (PRD v0.8): all bearer + verified email. Session and saved-idea ids are UUIDs made by the app.
+    const val INSPIRATION_SESSIONS = "/explore/inspiration/sessions" // POST StartInspirationRequest → 201 InspirationSessionDto (first question); 402 INSUFFICIENT_CREDITS (checked before any AI work), 429 RATE_LIMITED (max 10 new sessions per user per hour, Retry-After), 503 AI_PAUSED
+    fun inspirationSession(id: String) = "/explore/inspiration/sessions/$id"                   // GET → InspirationSessionDto (resume within 24 h; 404 NOT_FOUND after that or for another user's session)
+    fun inspirationAnswer(id: String) = "/explore/inspiration/sessions/$id/answers"           // POST InspirationAnswerRequest → InspirationSessionDto (next question, or READY when the slots are done); a failed AI step answers the fallback question and costs nothing
+    fun inspirationBack(id: String) = "/explore/inspiration/sessions/$id/back"               // POST → InspirationSessionDto: drops the last answer and shows the question before it again (no AI call, no charge); 409 CONFLICT on the first question or once the session has cards
+    fun inspirationFinish(id: String) = "/explore/inspiration/sessions/$id/finish"           // POST → InspirationSessionDto (CHARGED with cards); "Sudah cukup" when no mandatory question is left, else 422 `session` = MANDATORY_PENDING; idempotent per session: a repeat never charges twice; 402 keeps the session READY
+    fun inspirationAskAgain(id: String) = "/explore/inspiration/sessions/$id/ask-again"      // POST → InspirationSessionDto (one more question; its answer appends cards); 1 free per session, then the next-batch price
+    fun inspirationProfile(id: String) = "/explore/inspiration/sessions/$id/profile"         // PATCH InspirationEditChipRequest → InspirationSessionDto (new cards, or a follow-up question when a mandatory rule switches on); 3 free per session, then the next-batch price
+    const val INSPIRATION_SAVED = "/explore/inspiration/saved"      // GET → SavedIdeasResponse (per account, newest first), POST SaveIdeaRequest → 201 SaveIdeaResponse (the 31st removes the oldest and names it for the undo snackbar)
+    fun inspirationSavedIdea(id: String) = "/explore/inspiration/saved/$id"                  // DELETE → 204; the idea leaves the list and can be restored for 24 h
+    fun inspirationSavedRestore(id: String) = "/explore/inspiration/saved/$id/restore"       // POST → 204: "Urungkan" of "Dihapus dari Ide tersimpan" brings a removed idea back within 24 h; 404 after that, 409 CONFLICT when the list is full (30) or the same card was saved again
+    fun inspirationSavedUndo(id: String) = "/explore/inspiration/saved/$id/undo"             // POST → 204: removes this save and restores the idea it pushed out (`SaveIdeaResponse.removedOldestId`)
+    fun inspirationSavedRefresh(id: String) = "/explore/inspiration/saved/$id/refresh"       // POST → SavedIdeaDto, free, once per card per 24 h (429 RATE_LIMITED with Retry-After after that)
+    const val INSPIRATION_BUDDY = "/explore/inspiration/buddy"       // POST BuddyInterestRequest → 204 ("Kabari saya": interest + consent time, per user)
     const val RECOMMENDATIONS = "/recommendations"                 // POST RecommendationRequest → RecommendationResponse
+    fun recommendationSearch(searchId: String) =
+        "/recommendations/searches/$searchId"                      // DELETE = cancel the search with this RecommendationRequest.searchId → CancelSearchResponse
     const val RECOMMENDATION_FEEDBACK = "/recommendations/feedback" // POST FeedbackRequest → 204
     fun recommendationFeedback(tripId: String, placeId: String) =
         "/recommendations/feedback/$tripId/$placeId"               // DELETE = undo the last swipe → 204
     /** Signed image proxy, no bearer: `RecommendationItem.photoUrl` is this path plus `?exp=&sig=`, relative to [BASE]. */
     fun placePhoto(placeId: String) = "/places/photo/$placeId"     // GET → image bytes, 404 if no photo
     /** Bearer. Query: `name` (the item title, needed only when the server has no saved text to rebuild from) and `currency` (the trip currency for the cost estimate). For opening a place again from the itinerary. */
-    fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended
+    fun placeDetail(placeId: String) = "/places/$placeId/detail"   // GET → PlaceDetailDto, 404 NOT_FOUND if the place was never recommended; ?cacheOnly=true → only the saved text (expired too) or none, never a Places or LLM call, never 404
 
-    // Destination search (bearer; 60 autocomplete requests per user per minute). The static paths win over {placeId}.
-    const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] → PlaceSuggestionsDto
+    // Place search. PLACES_AUTOCOMPLETE, PLACES_REVERSE and place(...) are open to guests: the bearer token is optional, and the limit is 60 requests a minute per user, or per address without a token. PLACES_POPULAR still needs a bearer. The static paths win over {placeId}.
+    const val PLACES_AUTOCOMPLETE = "/places/autocomplete"         // GET ?q= (2+ chars) &session= (UUID per search field) [&near=lat,lng] [&scope=DESTINATION|ACTIVITY, default DESTINATION; ACTIVITY = any kind of place for an itinerary activity, 422 `scope` = INVALID otherwise] → PlaceSuggestionsDto
     const val PLACES_REVERSE = "/places/reverse"                   // GET ?lat=&lng= → ReverseGeocodeDto (coordinates are not logged or stored)
     const val PLACES_POPULAR = "/places/popular"                   // GET → List<PopularDestinationDto>
-    fun place(placeId: String) = "/places/$placeId"                // GET ?session= → PlaceDto, 404 NOT_FOUND
+    fun place(placeId: String) = "/places/$placeId"                // GET ?session= [&scope=DESTINATION|ACTIVITY, default DESTINATION; ACTIVITY leaves `timeZone` out, 422 `scope` = INVALID otherwise] → PlaceDto, 404 NOT_FOUND
 
     // Itinerary voting (docs/specs/voting-spec.md). Any member reads and votes; only the OWNER decides.
     fun rounds(tripId: String) = "/trips/$tripId/rounds"           // GET → List<RoundSummaryDto> (open and recent, newest first)
@@ -177,7 +203,7 @@ object ApiRoutes {
     // Explore credits (replaces the fixed daily quota)
     // Phase 6 ─ remote content for the apps (stage E reads it; public, no token)
     const val CONTENT = "/content"                                 // GET ?version= → ContentDto; 204 when the app already has [version]
-    const val APP_UPDATE = "/app-update"                           // GET ?platform=ANDROID|IOS&version=<installed> → AppUpdateDto (public; the apps ask once per launch)
+    const val APP_UPDATE = "/app-update"                           // GET ?platform=ANDROID|IOS&version=<VERSION_NAME> → AppUpdateDto (public; Android asks once per cold start)
 
         const val CREDITS = "/credits"                                 // GET → CreditsDto (creates the wallet with the signup grant on first call)
     const val CREDITS_LEDGER = "/credits/ledger"                   // GET ?limit= (default 50, max 200), newest first → List<CreditLedgerEntryDto>

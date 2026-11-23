@@ -40,3 +40,11 @@ expect fun initialGuestPollCode(): String?
 /** Opens the system share sheet with [text] (web: the Web Share API, else copies it). */
 @Composable
 expect fun rememberShareText(): (String) -> Unit
+
+/**
+ * Opens the Play listing for this app. Tries `market://details?id=app.ransel`, then [httpsUrl] when it is an https
+ * link, then the built-in Play https listing. Returns false when nothing could be opened. Android only; other
+ * platforms return false (they are not asked to update).
+ */
+@Composable
+expect fun rememberPlayStoreOpener(): (httpsUrl: String?) -> Boolean

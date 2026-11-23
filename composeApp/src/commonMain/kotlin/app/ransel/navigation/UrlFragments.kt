@@ -19,11 +19,16 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     HomeRoute -> "home"
     TripListRoute -> "trips"
     ExploreRoute -> "explore"
+    InspirationHomeRoute -> "explore/ask"
+    ExploreTripPickerRoute -> "explore/trips"
     is ExplorePreferencesRoute -> route.tripId?.let { "trips/${enc(it)}/explore/new" } ?: "explore/new"
     AccountRoute -> "account"
+    ProfileSecurityRoute -> "account/profile"
+    PaymentRoute -> "account/payment"
     OnboardingRoute -> "welcome"
     is TripRoute -> "trips/${enc(route.tripId)}" + tabPath(route.tab)
     CreateTripRoute -> "trips/new"
+    is InterviewRoute -> "trips/new"
     is InviteFriendsRoute -> "trips/${enc(route.tripId)}/invite"
     is PollRoute -> "trips/${enc(route.tripId)}/polls/${enc(route.pollId)}"
     is CreatePollRoute -> "trips/${enc(route.tripId)}/polls/new"
@@ -31,15 +36,17 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     is AlbumsRoute -> "trips/${enc(route.tripId)}/albums"
     is AlbumGalleryRoute -> "trips/${enc(route.tripId)}/albums/${enc(route.albumId)}"
     is EditTripRoute -> "trips/${enc(route.tripId)}/edit"
+    is TripAnswerRoute -> "trips/${enc(route.tripId)}/edit"
     is RecapRoute -> "trips/${enc(route.tripId)}/recap"
     is ActivityFormRoute -> "trips/${enc(route.tripId)}/activity"
+    is ActivityDetailRoute -> "trips/${enc(route.tripId)}/activity/${enc(route.itemId)}"
     is MembersRoute -> "trips/${enc(route.tripId)}/members"
     is SwipeRoute -> "trips/${enc(route.tripId)}/explore"
     is VoteRoute -> "trips/${enc(route.tripId)}/votes/${enc(route.roundId)}"
     is VotingHistoryRoute -> "trips/${enc(route.tripId)}/votes"
     is AllTransactionsRoute -> "trips/${enc(route.tripId)}/transactions"
     is PlaceDetailRoute -> "place"
-    CreditsRoute -> "account/credits"
+    is CreditsRoute -> "account/credits"
     DeleteAccountRoute -> "account/delete"
     ChangePasswordRoute -> "account/password"
     PaymentMethodsRoute -> "account/payment-methods"
@@ -68,8 +75,11 @@ fun routeForUrlFragment(fragment: String): Any? {
         parts == listOf("home") -> HomeRoute
         parts == listOf("trips") -> TripListRoute
         parts == listOf("explore") -> ExploreRoute
+        parts == listOf("explore", "trips") -> ExploreTripPickerRoute
         parts == listOf("account") -> AccountRoute
-        parts == listOf("account", "credits") -> CreditsRoute
+        parts == listOf("account", "profile") -> ProfileSecurityRoute
+        parts == listOf("account", "payment") -> PaymentRoute
+        parts == listOf("account", "credits") -> CreditsRoute()
         parts == listOf("account", "payment-methods") -> PaymentMethodsRoute
         parts == listOf("account", "password") -> ChangePasswordRoute
         parts == listOf("notifications") -> NotificationsRoute
@@ -114,11 +124,16 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(HomeRoute::class) -> HomeRoute
         d.hasRoute(TripListRoute::class) -> TripListRoute
         d.hasRoute(ExploreRoute::class) -> ExploreRoute
+        d.hasRoute(InspirationHomeRoute::class) -> InspirationHomeRoute
+        d.hasRoute(ExploreTripPickerRoute::class) -> ExploreTripPickerRoute
         d.hasRoute(ExplorePreferencesRoute::class) -> entry.toRoute<ExplorePreferencesRoute>()
         d.hasRoute(AccountRoute::class) -> AccountRoute
+        d.hasRoute(ProfileSecurityRoute::class) -> ProfileSecurityRoute
+        d.hasRoute(PaymentRoute::class) -> PaymentRoute
         d.hasRoute(OnboardingRoute::class) -> OnboardingRoute
         d.hasRoute(TripRoute::class) -> entry.toRoute<TripRoute>()
         d.hasRoute(CreateTripRoute::class) -> CreateTripRoute
+        d.hasRoute(InterviewRoute::class) -> entry.toRoute<InterviewRoute>()
         d.hasRoute(InviteFriendsRoute::class) -> entry.toRoute<InviteFriendsRoute>()
         d.hasRoute(PollRoute::class) -> entry.toRoute<PollRoute>()
         d.hasRoute(CreatePollRoute::class) -> entry.toRoute<CreatePollRoute>()
@@ -126,15 +141,17 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(AlbumsRoute::class) -> entry.toRoute<AlbumsRoute>()
         d.hasRoute(AlbumGalleryRoute::class) -> entry.toRoute<AlbumGalleryRoute>()
         d.hasRoute(EditTripRoute::class) -> entry.toRoute<EditTripRoute>()
+        d.hasRoute(TripAnswerRoute::class) -> entry.toRoute<TripAnswerRoute>()
         d.hasRoute(RecapRoute::class) -> entry.toRoute<RecapRoute>()
         d.hasRoute(ActivityFormRoute::class) -> entry.toRoute<ActivityFormRoute>()
+        d.hasRoute(ActivityDetailRoute::class) -> entry.toRoute<ActivityDetailRoute>()
         d.hasRoute(MembersRoute::class) -> entry.toRoute<MembersRoute>()
         d.hasRoute(SwipeRoute::class) -> entry.toRoute<SwipeRoute>()
         d.hasRoute(VoteRoute::class) -> entry.toRoute<VoteRoute>()
         d.hasRoute(VotingHistoryRoute::class) -> entry.toRoute<VotingHistoryRoute>()
         d.hasRoute(AllTransactionsRoute::class) -> entry.toRoute<AllTransactionsRoute>()
         d.hasRoute(PlaceDetailRoute::class) -> PlaceDetailRoute("")
-        d.hasRoute(CreditsRoute::class) -> CreditsRoute
+        d.hasRoute(CreditsRoute::class) -> entry.toRoute<CreditsRoute>()
         d.hasRoute(DeleteAccountRoute::class) -> DeleteAccountRoute
         d.hasRoute(ChangePasswordRoute::class) -> ChangePasswordRoute
         d.hasRoute(PaymentMethodsRoute::class) -> PaymentMethodsRoute

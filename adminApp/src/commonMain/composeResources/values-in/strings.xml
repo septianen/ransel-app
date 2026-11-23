@@ -143,6 +143,7 @@
     <string name="ledger_action_next_batch">Kartu berikutnya</string>
     <string name="ledger_action_place_detail">Detail tempat</string>
     <string name="ledger_action_receipt">Foto struk</string>
+    <string name="ledger_action_inspiration">Sesi Tanya AI</string>
     <string name="ledger_source_free">dari jatah gratis</string>
     <string name="ledger_source_wallet">dari saldo</string>
     <string name="actions_title">Tindakan</string>
@@ -361,7 +362,7 @@
     <string name="settings_credits_title">Kredit AI</string>
     <string name="settings_credits_subtitle">Berlaku untuk semua pengguna; saldo yang sudah ada tidak berubah</string>
     <string name="settings_signup_grant">Bonus saat daftar</string>
-    <string name="settings_daily_free">Gratis per hari (reset 00.00 WIB)</string>
+    <string name="settings_daily_free">Gratis per hari (reset 00:00 WIB)</string>
     <string name="settings_cost_search">Biaya pencarian baru</string>
     <string name="settings_cost_next_batch">Biaya batch berikutnya</string>
     <string name="settings_cost_place_detail">Biaya bangun ulang detail tempat</string>
@@ -380,19 +381,19 @@
     <string name="settings_problem_range">Harus antara %1$s dan %2$s</string>
     <string name="settings_problem_list">Pilih dari daftar</string>
     <string name="settings_app_title">Versi aplikasi</string>
-    <string name="settings_app_subtitle">Dialog pembaruan saat aplikasi dibuka. Aplikasi web selalu versi terbaru.</string>
-    <string name="settings_app_note">Platform tanpa tautan toko tidak menampilkan dialog. Isi tautannya sebelum menaikkan versi.</string>
-    <string name="settings_android_min_version">Android: versi minimum</string>
-    <string name="settings_android_force">Android: pembaruan</string>
-    <string name="settings_android_store_url">Android: tautan Play Store</string>
-    <string name="settings_ios_min_version">iOS: versi minimum</string>
-    <string name="settings_ios_force">iOS: pembaruan</string>
-    <string name="settings_ios_store_url">iOS: tautan App Store</string>
-    <string name="settings_force_yes">Wajib (tidak bisa ditutup)</string>
-    <string name="settings_force_no">Boleh ditutup</string>
+    <string name="settings_app_subtitle">Di bawah versi minimum, aplikasi tidak bisa dipakai sampai diperbarui (layar wajib). Di antara versi minimum dan terbaru, muncul dialog yang bisa ditutup. Pesan yang sama tampil di keduanya; kosong = teks bawaan di aplikasi. Isi tautan toko sebelum menaikkan versi. Aplikasi web selalu yang terbaru, tidak diprompt.</string>
+    <string name="settings_android_heading">Android</string>
+    <string name="settings_android_min_version">Versi minimum</string>
+    <string name="settings_android_latest_version">Versi terbaru</string>
+    <string name="settings_android_message">Pesan pembaruan</string>
+    <string name="settings_android_store_url">Tautan Play Store</string>
+    <string name="settings_message_hint">Kosong = teks bawaan di aplikasi. Tampil di layar pembaruan.</string>
+    <string name="settings_message_count">%1$d/%2$d</string>
     <string name="settings_problem_version">Pakai bentuk 1.2.3</string>
-    <string name="settings_problem_url">Harus tautan https://</string>
-    <string name="settings_confirm_force_warning">Aplikasi di bawah versi itu tidak bisa dipakai sampai diperbarui. Pastikan versinya sudah ada di toko.</string>
+    <string name="settings_problem_url">Pakai tautan https://</string>
+    <string name="settings_problem_min_after_latest">Versi minimum tidak boleh lebih baru dari versi terbaru.</string>
+    <string name="settings_problem_store_required">Isi tautan Play Store dulu, supaya pengguna bisa memperbarui.</string>
+    <string name="settings_confirm_min_warning">Pengguna di bawah versi minimum tidak bisa memakai aplikasi sampai mereka memperbarui. Pastikan versinya sudah ada di Play Store.</string>
     <string name="content_status_published">Terbit</string>
     <string name="content_status_draft">Draf</string>
     <string name="content_status_default">Bawaan</string>

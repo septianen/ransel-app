@@ -58,6 +58,9 @@ color: var(--on-primary);
 | `accent-orange` | #ff5722 | #ff5722 | Oranye FF5722 persis, sama di kedua tema. Latar kartu atau section bold, area besar, ilustrasi, grafik. Teks dan ikon di atasnya: on-accent. |
 | `accent-red` | #d82d3b | #d82d3b | Merah D82D3B, sama di kedua tema. Kategori (mis. Kesehatan). Bukan untuk error; error tetap memakai role error. Teks dan ikon di atasnya: on-accent (4,8:1). |
 | `accent-brown` | #844c1c | #844c1c | Cokelat 844C1C, sama di kedua tema. Kategori bernuansa hangat (mis. kafe, kerajinan). Teks dan ikon di atasnya: on-accent (6,9:1). |
+| `warning` | #ffb800 | #ffb800 | Peran peringatan (usul Rockstar, 16 Nov 2026; dipakai sebagai konstanta sampai Boss setuju). Hanya border 1,5 dp kapsul dan banner peringatan, bukan teks atau ikon kecil (1,5:1 di atas container terang). Nilai sama dengan accent-yellow. |
+| `warning-container` | #fff1cc | #3a2c00 | Latar kapsul dan banner peringatan. |
+| `on-warning-container` | #3d2b00 | #ffe3a1 | Teks dan ikon di atas warning-container (12,1:1 terang, 10,9:1 gelap). Peringatan selalu ikon segitiga plus teks, tidak mengandalkan warna. |
 | `on-error` | #ffffff | #660508 | Teks dan ikon di atas error. |
 | `on-error-container` | #660508 | #ffdad6 | Teks dan ikon di atas error-container. |
 | `on-background` | #1b1b1b | #e8e8e8 | Teks di atas background. |

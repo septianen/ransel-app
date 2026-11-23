@@ -42,7 +42,7 @@ Phase = the roadmap phase in which the screen must be implemented.
 | File | Code name | Board title | Phase | Illustration | Overlay on |
 | --- | --- | --- | --- | --- | --- |
 | `screens/BuatTrip.html` | `CreateTripScreen` | Buat trip | 1 |  |  |
-| `screens/PilihRentangTanggal.html` | `TripDateRangePicker` | Pilih tanggal trip (date range picker) | 1 |  |  |
+| `screens/PilihRentangTanggal.html` | `TripDateRangePicker` | Pilih tanggal trip (date range picker). Built as `RanselCalendar` (6 Nov 2026): tanggal merah and cuti bersama marked, not yet on the canvas | 1 |  |  |
 | `screens/EditTrip.html` | `EditTripScreen` | Edit trip (konten scroll penuh) | 1 |  |  |
 | `screens/DialogHapusTrip.html` | `DeleteTripDialog` | Dialog hapus trip | 1 |  | EditTrip |
 
@@ -79,7 +79,7 @@ Phase = the roadmap phase in which the screen must be implemented.
 | `screens/Pengeluaran.html` | `ExpensesScreen` | Pengeluaran | 1 |  |  |
 | `screens/StateEmpty.html` | `ExpensesScreen` (empty) | Kosong: Pengeluaran | 1 | `capybara-cash-backpack` |  |
 | `screens/CatatPengeluaran.html` | `AddExpenseSheet` | Catat pengeluaran (bottom sheet) | 1 |  | Pengeluaran |
-| `screens/PilihTanggal.html` | `ExpenseDatePickerDialog` | Pilih tanggal (date picker) | 1 |  | CatatPengeluaran |
+| `screens/PilihTanggal.html` | `ExpenseDatePickerDialog` | Pilih tanggal (date picker). Built as `RanselDatePickerDialog` on `RanselCalendar` (6 Nov 2026): tanggal merah and cuti bersama marked, not yet on the canvas | 1 |  | CatatPengeluaran |
 | `screens/GelapPengeluaran.html` | `ExpensesScreen` (dark) | Tema gelap: Pengeluaran | 1 |  |  |
 
 ### Explore AI

@@ -2,18 +2,23 @@ name: Deploy admin
 
 # Builds Karung, the admin web app (adminApp, wasmJs), and publishes it to the folder nginx serves karung.ransel.app from.
 # Uses the SSH secrets listed in deploy/README.md (same as Deploy server).
+# Karung is production. It deploys only when Release calls this with production: true.
+# github.event_name inside this file is the caller's event, so it is not a workflow_call signal.
+# Run workflow without that flag refuses rather than deploying.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "adminApp/**"
-      - "iris/**"
-      - "shared/**"
-      - "gradle/**"
-      - "*.gradle.kts"
-      - "gradle.properties"
-      - ".github/workflows/deploy-admin.yml"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      production:
+        description: "true deploys Karung from ref."
+        type: boolean
+        required: false
+        default: false
+      ref:
+        description: "Bumped commit to build. Required when production is true."
+        type: string
+        required: false
+        default: ""
 
 concurrency:
   group: deploy-admin
@@ -23,10 +28,30 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
+  refuse-manual:
+    if: inputs.production != true
     runs-on: ubuntu-latest
     steps:
+      - name: Production only from Release
+        run: |
+          echo "::error::Karung deploys with a production release. Actions -> Release -> Run workflow on main, RELEASE_TYPE MAJOR, MINOR or PATCH."
+          exit 1
+
+  deploy:
+    if: inputs.production == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the release commit
+        env:
+          DEPLOY_REF: ${{ inputs.ref }}
+        run: |
+          if [ -z "$DEPLOY_REF" ]; then
+            echo "::error::Karung production deploy requires the bumped commit SHA from prepare" >&2
+            exit 1
+          fi
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

@@ -71,7 +71,7 @@ class RemoteContentTest {
 
     @Test
     fun formatArgumentsLikeComposeResources() {
-        assertEquals("Bali, 3 hari", formatContent("%1\$s, %2\$d hari", arrayOf("Bali", 3)))
+        assertEquals("Bali, 3 hari", formatContent("%1\$s, %2\$d hari", arrayOf<Any>("Bali", 3)))
         assertEquals("%2\$s", formatContent("%2\$s", arrayOf("only one")))
     }
 }

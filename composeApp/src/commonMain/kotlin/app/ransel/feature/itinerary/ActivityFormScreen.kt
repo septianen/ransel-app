@@ -30,8 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.ransel.shared.model.Category
@@ -53,7 +51,6 @@ import kotlinx.datetime.LocalTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.activity_booking
 import ransel.composeapp.generated.resources.activity_category
 import ransel.composeapp.generated.resources.activity_day
 import ransel.composeapp.generated.resources.activity_day_unscheduled
@@ -89,6 +86,8 @@ fun ActivityFormScreen(
     initialDay: String?,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Open the place picker once the form has loaded ("Isi lokasi" on the mini map). */
+    openPlaceOnStart: Boolean = false,
     viewModel: ActivityFormViewModel = koinViewModel(key = "activity-form-$tripId-${itemId ?: "new"}") {
         parametersOf(tripId, itemId, initialDay)
     },
@@ -99,6 +98,15 @@ fun ActivityFormScreen(
     }
     var pickingTime by rememberSaveable { mutableStateOf<TimeTarget?>(null) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var pickingPlace by rememberSaveable { mutableStateOf(false) }
+    var placeOpenedOnStart by rememberSaveable { mutableStateOf(false) }
+    // after the load, so the picker starts with the place text the activity already has
+    LaunchedEffect(state.loading) {
+        if (openPlaceOnStart && !state.loading && !placeOpenedOnStart) {
+            placeOpenedOnStart = true
+            pickingPlace = true
+        }
+    }
     val dates = rememberDateFormatter()
 
     FormScaffold(
@@ -107,7 +115,7 @@ fun ActivityFormScreen(
         onBack = onClose,
         saveLabel = stringResource(Res.string.activity_save),
         onSave = viewModel::save,
-        saveEnabled = !state.loading,
+        saveEnabled = !state.loading && state.links.canSave,
         saving = state.saving,
     ) {
         IrisTextField(
@@ -224,11 +232,13 @@ fun ActivityFormScreen(
             }
         }
 
-        IrisTextField(
+        PlaceField(
             label = stringResource(Res.string.activity_place),
-            value = state.placeName,
-            onValueChange = viewModel::onPlace,
-            leadingSymbol = Symbols.locationOn,
+            name = state.placeName,
+            secondary = state.placeSecondary,
+            hasPoint = state.placeHasPoint,
+            onClick = { pickingPlace = true },
+            onClear = viewModel::onPlaceCleared,
         )
         IrisTextField(
             label = stringResource(Res.string.activity_notes),
@@ -236,14 +246,11 @@ fun ActivityFormScreen(
             onValueChange = viewModel::onNotes,
             singleLine = false,
         )
-        IrisTextField(
-            label = stringResource(Res.string.activity_booking),
-            labelSuffix = stringResource(Res.string.trip_optional),
-            value = state.bookingUrl,
-            onValueChange = viewModel::onBooking,
-            leadingSymbol = Symbols.link,
-            placeholder = "https://",
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+        ActivityLinksSection(
+            draft = state.links,
+            onChange = viewModel::onLinkChange,
+            onRemove = viewModel::onLinkRemove,
+            onAdd = viewModel::onLinkAdd,
         )
 
         if (state.isEditing) {
@@ -260,6 +267,19 @@ fun ActivityFormScreen(
                 )
             }
         }
+    }
+
+    if (pickingPlace) {
+        // the text now in the field is the first query, so a typo is fixed where it was typed
+        PlacePicker(
+            tripId = tripId,
+            initialQuery = state.placeName,
+            onPicked = {
+                viewModel.onPlacePicked(it)
+                pickingPlace = false
+            },
+            onDismiss = { pickingPlace = false },
+        )
     }
 
     if (confirmDelete) {

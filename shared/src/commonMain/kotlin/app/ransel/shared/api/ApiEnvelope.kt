@@ -132,6 +132,7 @@ object ErrorCode {
     // Explore AI (Phase 5)
     const val AI_UNAVAILABLE = "AI_UNAVAILABLE"            // 503, LLM failed twice / Places down
     const val AI_PAUSED = "AI_PAUSED"                      // 503, the month's AI budget is used up and Karung set CACHE_ONLY; no credits charged
+    const val SEARCH_CANCELLED = "SEARCH_CANCELLED"        // 409 on POST /recommendations with a `searchId` the user cancelled: nothing charged, no round, no notification
     const val PLACES_UNAVAILABLE = "PLACES_UNAVAILABLE"    // 503 on /places/{id} and /places/reverse when Google fails (autocomplete falls back instead)
 
     // Itinerary voting
@@ -200,6 +201,7 @@ object ErrorCode {
         ALBUM_UNAVAILABLE,
         AI_UNAVAILABLE,
         AI_PAUSED,
+        SEARCH_CANCELLED,
         PLACES_UNAVAILABLE,
         ROUND_NOT_FOUND,
         VOTING_CLOSED,

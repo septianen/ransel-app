@@ -5,12 +5,18 @@ import app.ransel.data.repository.AppLanguage
 import app.ransel.data.repository.AppPreferences
 import app.ransel.data.repository.ExpenseRepository
 import app.ransel.data.repository.ItineraryRepository
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.repository.PackingRepository
+import app.ransel.data.repository.PendingReceipt
 import app.ransel.data.repository.PersonalItemRepository
+import app.ransel.data.repository.ReceiptPhotoRepository
+import app.ransel.data.repository.ReceiptUploadStatus
+import app.ransel.feature.expenses.receipt.ReceiptImage
 import app.ransel.data.repository.PreferencesRepository
 import app.ransel.data.repository.TripRepository
 import app.ransel.data.repository.buildTripSummary
 import app.ransel.shared.domain.itemsOutsideRange
+import app.ransel.shared.domain.nextUpdatedAtMillis
 import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.dto.CreatePackingItemRequest
 import app.ransel.shared.dto.CreateTripRequest
@@ -19,6 +25,7 @@ import app.ransel.shared.dto.ExpenseDto
 import app.ransel.shared.dto.ExpenseInput
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.dto.LOCAL_USER_ID
 import app.ransel.shared.dto.PackingItemDto
@@ -38,9 +45,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
 /*
- * Local-first repositories (Android + iOS). Every write sets `updatedAt = now` and marks the row
- * PENDING; Phase 3 sync reads that. Multi-row writes run in one transaction.
+ * Local-first repositories (Android + iOS). Every write sets `updatedAt` to
+ * [nextUpdatedAtMillis] (at least one ms after the stored value) and marks the row PENDING;
+ * Phase 3 sync reads that. Multi-row writes run in one transaction.
  */
+
+private fun writeAt(existingUpdatedAt: Long?): Long = nextUpdatedAtMillis(existingUpdatedAt, now().toMillis())
 
 class RoomTripRepository(
     private val db: RanselDatabase,
@@ -78,12 +88,13 @@ class RoomTripRepository(
             createdAt = stamp, updatedAt = stamp, deletedAt = null,
             countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone,
         ).withPlace(request.destinationPlace)
+            .withInterview(request.origin, request.departureMode, request.localTransport, request.mainTravelMode)
         db.tripDao().upsert(entity)
     }
 
     override suspend fun update(tripId: String, request: UpdateTripRequest) {
         val current = db.tripDao().get(tripId) ?: return
-        val stamp = now().toMillis()
+        val stamp = writeAt(current.updatedAt)
         db.withWriteTransaction {
             db.tripDao().upsert(
                 current.copy(
@@ -100,6 +111,10 @@ class RoomTripRepository(
                     if (sent || current.destination != request.destination.trim()) {
                         it.copy(countryCode = request.countryCode?.uppercase(), localCurrency = request.localCurrency, timeZone = request.timeZone)
                     } else it
+                }.let {
+                    // the answers as sent when the request says they are all of them (Edit trip, Perjalanan); else a null keeps
+                    if (request.replaceTravelAnswers) it.withInterview(request.origin, request.departureMode, request.localTransport, request.mainTravelMode)
+                    else it.keepingInterview(request.origin, request.departureMode, request.localTransport, request.mainTravelMode)
                 },
             )
             // Shortened dates never delete activities: they go back to "Belum dijadwalkan".
@@ -123,6 +138,7 @@ class RoomTripRepository(
         val stamp = now().toMillis()
         db.withWriteTransaction {
             db.itineraryDao().softDeleteByTrip(tripId, stamp)
+            db.travelModeDao().softDeleteByTrip(tripId, stamp)
             db.packingDao().softDeleteByTrip(tripId, stamp)
             db.expenseDao().softDeleteByTrip(tripId, stamp)
             db.tripDao().softDelete(tripId, stamp)
@@ -132,21 +148,48 @@ class RoomTripRepository(
     override suspend fun applyCover(tripId: String, coverUrl: String?) = db.tripDao().setCover(tripId, coverUrl)
 }
 
+class RoomTravelModeRepository(private val db: RanselDatabase) : TravelModeRepository {
+    override fun observe(tripId: String): Flow<List<app.ransel.shared.dto.TravelModeDto>> =
+        db.travelModeDao().observe(tripId).map { l -> l.map { it.toDto() } }
+
+    override suspend fun save(tripId: String, input: TravelModeInput): Boolean {
+        val dao = db.travelModeDao()
+        val existing = dao.getByPair(input.fromItemId, input.toItemId)
+        val stamp = writeAt(existing?.updatedAt)
+        dao.upsert(
+            TravelModeEntity(
+                id = existing?.id ?: input.id,
+                tripId = tripId,
+                fromItemId = input.fromItemId,
+                toItemId = input.toItemId,
+                mode = input.mode.name,
+                createdAt = existing?.createdAt ?: stamp,
+                updatedAt = stamp,
+                deletedAt = null,
+            ),
+        )
+        return true
+    }
+}
+
 class RoomItineraryRepository(private val db: RanselDatabase) : ItineraryRepository {
     override fun observe(tripId: String): Flow<List<ItineraryItemDto>> =
         db.itineraryDao().observe(tripId).map { l -> l.map { it.toDto() } }
 
     override suspend fun save(tripId: String, input: ItineraryItemInput) {
         val dao = db.itineraryDao()
-        val stamp = now().toMillis()
-        val created = dao.get(input.id)?.createdAt ?: stamp
+        val existing = dao.get(input.id)
+        val stamp = writeAt(existing?.updatedAt)
+        val created = existing?.createdAt ?: stamp
         dao.upsert(
             ItineraryItemEntity(
                 id = input.id, tripId = tripId, dayDate = input.dayDate?.toString(),
                 startTime = input.startTime?.toString(), endTime = input.endTime?.toString(),
                 title = input.title.trim(), category = input.category.name, placeName = input.placeName,
-                placeId = input.placeId, lat = input.lat, lng = input.lng, durationMin = input.durationMin,
-                notes = input.notes, bookingUrl = input.bookingUrl, source = input.source.name,
+                placeId = input.placeId, lat = input.lat, lng = input.lng, placeKind = input.placeKind?.name,
+                placeCity = input.placeCity, durationMin = input.durationMin,
+                notes = input.notes, bookingUrl = input.bookingUrl, linksJson = input.links.toLinksJson(),
+                source = input.source.name,
                 sortOrder = input.sortOrder, createdAt = created, updatedAt = stamp, deletedAt = null,
             ),
         )
@@ -157,8 +200,9 @@ class RoomItineraryRepository(private val db: RanselDatabase) : ItineraryReposit
     }
 
     override suspend fun applyDayOrder(tripId: String, date: LocalDate, items: List<DayOrderItem>) {
-        val stamp = now().toMillis()
         db.withWriteTransaction {
+            val existing = items.mapNotNull { db.itineraryDao().get(it.id)?.updatedAt }
+            val stamp = writeAt(existing.maxOrNull())
             items.forEach {
                 db.itineraryDao().updateOrder(
                     tripId, it.id, it.sortOrder, it.startTime?.toString(), it.endTime?.toString(), stamp,
@@ -186,12 +230,12 @@ class RoomPackingRepository(private val db: RanselDatabase) : PackingRepository 
     override suspend fun bring(tripId: String, itemId: String, memberId: String) {
         val current = db.packingDao().get(itemId) ?: return
         if (current.assigneeMemberId != null) return
-        db.packingDao().upsert(current.copy(assigneeMemberId = memberId, updatedAt = now().toMillis(), syncState = SyncState.PENDING))
+        db.packingDao().upsert(current.copy(assigneeMemberId = memberId, updatedAt = writeAt(current.updatedAt), syncState = SyncState.PENDING))
     }
 
     override suspend fun giveBack(tripId: String, itemId: String) {
         val current = db.packingDao().get(itemId) ?: return
-        db.packingDao().upsert(current.copy(assigneeMemberId = null, isPacked = false, updatedAt = now().toMillis(), syncState = SyncState.PENDING))
+        db.packingDao().upsert(current.copy(assigneeMemberId = null, isPacked = false, updatedAt = writeAt(current.updatedAt), syncState = SyncState.PENDING))
     }
 
     override suspend fun update(tripId: String, itemId: String, patch: PatchPackingItemRequest) {
@@ -203,7 +247,7 @@ class RoomPackingRepository(private val db: RanselDatabase) : PackingRepository 
                 quantity = patch.quantity ?: current.quantity,
                 isPacked = patch.isPacked ?: current.isPacked,
                 sortOrder = patch.sortOrder ?: current.sortOrder,
-                updatedAt = now().toMillis(), syncState = SyncState.PENDING,
+                updatedAt = writeAt(current.updatedAt), syncState = SyncState.PENDING,
             ),
         )
     }
@@ -246,7 +290,7 @@ class RoomPersonalItemRepository(
                 quantity = patch.quantity ?: current.quantity,
                 isPacked = patch.isPacked ?: current.isPacked,
                 sortOrder = patch.sortOrder ?: current.sortOrder,
-                updatedAt = now().toMillis(), syncState = SyncState.PENDING,
+                updatedAt = writeAt(current.updatedAt), syncState = SyncState.PENDING,
             ),
         )
     }
@@ -265,10 +309,13 @@ class RoomExpenseRepository(
 
     override suspend fun save(tripId: String, input: ExpenseInput) {
         val dao = db.expenseDao()
-        val stamp = now().toMillis()
-        val created = dao.get(input.id)?.createdAt ?: stamp
+        val existing = dao.get(input.id)
+        val stamp = writeAt(existing?.updatedAt)
+        val created = existing?.createdAt ?: stamp
         dao.upsert(
             ExpenseEntity(
+                // an edit never touches the photo: only the server's answer sets (or clears) it
+                receiptDocumentId = existing?.receiptDocumentId,
                 id = input.id, tripId = tripId, amountMinor = input.amountMinor, currency = input.currency,
                 fxRateToBase = input.fxRateToBase, category = input.category.name,
                 paymentMethod = input.paymentMethod.name, note = input.note?.trim()?.ifEmpty { null },
@@ -287,8 +334,36 @@ class RoomExpenseRepository(
 
     override suspend fun delete(tripId: String, expenseId: String) {
         db.expenseDao().softDelete(expenseId, now().toMillis())
+        // a photo still waiting to upload has no expense to belong to any more
+        db.pendingReceiptDao().delete(expenseId)
     }
 }
+
+/** Receipt photos kept in Room until the sync step sends them ([SyncCoordinator.uploadReceipts]). */
+class RoomReceiptPhotoRepository(private val db: RanselDatabase) : ReceiptPhotoRepository {
+    override val supported = true
+
+    override fun observe(tripId: String): Flow<Map<String, PendingReceipt>> =
+        db.pendingReceiptDao().observe(tripId).map { rows -> rows.associate { it.expenseId to it.toPending() } }
+
+    override suspend fun attach(tripId: String, expenseId: String, title: String, image: ReceiptImage) {
+        db.pendingReceiptDao().put(
+            PendingReceiptEntity(expenseId, tripId, title, image.mimeType, image.bytes, ReceiptUploadStatus.WAITING.name, 0, now().toMillis()),
+        )
+    }
+
+    override suspend fun retry(expenseId: String) {
+        db.pendingReceiptDao().setStatus(expenseId, ReceiptUploadStatus.WAITING.name, 0)
+    }
+
+    override suspend fun discard(expenseId: String) {
+        db.pendingReceiptDao().delete(expenseId)
+    }
+}
+
+internal fun PendingReceiptEntity.toPending() = PendingReceipt(
+    expenseId, title, bytes, mimeType, ReceiptUploadStatus.entries.firstOrNull { it.name == status } ?: ReceiptUploadStatus.WAITING,
+)
 
 class RoomPreferencesRepository(private val db: RanselDatabase) : PreferencesRepository {
     override fun observe(): Flow<AppPreferences> = db.preferenceDao().observeAll().map { rows ->

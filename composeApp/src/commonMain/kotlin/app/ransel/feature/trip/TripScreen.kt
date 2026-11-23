@@ -1,5 +1,6 @@
 package app.ransel.feature.trip
 
+import app.ransel.feature.trips.phase
 import app.ransel.ui.tour.tourTarget
 import app.ransel.ui.RefreshOnReturn
 import app.ransel.shared.dto.TripDto
@@ -75,10 +76,15 @@ fun TripScreen(
     onBack: () -> Unit,
     onEditTrip: () -> Unit,
     onMembers: () -> Unit,
-    onExplore: () -> Unit,
+    /**
+     * The swipe screen of this trip: after "Cari tempat" in the sheet stored a new session, or straight back into an
+     * unfinished one (banner "Lanjutkan cari tempat", the + row, the itinerary entry), without a new charge.
+     */
+    onOpenSwipe: () -> Unit,
     onAddActivity: (dayDate: String?) -> Unit,
-    onEditActivity: (itemId: String) -> Unit,
-    onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
+    onOpenActivity: (itemId: String) -> Unit,
+    /** "Isi lokasi" on the day's mini map: the activity's form with the place picker open. */
+    onFillLocation: ((itemId: String) -> Unit)? = null,
     /** Opens one voting round, from "Perlu tindakanmu" or the Group tab's lists (the OWNER sees the result of a closed round). */
     onOpenRound: (roundId: String, showResult: Boolean) -> Unit = { _, _ -> },
     /** "Riwayat voting" on the Group tab. */
@@ -104,6 +110,25 @@ fun TripScreen(
     // null until the repository answers; its trip is null when the trip is gone (deleted, or the user left it)
     val answer by remember(tripId) { trips.observeTrip(tripId).map { TripAnswer(it) } }.collectAsState(initial = null)
     val trip = answer?.trip
+    // An unfinished swipe session of this trip: its dot sits on "Cari inspirasi dengan AI" (PRD v0.8, not the tab icon)
+    val exploreSessions by koinInject<app.ransel.data.explore.ExploreSessionStore>().sessions.collectAsState()
+    val explorePending = exploreSessions[tripId]?.let { !it.finished } == true
+    // "Cari tempat" (plan explore-trip-one-tap v4): the Seleramu sheet filled in from the trip, then the swipe
+    var exploreSheetOpen by rememberSaveable { mutableStateOf(false) }
+    fun startExplore() {
+        when {
+            explorePending -> onOpenSwipe()
+            // nothing to search yet: the owner sets it in Edit trip (the + row is dimmed for everyone)
+            trip?.destination.isNullOrBlank() -> if (trip?.myRole == app.ransel.shared.model.Role.OWNER) onEditTrip()
+            else -> exploreSheetOpen = true
+        }
+    }
+    // the Explore trip picker, "Ubah preferensi" on the swipe screen and old form links ask for the sheet
+    val exploreRequests: app.ransel.data.explore.TripExploreRequests = koinInject()
+    val exploreRequest by exploreRequests.tripId.collectAsState()
+    LaunchedEffect(exploreRequest, trip != null) {
+        if (trip != null && exploreRequests.consume(tripId)) exploreSheetOpen = true
+    }
     var tab by rememberSaveable { mutableStateOf(initialTab) }
     // New-user tour: the first trip ever opened (tabs, then +), and a tip the first time each tab opens
     val tour: app.ransel.ui.tour.TourController = koinInject()
@@ -133,6 +158,14 @@ fun TripScreen(
     var kindSheetOpen by remember { mutableStateOf(false) }
     // The OWNER and EDITORs ask the group; viewers vote.
     val canAsk = current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true
+    // A Seleramu kept only on this phone (made before the server kept it) goes to the server once, so every member and
+    // device starts "Cari tempat" from it.
+    val tasteRepository: app.ransel.data.explore.TripTasteRepository = koinInject()
+    val exploreStore: app.ransel.data.explore.ExploreSessionStore = koinInject()
+    LaunchedEffect(tripId, signedIn, canAsk, current != null) {
+        val t = current ?: return@LaunchedEffect
+        if (signedIn && canAsk && exploreStore.taste(tripId) != null) tasteRepository.load(t, canEdit = true)
+    }
 
     // Pull to refresh (signed in only: a guest's trip lives on this phone alone). Mobile syncs, web fetches again;
     // then the server-only parts (voting rounds, members and balances in Expenses) are asked for again.
@@ -221,12 +254,18 @@ fun TripScreen(
                             onInvite = if (isOwner) ({ inviteSheetOpen = true }) else null,
                             onStartDatePoll = if (canAsk) ({ onCreatePoll(PollKind.DATE) }) else null,
                             refreshKey = refreshCount,
+                            exploreBanner = app.ransel.feature.explore.tripExploreBanner(
+                                signedIn, current.myRole, current.phase(app.ransel.util.today()), current.destination, explorePending,
+                            ),
+                            onExploreBanner = {
+                                if (current.destination.isBlank()) onEditTrip() else startExplore()
+                            },
                         )
                         TripTab.ITINERARY -> ItineraryTab(
-                            current, onAddActivity, onEditActivity,
-                            onExplore = if (signedIn) onExplore else null,
-                            // The place text lives on the server: guests have no account to ask it with.
-                            onOpenPlaceDetail = if (signedIn) onOpenPlaceDetail else null,
+                            current, onAddActivity, onOpenActivity,
+                            onFillLocation = onFillLocation,
+                            onExplore = if (signedIn) ({ startExplore() }) else null,
+                            explorePending = explorePending,
                             onOpenPoll = if (signedIn) onOpenPoll else null,
                         )
                         TripTab.PACKING -> PackingTab(current)
@@ -237,6 +276,7 @@ fun TripScreen(
                             onSeeAllTransactions = onOpenAllTransactions,
                             openBalances = openBalances,
                             onBalancesOpened = onBalancesOpened,
+                            onManageDocuments = { onOpenDocuments(false) },
                         )
                     }
                 } else if (answer != null) {
@@ -264,13 +304,32 @@ fun TripScreen(
         // a solo trip has nobody to ask yet: no "Buat polling" until someone joins
         val solo = signedIn && koinViewModel<app.ransel.feature.group.GroupViewModel>(key = "group-$tripId") { parametersOf(tripId) }
             .state.collectAsState().value.solo
+        val phase = current?.phase(app.ransel.util.today())
         GroupActionSheet(
-            canInvite = isOwner,
-            onPoll = if (solo) null else ({ actionSheetOpen = false; kindSheetOpen = true }),
+            canInvite = phase != null && app.ransel.feature.group.canInviteFromSheet(isOwner, phase),
+            onPoll = if (phase != null && app.ransel.feature.group.canCreatePollFromSheet(solo, phase)) ({
+                actionSheetOpen = false; kindSheetOpen = true
+            }) else null,
             onInvite = { actionSheetOpen = false; inviteSheetOpen = true },
             onDismiss = { actionSheetOpen = false },
             onDocument = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenDocuments(true) }) else null,
             onAlbum = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenAlbums(true) }) else null,
+            // the trip-first search for this trip (preferences, then swipe; 2+ members vote on the cards, voting spec)
+            onExplore = if (phase != null && app.ransel.feature.group.canSearchPlacesFromSheet(current?.myRole, phase)) ({
+                actionSheetOpen = false
+                startExplore()
+            }) else null,
+            exploreSolo = solo,
+            // the search price from the server; nothing while it is unknown or when the unfinished session resumes for free
+            explorePrice = app.ransel.feature.group.explorePrice(app.ransel.feature.credits.rememberCredits().value, resumes = explorePending),
+            exploreBlocked = current?.destination.isNullOrBlank(),
+        )
+    }
+    if (exploreSheetOpen) {
+        app.ransel.feature.explore.TripExploreSheet(
+            tripId = tripId,
+            onSearch = { exploreSheetOpen = false; onOpenSwipe() },
+            onDismiss = { exploreSheetOpen = false },
         )
     }
     if (kindSheetOpen) {

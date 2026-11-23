@@ -17,13 +17,18 @@ import app.ransel.shared.domain.toUnscheduledInput
 import app.ransel.shared.domain.memberIdFor
 import app.ransel.shared.domain.validateTrip
 import app.ransel.shared.domain.validateTripLocale
+import app.ransel.shared.domain.validateTripOrigin
 import app.ransel.shared.domain.validateTripPlace
+import app.ransel.shared.dto.TripOriginDto
 import app.ransel.shared.dto.TripPlaceDto
 import app.ransel.shared.dto.CreateTripRequest
 import app.ransel.shared.dto.TripDetailDto
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.dto.UpdateTripRequest
+import app.ransel.shared.model.DepartureMode
+import app.ransel.shared.model.LocalTransport
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.Role
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.daysUntil
@@ -61,7 +66,7 @@ object TripService {
     fun create(userId: UUID, id: UUID, body: CreateTripRequest): TripDto = transaction {
         requireValid(
             validateTrip(body.title, body.startDate, body.endDate, body.baseCurrency, body.budgetMinor) + validateTripPlace(body.destinationPlace) +
-                validateTripLocale(body.countryCode, body.localCurrency, body.timeZone),
+                validateTripLocale(body.countryCode, body.localCurrency, body.timeZone) + validateTripOrigin(body.origin),
         )
         if (Trips.select(Trips.id).where { Trips.id eq id }.any()) throw conflict("Trip id already exists")
         Trips.insert {
@@ -75,6 +80,7 @@ object TripService {
             it[budgetMinor] = body.budgetMinor
             fillPlace(it, body.destinationPlace)
             fillLocale(it, body.countryCode, body.localCurrency, body.timeZone)
+            fillInterview(it, body.origin, body.departureMode, body.localTransport, body.mainTravelMode)
         }
         TripMembers.insert {
             it[TripMembers.id] = UUID.fromString(memberIdFor(id.toString(), userId.toString()))
@@ -99,12 +105,13 @@ object TripService {
         return transaction {
             requireValid(
                 validateTrip(body.title, body.startDate, body.endDate, body.baseCurrency, body.budgetMinor) + validateTripPlace(body.destinationPlace) +
-                    validateTripLocale(body.countryCode, body.localCurrency, body.timeZone),
+                    validateTripLocale(body.countryCode, body.localCurrency, body.timeZone) + validateTripOrigin(body.origin),
             )
             val before = Trips.select(Trips.destination).where { Trips.id eq tripId }.single()[Trips.destination]
             Trips.update({ Trips.id eq tripId }) {
                 placeUpdate(it, body.destinationPlace, nameChanged = before != body.destination)
                 localeUpdate(it, body.countryCode, body.localCurrency, body.timeZone, nameChanged = before != body.destination)
+                interviewUpdate(it, body.origin, body.departureMode, body.localTransport, body.mainTravelMode, body.replaceTravelAnswers)
                 it[title] = body.title.trim()
                 it[destination] = body.destination
                 it[startDate] = body.startDate?.toJavaLocalDate()
@@ -149,6 +156,48 @@ object TripService {
         nameChanged: Boolean,
     ) {
         if (country != null || currency != null || zone != null || nameChanged) fillLocale(it, country, currency, zone)
+    }
+
+    /** Writes the interview answers as sent (create, and a trip pushed for the first time). */
+    internal fun fillInterview(
+        it: org.jetbrains.exposed.v1.core.statements.UpdateBuilder<*>,
+        origin: TripOriginDto?,
+        departure: DepartureMode?,
+        local: LocalTransport?,
+        main: MainTravelMode?,
+    ) {
+        fillOrigin(it, origin)
+        it[Trips.departureMode] = departure
+        it[Trips.localTransport] = local
+        it[Trips.mainTravelMode] = main
+    }
+
+    /**
+     * On an update (REST and sync) every answer that is not sent keeps its stored value: an older app does not send them,
+     * and the interview's Lewati never writes anything. With [replace] (`replaceTravelAnswers`, the apps of "Edit trip,
+     * Perjalanan") the four are the whole truth and a null clears the stored answer (contract 16 Nov 2026).
+     */
+    internal fun interviewUpdate(
+        it: org.jetbrains.exposed.v1.core.statements.UpdateBuilder<*>,
+        origin: TripOriginDto?,
+        departure: DepartureMode?,
+        local: LocalTransport?,
+        main: MainTravelMode?,
+        replace: Boolean = false,
+    ) {
+        if (replace) return fillInterview(it, origin, departure, local, main)
+        if (origin != null) fillOrigin(it, origin)
+        if (departure != null) it[Trips.departureMode] = departure
+        if (local != null) it[Trips.localTransport] = local
+        if (main != null) it[Trips.mainTravelMode] = main
+    }
+
+    private fun fillOrigin(it: org.jetbrains.exposed.v1.core.statements.UpdateBuilder<*>, origin: TripOriginDto?) {
+        it[Trips.originName] = origin?.name?.trim()
+        it[Trips.originLat] = origin?.lat
+        it[Trips.originLng] = origin?.lng
+        it[Trips.originPlaceId] = origin?.placeId
+        it[Trips.originCountryCode] = origin?.countryCode?.uppercase()
     }
 
     fun delete(userId: UUID, tripId: UUID) {

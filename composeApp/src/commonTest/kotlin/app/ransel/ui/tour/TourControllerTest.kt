@@ -95,7 +95,7 @@ class TourControllerTest {
     @Test
     fun creditNumbersComeFromTheServerAndAreKeptForOffline() = runTest {
         assertNull(tour.creditNumbers(), "never seen: the sentence without numbers")
-        credits.update(CreditsDto(10, 3, 5, Instant.fromEpochSeconds(0), CreditCostsDto(search = 4, nextBatch = 1, placeDetail = 0)))
+        credits.update(CreditsDto(10, 3, 5, Instant.fromEpochSeconds(0), CreditCostsDto(search = 3, nextBatch = 1, placeDetail = 0, inspiration = 4)))
         assertEquals(5 to 4, tour.creditNumbers())
         credits.update(null) // offline later: the last ones seen
         assertEquals(5 to 4, tour.creditNumbers())

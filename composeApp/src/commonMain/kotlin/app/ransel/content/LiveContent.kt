@@ -3,10 +3,15 @@ package app.ransel.content
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import app.ransel.shared.domain.BUNDLED_HOLIDAYS
 import app.ransel.shared.domain.categoryLabelKey
+import app.ransel.shared.domain.holidaysByDate
+import app.ransel.shared.domain.mergeHolidays
 import app.ransel.shared.dto.ContentCategoryDto
 import app.ransel.shared.dto.ContentDto
+import app.ransel.shared.dto.HolidayDto
 import app.ransel.shared.model.CategoryKind
+import kotlinx.datetime.LocalDate
 
 /**
  * The categories Karung restyled (`GET /content`, admin-spec stage E), indexed for lookups. Only categories are remote
@@ -27,6 +32,9 @@ class RemoteContent(val dto: ContentDto) {
     }
     private val categories: Map<CategoryKind, Map<String, ContentCategoryDto>> =
         dto.categories.groupBy { it.kind }.mapValues { (_, list) -> list.associateBy { it.constant } }
+
+    /** Tanggal merah and cuti bersama: the bundled list, whole years replaced by what the server sent (date picker). */
+    val holidays: Map<LocalDate, HolidayDto> = holidaysByDate(mergeHolidays(BUNDLED_HOLIDAYS, dto.holidays))
 
     val version: Int get() = dto.version
     val isEmpty: Boolean get() = strings.isEmpty() && categories.isEmpty()

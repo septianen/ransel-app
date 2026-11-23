@@ -32,6 +32,7 @@ class RoomSessionHooks(
             dao.markAllItemsPending()
             dao.markAllPackingPending()
             dao.markAllPersonalPending()
+            dao.markAllTravelModesPending()
             dao.markAllExpensesPending()
         }
     }

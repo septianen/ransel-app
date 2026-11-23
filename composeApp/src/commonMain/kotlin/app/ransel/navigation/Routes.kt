@@ -6,9 +6,21 @@ import kotlinx.serialization.Serializable
 @Serializable data object HomeRoute
 @Serializable data object TripListRoute
 @Serializable data object ExploreRoute
+/** The trip-first search's trip picker; the Explore tab itself opens saved ideas or Explore Inspirasi. */
+@Serializable data object ExploreTripPickerRoute
+/** Ask AI form pushed from the Explore tab FAB when the tab already shows saved ideas. */
+@Serializable data object InspirationHomeRoute
+@Serializable data class InspirationInterviewRoute(val sessionId: String)
+@Serializable data class InspirationResultsRoute(val sessionId: String)
+@Serializable data object InspirationSavedPlaceholderRoute
+@Serializable data object SavedIdeasRoute
 /** Explore step 2: the form for one trip; null = a new trip (destination and dates are asked in the form). */
 @Serializable data class ExplorePreferencesRoute(val tripId: String? = null)
 @Serializable data object AccountRoute
+/** Account → Profile & security. */
+@Serializable data object ProfileSecurityRoute
+/** Account → Payment (credits card, history, payment info). */
+@Serializable data object PaymentRoute
 
 /** First-launch introduction (3 pages), shown once. */
 @Serializable data object OnboardingRoute
@@ -19,6 +31,17 @@ import kotlinx.serialization.Serializable
  */
 @Serializable data class TripRoute(val tripId: String, val tab: String = "OVERVIEW")
 @Serializable data object CreateTripRoute
+/** "Buat trip" as an interview (spec 16 Nov 2026). [door] is an `InterviewDoor` name: where the user came from. */
+/**
+ * "Buat trip" as an interview. [destination], [countryCode] and [interests] (comma-separated `Interest` names) prefill it
+ * from an Explore Inspirasi card ("Bikin trip dari sini"); the dates stay open ("Tanggal belum pasti" is allowed).
+ */
+@Serializable data class InterviewRoute(
+    val door: String = "MY_TRIPS",
+    val destination: String? = null,
+    val countryCode: String? = null,
+    val interests: String? = null,
+)
 /** Design AjakTeman: right after "Buat trip" (signed in), share the invite link or add friends by name. */
 @Serializable data class InviteFriendsRoute(val tripId: String)
 /** [share] = just created: the share sheet opens first ("Polling sudah dibuat"). */
@@ -35,13 +58,28 @@ import kotlinx.serialization.Serializable
 
 /** "Rekap trip". */
 @Serializable data class EditTripRoute(val tripId: String)
+
+/** One answer of the section "Perjalanan" of Edit trip: [row] is a `TravelRow` name (ORIGIN, DEPARTURE or LOCAL_TRANSPORT). */
+@Serializable data class TripAnswerRoute(val tripId: String, val row: String)
 @Serializable data class RecapRoute(val tripId: String)
 
-/** Add (`itemId == null`) or edit an activity. [dayDate] is an ISO date preselecting the day. */
-@Serializable data class ActivityFormRoute(val tripId: String, val itemId: String? = null, val dayDate: String? = null)
+/** "Detail aktivitas": the read-only screen of one activity (links, notes); its Edit button opens [ActivityFormRoute]. */
+@Serializable data class ActivityDetailRoute(val tripId: String, val itemId: String)
+
+/**
+ * Add (`itemId == null`) or edit an activity. [dayDate] is an ISO date preselecting the day. [openPlace] opens the place
+ * picker as soon as the form is ready ("Isi lokasi" on the day's mini map).
+ */
+@Serializable data class ActivityFormRoute(
+    val tripId: String,
+    val itemId: String? = null,
+    val dayDate: String? = null,
+    val openPlace: Boolean = false,
+)
 
 /** Explore credits: balance, voucher, packs, history (opened from Account and from the out-of-credits state). */
-@Serializable data object CreditsRoute
+/** [tripId] set = opened from "Tambah kredit" of a search that waits: the screen says what is needed and offers "Lanjut mencari". */
+@Serializable data class CreditsRoute(val tripId: String? = null)
 /** Account → Info pembayaran. */
 @Serializable data object DeleteAccountRoute
 /** Account → Ubah password. Full screen; confirm is checked here, the server only sees current + new. */
@@ -79,7 +117,8 @@ import kotlinx.serialization.Serializable
 )
 
 /** Swipe through the recommendations of the unfinished Explore session of [tripId] (a user can have one per trip). */
-@Serializable data class SwipeRoute(val tripId: String)
+/** [created] = the trip was just made by "Buat trip dan cari": a failed search says that the trip exists. */
+@Serializable data class SwipeRoute(val tripId: String, val created: Boolean = false)
 
 /**
  * Full-screen detail of a recommended place. From a swipe card the card is read from the Explore session and the

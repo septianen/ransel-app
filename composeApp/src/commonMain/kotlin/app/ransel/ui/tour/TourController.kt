@@ -77,7 +77,8 @@ class TourController(
     /** "Jatah gratis %1$d kredit tiap hari, satu pencarian baru pakai %2$d kredit": the live numbers, else the last ones seen. */
     suspend fun creditNumbers(): Pair<Int, Int>? {
         credits.state.value?.let { c ->
-            val numbers = c.dailyFreeLimit to c.costs.search
+            // the Explore tab is Tanya AI now: the step names the price of one Inspirasi session
+            val numbers = c.dailyFreeLimit to c.costs.inspiration
             preferences.putString(CREDITS_KEY, "${numbers.first},${numbers.second}")
             return numbers
         }

@@ -75,7 +75,7 @@ private fun pollPreview(code: String, en: Boolean): Pair<String, String>? {
     val zone = trip[Trips.timeZone]?.let { runCatching { ZoneId.of(it) }.getOrNull() } ?: ZoneId.of("Asia/Jakarta")
     val closes = poll[Polls.closesAt].atZone(zone)
     val day = (if (en) EN_DAYS else ID_DAYS)[closes.dayOfWeek.value - 1]
-    val time = if (en) "%02d:%02d".format(closes.hour, closes.minute) else "%02d.%02d".format(closes.hour, closes.minute)
+    val time = "%02d:%02d".format(closes.hour, closes.minute)
     val status = when {
         poll[Polls.status] != PollStatus.OPEN -> if (en) "voting is over" else "polling sudah selesai"
         en -> "closes $day $time"

@@ -13,27 +13,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Button
-import androidx.compose.material3.DateRangePicker
-import androidx.compose.material3.DateRangePickerDefaults
-import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import app.ransel.content.LiveContent
 import app.ransel.content.stringResource
+import app.ransel.ui.components.calendar.CalendarLegend
+import app.ransel.ui.components.calendar.DateSelection
+import app.ransel.ui.components.calendar.RanselCalendar
+import app.ransel.ui.components.calendar.tapRange
 import app.ransel.ui.symbols.Symbol
 import app.ransel.ui.symbols.Symbols
-import app.ransel.util.fromPickerMillis
-import app.ransel.util.toPickerMillis
 import kotlinx.datetime.LocalDate
 import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.action_back
@@ -41,10 +41,10 @@ import ransel.composeapp.generated.resources.date_range_confirm
 import ransel.composeapp.generated.resources.date_range_title
 
 /**
- * Full-screen M3 DateRangePicker for the trip dates (design "Pilih tanggal trip"). Days before [earliest] are greyed
- * out and cannot be picked (owner, 27 Oct 2026: a trip does not start in the past); null = any day.
+ * Full-screen calendar for the trip dates (design "Pilih tanggal trip") that marks tanggal merah and cuti bersama.
+ * Days before [earliest] are greyed out and cannot be picked (owner, 27 Oct 2026: a trip does not start in the past);
+ * null = any day.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripDateRangePicker(
     /** Null = nothing selected yet (a new trip); the calendar then opens on [earliest] or today. */
@@ -54,18 +54,8 @@ fun TripDateRangePicker(
     onDismiss: () -> Unit,
     earliest: LocalDate? = null,
 ) {
-    val selectable = remember(earliest) {
-        object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long) = earliest == null || utcTimeMillis.fromPickerMillis() >= earliest
-            override fun isSelectableYear(year: Int) = earliest == null || year >= earliest.year
-        }
-    }
-    val state = rememberDateRangePickerState(
-        initialSelectedStartDateMillis = start?.toPickerMillis(),
-        initialSelectedEndDateMillis = end?.toPickerMillis(),
-        initialDisplayedMonthMillis = (start ?: earliest ?: app.ransel.util.today()).toPickerMillis(),
-        selectableDates = selectable,
-    )
+    var selection by remember { mutableStateOf(DateSelection(start, end?.takeIf { start != null })) }
+    val holidays = LiveContent.current.holidays
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -93,18 +83,21 @@ fun TripDateRangePicker(
                     modifier = Modifier.padding(start = 4.dp),
                 )
             }
-            DateRangePicker(
-                state = state,
-                modifier = Modifier.weight(1f),
-                showModeToggle = false,
-                title = null,
+            RanselCalendar(
+                selection = selection,
+                onDayClick = { selection = tapRange(selection, it) },
+                modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+                earliest = earliest,
+                holidays = holidays,
             )
-            val s = state.selectedStartDateMillis
-            val e = state.selectedEndDateMillis
+            CalendarLegend(
+                focused = (selection.end ?: selection.start)?.let { holidays[it] },
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            val s = selection.start
+            val e = selection.end
             Button(
-                onClick = {
-                    if (s != null) onConfirm(s.fromPickerMillis(), (e ?: s).fromPickerMillis())
-                },
+                onClick = { if (s != null) onConfirm(s, e ?: s) },
                 enabled = s != null,
                 modifier = Modifier
                     .fillMaxWidth()

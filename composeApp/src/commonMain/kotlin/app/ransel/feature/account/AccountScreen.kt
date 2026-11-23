@@ -1,38 +1,5 @@
 package app.ransel.feature.account
 
-import kotlinx.coroutines.launch
-import ransel.composeapp.generated.resources.tour_replay_hint
-import ransel.composeapp.generated.resources.tour_replay
-import ransel.composeapp.generated.resources.account_photo_sheet_title
-import ransel.composeapp.generated.resources.action_save
-import ransel.composeapp.generated.resources.account_name_failed
-import ransel.composeapp.generated.resources.account_name_required
-import ransel.composeapp.generated.resources.account_name_field
-import ransel.composeapp.generated.resources.account_name_sheet_hint
-import ransel.composeapp.generated.resources.account_name_sheet_title
-import app.ransel.ui.components.LoadingButton
-import app.ransel.ui.components.IrisTextField
-import app.ransel.shared.api.ErrorCode
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.material3.IconButton
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.text.KeyboardOptions
-import ransel.composeapp.generated.resources.account_photo_change
-import coil3.compose.AsyncImage
-import app.ransel.ui.components.text
-import app.ransel.ui.components.PhotoSourceSheet
-import app.ransel.shared.domain.PhotoKind
-import app.ransel.data.remote.apiImageUrl
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.material3.CircularProgressIndicator
-import app.ransel.content.stringResource
-import app.ransel.ui.components.SectionHeader
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,121 +8,87 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import app.ransel.data.repository.AppLanguage
-import app.ransel.data.repository.AppPreferences
-import app.ransel.feature.currency.CurrencySheet
-import app.ransel.ui.components.AdaptiveSheet
-import app.ransel.feature.currency.RadioMark
-import app.ransel.ui.symbols.Symbol
-import app.ransel.feature.credits.rememberCredits
-import app.ransel.ui.symbols.Symbols
-import app.ransel.ui.theme.IrisShape
-import app.ransel.ui.theme.ThemeMode
-import org.jetbrains.compose.resources.StringResource
-import org.koin.compose.viewmodel.koinViewModel
-import ransel.composeapp.generated.resources.Res
-import ransel.composeapp.generated.resources.paymethod_title
-import ransel.composeapp.generated.resources.account_about
-import ransel.composeapp.generated.resources.account_delete
-import ransel.composeapp.generated.resources.change_password_done
-import ransel.composeapp.generated.resources.change_password_title
-import ransel.composeapp.generated.resources.account_privacy
-import ransel.composeapp.generated.resources.account_confirm_reorder
-import ransel.composeapp.generated.resources.account_confirm_reorder_hint
-import ransel.composeapp.generated.resources.account_credits
-import ransel.composeapp.generated.resources.account_notifications
-import ransel.composeapp.generated.resources.account_default_currency
-import ransel.composeapp.generated.resources.account_language
-import ransel.composeapp.generated.resources.account_section_other
-import ransel.composeapp.generated.resources.account_section_preferences
-import ransel.composeapp.generated.resources.account_theme
-import ransel.composeapp.generated.resources.account_title
-import ransel.composeapp.generated.resources.currency_sheet_default_hint
-import ransel.composeapp.generated.resources.currency_sheet_default_title
-import ransel.composeapp.generated.resources.language_english
-import ransel.composeapp.generated.resources.language_indonesian
-import ransel.composeapp.generated.resources.language_sheet_hint
-import ransel.composeapp.generated.resources.language_sheet_title
-import ransel.composeapp.generated.resources.language_system
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextOverflow
+import app.ransel.content.stringResource
 import app.ransel.data.auth.SessionState
+import app.ransel.feature.credits.rememberCredits
+import app.ransel.feature.currency.CurrencySheet
 import app.ransel.platform.installedAppVersion
 import app.ransel.platform.requiresAccount
 import app.ransel.ui.components.ConfirmDialog
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import app.ransel.ui.preview.IrisPreview
+import app.ransel.ui.symbols.Symbols
+import app.ransel.ui.tour.TourController
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
+import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.account_about
+import ransel.composeapp.generated.resources.account_confirm_reorder
+import ransel.composeapp.generated.resources.account_confirm_reorder_hint
+import ransel.composeapp.generated.resources.account_default_currency
+import ransel.composeapp.generated.resources.account_language
+import ransel.composeapp.generated.resources.account_notifications
+import ransel.composeapp.generated.resources.account_payment
+import ransel.composeapp.generated.resources.account_privacy
+import ransel.composeapp.generated.resources.account_profile_security
+import ransel.composeapp.generated.resources.account_section_info
+import ransel.composeapp.generated.resources.account_section_account
+import ransel.composeapp.generated.resources.account_section_preferences
 import ransel.composeapp.generated.resources.account_sign_out
 import ransel.composeapp.generated.resources.account_sign_out_body
 import ransel.composeapp.generated.resources.account_sign_out_pending
 import ransel.composeapp.generated.resources.account_sign_out_title
 import ransel.composeapp.generated.resources.account_signed_out_body
-import ransel.composeapp.generated.resources.account_sync_last
-import ransel.composeapp.generated.resources.account_sync_never
-import ransel.composeapp.generated.resources.account_sync_now
-import ransel.composeapp.generated.resources.account_sync_offline
-import ransel.composeapp.generated.resources.account_sync_pending
-import ransel.composeapp.generated.resources.account_sync_running
-import ransel.composeapp.generated.resources.account_sync_synced
+import ransel.composeapp.generated.resources.account_theme
+import ransel.composeapp.generated.resources.account_title
 import ransel.composeapp.generated.resources.action_cancel
+import ransel.composeapp.generated.resources.change_password_done
+import ransel.composeapp.generated.resources.currency_sheet_default_hint
+import ransel.composeapp.generated.resources.currency_sheet_default_title
 import ransel.composeapp.generated.resources.sign_in_action
 import ransel.composeapp.generated.resources.sign_up_action
-import ransel.composeapp.generated.resources.theme_dark
-import ransel.composeapp.generated.resources.theme_light
-import ransel.composeapp.generated.resources.theme_sheet_hint
-import ransel.composeapp.generated.resources.theme_sheet_system_note
-import ransel.composeapp.generated.resources.theme_sheet_title
-import ransel.composeapp.generated.resources.theme_system
+import ransel.composeapp.generated.resources.tour_replay
+import ransel.composeapp.generated.resources.tour_replay_hint
 
 private enum class AccountSheet { CURRENCY, THEME, LANGUAGE }
 
-
-/** Account tab without sign-in (Phase 1): preferences and app info. Sync rows arrive with Phase 3. */
 @Composable
 fun AccountScreen(
     modifier: Modifier = Modifier,
     debugContent: (@Composable () -> Unit)? = null,
+    onOpenProfileSecurity: () -> Unit = {},
+    onOpenPayment: () -> Unit = {},
     onOpenCredits: () -> Unit = {},
-    onOpenPaymentMethods: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onSignIn: () -> Unit = {},
     onSignUp: () -> Unit = {},
-    onDeleteAccount: () -> Unit = {},
-    onChangePassword: () -> Unit = {},
-    /** Set when this screen is shown again after a successful change, so the snackbar can run once. */
+    onReplayTour: () -> Unit = {},
     passwordChanged: Boolean = false,
     onPasswordChangedShown: () -> Unit = {},
-    /** "Ulangi panduan": the tour's flags are cleared, then the app goes to Beranda, which starts the tour. */
-    onReplayTour: () -> Unit = {},
     viewModel: AccountViewModel = koinViewModel(),
 ) {
     val prefs by viewModel.state.collectAsState()
@@ -166,187 +99,94 @@ fun AccountScreen(
     val offline by viewModel.sync.offline.collectAsState()
     val syncing by viewModel.sync.syncing.collectAsState()
     var confirmSignOut by rememberSaveable { mutableStateOf(false) }
-    val photo by viewModel.photo.collectAsState()
-    var photoSheet by rememberSaveable { mutableStateOf(false) }
-    var nameSheet by rememberSaveable { mutableStateOf(false) }
-    val nameState by viewModel.name.collectAsState()
     val snackbar = remember { SnackbarHostState() }
+    val tour: TourController = koinInject()
+    val tourScope = rememberCoroutineScope()
     val changedText = stringResource(Res.string.change_password_done)
     LaunchedEffect(passwordChanged) {
         if (!passwordChanged) return@LaunchedEffect
         snackbar.showSnackbar(changedText, duration = SnackbarDuration.Long)
         onPasswordChangedShown()
     }
+    val user = (session as? SessionState.SignedIn)?.user
+    val credits by rememberCredits()
+    val sync = if (user != null && !requiresAccount) {
+        syncTileSnapshot(syncing = syncing, offline = offline, lastSyncAt = lastSyncAt)
+    } else {
+        null
+    }
 
     Box(modifier) {
-    Column(Modifier.fillMaxSize()) {
-        Text(
-            stringResource(Res.string.account_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp),
+        AccountContent(
+            name = user?.displayName,
+            email = user?.email,
+            avatarUrl = user?.avatarUrl,
+            credits = user?.let { credits?.available ?: 0 },
+            sync = sync,
+            currency = prefs.defaultCurrency,
+            themeLabel = stringResource(prefs.themeMode.label),
+            languageLabel = stringResource(prefs.language.label),
+            confirmReorder = !prefs.skipReorderConfirmation,
+            signedOut = user == null && !requiresAccount,
+            appVersion = installedAppVersion,
+            onOpenProfileSecurity = onOpenProfileSecurity,
+            onOpenPayment = onOpenPayment,
+            onOpenCredits = onOpenCredits,
+            onSyncNow = { viewModel.sync.syncNow() },
+            onOpenNotifications = onOpenNotifications,
+            onOpenCurrency = { sheet = AccountSheet.CURRENCY },
+            onOpenLanguage = { sheet = AccountSheet.LANGUAGE },
+            onOpenTheme = { sheet = AccountSheet.THEME },
+            onConfirmReorderChange = viewModel::setConfirmReorder,
+            onReplayTour = { tourScope.launch { tour.replay(); onReplayTour() } },
+            onSignOut = { confirmSignOut = true },
+            onSignIn = onSignIn,
+            onSignUp = onSignUp,
+            debugContent = debugContent,
         )
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-        ) {
-            // no "Akun" header: the page title above already says it (owner, 30 Oct 2026)
-            Section(null) {
-                val user = (session as? SessionState.SignedIn)?.user
-                if (user != null) {
-                    ProfileRow(
-                        user.displayName, user.email, user.avatarUrl, photo.busy,
-                        onChangePhoto = { photoSheet = true },
-                        // an edit button next to the name, not a row of its own (owner, 1 Nov 2026)
-                        onChangeName = {
-                            viewModel.resetName()
-                            nameSheet = true
-                        },
-                    )
-                    photo.problem?.let { problem ->
-                        Text(problem.text(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                    }
-                    if (nameSheet) {
-                        if (nameState.saved) LaunchedEffect(Unit) {
-                            nameSheet = false
-                            viewModel.resetName()
-                        }
-                        NameSheet(user.displayName, nameState, onSave = viewModel::saveName, onDismiss = { nameSheet = false })
-                    }
-                    if (photoSheet) {
-                        PhotoSourceSheet(
-                            title = stringResource(Res.string.account_photo_sheet_title),
-                            kind = PhotoKind.AVATAR,
-                            onPicked = viewModel::changePhoto,
-                            onUnreadable = viewModel::photoUnreadable,
-                            onRemove = if (user.avatarUrl != null) viewModel::removePhoto else null,
-                            onDismiss = { photoSheet = false },
-                        )
-                    }
-                    SettingRow(Symbols.lock, stringResource(Res.string.change_password_title), null, onClick = onChangePassword)
-                    if (!requiresAccount) {
-                        val lastTime = lastSyncAt?.let { formatClock(it) }
-                        val subtitle = when {
-                            syncing -> stringResource(Res.string.account_sync_running)
-                            offline -> stringResource(Res.string.account_sync_offline)
-                            pendingCount > 0 -> stringResource(Res.string.account_sync_pending, pendingCount)
-                            lastTime != null -> stringResource(Res.string.account_sync_last, lastTime)
-                            else -> stringResource(Res.string.account_sync_never)
-                        }
-                        val title = if (pendingCount == 0 && !offline && !syncing) {
-                            stringResource(Res.string.account_sync_synced)
-                        } else {
-                            stringResource(Res.string.account_sync_now)
-                        }
-                        SettingRow(
-                            if (offline) Symbols.cloudOff else if (pendingCount > 0) Symbols.cloudUpload else Symbols.cloudDone,
-                            title,
-                            subtitle,
-                            onClick = if (syncing) null else ({ viewModel.sync.syncNow() }),
-                        )
-                    }
-                    val credits by rememberCredits()
-                    SettingRow(Symbols.notifications, stringResource(Res.string.account_notifications), null, onClick = onOpenNotifications)
-                    SettingRow(Symbols.autoAwesome, stringResource(Res.string.account_credits), credits?.available?.toString(), onClick = onOpenCredits)
-                    SettingRow(Symbols.accountBalance, stringResource(Res.string.paymethod_title), null, onClick = onOpenPaymentMethods)
-                    SettingRow(Symbols.logout, stringResource(Res.string.account_sign_out), null, onClick = { confirmSignOut = true })
-                    SettingRow(Symbols.delete, stringResource(Res.string.account_delete), null, onClick = onDeleteAccount)
-                } else if (!requiresAccount) {
-                    Text(
-                        stringResource(Res.string.account_signed_out_body),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Button(onClick = onSignIn, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                            Text(stringResource(Res.string.sign_in_action))
-                        }
-                        OutlinedButton(onClick = onSignUp, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                            Text(stringResource(Res.string.sign_up_action))
-                        }
-                    }
-                }
-            }
-            Section(stringResource(Res.string.account_section_preferences)) {
-                SettingRow(
-                    Symbols.payments, stringResource(Res.string.account_default_currency), prefs.defaultCurrency,
-                    onClick = { sheet = AccountSheet.CURRENCY },
-                )
-                SettingRow(
-                    Symbols.darkMode, stringResource(Res.string.account_theme), stringResource(prefs.themeMode.label),
-                    onClick = { sheet = AccountSheet.THEME },
-                )
-                SettingRow(
-                    Symbols.translate, stringResource(Res.string.account_language), stringResource(prefs.language.label),
-                    onClick = { sheet = AccountSheet.LANGUAGE },
-                )
-                SwitchRow(
-                    Symbols.swipeVertical,
-                    stringResource(Res.string.account_confirm_reorder),
-                    stringResource(Res.string.account_confirm_reorder_hint),
-                    checked = !prefs.skipReorderConfirmation,
-                    onCheckedChange = { viewModel.setConfirmReorder(it) },
-                )
-            }
-            Section(stringResource(Res.string.account_section_other)) {
-                val links = androidx.compose.ui.platform.LocalUriHandler.current
-                run {
-                    val tour: app.ransel.ui.tour.TourController = org.koin.compose.koinInject()
-                    val scope = androidx.compose.runtime.rememberCoroutineScope()
-                    // the subset has no "tour" symbol: help stands in
-                    HintRow(Symbols.help, stringResource(Res.string.tour_replay), stringResource(Res.string.tour_replay_hint)) {
-                        scope.launch { tour.replay(); onReplayTour() }
-                    }
-                }
-                SettingRow(Symbols.lock, stringResource(Res.string.account_privacy), null, onClick = { runCatching { links.openUri(PRIVACY_POLICY_URL) } })
-                SettingRow(Symbols.info, stringResource(Res.string.account_about), installedAppVersion?.let { "v$it" }.orEmpty(), onClick = null)
-            }
-            debugContent?.invoke()
+
+        if (confirmSignOut) {
+            ConfirmDialog(
+                title = stringResource(Res.string.account_sign_out_title),
+                body = buildString {
+                    append(stringResource(Res.string.account_sign_out_body))
+                    if (pendingCount > 0) append(' ').append(stringResource(Res.string.account_sign_out_pending, pendingCount))
+                },
+                confirmLabel = stringResource(Res.string.account_sign_out),
+                dismissLabel = stringResource(Res.string.action_cancel),
+                onConfirm = {
+                    confirmSignOut = false
+                    viewModel.signOut()
+                },
+                onDismiss = { confirmSignOut = false },
+                destructive = true,
+                symbol = Symbols.logout,
+            )
         }
-    }
 
-    if (confirmSignOut) {
-        ConfirmDialog(
-            title = stringResource(Res.string.account_sign_out_title),
-            body = buildString {
-                append(stringResource(Res.string.account_sign_out_body))
-                if (pendingCount > 0) append(' ').append(stringResource(Res.string.account_sign_out_pending, pendingCount))
-            },
-            confirmLabel = stringResource(Res.string.account_sign_out),
-            dismissLabel = stringResource(Res.string.action_cancel),
-            onConfirm = {
-                confirmSignOut = false
-                viewModel.signOut()
-            },
-            onDismiss = { confirmSignOut = false },
-            destructive = true,
-            symbol = Symbols.logout,
-        )
-    }
-
-    when (sheet) {
-        AccountSheet.CURRENCY -> CurrencySheet(
-            title = stringResource(Res.string.currency_sheet_default_title),
-            subtitle = stringResource(Res.string.currency_sheet_default_hint),
-            selected = prefs.defaultCurrency,
-            onSelect = {
-                viewModel.setCurrency(it)
-                sheet = null
-            },
-            onDismiss = { sheet = null },
-        )
-        AccountSheet.THEME -> ThemeSheet(
-            selected = prefs.themeMode,
-            onSelect = viewModel::setTheme,
-            onDismiss = { sheet = null },
-        )
-        AccountSheet.LANGUAGE -> LanguageSheet(
-            selected = prefs.language,
-            onSelect = viewModel::setLanguage,
-            onDismiss = { sheet = null },
-        )
-        null -> Unit
-    }
+        when (sheet) {
+            AccountSheet.CURRENCY -> CurrencySheet(
+                title = stringResource(Res.string.currency_sheet_default_title),
+                subtitle = stringResource(Res.string.currency_sheet_default_hint),
+                selected = prefs.defaultCurrency,
+                onSelect = {
+                    viewModel.setCurrency(it)
+                    sheet = null
+                },
+                onDismiss = { sheet = null },
+            )
+            AccountSheet.THEME -> ThemeSheet(
+                selected = prefs.themeMode,
+                onSelect = viewModel::setTheme,
+                onDismiss = { sheet = null },
+            )
+            AccountSheet.LANGUAGE -> LanguageSheet(
+                selected = prefs.language,
+                onSelect = viewModel::setLanguage,
+                onDismiss = { sheet = null },
+            )
+            null -> Unit
+        }
         SnackbarHost(
             snackbar,
             Modifier.align(Alignment.BottomCenter).padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
@@ -354,310 +194,205 @@ fun AccountScreen(
     }
 }
 
-private val ThemeMode.label: StringResource
-    get() = when (this) {
-        ThemeMode.SYSTEM -> Res.string.theme_system
-        ThemeMode.LIGHT -> Res.string.theme_light
-        ThemeMode.DARK -> Res.string.theme_dark
-    }
-
-private val AppLanguage.label: StringResource
-    get() = when (this) {
-        AppLanguage.SYSTEM -> Res.string.language_system
-        AppLanguage.INDONESIAN -> Res.string.language_indonesian
-        AppLanguage.ENGLISH -> Res.string.language_english
-    }
-
 @Composable
-private fun Section(title: String?, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        title?.let { SectionHeader(it, Modifier.padding(bottom = 4.dp)) }
-        content()
-    }
-}
-
-@Composable
-private fun SettingRow(symbol: String, title: String, value: String?, onClick: (() -> Unit)?) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        LeadingTile(symbol)
-        Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), modifier = Modifier.weight(1f))
-        if (value != null) {
-            Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (onClick != null) Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun HintRow(symbol: String, title: String, hint: String, onClick: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        LeadingTile(symbol)
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
-            Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Symbol(Symbols.chevronRight, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun SwitchRow(symbol: String, title: String, hint: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clickable(role = Role.Switch) { onCheckedChange(!checked) },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        LeadingTile(symbol)
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
-            Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-            ),
-        )
-    }
-}
-
-@Composable
-private fun ProfileRow(name: String, email: String, avatarUrl: String?, busy: Boolean, onChangePhoto: () -> Unit, onChangeName: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        // the photo is the button (edit profile is not designed yet); a small camera badge says it can change
-        val changeLabel = stringResource(Res.string.account_photo_change)
-        Box(
-            Modifier.size(56.dp)
-                .clip(CircleShape)
-                .clickable(enabled = !busy, role = androidx.compose.ui.semantics.Role.Button, onClickLabel = changeLabel, onClick = onChangePhoto)
-                .semantics { contentDescription = changeLabel },
-        ) {
-            Box(
-                Modifier.size(48.dp).align(Alignment.Center).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    name.trim().take(1).uppercase().ifEmpty { "?" },
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                apiImageUrl(avatarUrl)?.let { url ->
-                    AsyncImage(model = url, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
-                }
-                if (busy) {
-                    Box(
-                        Modifier.matchParentSize().background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f)),
-                        contentAlignment = Alignment.Center,
-                    ) { CircularProgressIndicator(Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp) }
-                }
-            }
-            Box(
-                Modifier.align(Alignment.BottomEnd).size(22.dp).clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) { Symbol(Symbols.photoCamera, size = 14.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-        Column(Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                email,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        IconButton(onClick = onChangeName, modifier = Modifier.size(48.dp)) {
-            Symbol(Symbols.edit, size = 22.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant, contentDescription = stringResource(Res.string.account_name_sheet_title))
-        }
-    }
-}
-
-/** "14.32" in the device's time zone (the app writes times as HH.mm, like the design). */
-private fun formatClock(instant: kotlin.time.Instant): String {
-    val t = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${t.hour.toString().padStart(2, '0')}.${t.minute.toString().padStart(2, '0')}"
-}
-
-@Composable
-private fun LeadingTile(symbol: String) {
-    Box(
-        Modifier.size(40.dp).clip(IrisShape.md).background(MaterialTheme.colorScheme.surfaceContainer),
-        contentAlignment = Alignment.Center,
-    ) { Symbol(symbol, size = 22.dp, tint = MaterialTheme.colorScheme.onSurface) }
-}
-
-@Composable
-private fun ThemeSheet(selected: ThemeMode, onSelect: (ThemeMode) -> Unit, onDismiss: () -> Unit) {
-    AdaptiveSheet(onDismiss = onDismiss) {
-        Text(stringResource(Res.string.theme_sheet_title), style = MaterialTheme.typography.headlineSmall)
+internal fun AccountContent(
+    name: String?,
+    email: String?,
+    avatarUrl: String?,
+    credits: Int?,
+    sync: SyncTileSnapshot?,
+    currency: String,
+    themeLabel: String,
+    languageLabel: String,
+    confirmReorder: Boolean,
+    signedOut: Boolean,
+    appVersion: String?,
+    onOpenProfileSecurity: () -> Unit,
+    onOpenPayment: () -> Unit,
+    onOpenCredits: () -> Unit,
+    onSyncNow: () -> Unit,
+    onOpenNotifications: () -> Unit,
+    onOpenCurrency: () -> Unit,
+    onOpenLanguage: () -> Unit,
+    onOpenTheme: () -> Unit,
+    onConfirmReorderChange: (Boolean) -> Unit,
+    onReplayTour: () -> Unit,
+    onSignOut: () -> Unit,
+    onSignIn: () -> Unit,
+    onSignUp: () -> Unit,
+    modifier: Modifier = Modifier,
+    debugContent: (@Composable () -> Unit)? = null,
+) {
+    val signedIn = name != null
+    val links = LocalUriHandler.current
+    Column(modifier.fillMaxSize()) {
         Text(
-            stringResource(Res.string.theme_sheet_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            stringResource(Res.string.account_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 8.dp),
         )
-        Row(
-            Modifier.fillMaxWidth().padding(top = 16.dp).selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 8.dp),
         ) {
-            ThemeMode.entries.forEach { mode ->
-                val isSelected = mode == selected
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .clip(IrisShape.lg)
-                        .border(
-                            if (isSelected) 2.dp else 1.dp,
-                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                            IrisShape.lg,
-                        )
-                        .selectable(isSelected, role = Role.RadioButton) { onSelect(mode) }
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    ThemePreview(mode)
-                    Row(
-                        Modifier.padding(horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        RadioMark(isSelected)
-                        Text(
-                            stringResource(mode.label),
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                            ),
-                        )
+            if (signedIn) {
+                ProfileCard(name.orEmpty(), email.orEmpty(), avatarUrl, onOpenProfileSecurity)
+                StatusTilesRow(
+                    credits = credits,
+                    sync = sync,
+                    onCredits = onOpenCredits,
+                    onSync = onSyncNow,
+                )
+                AccountGroupLabel(stringResource(Res.string.account_section_account))
+                AccountGroupCard {
+                    AccountSettingRow(Symbols.lock, stringResource(Res.string.account_profile_security), onClick = onOpenProfileSecurity)
+                    AccountSettingRow(Symbols.creditCard, stringResource(Res.string.account_payment), onClick = onOpenPayment, showDivider = true)
+                }
+            } else if (signedOut) {
+                Text(
+                    stringResource(Res.string.account_signed_out_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = onSignIn, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                        Text(stringResource(Res.string.sign_in_action))
+                    }
+                    OutlinedButton(onClick = onSignUp, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                        Text(stringResource(Res.string.sign_up_action))
                     }
                 }
             }
-        }
-        Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Symbol(Symbols.info, size = 16.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(
-                stringResource(Res.string.theme_sheet_system_note),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/** Miniature of a screen in the chosen theme (light, dark, or split for "follow system"). */
-@Composable
-private fun ThemePreview(mode: ThemeMode) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 96.dp)
-            .clip(IrisShape.md)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, IrisShape.md),
-    ) {
-        if (mode != ThemeMode.DARK) PreviewHalf(light = true, modifier = Modifier.weight(1f))
-        if (mode != ThemeMode.LIGHT) PreviewHalf(light = false, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun PreviewHalf(light: Boolean, modifier: Modifier) {
-    val colors = if (light) app.ransel.ui.theme.IrisLightColors else app.ransel.ui.theme.IrisDarkColors
-    Column(
-        modifier.background(colors.surface).heightIn(min = 96.dp).padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Box(Modifier.size(width = 36.dp, height = 8.dp).clip(IrisShape.xs).background(colors.onSurface))
-        Box(Modifier.fillMaxWidth().heightIn(min = 22.dp).clip(IrisShape.xs).background(colors.primaryContainer))
-        Box(Modifier.size(width = 28.dp, height = 6.dp).clip(IrisShape.xs).background(colors.outlineVariant))
-    }
-}
-
-@Composable
-private fun NameSheet(current: String, state: NameState, onSave: (String) -> Unit, onDismiss: () -> Unit) {
-    var value by rememberSaveable { mutableStateOf(current) }
-    AdaptiveSheet(onDismiss = onDismiss) {
-        Text(stringResource(Res.string.account_name_sheet_title), style = MaterialTheme.typography.headlineSmall)
-        Text(
-            stringResource(Res.string.account_name_sheet_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        IrisTextField(
-            label = stringResource(Res.string.account_name_field),
-            value = value,
-            onValueChange = { value = it.take(NAME_MAX) },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            error = when (state.problem) {
-                null -> null
-                ErrorCode.VALIDATION_FAILED -> stringResource(Res.string.account_name_required)
-                else -> stringResource(Res.string.account_name_failed)
-            },
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
-        )
-        LoadingButton(
-            onClick = { onSave(value) },
-            loading = state.busy,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 8.dp),
-        ) { Text(stringResource(Res.string.action_save), style = MaterialTheme.typography.titleMedium) }
-    }
-}
-
-private const val NAME_MAX = 60
-
-@Composable
-private fun LanguageSheet(selected: AppLanguage, onSelect: (AppLanguage) -> Unit, onDismiss: () -> Unit) {
-    AdaptiveSheet(onDismiss = onDismiss) {
-        Text(stringResource(Res.string.language_sheet_title), style = MaterialTheme.typography.headlineSmall)
-        Text(
-            stringResource(Res.string.language_sheet_hint),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Column(Modifier.padding(top = 8.dp).selectableGroup()) {
-            AppLanguage.entries.forEachIndexed { index, language ->
-                val isSelected = language == selected
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 52.dp)
-                        .selectable(isSelected, role = Role.RadioButton) { onSelect(language) },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        stringResource(language.label),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                        ),
-                        modifier = Modifier.weight(1f),
-                    )
-                    RadioMark(isSelected)
+            AccountGroupLabel(stringResource(Res.string.account_section_preferences))
+            AccountGroupCard {
+                if (signedIn) {
+                    AccountSettingRow(Symbols.notifications, stringResource(Res.string.account_notifications), onClick = onOpenNotifications)
                 }
-                if (index < AppLanguage.entries.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                AccountSettingRow(
+                    Symbols.payments,
+                    stringResource(Res.string.account_default_currency),
+                    value = currency,
+                    onClick = onOpenCurrency,
+                    showDivider = signedIn,
+                )
+                AccountSettingRow(
+                    Symbols.translate,
+                    stringResource(Res.string.account_language),
+                    value = languageLabel,
+                    onClick = onOpenLanguage,
+                    showDivider = true,
+                )
+                AccountSettingRow(
+                    Symbols.darkMode,
+                    stringResource(Res.string.account_theme),
+                    value = themeLabel,
+                    onClick = onOpenTheme,
+                    showDivider = true,
+                )
+                AccountSwitchRow(
+                    Symbols.swipeVertical,
+                    stringResource(Res.string.account_confirm_reorder),
+                    stringResource(Res.string.account_confirm_reorder_hint),
+                    checked = confirmReorder,
+                    onCheckedChange = onConfirmReorderChange,
+                    showDivider = true,
+                )
             }
+            AccountGroupLabel(stringResource(Res.string.account_section_info))
+            AccountGroupCard {
+                AccountSettingRow(
+                    Symbols.help,
+                    stringResource(Res.string.tour_replay),
+                    subtitle = stringResource(Res.string.tour_replay_hint),
+                    onClick = onReplayTour,
+                )
+                AccountSettingRow(
+                    Symbols.lock,
+                    stringResource(Res.string.account_privacy),
+                    onClick = { runCatching { links.openUri(PRIVACY_POLICY_URL) } },
+                    trailing = AccountRowTrailing.OPEN_IN_NEW,
+                    showDivider = true,
+                )
+                AccountSettingRow(
+                    Symbols.info,
+                    stringResource(Res.string.account_about),
+                    value = appVersion?.let { "v$it" },
+                    onClick = null,
+                    showDivider = true,
+                )
+            }
+            if (signedIn) {
+                Column(Modifier.padding(top = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    SignOutButton(onSignOut)
+                }
+            }
+            debugContent?.invoke()
         }
     }
+}
+
+@Preview
+@Composable
+private fun AccountSyncingPreview() = IrisPreview {
+    AccountContent(
+        name = "Dahyun",
+        email = "test@gmail.com",
+        avatarUrl = null,
+        credits = 20,
+        sync = SyncTileSnapshot(SyncTileKind.SYNCING, "20:11"),
+        currency = "IDR",
+        themeLabel = "Light",
+        languageLabel = "Indonesian",
+        confirmReorder = true,
+        signedOut = false,
+        appVersion = "1.0.1",
+        onOpenProfileSecurity = {},
+        onOpenPayment = {},
+        onOpenCredits = {},
+        onSyncNow = {},
+        onOpenNotifications = {},
+        onOpenCurrency = {},
+        onOpenLanguage = {},
+        onOpenTheme = {},
+        onConfirmReorderChange = {},
+        onReplayTour = {},
+        onSignOut = {},
+        onSignIn = {},
+        onSignUp = {},
+    )
+}
+
+@Preview
+@Composable
+private fun AccountSignedInPreview() = IrisPreview {
+    AccountContent(
+        name = "Dahyun",
+        email = "test@gmail.com",
+        avatarUrl = null,
+        credits = 20,
+        sync = SyncTileSnapshot(SyncTileKind.IDLE, "20:11"),
+        currency = "IDR",
+        themeLabel = "Light",
+        languageLabel = "Indonesian",
+        confirmReorder = true,
+        signedOut = false,
+        appVersion = "1.0.1",
+        onOpenProfileSecurity = {},
+        onOpenPayment = {},
+        onOpenCredits = {},
+        onSyncNow = {},
+        onOpenNotifications = {},
+        onOpenCurrency = {},
+        onOpenLanguage = {},
+        onOpenTheme = {},
+        onConfirmReorderChange = {},
+        onReplayTour = {},
+        onSignOut = {},
+        onSignIn = {},
+        onSignUp = {},
+    )
 }

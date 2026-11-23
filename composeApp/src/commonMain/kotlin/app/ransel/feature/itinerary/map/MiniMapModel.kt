@@ -1,0 +1,114 @@
+package app.ransel.feature.itinerary.map
+
+import app.ransel.shared.domain.DayMapsOpen
+import app.ransel.shared.domain.MapsPoint
+import app.ransel.shared.domain.MapsTravelMode
+import app.ransel.shared.domain.isMapStop
+import app.ransel.shared.domain.mapsDayRouteOpen
+import app.ransel.shared.dto.ItineraryItemDto
+import app.ransel.shared.model.Category
+
+/**
+ * A numbered pin of the day's mini map (spec "Mini peta di Itinerary"). [number] counts only the activities that have a
+ * place on the map, in timeline order, so numbers never skip. Colors are ARGB ints so the platform map code needs no
+ * Compose types: [color] is the category accent, [labelColor] the number on it.
+ */
+data class MapPin(
+    val itemId: String,
+    val number: Int,
+    val lat: Double,
+    val lng: Double,
+    val category: Category,
+    val color: Int,
+    val labelColor: Int,
+)
+
+/** An activity is on the map when it has both coordinates (the contract keeps them as a pair). */
+fun ItineraryItemDto.hasMapPoint(): Boolean = lat != null && lng != null
+
+/**
+ * The pins of a day: [items] in timeline order, numbered among the stops (a place on the map, except a Perjalanan activity
+ * located in a city, "OTW Bandung": no pin and no number, spec "Perjalanan antar tempat V1").
+ */
+fun mapPinsOf(items: List<ItineraryItemDto>, colorsOf: (Category) -> Pair<Int, Int>): List<MapPin> =
+    items.filter { it.isMapStop() }.mapIndexed { index, item ->
+        val (color, label) = colorsOf(item.category)
+        MapPin(item.id, index + 1, item.lat!!, item.lng!!, item.category, color, label)
+    }
+
+/** How many activities of the day have no place on the map yet ("n aktivitas belum punya lokasi"). */
+fun unlocatedCount(items: List<ItineraryItemDto>): Int = items.count { !it.hasMapPoint() }
+
+/** The first activity of the day without a point: "Isi lokasi" opens its form with the place picker. */
+fun firstUnlocated(items: List<ItineraryItemDto>): ItineraryItemDto? = items.firstOrNull { !it.hasMapPoint() }
+
+/**
+ * The pin a highlight refers to: the highlighted one, else the first of the day (owner and Benn, 12 Nov 2026).
+ */
+fun pinToOpen(pins: List<MapPin>, selectedId: String?): MapPin? = pins.firstOrNull { it.itemId == selectedId } ?: pins.firstOrNull()
+
+/**
+ * The day's "Buka di Google Maps" URL: origin = first stop, destination = last, waypoints = the ones between,
+ * capped at nine distinct points ([mapsDayRouteOpen]). Null for fewer than two distinct stops.
+ */
+fun googleMapsDayRoute(pins: List<MapPin>, mode: MapsTravelMode): DayMapsOpen? =
+    mapsDayRouteOpen(pins.map { MapsPoint(it.lat, it.lng) }, mode)
+
+/** What the map shows while it loads before it gives up and shows the "failed" card (spec state 5 to 6). */
+const val MINI_MAP_LOAD_TIMEOUT_MILLIS = 8_000L
+
+/** Preference key (per device, not per trip): "1" once the user has opened the map. Never set = closed. */
+const val MINI_MAP_OPEN_KEY = "mini_map_open"
+
+/** Preference key: "1" after the two-finger hint on the strip has been shown. */
+const val MINI_MAP_TWO_FINGER_HINT_KEY = "mini_map_two_finger_hint"
+
+/**
+ * Whether the platform map should paint. Android's MapView is a SurfaceView and ignores Compose clip and alpha, so it
+ * must not stay on screen behind the 48 dp bar. Draw it while the strip is open or still springing shut.
+ */
+fun isMiniMapDrawn(collapsed: Boolean, collapseSettled: Boolean): Boolean = !collapsed || !collapseSettled
+
+/**
+ * Whether the platform map exists at all. Expanding builds it; once the collapse spring has settled on the bar it is
+ * thrown away and the next expand builds a new one. Hiding the MapView's own views and showing them again left the
+ * map blank on the second expand (the SDK keeps views of its own hidden on purpose, so they cannot all be switched
+ * back on), so the map is rebuilt instead. [wasMounted] is the answer from the last pass: while the spring runs
+ * shut, the map stays.
+ */
+fun isMiniMapMounted(collapsed: Boolean, collapseSettled: Boolean, wasMounted: Boolean): Boolean =
+    if (!collapsed) true else if (collapseSettled) false else wasMounted
+
+/** How the strip or the full-screen map takes pointer input. */
+enum class MiniMapGestureMode { TWO_FINGER, FREE }
+
+/**
+ * The map starts closed and is only built when the user opens it (owner, 13 Nov 2026), so a day's list opens fast and the
+ * Maps SDK is not started for people who never look at it. After an opening the choice is remembered on the device.
+ */
+fun isMiniMapOpen(stored: String?): Boolean = stored == "1"
+
+/** What to store for the choice: "1" when open, nothing when closed (the default). */
+fun storedMiniMapOpen(open: Boolean): String? = if (open) "1" else null
+
+/** True once the two-finger hint has been shown (or skipped) on this device. */
+fun isMiniMapTwoFingerHintShown(stored: String?): Boolean = stored == "1"
+
+/**
+ * A straight line of the strip between two stops (spec "Perjalanan antar tempat V1", section 5). Walking is dotted, motorbike
+ * and car are solid. [label] is the time pill at the middle ("±15 mnt"); null = no pill (a leg too far to guess, or public
+ * transport, which has no estimate).
+ */
+data class MapSegment(
+    val fromLat: Double,
+    val fromLng: Double,
+    val toLat: Double,
+    val toLng: Double,
+    val walking: Boolean,
+    val label: String?,
+    /** The mode icon in the pill (a `Symbols` glyph: walk, motorbike, car); null = no icon. */
+    val symbol: String? = null,
+)
+
+/** ARGB colours of the lines and their pills, from the theme: line = primary at 85 %, pill = surface, outline-variant, on-surface. */
+data class MapLineStyle(val line: Int, val pillFill: Int, val pillBorder: Int, val pillText: Int)

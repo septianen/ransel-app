@@ -16,7 +16,12 @@ import app.ransel.data.local.toEntity
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.local.RejectedRow
 import app.ransel.data.remote.RanselApi
+import app.ransel.data.repository.ReceiptUploadStatus
 import app.ransel.shared.api.ErrorCode
+import app.ransel.shared.dto.CreateDocumentRequest
+import app.ransel.shared.model.DocumentCategory
+import app.ransel.util.newId
+import app.ransel.shared.domain.shouldApplyPulledRow
 import app.ransel.shared.dto.SyncChanges
 import app.ransel.shared.dto.SyncPushRequest
 import app.ransel.shared.dto.SyncRejection
@@ -49,6 +54,7 @@ private const val MAX_PUSH_ROWS = 500
 private const val PULL_TRIPS_PER_PAGE = 20
 private const val PERIOD_SECONDS = 60L
 private const val DEBOUNCE_MILLIS = 1_500L
+private const val MAX_RECEIPT_ATTEMPTS = 3
 
 /**
  * Offline-first sync (docs/TRD.md "Offline-first sync"): push every PENDING row, then pull what changed
@@ -79,6 +85,11 @@ class SyncCoordinator(
 
     /** The loop only runs while the app is on screen: no pulls every minute in the background (battery, data). */
     private val foreground = MutableStateFlow(true)
+    /**
+     * A drag (or similar) is in progress: a pull that lands mid-gesture jumps the list under the finger.
+     * Pushes of earlier edits still go out; the missed pull is kicked when the gesture ends.
+     */
+    private val interactiveBusy = MutableStateFlow(false)
     private val storedDropped = MutableStateFlow<DroppedChanges?>(null)
     /** Shown only while the app is on screen, so a notice from a background sync waits for the next visit. */
     override val dropped: StateFlow<DroppedChanges?> =
@@ -135,6 +146,12 @@ class SyncCoordinator(
         kick.trySend(Unit)
     }
 
+    override fun setInteractiveBusy(busy: Boolean) {
+        if (interactiveBusy.value == busy) return
+        interactiveBusy.value = busy
+        if (!busy) kick.trySend(Unit)
+    }
+
     override fun setInForeground(foreground: Boolean) {
         if (this.foreground.value == foreground) return
         // Leaving with unsent edits: send them once on the way out instead of waiting for the next visit.
@@ -170,6 +187,7 @@ class SyncCoordinator(
         try {
             val pushed = push()
             if (pushed == null) return Outcome.OFFLINE
+            if (interactiveBusy.value) return Outcome.OK
             // Refused rows are only told apart after a full pull: until one completes they stay (also from older versions).
             val full = pushed.needsFullPull || db.syncDao().rejectedRows().isNotEmpty()
             when (pull(full)) {
@@ -177,6 +195,8 @@ class SyncCoordinator(
                 Pulled.INCOMPLETE -> Unit
                 Pulled.DONE -> if (full) dropRejected()
             }
+            // receipt photos go after their expenses; the server then moves the expense, so pull once more for `receiptDocumentId`
+            if (uploadReceipts()) pull(false)
             if (_offline.value) {
                 // The connection came back: tell the user what went out.
                 _offline.value = false
@@ -191,6 +211,41 @@ class SyncCoordinator(
 
     private class PushResult(val needsFullPull: Boolean)
 
+    /**
+     * Sends the receipt photos kept on the phone whose expense is on the server (a document needs it). Offline: stays
+     * waiting. The trip's storage full: [ReceiptUploadStatus.FULL] (the expense keeps its place without a photo). Other
+     * failures are tried [MAX_RECEIPT_ATTEMPTS] times, then [ReceiptUploadStatus.FAILED] until the user taps "Coba lagi".
+     * A retry after a lost answer makes a second document with the same expense: the server replaces the first.
+     * Returns true when a photo went up.
+     */
+    private suspend fun uploadReceipts(): Boolean {
+        val dao = db.pendingReceiptDao()
+        var sent = false
+        for (photo in dao.waiting()) {
+            val expense = db.expenseDao().get(photo.expenseId)
+            if (expense == null || expense.deletedAt != null) {
+                dao.delete(photo.expenseId)
+                continue
+            }
+            if (expense.syncState != SyncState.SYNCED) continue
+            val meta = CreateDocumentRequest(id = newId(), title = photo.title, category = DocumentCategory.OTHER, expenseId = photo.expenseId)
+            val extension = when (photo.mimeType) { "image/png" -> "png"; "image/webp" -> "webp"; else -> "jpg" }
+            when (val result = api.uploadDocument(photo.tripId, meta, "struk-${photo.expenseId}.$extension", photo.mimeType, photo.bytes)) {
+                is ApiResult.Success -> {
+                    dao.delete(photo.expenseId)
+                    sent = true
+                }
+                is ApiResult.Failure -> when {
+                    result.error.status == null -> return sent
+                    result.error.code == ErrorCode.STORAGE_FULL -> dao.setStatus(photo.expenseId, ReceiptUploadStatus.FULL.name, photo.attempts + 1)
+                    photo.attempts + 1 >= MAX_RECEIPT_ATTEMPTS -> dao.setStatus(photo.expenseId, ReceiptUploadStatus.FAILED.name, photo.attempts + 1)
+                    else -> dao.setStatus(photo.expenseId, ReceiptUploadStatus.WAITING.name, photo.attempts + 1)
+                }
+            }
+        }
+        return sent
+    }
+
     /** Sends pending rows in batches. Null = offline (nothing more is attempted). */
     private suspend fun push(): PushResult? {
         val dao = db.syncDao()
@@ -201,7 +256,8 @@ class SyncCoordinator(
             val packing = dao.pendingPacking()
             val expenses = dao.pendingExpenses()
             val personal = dao.pendingPersonal()
-            if (trips.isEmpty() && items.isEmpty() && packing.isEmpty() && expenses.isEmpty() && personal.isEmpty()) {
+            val travelModes = dao.pendingTravelModes()
+            if (trips.isEmpty() && items.isEmpty() && packing.isEmpty() && expenses.isEmpty() && personal.isEmpty() && travelModes.isEmpty()) {
                 return PushResult(needsFullPull)
             }
             // Trips first so a batch never has an item whose trip comes later; cap each batch.
@@ -212,6 +268,7 @@ class SyncCoordinator(
             val sendPacking = packing.take()
             val sendExpenses = expenses.take()
             val sendPersonal = personal.take()
+            val sendTravelModes = travelModes.take()
             val request = SyncPushRequest(
                 SyncChanges(
                     trips = sendTrips.map { it.toDto() },
@@ -219,9 +276,10 @@ class SyncCoordinator(
                     packingItems = sendPacking.map { it.toDto() },
                     expenses = sendExpenses.map { it.toDto() },
                     personalItems = sendPersonal.map { it.toDto() },
+                    travelModes = sendTravelModes.map { it.toDto() },
                 ),
             )
-            val sent = sendTrips.size + sendItems.size + sendPacking.size + sendExpenses.size + sendPersonal.size
+            val sent = sendTrips.size + sendItems.size + sendPacking.size + sendExpenses.size + sendPersonal.size + sendTravelModes.size
             when (val result = api.syncPush(request)) {
                 is ApiResult.Failure -> {
                     if (result.error.isConnection) {
@@ -248,6 +306,7 @@ class SyncCoordinator(
                         sendPacking.forEach { settle(accepted, rejected, "packingItem", it.id) { s -> dao.setPackingState(it.id, it.updatedAt, s) } }
                         sendExpenses.forEach { settle(accepted, rejected, "expense", it.id) { s -> dao.setExpenseState(it.id, it.updatedAt, s) } }
                         sendPersonal.forEach { settle(accepted, rejected, "personalItem", it.id) { s -> dao.setPersonalState(it.id, it.updatedAt, s) } }
+                        sendTravelModes.forEach { settle(accepted, rejected, "travelMode", it.id) { s -> dao.setTravelModeState(it.id, it.updatedAt, s) } }
                     }
                     // Any rejection (not only CONFLICT) leaves the local copy different from the server's; a full
                     // pull puts the server's copy back. A row the server never had stays REJECTED.
@@ -295,6 +354,7 @@ class SyncCoordinator(
             dao.deleteRejectedItems()
             dao.deleteRejectedPacking()
             dao.deleteRejectedPersonal()
+            dao.deleteRejectedTravelModes()
             dao.deleteRejectedExpenses()
             dao.deleteRejectedTrips()
         }
@@ -358,32 +418,38 @@ class SyncCoordinator(
         db.withWriteTransaction {
             c.trips.forEach { dto ->
                 val local = dao.trip(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putTrip(dto.toEntity())
                 }
             }
             c.itineraryItems.forEach { dto ->
                 val local = dao.item(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putItem(dto.toEntity())
                 }
             }
             c.packingItems.forEach { dto ->
                 val local = dao.packing(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putPacking(dto.toEntity())
                 }
             }
             c.personalItems.forEach { dto ->
                 val local = dao.personal(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putPersonal(dto.toEntity())
                 }
             }
             c.expenses.forEach { dto ->
                 val local = dao.expense(dto.id)
-                if (local == null || !(local.syncState == SyncState.PENDING && local.updatedAt > dto.updatedAt.toEpochMilliseconds())) {
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
                     dao.putExpense(dto.toEntity())
+                }
+            }
+            c.travelModes.forEach { dto ->
+                val local = dao.travelMode(dto.id)
+                if (shouldApplyPulledRow(local?.updatedAt, local?.syncState, dto.updatedAt.toEpochMilliseconds())) {
+                    dao.putTravelMode(dto.toEntity())
                 }
             }
         }
@@ -398,8 +464,10 @@ class SyncCoordinator(
             dao.clearItems()
             dao.clearPacking()
             dao.clearPersonal()
+            dao.clearTravelModes()
             dao.clearExpenses()
             dao.clearTrips()
+            db.pendingReceiptDao().deleteAll()
             db.preferenceDao().remove(LAST_SYNC_KEY)
             db.preferenceDao().remove(DROPPED_KEY)
         }

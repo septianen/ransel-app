@@ -9,7 +9,13 @@ import app.ransel.data.auth.SessionManager
 import app.ransel.data.remote.ApiResult
 import app.ransel.data.remote.RanselApi
 import app.ransel.data.repository.ItineraryRepository
+import app.ransel.data.repository.NoTravelModes
+import app.ransel.data.repository.TravelModeRepository
 import app.ransel.data.repository.PreferencesRepository
+import app.ransel.data.repository.TripRepository
+import app.ransel.data.sync.NoSyncStatus
+import app.ransel.data.sync.SyncStatus
+import kotlinx.coroutines.delay
 import app.ransel.shared.domain.Slot
 import app.ransel.shared.domain.activityDurationMinutes
 import app.ransel.shared.domain.changedSlots
@@ -19,13 +25,19 @@ import app.ransel.shared.domain.AutoExisting
 import app.ransel.shared.domain.AutoPlace
 import app.ransel.shared.domain.AutoScheduleResult
 import app.ransel.shared.domain.autoSchedule
+import app.ransel.shared.domain.LegKind
 import app.ransel.shared.domain.scheduleAtEndOfDay
+import app.ransel.shared.domain.travelModeOverrides
 import app.ransel.shared.dto.DayOrderItem
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
+import app.ransel.shared.dto.TravelModeInput
 import app.ransel.shared.dto.PollDto
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.dto.UpdateTripRequest
+import app.ransel.shared.model.MainTravelMode
 import app.ransel.shared.model.PollKind
+import app.ransel.util.newId
 import app.ransel.util.plusDays
 import app.ransel.util.today
 import kotlinx.coroutines.channels.Channel
@@ -33,6 +45,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -49,6 +62,8 @@ data class ItineraryUiState(
     val unscheduled: List<ItineraryItemDto> = emptyList(),
     val skipReorderConfirmation: Boolean = false,
     val pendingReorder: PendingReorder? = null,
+    /** Item ids whose times just changed; the time column flashes while this is set. */
+    val flashingIds: Set<String> = emptySet(),
     /** "Jadwalkan otomatis" is saving: the dialog shows progress and ignores taps. */
     val autoScheduling: Boolean = false,
     val loading: Boolean = true,
@@ -59,6 +74,8 @@ data class ItineraryUiState(
     val undated: Boolean = false,
     /** The open DATE poll of an undated trip (signed in, online); null = none or not known. */
     val datePoll: PollDto? = null,
+    /** Saved per-leg modes keyed on (from, to). A pair that is no longer consecutive is ignored when drawing capsules. */
+    val travelModeOverrides: Map<Pair<String, String>, LegKind> = emptyMap(),
 ) {
     val selectedIndex: Int get() = days.indexOf(selectedDay).coerceAtLeast(0)
     val selectedItems: List<ItineraryItemDto> get() = selectedDay?.let { itemsByDay[it] }.orEmpty()
@@ -102,11 +119,18 @@ class ItineraryViewModel(
     /** Polls are server data: the open DATE poll of an undated trip is asked for when signed in (null = never). */
     private val api: RanselApi? = null,
     private val session: SessionManager? = null,
+    /** The trip row, to change its main travel mode from the travel sheet (null = the sheet cannot change it). */
+    private val trips: TripRepository? = null,
+    private val travelModes: TravelModeRepository = NoTravelModes,
+    private val sync: SyncStatus = NoSyncStatus,
 ) : ViewModel() {
     private val datePoll = MutableStateFlow<PollDto?>(null)
     private val selectedDay = MutableStateFlow<LocalDate?>(null)
     private val pending = MutableStateFlow<PendingReorder?>(null)
     private val autoRunning = MutableStateFlow(false)
+    /** Day + items frozen at long-press so a pull cannot move rows under the finger. */
+    private val dragHold = MutableStateFlow<Pair<LocalDate, List<ItineraryItemDto>>?>(null)
+    private val flashingIds = MutableStateFlow<Set<String>>(emptySet())
     private val events = Channel<ItineraryEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
@@ -119,15 +143,20 @@ class ItineraryViewModel(
     private val undated = days.isEmpty()
 
     val state: StateFlow<ItineraryUiState> = combine(
-        combine(itinerary.observe(trip.id), datePoll, ::Pair),
-        selectedDay,
-        pending,
+        combine(itinerary.observe(trip.id), travelModes.observe(trip.id), datePoll) { items, modes, poll ->
+            Triple(items, travelModeOverrides(modes), poll)
+        },
+        combine(selectedDay, pending, ::Pair),
         preferences.observe(),
         autoRunning,
-    ) { (items, poll), selected, pendingReorder, prefs, auto ->
+        combine(dragHold, flashingIds, ::Pair),
+    ) { (items, overrides, poll), (selected, pendingReorder), prefs, auto, (hold, flash) ->
         val scheduled = items.filter { it.dayDate != null }
         val byDay = days.associateWith { day ->
             scheduled.filter { it.dayDate == day }.sortedWith(compareBy({ it.sortOrder }, { it.startTime }))
+        }.let { map ->
+            val frozen = hold ?: return@let map
+            if (frozen.first in map) map + (frozen.first to frozen.second) else map
         }
         val chosen = selected?.takeIf { it in days } ?: today().takeIf { it in days } ?: days.firstOrNull()
         ItineraryUiState(
@@ -137,10 +166,12 @@ class ItineraryViewModel(
             unscheduled = items.filter { it.dayDate == null },
             skipReorderConfirmation = prefs.skipReorderConfirmation,
             pendingReorder = pendingReorder,
+            flashingIds = flash,
             autoScheduling = auto,
             loading = false,
             undated = undated,
             datePoll = poll,
+            travelModeOverrides = overrides,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItineraryUiState(days = days, undated = undated))
 
@@ -161,6 +192,33 @@ class ItineraryViewModel(
         }
     }
 
+    /** Persist the Getting there sheet's selected mode. False = the sheet stays open (web save failed). */
+    suspend fun saveLegMode(fromItemId: String, toItemId: String, mode: LegKind): Boolean {
+        val live = travelModes.observe(trip.id).first()
+        val id = live.firstOrNull { it.fromItemId == fromItemId && it.toItemId == toItemId }?.id ?: newId()
+        return travelModes.save(trip.id, TravelModeInput(id, fromItemId, toItemId, mode))
+    }
+
+    /**
+     * The travel sheet's "Ubah": the trip's main mode, which sets the speed of every motorbike or car capsule. Saved like any
+     * trip edit (local first, synced to the others). The Travel sheet shows "Moda utama diubah ke Mobil." with "Urungkan"
+     * itself, so it stays open (spec 1572938, 2b).
+     */
+    fun changeMainMode(mode: MainTravelMode) {
+        val trips = trips ?: return
+        viewModelScope.launch {
+            val live = trips.observeTrip(trip.id).first() ?: return@launch
+            trips.update(
+                trip.id,
+                UpdateTripRequest(
+                    title = live.title, destination = live.destination, startDate = live.startDate, endDate = live.endDate,
+                    baseCurrency = live.baseCurrency, budgetMinor = live.budgetMinor,
+                    mainTravelMode = mode,
+                ),
+            )
+        }
+    }
+
     fun selectDay(day: LocalDate) {
         selectedDay.value = day
     }
@@ -168,6 +226,24 @@ class ItineraryViewModel(
     fun dayNumber(day: LocalDate): Int = days.indexOf(day) + 1
 
     // ── Reorder (drag within a day) ──────────────────────────────────────────
+
+    /** Call on long-press start; [endDrag] on drop (after chrome has settled). */
+    fun beginDrag() {
+        val s = state.value
+        val day = s.selectedDay ?: return
+        if (dragHold.value != null) return
+        dragHold.value = day to s.selectedItems
+        sync.setInteractiveBusy(true)
+    }
+
+    fun endDrag() {
+        if (dragHold.value == null) {
+            sync.setInteractiveBusy(false)
+            return
+        }
+        dragHold.value = null
+        sync.setInteractiveBusy(false)
+    }
 
     fun onReorder(day: LocalDate, from: Int, to: Int) {
         if (from == to) return
@@ -216,7 +292,17 @@ class ItineraryViewModel(
         }
         viewModelScope.launch {
             itinerary.applyDayOrder(trip.id, request.day, order)
+            flashTimes(request.changes.map { it.item.id })
             if (announce) events.send(ItineraryEvent.Reordered(request.dayNumber, request.day, restore))
+        }
+    }
+
+    private fun flashTimes(ids: List<String>) {
+        if (ids.isEmpty()) return
+        flashingIds.value = ids.toSet()
+        viewModelScope.launch {
+            delay(600)
+            if (flashingIds.value == ids.toSet()) flashingIds.value = emptySet()
         }
     }
 
@@ -308,6 +394,7 @@ class ItineraryViewModel(
         if (autoRunning.value) return
         val s = state.value
         val plan = previewAutoSchedule() ?: return
+        if (plan.count == 0) return
         val byId = s.unscheduled.associateBy { it.id }
         autoRunning.value = true
         viewModelScope.launch {
@@ -342,6 +429,7 @@ class ItineraryViewModel(
 
 fun ItineraryItemDto.toInput() = ItineraryItemInput(
     id = id, dayDate = dayDate, startTime = startTime, endTime = endTime, title = title, category = category,
-    placeName = placeName, placeId = placeId, lat = lat, lng = lng, durationMin = durationMin, notes = notes,
-    bookingUrl = bookingUrl, source = source, sortOrder = sortOrder,
+    placeName = placeName, placeId = placeId, lat = lat, lng = lng, placeKind = placeKind, placeCity = placeCity,
+    durationMin = durationMin, notes = notes,
+    bookingUrl = bookingUrl, links = links, source = source, sortOrder = sortOrder,
 )

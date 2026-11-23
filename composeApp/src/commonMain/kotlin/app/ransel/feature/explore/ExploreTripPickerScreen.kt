@@ -20,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,9 +54,10 @@ import org.koin.compose.viewmodel.koinViewModel
 import ransel.composeapp.generated.resources.*
 
 /**
- * Explore tab, step 1 (design `PilihTripJelajah`, `JelajahLanjut`, `JelajahTamu`): pick the trip to search for,
- * or start a new one. Guests see the sign-in state; a signed-in user with no eligible trip sees the empty state,
- * with the same "Trip baru" floating button.
+ * The trip-first search, step 1 (design `PilihTripJelajah`, `JelajahLanjut`, `JelajahTamu`): pick the trip to search for,
+ * or start a new one. Since Explore Inspirasi (21 Nov 2026) it opens from "Punya trip? Cari untuk trip ini" and from
+ * "Ganti" in the form, not as the Explore tab, so it has a back arrow ([onBack]). Guests see the sign-in state; a
+ * signed-in user with no eligible trip sees the empty state, with the same "Trip baru" floating button.
  */
 @Composable
 fun ExploreTripPickerScreen(
@@ -65,21 +67,59 @@ fun ExploreTripPickerScreen(
     onNewTrip: () -> Unit,
     onOpenSwipe: (tripId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
     viewModel: ExploreTripPickerViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsState()
     Column(modifier.fillMaxSize().statusBarsPadding()) {
-        Text(
-            stringResource(Res.string.explore_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = if (onBack != null) 4.dp else 0.dp)) {
+            if (onBack != null) {
+                androidx.compose.material3.IconButton(onClick = onBack) {
+                    Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
+                }
+            }
+            Text(
+                stringResource(Res.string.explore_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(horizontal = if (onBack != null) 4.dp else 16.dp, vertical = 12.dp),
+            )
+        }
         when {
             state.loading -> Box(Modifier.fillMaxSize())
             !state.signedIn -> GuestState(onSignIn, onSignUp, viewModel)
             !state.emailVerified -> VerifyEmailGate(state.email, state.gate, viewModel::resendVerification, viewModel::checkVerified)
             else -> TripPicker(state, onPickTrip, onNewTrip, onOpenSwipe)
+        }
+    }
+}
+
+/**
+ * Explore needs an account with a verified email (CLAUDE.md "Decisions already made"): a guest sees the sign-in state,
+ * an unverified account the verify gate, both under the Explore title; everyone else sees [content] (the Explore tab:
+ * Explore Inspirasi).
+ */
+@Composable
+fun ExploreAccountGate(
+    onSignIn: () -> Unit,
+    onSignUp: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: ExploreTripPickerViewModel = koinViewModel(),
+    content: @Composable () -> Unit,
+) {
+    val state by viewModel.state.collectAsState()
+    when {
+        state.loading -> Box(modifier.fillMaxSize())
+        state.signedIn && state.emailVerified -> content()
+        else -> Column(modifier.fillMaxSize().statusBarsPadding()) {
+            Text(
+                stringResource(Res.string.explore_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+            if (!state.signedIn) GuestState(onSignIn, onSignUp, viewModel)
+            else VerifyEmailGate(state.email, state.gate, viewModel::resendVerification, viewModel::checkVerified)
         }
     }
 }
@@ -257,7 +297,16 @@ private fun GuestState(onSignIn: () -> Unit, onSignUp: () -> Unit, viewModel: Ex
 
 /** Design `JelajahBelumVerifikasi`: signed up, email not verified yet. Explore and the signup credits wait for it. */
 @Composable
-private fun VerifyEmailGate(email: String, gate: VerifyGateState, onResend: () -> Unit, onCheck: () -> Unit) {
+internal fun VerifyEmailGate(
+    email: String,
+    gate: VerifyGateState,
+    onResend: () -> Unit,
+    onCheck: () -> Unit,
+    /** The link was opened and a search waits: "Lanjut mencari" takes the place of the two buttons. */
+    onContinue: (() -> Unit)? = null,
+    /** "Lihat trip", a text link under the buttons (the search of a trip that was just made). */
+    onViewTrip: (() -> Unit)? = null,
+) {
     val scheme = MaterialTheme.colorScheme
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 24.dp),
@@ -301,12 +350,24 @@ private fun VerifyEmailGate(email: String, gate: VerifyGateState, onResend: () -
             Text(text, style = MaterialTheme.typography.bodyMedium, color = color)
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            LoadingButton(onClick = onResend, loading = gate.resending, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Text(stringResource(Res.string.check_email_resend), style = MaterialTheme.typography.titleMedium)
+            if (onContinue != null) {
+                Text(stringResource(Res.string.swipe_verify_done), style = MaterialTheme.typography.bodyMedium, color = scheme.primary)
+                Button(onClick = onContinue, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(Res.string.credits_continue_search), style = MaterialTheme.typography.titleMedium)
+                }
+            } else {
+                LoadingButton(onClick = onResend, loading = gate.resending, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(Res.string.check_email_resend), style = MaterialTheme.typography.titleMedium)
+                }
+                OutlinedButton(onClick = onCheck, enabled = !gate.checking, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Symbol(Symbols.refresh, size = 20.dp)
+                    Text(stringResource(Res.string.explore_verify_check), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+                }
             }
-            OutlinedButton(onClick = onCheck, enabled = !gate.checking, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Symbol(Symbols.refresh, size = 20.dp)
-                Text(stringResource(Res.string.explore_verify_check), Modifier.padding(start = 8.dp), style = MaterialTheme.typography.titleMedium)
+            if (onViewTrip != null) {
+                TextButton(onClick = onViewTrip, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(Res.string.swipe_view_trip), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold), color = scheme.onSurface)
+                }
             }
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Symbol(Symbols.info, size = 16.dp, tint = scheme.onSurfaceVariant)

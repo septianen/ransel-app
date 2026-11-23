@@ -34,8 +34,8 @@ fun ItineraryItemDto.toUnscheduledInput(): ItineraryItemInput {
     val minutes = activityDurationMinutes(startTime, endTime)?.takeIf { it > 0 }
     return ItineraryItemInput(
         id = id, dayDate = null, startTime = null, endTime = null, title = title, category = category,
-        placeName = placeName, placeId = placeId, lat = lat, lng = lng,
-        durationMin = durationMin ?: minutes, notes = notes, bookingUrl = bookingUrl, source = source,
+        placeName = placeName, placeId = placeId, lat = lat, lng = lng, placeKind = placeKind, placeCity = placeCity,
+        durationMin = durationMin ?: minutes, notes = notes, bookingUrl = bookingUrl, links = links, source = source,
         sortOrder = sortOrder,
     )
 }

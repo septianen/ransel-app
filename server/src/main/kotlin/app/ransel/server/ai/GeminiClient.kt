@@ -74,17 +74,37 @@ class GeminiClient(
         return LlmOutput.parseReceipt(generate(Prompt.receiptSystem(), user, temperature = 0.0, maxTokens = RECEIPT_MAX_TOKENS))
     }
 
+    override suspend fun inspirationQuestion(input: InspirationQuestionInput): LlmInspirationQuestion =
+        lenient.decodeFromString(
+            generate(
+                InspirationPrompt.questionSystem(), parts(InspirationPrompt.questionUser(input)), temperature = 0.6,
+                maxTokens = INSPIRATION_QUESTION_MAX_TOKENS, schema = InspirationPrompt.QUESTION_SCHEMA,
+            ),
+        )
+
+    override suspend fun inspirationCards(input: InspirationCardsInput): LlmInspirationCards =
+        lenient.decodeFromString(
+            generate(
+                InspirationPrompt.cardsSystem(), parts(InspirationPrompt.cardsUser(input)), temperature = 0.7,
+                maxTokens = DEFAULT_MAX_TOKENS, schema = InspirationPrompt.CARDS_SCHEMA,
+            ),
+        )
+
+    private val lenient = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
+
     private suspend fun generate(system: String, user: String, temperature: Double, maxTokens: Int = DEFAULT_MAX_TOKENS): String =
         generate(system, parts(user), temperature, maxTokens)
 
     /** Tries the primary model, then the fallback when the first is overloaded (429/5xx). Returns the raw JSON text. */
-    private suspend fun generate(system: String, user: kotlinx.serialization.json.JsonArray, temperature: Double, maxTokens: Int): String {
+    private suspend fun generate(
+        system: String, user: kotlinx.serialization.json.JsonArray, temperature: Double, maxTokens: Int, schema: JsonObject? = null,
+    ): String {
         val primary = modelName
         val models = listOfNotNull(primary, fallbackModel?.takeIf { it.isNotBlank() && it != primary })
         var last: Overloaded? = null
         for (model in models) {
             try {
-                return generateWith(model, system, user, temperature, maxTokens)
+                return generateWith(model, system, user, temperature, maxTokens, schema)
             } catch (e: Overloaded) {
                 last = e
                 log.warn("LLM model {} unavailable: {}", model, e.message)
@@ -93,7 +113,10 @@ class GeminiClient(
         throw last ?: IllegalStateException("no LLM model configured")
     }
 
-    private suspend fun generateWith(model: String, system: String, user: kotlinx.serialization.json.JsonArray, temperature: Double, maxTokens: Int): String {
+    private suspend fun generateWith(
+        model: String, system: String, user: kotlinx.serialization.json.JsonArray, temperature: Double, maxTokens: Int,
+        schema: JsonObject? = null,
+    ): String {
         val request = buildJsonObject {
             put("systemInstruction", buildJsonObject { put("parts", parts(system)) })
             put(
@@ -114,6 +137,8 @@ class GeminiClient(
                     // Headroom: "thinking" models spend part of this budget before the visible answer.
                     put("maxOutputTokens", maxTokens)
                     put("responseMimeType", "application/json")
+                    // structured output (Explore Inspirasi): the answer always has the asked shape
+                    if (schema != null) put("responseSchema", schema)
                 },
             )
         }
@@ -146,6 +171,7 @@ class GeminiClient(
         const val DEFAULT_MAX_TOKENS = 8192
         const val SUGGEST_MAX_TOKENS = 16384
         const val RECEIPT_MAX_TOKENS = 4096
+        const val INSPIRATION_QUESTION_MAX_TOKENS = 4096
 
         /** Core interest names in both languages: the model is told to skip them, this is the safety net. */
         val CORE_LABELS = setOf(

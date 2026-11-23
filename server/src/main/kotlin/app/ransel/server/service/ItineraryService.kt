@@ -7,7 +7,10 @@ import app.ransel.server.plugins.conflict
 import app.ransel.server.plugins.notFound
 import app.ransel.server.plugins.requireValid
 import app.ransel.server.plugins.validationFailed
+import app.ransel.shared.domain.cleanActivityLinks
 import app.ransel.shared.domain.dayFitsTrip
+import app.ransel.shared.domain.normalizeActivityLink
+import app.ransel.shared.domain.validateActivityLinks
 import app.ransel.shared.dto.DayOrderRequest
 import app.ransel.shared.dto.ItineraryItemDto
 import app.ransel.shared.dto.ItineraryItemInput
@@ -62,7 +65,8 @@ object ItineraryService {
         requireValid(validate(body) + validateDay(tripId, body.dayDate))
         return transaction {
             load(tripId, itemId)
-            ItineraryItems.update({ ItineraryItems.id eq itemId }) { fill(it, body) }
+            val kept = existingLinks(itemId)
+            ItineraryItems.update({ ItineraryItems.id eq itemId }) { fill(it, body, kept) }
             load(tripId, itemId)
         }
     }
@@ -113,7 +117,20 @@ object ItineraryService {
             .where { liveIn(tripId) and (ItineraryItems.id eq itemId) }
             .singleOrNull()?.toItineraryItemDto() ?: throw notFound("Itinerary item")
 
-    internal fun fill(it: UpdateBuilder<*>, body: ItineraryItemInput) {
+    /** The links the item has now (what an app from before the list must not lose when it saves another field). */
+    internal fun existingLinks(itemId: UUID): List<String> =
+        ItineraryItems.select(ItineraryItems.links).where { ItineraryItems.id eq itemId }.singleOrNull()?.get(ItineraryItems.links).orEmpty()
+
+    /**
+     * The links to store. A list in the request is the whole truth (cleaned: normalized, no duplicates, at most 5).
+     * Without one (an app from before the list) `bookingUrl` replaces only the FIRST link and the [kept] others stay, so an
+     * old app that edits the title never wipes the links a newer app added.
+     */
+    internal fun linksFor(body: ItineraryItemInput, kept: List<String>): List<String> =
+        body.links?.let(::cleanActivityLinks)
+            ?: cleanActivityLinks(listOfNotNull(body.bookingUrl?.let(::normalizeActivityLink)) + kept.drop(1))
+
+    internal fun fill(it: UpdateBuilder<*>, body: ItineraryItemInput, kept: List<String> = emptyList()) {
         it[ItineraryItems.dayDate] = body.dayDate?.toJavaLocalDate()
         it[ItineraryItems.startTime] = body.startTime?.toJavaLocalTime()
         it[ItineraryItems.endTime] = body.endTime?.toJavaLocalTime()
@@ -123,9 +140,14 @@ object ItineraryService {
         it[ItineraryItems.placeId] = body.placeId
         it[ItineraryItems.lat] = body.lat
         it[ItineraryItems.lng] = body.lng
+        it[ItineraryItems.placeKind] = body.placeKind
+        it[ItineraryItems.placeCity] = body.placeCity?.trim()?.takeIf { c -> c.isNotEmpty() }
         it[ItineraryItems.durationMin] = body.durationMin
         it[ItineraryItems.notes] = body.notes
-        it[ItineraryItems.bookingUrl] = body.bookingUrl
+        val links = linksFor(body, kept)
+        it[ItineraryItems.links] = links
+        // the old single link: the first one; free text an old app typed (not a web address) is still kept for it
+        it[ItineraryItems.bookingUrl] = links.firstOrNull() ?: body.bookingUrl.takeIf { body.links == null }
         it[ItineraryItems.itemSource] = body.source
         it[ItineraryItems.sortOrder] = body.sortOrder
     }
@@ -148,12 +170,17 @@ object ItineraryService {
 
     const val OUTSIDE_TRIP = "OUTSIDE_TRIP"
 
+    /** The column `place_city` holds at most this many characters (V9). */
+    const val PLACE_CITY_MAX = 120
+
     // endTime may be earlier than startTime (ends next day), so there is deliberately no time-order rule.
     internal fun validate(body: ItineraryItemInput): Map<String, String> = buildMap {
         if (body.title.isBlank()) put("title", "REQUIRED")
         if ((body.lat == null) != (body.lng == null)) put("lat", "LAT_LNG_BOTH_OR_NONE")
         if (body.lat != null && body.lat!! !in -90.0..90.0) put("lat", "OUT_OF_RANGE")
         if (body.lng != null && body.lng!! !in -180.0..180.0) put("lng", "OUT_OF_RANGE")
+        if (body.placeCity != null && body.placeCity!!.trim().length > PLACE_CITY_MAX) put("placeCity", "TOO_LONG")
         if (body.durationMin != null && body.durationMin!! <= 0) put("durationMin", "MUST_BE_POSITIVE")
+        body.links?.let { putAll(validateActivityLinks(it)) }
     }
 }
