@@ -8,6 +8,7 @@ import app.ransel.data.remote.ApiFailure
 import app.ransel.data.remote.ApiResult
 import app.ransel.feature.inspiration.InspirationHomeViewModel
 import app.ransel.feature.inspiration.InspirationStartState
+import app.ransel.feature.inspiration.canAskAi
 import app.ransel.shared.dto.*
 import app.ransel.shared.model.*
 import kotlinx.coroutines.Dispatchers
@@ -63,9 +64,31 @@ class InspirationHomeViewModelTest {
         assertEquals(7, viewModel.state.value.cost)
     }
 
+    @Test fun askAiNeedsTextOrAnInterest() = runTest {
+        val repo = FakeRepository(ApiResult.Success(session()))
+        val viewModel = vm(repo)
+        assertFalse(viewModel.state.value.canAskAi)
+        viewModel.start()
+        assertNull(repo.request, "empty text and no chips must not start a session")
+        viewModel.setText("   ")
+        assertFalse(viewModel.state.value.canAskAi)
+        viewModel.start()
+        assertNull(repo.request)
+        viewModel.setText("freediving")
+        assertTrue(viewModel.state.value.canAskAi)
+        viewModel.setText("")
+        assertFalse(viewModel.state.value.canAskAi)
+        viewModel.toggleInterest(Interest.FOOD)
+        assertTrue(viewModel.state.value.canAskAi)
+        viewModel.start()
+        assertNotNull(repo.request)
+        assertEquals(listOf(Interest.FOOD), repo.request?.interests)
+    }
+
     @Test fun successStoresSessionId() = runTest {
         val repo = FakeRepository(ApiResult.Success(session()))
         val viewModel = vm(repo)
+        viewModel.setText("bali")
         viewModel.start()
         assertEquals("session-1", viewModel.state.value.sessionId)
     }
@@ -73,6 +96,7 @@ class InspirationHomeViewModelTest {
     @Test fun dismissingOfflineErrorReturnsToIdle() = runTest {
         val repo = FakeRepository(ApiResult.Failure(ApiFailure("NETWORK_UNAVAILABLE", "offline")))
         val viewModel = vm(repo)
+        viewModel.setText("bali")
         viewModel.start()
         assertEquals(InspirationStartState.Offline, viewModel.state.value.startState)
         viewModel.dismissError()
@@ -82,6 +106,7 @@ class InspirationHomeViewModelTest {
     @Test fun consumingSessionAllowsAnotherStart() = runTest {
         val repo = FakeRepository(ApiResult.Success(session("session-1")))
         val viewModel = vm(repo)
+        viewModel.toggleInterest(Interest.NATURE)
         viewModel.start()
         assertEquals("session-1", viewModel.state.value.sessionId)
         viewModel.consumeStarted()
@@ -96,6 +121,7 @@ class InspirationHomeViewModelTest {
             val repo = FakeRepository(ApiResult.Failure(ApiFailure(code, "error", status, details)))
             if (connection) repo.result = ApiResult.Failure(ApiFailure(code, "error"))
             val viewModel = vm(repo)
+            viewModel.setText("bali")
             viewModel.start()
             viewModel.state.value
         }

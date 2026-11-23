@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
     val session: InspirationSessionDto? = null,
     val question: InspirationQuestionDto? = null,
     val loading: Boolean = true,
+    /** True after the last answer while the server builds cards: the cave-cart loading, not the option skeletons. */
+    val generatingResults: Boolean = false,
     val inlineError: Boolean = false,
     val lostSession: Boolean = false,
     val otherText: String = "",
@@ -111,16 +113,18 @@ class InspirationInterviewViewModel(
 
     private fun runRequest(finishing: Boolean = false, repositoryCall: suspend () -> ApiResult<InspirationSessionDto>) {
         val previous = mutable.value
-        mutable.value = previous.copy(loading = true, inlineError = false)
+        mutable.value = previous.copy(loading = true, inlineError = false, generatingResults = finishing)
         viewModelScope.launch {
             when (val result = repositoryCall()) {
                 is ApiResult.Success -> {
                     val session = result.value
+                    val generating = session.status == InspirationStatus.READY
                     mutable.value = InspirationInterviewUiState(
                         session = session,
                         question = session.question,
-                        loading = false,
-                        hasAnswers = (session.question?.stepsDone ?: 0) > 0,
+                        loading = generating,
+                        generatingResults = generating,
+                        hasAnswers = (session.question?.stepsDone ?: 0) > 0 || previous.hasAnswers,
                     )
                     when (session.status) {
                         InspirationStatus.READY -> if (!finishing) finish()
@@ -134,7 +138,7 @@ class InspirationInterviewViewModel(
                 }
                 is ApiResult.Failure -> {
                     if (result.error.code == ErrorCode.INSUFFICIENT_CREDITS && finishing) events.send(InspirationInterviewEvent.OutOfCredits)
-                    mutable.value = previous.copy(loading = false, inlineError = result.error.code != ErrorCode.NOT_FOUND, lostSession = result.error.code == ErrorCode.NOT_FOUND)
+                    mutable.value = previous.copy(loading = false, generatingResults = false, inlineError = result.error.code != ErrorCode.NOT_FOUND, lostSession = result.error.code == ErrorCode.NOT_FOUND)
                 }
             }
         }

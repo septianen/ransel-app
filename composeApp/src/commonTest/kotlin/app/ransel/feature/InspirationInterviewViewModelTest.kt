@@ -79,6 +79,16 @@ class InspirationInterviewViewModelTest {
         assertEquals(1, repo.finishCalls)
     }
 
+    @Test fun enoughShowsGeneratingResultsUntilCharged() = runTest {
+        val repo = Repo()
+        repo.finishResult = ApiResult.Success(session(InspirationStatus.READY, null))
+        val vm = InspirationInterviewViewModel("sid", repo); runCurrent()
+        assertFalse(vm.state.value.generatingResults)
+        vm.enough(); runCurrent()
+        assertTrue(vm.state.value.generatingResults)
+        assertTrue(vm.state.value.loading)
+    }
+
     @Test fun chargedEmitsResultsNavigation() = runTest {
         val repo = Repo(); repo.getResult = ApiResult.Success(session(InspirationStatus.CHARGED, null))
         val vm = InspirationInterviewViewModel("sid", repo)
