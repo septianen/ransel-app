@@ -80,6 +80,7 @@ class InspirationHomeViewModel(
 
     fun start() {
         val old = mutable.value
+        if (old.text.isBlank() && old.interests.isEmpty()) return
         mutable.value = old.copy(startState = InspirationStartState.Loading, rateLimitMinutes = null)
         viewModelScope.launch {
             when (val result = repository.start(StartInspirationRequest(newId(), old.interests, old.text.ifBlank { null }))) {

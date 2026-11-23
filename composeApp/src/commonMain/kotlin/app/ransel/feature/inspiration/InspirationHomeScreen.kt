@@ -209,7 +209,7 @@ fun InspirationHomeContent(
             )
             Button(
                 onClick = onStart,
-                enabled = start != InspirationStartState.Loading && !state.cannotAfford,
+                enabled = state.canAskAi,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = androidx.compose.foundation.shape.CircleShape,
                 colors = ButtonDefaults.buttonColors(),
@@ -233,8 +233,14 @@ fun InspirationHomeContent(
     }
 }
 
+/** Typed text or at least one interest: the Ask AI button stays off until one of the two is set (issue 62). */
+internal val InspirationHomeUiState.hasAskInput: Boolean get() = text.isNotBlank() || interests.isNotEmpty()
+
 /** Known credits below the session price: the CTA is disabled and "Isi kredit" shows. Unknown credits never block. */
-private val InspirationHomeUiState.cannotAfford: Boolean get() = creditsKnown && availableCredits < cost
+internal val InspirationHomeUiState.cannotAfford: Boolean get() = creditsKnown && availableCredits < cost
+
+internal val InspirationHomeUiState.canAskAi: Boolean
+    get() = startState != InspirationStartState.Loading && !cannotAfford && hasAskInput
 
 /** "Tanya AI · gratis hari ini" only when today's free credits pay the whole session. */
 private val InspirationHomeUiState.coveredByFreeCredits: Boolean get() = creditsKnown && cost > 0 && dailyFreeLeft >= cost

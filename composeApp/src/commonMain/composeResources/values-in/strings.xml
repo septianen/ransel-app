@@ -2165,7 +2165,6 @@
     <string name="explore_other_hint">Tulis jawabanmu sendiri</string>
     <string name="explore_enough">Sudah cukup, lihat inspirasi</string>
     <string name="explore_enough_note">Kamu bisa berhenti sekarang. Hasilnya mungkin kurang pas.</string>
-    <string name="explore_step_label">Langkah %1$d dari %2$d</string>
     <string name="explore_step_left">Sisa ± %1$d pertanyaan</string>
     <string name="explore_interview_lost_title">Sesi ini sudah berakhir</string>
     <string name="explore_interview_lost_body">Mulai lagi untuk mencari inspirasi baru.</string>

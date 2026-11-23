@@ -2182,7 +2182,6 @@
     <string name="explore_other_hint">Write your own answer</string>
     <string name="explore_enough">That’s enough, show my ideas</string>
     <string name="explore_enough_note">You can stop now. The results may fit less well.</string>
-    <string name="explore_step_label">Step %1$d of %2$d</string>
     <string name="explore_step_left">About %1$d questions left</string>
     <string name="explore_interview_lost_title">This session has ended</string>
     <string name="explore_interview_lost_body">Start again to find new ideas.</string>
