@@ -286,7 +286,7 @@ internal fun InterviewBottomBar(
     note: String? = null,
     skipLabel: String? = null,
     onSkip: (() -> Unit)? = null,
-    /** False on full-screen Travel edit: the green button sits on the page, no floating card. */
+    /** False when the bar is already inside a screen or sheet surface, so it does not add a nested floating card. */
     elevated: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
