@@ -1069,7 +1069,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
         val session: SessionManager = koinInject()
         InterviewScreen(
             door = InterviewDoor.valueOf(route.door),
-            prefill = InterviewPrefill.fromRoute(route.destination, route.countryCode, route.interests, route.ideaActivity, route.ideaCard),
+            prefill = InterviewPrefill.fromRoute(route.destination, route.countryCode, route.interests),
             onLeave = { navController.popBackStack() },
             // "Buat trip dan cari": the swipe screen takes over; Back from it leads to where Jelajah was opened
             onCreatedAndSearch = { id -> navController.navigate(SwipeRoute(id, created = true)) { popUpTo<InterviewRoute> { inclusive = true } } },
@@ -1238,7 +1238,7 @@ private fun NavHostController.openTripExplore(tripId: String, requests: app.rans
 
 /**
  * "Bikin trip dari sini" (results feed and Ide tersimpan): Buat trip with the idea's region, country and interests; dates stay
- * open. After "Buat trip" the idea's activity is one item in "Belum dijadwalkan". Nothing is charged.
+ * open. The new trip's itinerary stays empty (plan idea-to-trip-flow v3). Nothing is charged.
  */
 private fun NavHostController.openTripFromIdea(card: app.ransel.shared.dto.InspirationCardDto, interests: Set<app.ransel.shared.model.Interest>) {
     navigate(
@@ -1247,8 +1247,6 @@ private fun NavHostController.openTripFromIdea(card: app.ransel.shared.dto.Inspi
             destination = card.region,
             countryCode = card.countryCode,
             interests = interests.joinToString(",") { it.name }.ifEmpty { null },
-            ideaActivity = card.activity,
-            ideaCard = app.ransel.data.remote.ApiJson.encodeToString(app.ransel.shared.dto.InspirationCardDto.serializer(), card.copy(photoUrl = null)),
         ),
     )
 }

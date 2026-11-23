@@ -7,22 +7,14 @@ data class InterviewPrefill(
     val destination: String,
     val countryCode: String? = null,
     val interests: Set<Interest> = emptySet(),
-    /**
-     * The idea's activity: after "Buat trip" it becomes one item in "Belum dijadwalkan" (title = activity, place = the
-     * region as an area, no note, no label; plan idea-to-trip-flow v2, owner 22 Nov 2026). Null = nothing is added.
-     */
-    val activity: String? = null,
-    /** The whole idea card (plan idea-activity-detail): its text fills the item's Activity details. */
-    val card: app.ransel.shared.dto.InspirationCardDto? = null,
 ) {
     companion object {
         /** From the route's text fields; unknown interest names are dropped. Null when there is no destination. */
-        fun fromRoute(destination: String?, countryCode: String?, interests: String?, activity: String? = null, card: String? = null): InterviewPrefill? {
+        fun fromRoute(destination: String?, countryCode: String?, interests: String?): InterviewPrefill? {
             val name = destination?.trim().orEmpty()
             if (name.isEmpty()) return null
             val chosen = interests.orEmpty().split(',').mapNotNull { n -> Interest.entries.firstOrNull { it.name == n.trim() } }.toSet()
-            val idea = card?.let { runCatching { app.ransel.data.remote.ApiJson.decodeFromString(app.ransel.shared.dto.InspirationCardDto.serializer(), it) }.getOrNull() }
-            return InterviewPrefill(name, countryCode, chosen, activity?.trim()?.takeIf { it.isNotEmpty() }?.take(200), idea)
+            return InterviewPrefill(name, countryCode, chosen)
         }
     }
 }

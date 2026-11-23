@@ -40,10 +40,6 @@ import kotlinx.serialization.Serializable
     val destination: String? = null,
     val countryCode: String? = null,
     val interests: String? = null,
-    /** The idea's activity ("Berjalan santai di taman nasional"): one unscheduled item of the new trip (plan idea-to-trip-flow v2). */
-    val ideaActivity: String? = null,
-    /** The whole idea card as JSON (plan idea-activity-detail): the item's Activity details. */
-    val ideaCard: String? = null,
 )
 /** Design AjakTeman: right after "Buat trip" (signed in), share the invite link or add friends by name. */
 @Serializable data class InviteFriendsRoute(val tripId: String)
