@@ -6,8 +6,9 @@ import kotlinx.serialization.Serializable
 @Serializable data object HomeRoute
 @Serializable data object TripListRoute
 @Serializable data object ExploreRoute
-/** The trip-first search's trip picker; the Explore tab itself opens Explore Inspirasi (21 Nov 2026). */
+/** The trip-first search's trip picker; the Explore tab itself opens saved ideas or Explore Inspirasi. */
 @Serializable data object ExploreTripPickerRoute
+/** Ask AI form pushed from the Explore tab FAB when the tab already shows saved ideas. */
 @Serializable data object InspirationHomeRoute
 @Serializable data class InspirationInterviewRoute(val sessionId: String)
 @Serializable data class InspirationResultsRoute(val sessionId: String)

@@ -39,6 +39,7 @@ import app.ransel.ui.symbols.Symbols
 import org.jetbrains.compose.resources.stringResource as composeStringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import ransel.composeapp.generated.resources.Res
+import ransel.composeapp.generated.resources.action_back
 import ransel.composeapp.generated.resources.action_close
 import ransel.composeapp.generated.resources.ai_paused_title
 import ransel.composeapp.generated.resources.credits_error_generic
@@ -70,6 +71,7 @@ fun InspirationHomeScreen(
     onOpenCredits: () -> Unit,
     onVerifyEmail: () -> Unit,
     onOpenSavedIdeas: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsState()
     // fills CreditsStore from the server on entering the screen; the ViewModel reads the store
@@ -95,6 +97,7 @@ fun InspirationHomeScreen(
         onCredits = onOpenCredits,
         onVerify = onVerifyEmail,
         onOpenSavedIdeas = onOpenSavedIdeas,
+        onBack = onBack,
     )
 }
 
@@ -109,6 +112,7 @@ fun InspirationHomeContent(
     onCredits: () -> Unit = {},
     onVerify: () -> Unit = {},
     onOpenSavedIdeas: () -> Unit = {},
+    onBack: (() -> Unit)? = null,
 ) {
     when (val start = state.startState) {
         InspirationStartState.Offline -> FullScreenState(
@@ -139,9 +143,17 @@ fun InspirationHomeContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(Modifier.fillMaxWidth().height(56.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Symbol(Symbols.arrowBack, contentDescription = stringResource(Res.string.action_back))
+                    }
+                }
                 Text(stringResource(Res.string.explore_home_title), Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-                IconButton(onClick = onOpenSavedIdeas) {
-                    Symbol(Symbols.bookmark, contentDescription = stringResource(Res.string.saved_ideas_title))
+                // Bookmark only on the empty tab: with saved ideas the list is the tab, and Back returns to it.
+                if (onBack == null) {
+                    IconButton(onClick = onOpenSavedIdeas) {
+                        Symbol(Symbols.bookmark, contentDescription = stringResource(Res.string.saved_ideas_title))
+                    }
                 }
             }
             Text(stringResource(Res.string.explore_home_headline), style = MaterialTheme.typography.headlineMedium)
