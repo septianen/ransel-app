@@ -1315,7 +1315,7 @@ private fun UndatedItineraryEmptyPreview() = IrisPreview {
 
 /** "Jadwalkan otomatis?": says where the places would go, then saves them and shows progress until done. */
 @Composable
-private fun AutoScheduleDialog(plan: AutoPlan, running: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun AutoScheduleDialog(plan: AutoPlan, running: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val days = plan.dayNumbers
     val dayText = if (days.size > 1 && days.last() - days.first() == days.size - 1) "${days.first()}–${days.last()}" else days.joinToString(", ")
     val none = plan.count == 0
@@ -1325,6 +1325,7 @@ private fun AutoScheduleDialog(plan: AutoPlan, running: Boolean, onConfirm: () -
         confirmLabel = stringResource(Res.string.itinerary_auto_confirm),
         dismissLabel = stringResource(Res.string.action_cancel),
         confirmLoading = running,
+        confirmEnabled = !none,
         onConfirm = { if (!none && !running) onConfirm() },
         onDismiss = onDismiss,
         symbol = Symbols.schedule,

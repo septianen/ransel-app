@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -78,5 +79,33 @@ class AutoScheduleViewModelTest {
         val vm = ItineraryViewModel(trip, itinerary, InMemoryPreferencesRepository())
         vm.state.first { !it.loading }
         assertNull(vm.previewAutoSchedule())
+    }
+
+    @Test
+    fun whenNoPlaceFitsThePlanIsEmptyAndRunningDoesNotSchedule() = runTest {
+        val itinerary = InMemoryItineraryRepository(InMemoryStore())
+        listOf(LocalDate(2099, 11, 20), LocalDate(2099, 11, 21), LocalDate(2099, 11, 22)).forEachIndexed { i, date ->
+            itinerary.save(
+                "t1",
+                ItineraryItemInput(
+                    id = "busy$i",
+                    title = "busy$i",
+                    category = Category.ATTRACTION,
+                    dayDate = date,
+                    startTime = LocalTime(9, 0),
+                    endTime = LocalTime(20, 0),
+                    durationMin = 660,
+                ),
+            )
+        }
+        itinerary.save("t1", place("a", -8.50, 115.26))
+        val vm = ItineraryViewModel(trip, itinerary, InMemoryPreferencesRepository())
+        vm.state.first { it.unscheduled.size == 1 }
+        val plan = assertNotNull(vm.previewAutoSchedule())
+        assertEquals(0, plan.count)
+        assertEquals(1, plan.leftOver)
+        vm.runAutoSchedule()
+        assertEquals(null, itinerary.observe("t1").first().single { it.id == "a" }.dayDate)
+        assertEquals(false, vm.state.value.autoScheduling)
     }
 }

@@ -223,16 +223,7 @@ private fun SavedIdeaRow(
         ) {
             Surface(Modifier.weight(1f).clickable(onClick = onOpen), color = MaterialTheme.colorScheme.surface, shape = IrisShape.md) {
                 Row(Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(width = 72.dp, height = 72.dp).clip(IrisShape.md)) {
-                        val photo = apiImageUrl(idea.card.photoUrl)
-                        if (photo != null) AsyncImage(photo, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                        else Box(Modifier.fillMaxSize().background(IrisTheme.accents.teal), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Symbol(Symbols.explore, size = 24.dp, tint = IrisTheme.accents.onAccent)
-                                Text(idea.card.region, style = MaterialTheme.typography.labelSmall, color = IrisTheme.accents.onAccent)
-                            }
-                        }
-                    }
+                    SavedIdeaThumbnail(photoUrl = idea.card.photoUrl, region = idea.card.region)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(idea.card.activity, style = MaterialTheme.typography.titleMedium)
                         Text(idea.card.region, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -246,6 +237,22 @@ private fun SavedIdeaRow(
             IconButton(onClick = onRemove, modifier = Modifier.size(48.dp)) {
                 Symbol(Symbols.bookmark, filled = true, contentDescription = stringResource(Res.string.saved_ideas_removed))
             }
+        }
+    }
+}
+
+/** Teal Explore tile (same slot while the photo loads, is missing, or fails). */
+@Composable
+private fun SavedIdeaThumbnail(photoUrl: String?, region: String) {
+    Box(Modifier.size(width = 72.dp, height = 72.dp).clip(IrisShape.md)) {
+        Box(Modifier.fillMaxSize().background(IrisTheme.accents.teal), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Symbol(Symbols.explore, size = 24.dp, tint = IrisTheme.accents.onAccent)
+                Text(region, style = MaterialTheme.typography.labelSmall, color = IrisTheme.accents.onAccent, maxLines = 1)
+            }
+        }
+        apiImageUrl(photoUrl)?.let { photo ->
+            AsyncImage(photo, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
     }
 }
