@@ -39,7 +39,7 @@ val upcomingOrder: Comparator<TripDto> =
 
 /**
  * The trip Home highlights: the one in progress, else the next one to start (a dated one before one without dates).
- * Null when nothing is ahead: a finished trip is never featured, Home shows its recap instead (owner, 3 Nov 2026).
+ * Null when nothing is ahead: a finished trip is never featured; Home then uses the empty state (recap still may show).
  */
 fun pickFeaturedTrip(trips: List<TripDto>, today: LocalDate): TripDto? =
     trips.filter { it.phase(today) == TripPhase.ONGOING }.minByOrNull { it.endDate ?: today }
