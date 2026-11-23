@@ -118,6 +118,7 @@ internal fun TripExploreContent(
             onPrimary = onSearch,
             note = if (state.group) stringResource(Res.string.trip_explore_group_line) else null,
             modifier = Modifier.padding(top = 8.dp),
+            elevated = false,
         )
     }
 }
