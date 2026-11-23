@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -156,14 +157,14 @@ fun PlacePicker(
         if (card) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Surface(
-                    Modifier.width(CardWidth).fillMaxHeight(0.85f).heightIn(max = CardMaxHeight),
+                    Modifier.width(CardWidth).fillMaxHeight(0.85f).heightIn(max = CardMaxHeight).imePadding(),
                     shape = IrisShape.xl,
                     color = MaterialTheme.colorScheme.surface,
                     shadowElevation = 8.dp,
                 ) { content() }
             }
         } else {
-            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) { content() }
+            Surface(Modifier.fillMaxSize().imePadding(), color = MaterialTheme.colorScheme.surface) { content() }
         }
     }
 }

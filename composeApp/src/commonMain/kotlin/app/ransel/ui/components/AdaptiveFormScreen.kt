@@ -128,7 +128,7 @@ internal fun AdaptiveFormContent(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Column(if (card) Modifier else Modifier.fillMaxSize().imePadding()) {
+    Column(Modifier.then(if (card) Modifier else Modifier.fillMaxSize()).imePadding()) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,

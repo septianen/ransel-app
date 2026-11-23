@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -1299,8 +1300,12 @@ private inline fun <reified T : Any> NavGraphBuilder.tabPage(
                 }
             },
         ) { padding ->
-            // consumeWindowInsets: the bar's height is already out of the way, so a screen's imePadding() must not count it again.
-            Box(Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            // consumeWindowInsets: the bar's height is already out of the way, so remaining imePadding() is IME minus that bar
+            // (enableEdgeToEdge + adjustResize delivers the keyboard as WindowInsets.ime, not a resized window).
+            Box(
+                Modifier.padding(padding).consumeWindowInsets(padding).imePadding().fillMaxSize(),
+                contentAlignment = Alignment.TopCenter,
+            ) {
                 Box(Modifier.widthIn(max = PageMaxWidth).fillMaxSize()) { content() }
             }
         }
@@ -1318,7 +1323,7 @@ private inline fun <reified T : Any> NavGraphBuilder.page(
 ) {
     val body: @Composable (NavBackStackEntry) -> Unit = { entry ->
         Box(
-            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+            Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding(),
             contentAlignment = Alignment.TopCenter,
         ) {
             // On wide web windows single-column pages (Home, lists, forms) stay a readable width.
