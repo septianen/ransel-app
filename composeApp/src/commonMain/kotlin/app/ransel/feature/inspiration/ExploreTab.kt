@@ -39,6 +39,7 @@ enum class ExploreTabBody {
     SavedList,
 }
 
+/** List as soon as any idea is present; the form only after a successful empty load (or last unsave). */
 fun exploreTabBody(state: SavedIdeasUiState): ExploreTabBody = when {
     state.ideas.isNotEmpty() -> ExploreTabBody.SavedList
     !state.loaded -> ExploreTabBody.Loading
