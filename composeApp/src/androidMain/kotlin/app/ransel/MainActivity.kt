@@ -21,6 +21,8 @@ class MainActivity : ComponentActivity() {
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Edge-to-edge turns off decorFitsSystemWindows, so windowSoftInputMode=adjustResize does not shrink
+        // the window. Compose consumes WindowInsets.ime at the nav shell (App.kt page/tabPage) and on sheets.
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {

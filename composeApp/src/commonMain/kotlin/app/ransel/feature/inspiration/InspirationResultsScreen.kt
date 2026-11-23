@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
@@ -424,7 +425,10 @@ private fun AskAgainSheet(
     onDismiss: () -> Unit,
 ) {
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             if (state.askAgainLoading && state.askAgainQuestion == null) SkeletonCards(cards = 3, cardHeight = 64.dp)
             state.askAgainQuestion?.let { question ->
                 // the tapped option shows a spinner while the new cards are built (owner, 22 Nov 2026: a tap gave no sign

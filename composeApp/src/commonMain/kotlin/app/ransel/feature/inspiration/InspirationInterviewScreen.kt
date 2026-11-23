@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
 import app.ransel.shared.dto.InspirationOptionDto
@@ -185,46 +189,55 @@ fun InspirationInterviewContent(
                 )
             }
         } else {
-            if (question?.stepsDone == 0) Text(stringResource(Res.string.explore_ask_charge_note), style = MaterialTheme.typography.bodySmall)
-            if (state.loading && question == null) {
-                Text(stringResource(Res.string.explore_question_generating), style = MaterialTheme.typography.bodySmall)
-                SkeletonCards(cards = 3, cardHeight = 64.dp, padding = 0.dp)
-            } else if (question != null) {
-                Text(question.text, style = MaterialTheme.typography.headlineSmall)
-                when {
-                    state.inlineError -> ErrorInline(onRetry)
-                    state.loading -> SkeletonCards(cards = 3, cardHeight = 64.dp, padding = 0.dp)
-                    else -> {
-                        question.options.forEach { option -> OptionRow(option, onAnswer) }
-                        if (question.allowOther) {
-                            if (!state.otherOpen) {
-                                TextButton(onClick = onOpenOther) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                        Symbol(Symbols.editNote, size = 18.dp)
-                                        Text(stringResource(Res.string.explore_other_option), style = MaterialTheme.typography.titleMedium)
+            val otherFocus = remember { FocusRequester() }
+            LaunchedEffect(state.otherOpen) {
+                if (state.otherOpen) runCatching { otherFocus.requestFocus() }
+            }
+            Column(
+                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                if (question?.stepsDone == 0) Text(stringResource(Res.string.explore_ask_charge_note), style = MaterialTheme.typography.bodySmall)
+                if (state.loading && question == null) {
+                    Text(stringResource(Res.string.explore_question_generating), style = MaterialTheme.typography.bodySmall)
+                    SkeletonCards(cards = 3, cardHeight = 64.dp, padding = 0.dp)
+                } else if (question != null) {
+                    Text(question.text, style = MaterialTheme.typography.headlineSmall)
+                    when {
+                        state.inlineError -> ErrorInline(onRetry)
+                        state.loading -> SkeletonCards(cards = 3, cardHeight = 64.dp, padding = 0.dp)
+                        else -> {
+                            question.options.forEach { option -> OptionRow(option, onAnswer) }
+                            if (question.allowOther) {
+                                if (!state.otherOpen) {
+                                    TextButton(onClick = onOpenOther) {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Symbol(Symbols.editNote, size = 18.dp)
+                                            Text(stringResource(Res.string.explore_other_option), style = MaterialTheme.typography.titleMedium)
+                                        }
+                                    }
+                                } else {
+                                    OutlinedTextField(
+                                        value = state.otherText,
+                                        onValueChange = onOtherText,
+                                        modifier = Modifier.fillMaxWidth().focusRequester(otherFocus),
+                                        label = { Text(stringResource(Res.string.explore_other_hint)) },
+                                        supportingText = { Text("${state.otherText.length}/80") },
+                                    )
+                                    IconButton(onClick = onAnswerOther, enabled = state.otherText.isNotBlank()) {
+                                        Symbol(Symbols.check, contentDescription = stringResource(Res.string.explore_other_option))
                                     }
                                 }
-                            } else {
-                                OutlinedTextField(
-                                    value = state.otherText,
-                                    onValueChange = onOtherText,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    label = { Text(stringResource(Res.string.explore_other_hint)) },
-                                    supportingText = { Text("${state.otherText.length}/80") },
-                                )
-                                IconButton(onClick = onAnswerOther, enabled = state.otherText.isNotBlank()) {
-                                    Symbol(Symbols.check, contentDescription = stringResource(Res.string.explore_other_option))
-                                }
+                            }
+                            if (question.canFinishEarly) {
+                                TextButton(onClick = onFinish) { Text(stringResource(Res.string.explore_enough)) }
+                                Text(stringResource(Res.string.explore_enough_note), style = MaterialTheme.typography.bodySmall)
                             }
                         }
-                        if (question.canFinishEarly) {
-                            TextButton(onClick = onFinish) { Text(stringResource(Res.string.explore_enough)) }
-                            Text(stringResource(Res.string.explore_enough_note), style = MaterialTheme.typography.bodySmall)
-                        }
                     }
+                } else if (state.inlineError) {
+                    ErrorInline(onRetry)
                 }
-            } else if (state.inlineError) {
-                ErrorInline(onRetry)
             }
         }
     }
