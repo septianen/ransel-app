@@ -140,10 +140,10 @@ fun InspirationInterviewContent(
             }
         }
         val question = state.question
-        val progress = ((question?.stepsDone ?: 0) + (question?.skippedSlots?.size ?: 0)).coerceIn(0, 5)
-        val filledSegments = (progress + if (question != null) 1 else 0).coerceIn(0, 5)
+        val step = interviewStep(question?.stepsDone ?: 0, question?.skippedSlots?.size ?: 0, question != null)
+        val filledSegments = step.filled
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            repeat(5) { index ->
+            repeat(step.total) { index ->
                 Box(
                     Modifier.weight(1f).height(4.dp).background(
                         if (index < filledSegments) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -152,7 +152,7 @@ fun InspirationInterviewContent(
                 )
             }
         }
-        Text(stringResource(Res.string.explore_step_label, (progress + 2).coerceAtMost(6), 6), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(Res.string.explore_step_label, step.label, step.total), style = MaterialTheme.typography.bodySmall)
         if (question?.stepsDone == 0) Text(stringResource(Res.string.explore_ask_charge_note), style = MaterialTheme.typography.bodySmall)
         if (state.loading && question == null) {
             Text(stringResource(Res.string.explore_question_generating), style = MaterialTheme.typography.bodySmall)
@@ -235,3 +235,20 @@ private val previewQuestion = InspirationQuestionDto(
 @Preview @Composable private fun InterviewLoadingPreview() = IrisPreview { InspirationInterviewContent(InspirationInterviewUiState(loading = true)) }
 @Preview @Composable private fun InterviewErrorPreview() = IrisPreview { InspirationInterviewContent(InspirationInterviewUiState(question = previewQuestion, inlineError = true)) }
 @Preview @Composable private fun InterviewEnoughPreview() = IrisPreview { InspirationInterviewContent(InspirationInterviewUiState(question = previewQuestion.copy(canFinishEarly = true), loading = false)) }
+
+/** The interview's progress: [filled] segments of [total], and the step number the label shows. */
+internal data class InterviewStep(val filled: Int, val total: Int) {
+    val label: Int get() = filled.coerceAtLeast(1)
+}
+
+/**
+ * One count for the bar and the label (the hero is not a step): "Langkah 3 dari 5" with 3 of 5 segments filled. Before
+ * 23 Nov 2026 the label counted the hero too and said "Langkah 3 dari 6" over 5 segments (Rockstar's finding).
+ */
+internal fun interviewStep(stepsDone: Int, skipped: Int, showingQuestion: Boolean): InterviewStep {
+    val done = (stepsDone + skipped).coerceIn(0, INTERVIEW_SEGMENTS)
+    return InterviewStep((done + if (showingQuestion) 1 else 0).coerceIn(0, INTERVIEW_SEGMENTS), INTERVIEW_SEGMENTS)
+}
+
+/** The slots after the hero: combination, distance, detail, context, optional. */
+private const val INTERVIEW_SEGMENTS = 5

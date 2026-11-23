@@ -235,3 +235,20 @@ class InspirationHandoffTest {
         )
     }
 }
+
+class InterviewStepTest {
+    @Test
+    fun theLabelAndTheBarCountTheSameSteps() {
+        // the screen of the owner's report: 2 answered, a question on screen
+        val third = app.ransel.feature.inspiration.interviewStep(stepsDone = 2, skipped = 0, showingQuestion = true)
+        assertEquals(3, third.filled)
+        assertEquals(3, third.label)
+        assertEquals(5, third.total)
+        // a skipped slot fills its segment too; never more than the bar has
+        assertEquals(5, app.ransel.feature.inspiration.interviewStep(4, 2, true).filled)
+        // loading the first question: nothing filled, the label still says step 1
+        val loading = app.ransel.feature.inspiration.interviewStep(0, 0, false)
+        assertEquals(0, loading.filled)
+        assertEquals(1, loading.label)
+    }
+}
