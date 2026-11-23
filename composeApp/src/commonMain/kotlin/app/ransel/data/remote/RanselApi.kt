@@ -641,12 +641,14 @@ class RanselApi(
         delete(ApiRoutes.recommendationFeedback(tripId, placeId))
 
     /** Detail text of a place for the itinerary entry; [name] only matters when the server must rebuild an expired text. */
-    suspend fun placeDetail(placeId: String, name: String?, currency: String?): ApiResult<PlaceDetailDto> = call(
+    /** [cacheOnly]: only the saved text (or just name + photo), never a Places or LLM call on the server. */
+    suspend fun placeDetail(placeId: String, name: String?, currency: String?, cacheOnly: Boolean = false): ApiResult<PlaceDetailDto> = call(
         HttpMethod.Get,
         ApiRoutes.placeDetail(placeId),
         bodyOf = {
             name?.let { parameter("name", it) }
             currency?.let { parameter("currency", it) }
+            if (cacheOnly) parameter("cacheOnly", "true")
         },
     ) { it.body<ApiResponse<PlaceDetailDto>>().data }
 

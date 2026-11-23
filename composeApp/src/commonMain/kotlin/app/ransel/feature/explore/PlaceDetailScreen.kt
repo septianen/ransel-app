@@ -222,10 +222,19 @@ private fun SideCard(content: @Composable () -> Unit) {
     ) { content() }
 }
 
-/** The photo with the back button over it (narrow) and the category chip and Google credit on it. */
+/**
+ * The photo with the back button over it (narrow) and the category chip and Google credit on it. Without a photo the
+ * category colour and its icon fill it. [actions] sit top-right on the same scrim (Activity details: Ubah and ⋮).
+ */
 @Composable
-private fun Hero(info: PlaceDetailInfo?, onBack: (() -> Unit)?, height: androidx.compose.ui.unit.Dp, rounded: Boolean) {
-    val category = info?.category
+internal fun Hero(
+    info: PlaceDetailInfo?,
+    onBack: (() -> Unit)?,
+    height: androidx.compose.ui.unit.Dp,
+    rounded: Boolean,
+    category: Category? = info?.category,
+    actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+) {
     val shape = if (rounded) IrisShape.xl else androidx.compose.ui.graphics.RectangleShape
     Box(
         Modifier.fillMaxWidth().height(height).clip(shape).background(category?.tileColor() ?: MaterialTheme.colorScheme.surfaceContainerHighest),
@@ -258,6 +267,11 @@ private fun Hero(info: PlaceDetailInfo?, onBack: (() -> Unit)?, height: androidx
                 Symbols.arrowBack, stringResource(Res.string.action_back), onBack,
                 modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(8.dp),
             )
+            Row(
+                Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                content = actions,
+            )
         }
         if (category != null) {
             Row(
@@ -273,7 +287,7 @@ private fun Hero(info: PlaceDetailInfo?, onBack: (() -> Unit)?, height: androidx
 }
 
 @Composable
-private fun RoundIcon(
+internal fun RoundIcon(
     symbol: String,
     description: String,
     onClick: () -> Unit,
@@ -333,7 +347,7 @@ private fun TitleBlock(info: PlaceDetailInfo?, fallbackName: String?) {
 
 /** "Hemat · ± Rp25.000 per orang", or just the amount when there is no price level (itinerary entry). */
 @Composable
-private fun costLabel(level: String?, info: PlaceDetailInfo): String {
+internal fun costLabel(level: String?, info: PlaceDetailInfo): String {
     val cost = info.estimatedCostMinor?.let { minor ->
         info.costCurrency?.let { currency -> stringResource(Res.string.place_detail_cost, formatMoney(minor, currency)) }
     }
@@ -383,7 +397,7 @@ private fun Sections(
 }
 
 @Composable
-private fun Section(title: String, content: @Composable () -> Unit) {
+internal fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionHeader(title)
         content()
@@ -392,7 +406,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 
 /** Opening hours are an AI estimate, not Google data: labelled so, with the Maps button next to the location to check. */
 @Composable
-private fun HoursBlock(info: PlaceDetailInfo) {
+internal fun HoursBlock(info: PlaceDetailInfo) {
     if (info.openingHours.isEmpty()) return
     val scheme = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -419,7 +433,7 @@ private fun HoursBlock(info: PlaceDetailInfo) {
 }
 
 @Composable
-private fun LocationBlock(info: PlaceDetailInfo, onOpenMaps: (PlaceDetailInfo) -> Unit) {
+internal fun LocationBlock(info: PlaceDetailInfo, onOpenMaps: (PlaceDetailInfo) -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(Res.string.place_detail_location), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -447,7 +461,7 @@ private fun Skeleton(modifier: Modifier) {
 
 /** Only shown when the itinerary reopens a place whose saved text expired and is being rebuilt. */
 @Composable
-private fun LoadingSkeleton() {
+internal fun LoadingSkeleton() {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Symbol(Symbols.autoAwesome, size = 14.dp, filled = true, tint = MaterialTheme.colorScheme.onTertiaryContainer)

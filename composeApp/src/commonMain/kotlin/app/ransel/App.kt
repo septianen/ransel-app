@@ -925,9 +925,6 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
             onAddActivity = { day -> navController.navigate(ActivityFormRoute(route.tripId, null, day)) },
             onOpenActivity = { id -> navController.navigate(ActivityDetailRoute(route.tripId, id)) },
             onFillLocation = { id -> navController.navigate(ActivityFormRoute(route.tripId, id, null, openPlace = true)) },
-            onOpenPlaceDetail = { placeId, name, currency ->
-                navController.navigate(PlaceDetailRoute(placeId, fromItinerary = true, name = name, currency = currency))
-            },
             onOpenRound = { roundId, showResult -> navController.navigate(VoteRoute(route.tripId, roundId, showResult)) },
             onOpenVotingHistory = { navController.navigate(app.ransel.navigation.VotingHistoryRoute(route.tripId)) },
             onCreatePoll = { kind -> navController.navigate(CreatePollRoute(route.tripId, kind.name)) },

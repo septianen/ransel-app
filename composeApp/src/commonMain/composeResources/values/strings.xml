@@ -287,6 +287,9 @@
     <string name="activity_link_remove">Remove link</string>
     <string name="activity_detail_title">Activity details</string>
     <string name="activity_detail_edit">Edit</string>
+    <string name="activity_detail_edit_cd">Edit activity</string>
+    <string name="activity_detail_more_cd">More options</string>
+    <string name="activity_detail_open_cd">View activity details</string>
     <string name="activity_link_open_browser">Open in browser</string>
     <string name="activity_link_copy">Copy link</string>
     <string name="activity_link_copied">Link copied</string>
