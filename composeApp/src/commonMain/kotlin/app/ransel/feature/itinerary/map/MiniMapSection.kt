@@ -760,12 +760,19 @@ fun IntercityRow(row: TransferRow, onClick: () -> Unit, modifier: Modifier = Mod
 fun MiniMapCityChips(cities: List<DayCity>, selected: String, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     val group = stringResource(Res.string.map_cities_group)
-    Row(
+    Column(
         modifier.fillMaxWidth().semantics { contentDescription = group },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            stringResource(Res.string.map_cities_today, cities.size),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = scheme.onSurfaceVariant,
+        )
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             cities.forEach { city ->
                 val on = city.name == selected
                 val label = stringResource(Res.string.map_city_chip, city.name, city.count)
@@ -795,10 +802,5 @@ fun MiniMapCityChips(cities: List<DayCity>, selected: String, onSelect: (String)
                 }
             }
         }
-        Text(
-            stringResource(Res.string.map_cities_today, cities.size),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = scheme.onSurfaceVariant,
-        )
     }
 }
