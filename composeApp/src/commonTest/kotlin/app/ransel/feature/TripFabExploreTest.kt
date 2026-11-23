@@ -1,6 +1,8 @@
 package app.ransel.feature
 
 import app.ransel.feature.group.ExplorePrice
+import app.ransel.feature.group.canCreatePollFromSheet
+import app.ransel.feature.group.canInviteFromSheet
 import app.ransel.feature.group.canSearchPlacesFromSheet
 import app.ransel.feature.group.explorePrice
 import app.ransel.shared.dto.CreditCostsDto
@@ -22,6 +24,24 @@ class TripFabExploreTest {
             assertTrue(canSearchPlacesFromSheet(Role.OWNER, phase), "owner, $phase")
             assertTrue(canSearchPlacesFromSheet(Role.EDITOR, phase), "editor, $phase")
         }
+    }
+
+    @Test
+    fun pollAndInviteStayOnUpcomingAndOngoingTrips() {
+        for (phase in listOf(TripPhase.UPCOMING, TripPhase.ONGOING)) {
+            assertTrue(canCreatePollFromSheet(solo = false, phase), "poll, $phase")
+            assertTrue(canInviteFromSheet(isOwner = true, phase), "invite owner, $phase")
+        }
+        assertFalse(canCreatePollFromSheet(solo = true, TripPhase.UPCOMING))
+        assertFalse(canInviteFromSheet(isOwner = false, TripPhase.ONGOING))
+    }
+
+    @Test
+    fun endedTripHidesPollAndInvite() {
+        assertFalse(canCreatePollFromSheet(solo = false, TripPhase.FINISHED))
+        assertFalse(canCreatePollFromSheet(solo = true, TripPhase.FINISHED))
+        assertFalse(canInviteFromSheet(isOwner = true, TripPhase.FINISHED))
+        assertFalse(canInviteFromSheet(isOwner = false, TripPhase.FINISHED))
     }
 
     @Test

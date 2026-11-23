@@ -304,15 +304,18 @@ fun TripScreen(
         // a solo trip has nobody to ask yet: no "Buat polling" until someone joins
         val solo = signedIn && koinViewModel<app.ransel.feature.group.GroupViewModel>(key = "group-$tripId") { parametersOf(tripId) }
             .state.collectAsState().value.solo
+        val phase = current?.phase(app.ransel.util.today())
         GroupActionSheet(
-            canInvite = isOwner,
-            onPoll = if (solo) null else ({ actionSheetOpen = false; kindSheetOpen = true }),
+            canInvite = phase != null && app.ransel.feature.group.canInviteFromSheet(isOwner, phase),
+            onPoll = if (phase != null && app.ransel.feature.group.canCreatePollFromSheet(solo, phase)) ({
+                actionSheetOpen = false; kindSheetOpen = true
+            }) else null,
             onInvite = { actionSheetOpen = false; inviteSheetOpen = true },
             onDismiss = { actionSheetOpen = false },
             onDocument = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenDocuments(true) }) else null,
             onAlbum = if (current?.myRole?.atLeast(app.ransel.shared.model.Role.EDITOR) == true) ({ actionSheetOpen = false; onOpenAlbums(true) }) else null,
             // the trip-first search for this trip (preferences, then swipe; 2+ members vote on the cards, voting spec)
-            onExplore = if (current != null && app.ransel.feature.group.canSearchPlacesFromSheet(current.myRole, current.phase(app.ransel.util.today()))) ({
+            onExplore = if (phase != null && app.ransel.feature.group.canSearchPlacesFromSheet(current?.myRole, phase)) ({
                 actionSheetOpen = false
                 startExplore()
             }) else null,

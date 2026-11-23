@@ -102,6 +102,18 @@ fun explorePrice(costs: app.ransel.shared.dto.CreditsDto?, resumes: Boolean): Ex
 fun canSearchPlacesFromSheet(role: app.ransel.shared.model.Role?, phase: app.ransel.feature.trips.TripPhase): Boolean =
     role?.atLeast(app.ransel.shared.model.Role.EDITOR) == true && phase != app.ransel.feature.trips.TripPhase.FINISHED
 
+/**
+ * Who sees "Buat polling": a group trip that has not ended. Solo trips have nobody to ask; a finished trip is over.
+ */
+fun canCreatePollFromSheet(solo: Boolean, phase: app.ransel.feature.trips.TripPhase): Boolean =
+    !solo && phase != app.ransel.feature.trips.TripPhase.FINISHED
+
+/**
+ * Who sees "Ajak anggota": the owner, and only while the trip has not ended. Documents and albums stay after that.
+ */
+fun canInviteFromSheet(isOwner: Boolean, phase: app.ransel.feature.trips.TripPhase): Boolean =
+    isOwner && phase != app.ransel.feature.trips.TripPhase.FINISHED
+
 @Composable
 private fun GroupActionContent(
     canInvite: Boolean,
@@ -231,4 +243,10 @@ private fun GroupActionSheetSoloPreview() = IrisPreview {
 @Composable
 private fun GroupActionSheetNoDestinationPreview() = IrisPreview {
     Box(Modifier.padding(20.dp)) { GroupActionContent(canInvite = true, onPoll = {}, onInvite = {}, onExplore = {}, exploreBlocked = true) }
+}
+
+@Preview
+@Composable
+private fun GroupActionSheetFinishedPreview() = IrisPreview {
+    Box(Modifier.padding(20.dp)) { GroupActionContent(canInvite = false, onPoll = null, onInvite = {}, onDocument = {}, onAlbum = {}) }
 }
