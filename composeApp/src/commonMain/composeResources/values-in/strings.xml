@@ -2155,7 +2155,6 @@
     <string name="explore_interests_limit">Maksimal 5 minat. Hapus satu untuk memilih yang lain.</string>
     <string name="explore_ask_cta">Tanya AI · %1$d kredit</string>
     <string name="explore_ask_charge_note">Kredit dipotong hanya jika inspirasi berhasil dibuat.</string>
-    <string name="explore_trip_door">Punya trip? Cari untuk trip ini</string>
     <string name="explore_offline">Tidak ada koneksi. Tanya AI butuh internet.</string>
     <string name="explore_rate_limited_body">Kamu sudah memulai 10 sesi Tanya AI dalam satu jam. Coba lagi nanti; kreditmu tidak dipotong.</string>
     <string name="explore_rate_limited_body_minutes">Kamu sudah memulai 10 sesi Tanya AI dalam satu jam. Coba lagi dalam %1$d menit; kreditmu tidak dipotong.</string>

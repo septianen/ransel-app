@@ -44,7 +44,6 @@ import ransel.composeapp.generated.resources.ai_paused_title
 import ransel.composeapp.generated.resources.credits_error_generic
 import ransel.composeapp.generated.resources.credits_free_today
 import ransel.composeapp.generated.resources.explore_add_credits
-import ransel.composeapp.generated.resources.explore_ask_charge_note
 import ransel.composeapp.generated.resources.explore_ask_cta
 import ransel.composeapp.generated.resources.explore_ask_cta_free
 import ransel.composeapp.generated.resources.explore_ask_field_helper
@@ -60,7 +59,6 @@ import ransel.composeapp.generated.resources.explore_offline
 import ransel.composeapp.generated.resources.explore_rate_limited_body
 import ransel.composeapp.generated.resources.explore_rate_limited_body_minutes
 import ransel.composeapp.generated.resources.explore_retry
-import ransel.composeapp.generated.resources.explore_trip_door
 import ransel.composeapp.generated.resources.explore_verify_email
 import ransel.composeapp.generated.resources.state_connection_title
 import ransel.composeapp.generated.resources.state_server_title
@@ -71,7 +69,6 @@ fun InspirationHomeScreen(
     onStartInterview: (String) -> Unit,
     onOpenCredits: () -> Unit,
     onVerifyEmail: () -> Unit,
-    onTripSearch: () -> Unit,
     onOpenSavedIdeas: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
@@ -97,7 +94,6 @@ fun InspirationHomeScreen(
         onDismissError = viewModel::dismissError,
         onCredits = onOpenCredits,
         onVerify = onVerifyEmail,
-        onTripSearch = onTripSearch,
         onOpenSavedIdeas = onOpenSavedIdeas,
     )
 }
@@ -112,7 +108,6 @@ fun InspirationHomeContent(
     onDismissError: () -> Unit = {},
     onCredits: () -> Unit = {},
     onVerify: () -> Unit = {},
-    onTripSearch: () -> Unit = {},
     onOpenSavedIdeas: () -> Unit = {},
 ) {
     when (val start = state.startState) {
@@ -233,9 +228,6 @@ fun InspirationHomeContent(
                 TextButton(onClick = onVerify, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                     Text(stringResource(Res.string.explore_verify_email))
                 }
-            }
-            TextButton(onClick = onTripSearch, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                Text(stringResource(Res.string.explore_trip_door))
             }
         }
     }
