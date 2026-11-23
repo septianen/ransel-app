@@ -61,10 +61,17 @@ class PlaceDetailService(
      * [name] is the itinerary item's title: needed only to rebuild when the cache has no row at all.
      * [currency] is the trip's base currency; the cost estimate is converted to it when a rate is known.
      */
-    suspend fun get(placeId: String, name: String?, currency: String?): PlaceDetailDto {
+    suspend fun get(placeId: String, name: String?, currency: String?, cacheOnly: Boolean = false): PlaceDetailDto {
         if (placeId.isBlank() || placeId.length > MAX_PLACE_ID) throw notFound()
         metrics.placeDetailReads.incrementAndGet()
         val row = readRow(placeId)
+        if (cacheOnly) {
+            // Activity details of a place picked by hand (plan activity-detail-unify): the saved text if any, even an
+            // expired one, else only the name and the photo. Never a Places lookup or an LLM call, never 404.
+            if (row != null) metrics.placeDetailCacheHits.incrementAndGet()
+            val known = row?.first ?: CachedDetail(name = name?.trim()?.take(MAX_NAME).orEmpty(), address = null, lat = null, lng = null)
+            return toDto(placeId, known, currency)
+        }
         val detail = if (row != null && row.second.isAfter(Instant.now())) {
             metrics.placeDetailCacheHits.incrementAndGet()
             row.first

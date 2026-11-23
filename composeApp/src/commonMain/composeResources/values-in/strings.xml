@@ -287,6 +287,9 @@
     <string name="activity_link_remove">Hapus link</string>
     <string name="activity_detail_title">Detail aktivitas</string>
     <string name="activity_detail_edit">Edit</string>
+    <string name="activity_detail_edit_cd">Ubah aktivitas</string>
+    <string name="activity_detail_more_cd">Menu lainnya</string>
+    <string name="activity_detail_open_cd">Lihat detail aktivitas</string>
     <string name="activity_link_open_browser">Buka di browser</string>
     <string name="activity_link_copy">Salin link</string>
     <string name="activity_link_copied">Link disalin</string>

@@ -205,6 +205,7 @@ import ransel.composeapp.generated.resources.map_intercity
 import ransel.composeapp.generated.resources.map_intercity_no_time
 import ransel.composeapp.generated.resources.reorder_unchanged
 import ransel.composeapp.generated.resources.travel_until
+import ransel.composeapp.generated.resources.activity_detail_open_cd
 
 /** Itinerary tab of a trip: day chips, the day's timeline (drag to reorder), Unscheduled box, FAB. */
 @Composable
@@ -216,8 +217,6 @@ fun ItineraryTab(
     onExplore: (() -> Unit)? = null,
     /** This trip has an unfinished swipe session: the "Cari inspirasi dengan AI" entry shows its dot (PRD v0.8). */
     explorePending: Boolean = false,
-    /** Opens the saved detail of an AI place (design `ItineraryLihatDetail`); null hides the info buttons. */
-    onOpenPlaceDetail: ((placeId: String, name: String, currency: String) -> Unit)? = null,
     /** Opens a poll (the DATE poll card of a trip without dates); null hides the card. */
     onOpenPoll: ((pollId: String) -> Unit)? = null,
     /** "Isi lokasi" on the day's mini map: the activity's form with the place picker open; null hides the buttons. */
@@ -267,11 +266,8 @@ fun ItineraryTab(
         }
     }
 
-    val openDetail: ((ItineraryItemDto) -> Unit)? = onOpenPlaceDetail?.let { open ->
-        { item: ItineraryItemDto -> item.placeId?.let { open(it, item.title, trip.baseCurrency) } }
-    }
     Box(modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalOpenPlaceDetail provides openDetail) {
+        run {
             ItineraryContent(
                 state = state,
                 onSelectDay = viewModel::selectDay,
@@ -1038,18 +1034,22 @@ private fun TimelineRow(
     val minutes = durationMinutes(shownStart, shownEnd) ?: item.durationMin
     val label = stringResource(item.category.itineraryLabel)
     val untilLabel = untilTime?.let { stringResource(Res.string.travel_until, formatTime(it)) }
+    // the place line, left out when it only repeats the title ("Museum D'Topeng Kingdom" twice)
+    val place = item.placeName?.takeIf { it.isNotBlank() && !repeatsTitle(it, item.title) }
     val baseSubtitle = when {
         dragging && shownStart != null && minutes != null ->
             stringResource(Res.string.itinerary_drag_start, formatTime(shownStart), formatDurationShort(minutes))
         showDuration && minutes != null -> "$label · ${formatDurationShort(minutes)}"
         endsNextDay(shownStart, shownEnd) -> {
-            val what = item.placeName?.takeIf { it.isNotBlank() } ?: label
+            val what = place ?: label
             what + " · " + stringResource(Res.string.itinerary_until_next_day, formatTime(shownEnd!!))
         }
-        else -> item.placeName?.takeIf { it.isNotBlank() } ?: label
+        // only "sampai 12:00" when the place would just repeat the title
+        place == null && untilLabel != null && !dragging -> null
+        else -> place ?: label
     }
     // an activity before a tight capsule says when it ends ("Kuliner · sampai 14.15")
-    val subtitle = if (untilLabel != null && !dragging) "$baseSubtitle · $untilLabel" else baseSubtitle
+    val subtitle = if (untilLabel != null && !dragging) listOfNotNull(baseSubtitle, untilLabel).joinToString(" · ") else baseSubtitle.orEmpty()
 
     Row(
         Modifier
@@ -1108,7 +1108,7 @@ private fun TimelineRow(
                             }
                         }
                     } else {
-                        Modifier.clickable(onClick = onClick)
+                        Modifier.clickable(onClickLabel = stringResource(Res.string.activity_detail_open_cd), onClick = onClick)
                     },
                 ),
             verticalAlignment = Alignment.CenterVertically,
@@ -1135,7 +1135,6 @@ private fun TimelineRow(
                 )
             }
             app.ransel.ui.components.PendingMarker(item.id)
-            if (!dragging) PlaceDetailButton(item)
             // No handle: a long press anywhere on the row drags it. Gestures are detected by the container in
             // DaySection (this row moves while dragging).
         }
@@ -1176,22 +1175,6 @@ private fun EmptyDay(title: String, onExplore: (() -> Unit)?, explorePending: Bo
 
 // ── Place detail entry ───────────────────────────────────────────────────────
 
-/** Set by [ItineraryTab] when the signed-in user can open a place's saved detail; null = no info buttons. */
-private val LocalOpenPlaceDetail = staticCompositionLocalOf<((ItineraryItemDto) -> Unit)?> { null }
-
-/** Info button on items that carry a Google place id (the ones saved from Explore): opens the saved detail. */
-@Composable
-private fun PlaceDetailButton(item: ItineraryItemDto) {
-    val open = LocalOpenPlaceDetail.current
-    if (open == null || item.placeId == null) return
-    Box(
-        Modifier.size(40.dp).clip(CircleShape).clickable(role = androidx.compose.ui.semantics.Role.Button) { open(item) },
-        contentAlignment = Alignment.Center,
-    ) {
-        // the AI colour, like the sparkle next to the category and the AI cards elsewhere
-        Symbol(Symbols.info, contentDescription = stringResource(Res.string.place_detail_open), tint = MaterialTheme.colorScheme.tertiary)
-    }
-}
 
 // ── Unscheduled box ──────────────────────────────────────────────────────────
 
@@ -1367,7 +1350,13 @@ internal fun UnscheduledRow(
         Modifier
             .fillMaxWidth()
             .clip(IrisShape.md)
-            .then(if (onOpen != null) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpen) else Modifier),
+            .then(
+                if (onOpen != null) {
+                    Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = stringResource(Res.string.activity_detail_open_cd), onClick = onOpen)
+                } else {
+                    Modifier
+                },
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -1405,8 +1394,6 @@ internal fun UnscheduledRow(
                 Symbol(Symbols.eventAvailable, contentDescription = stringResource(Res.string.itinerary_schedule), tint = MaterialTheme.colorScheme.primary)
             }
         }
-        // last, at the right edge (owner, 27 Oct 2026)
-        PlaceDetailButton(item)
     }
 }
 
