@@ -240,7 +240,13 @@ fun ActivityDetailContent(
     Column(
         modifier.fillMaxSize().background(scheme.surface).semantics { paneTitle = item.title },
     ) {
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding(),
+        ) {
             Hero(
                 info = info,
                 onBack = onBack,

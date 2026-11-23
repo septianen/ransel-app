@@ -648,8 +648,6 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
                     onStartInterview = { id -> navController.navigate(InspirationInterviewRoute(id)) },
                     onOpenCredits = { navController.navigate(CreditsRoute()) },
                     onVerifyEmail = { navController.navigate(VerifyEmailRoute(manager.user?.email.orEmpty())) },
-                    // "Punya trip? Cari untuk trip ini": the trip-first search keeps its picker one tap away
-                    onTripSearch = { navController.navigate(ExploreTripPickerRoute) },
                     onOpenSavedIdeas = { navController.navigate(SavedIdeasRoute) },
                 )
             }

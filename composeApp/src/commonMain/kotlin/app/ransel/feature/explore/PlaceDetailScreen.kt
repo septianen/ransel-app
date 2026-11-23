@@ -152,8 +152,15 @@ private fun NarrowLayout(
     onOpenMaps: (PlaceDetailInfo) -> Unit,
 ) {
     val info = state.info
+    val swipeActions = onSkip != null && onSave != null
     Column(Modifier.fillMaxSize()) {
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        Column(
+            Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                // itinerary: no action bar, so the Maps button must clear the system nav bar itself
+                .then(if (swipeActions) Modifier else Modifier.navigationBarsPadding()),
+        ) {
             Hero(info, onBack = onBack, height = 300.dp, rounded = false)
             Column(Modifier.padding(horizontal = 20.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 TitleBlock(info, fallbackName)
@@ -176,7 +183,7 @@ private fun WideLayout(
 ) {
     val info = state.info
     val scheme = MaterialTheme.colorScheme
-    Column(Modifier.fillMaxSize().statusBarsPadding()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             RoundIcon(Symbols.arrowBack, stringResource(Res.string.action_back), onBack, onSurface = true)
             Text(

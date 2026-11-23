@@ -2172,7 +2172,6 @@
     <string name="explore_interests_limit">Up to 5 interests. Remove one to choose another.</string>
     <string name="explore_ask_cta">Ask AI · %1$d credits</string>
     <string name="explore_ask_charge_note">Credits are charged only when your ideas are ready.</string>
-    <string name="explore_trip_door">Have a trip? Search for it</string>
     <string name="explore_offline">No connection. Ask AI needs the internet.</string>
     <string name="explore_rate_limited_body">You have started 10 Ask AI sessions in the last hour. Try again later; no credits were taken.</string>
     <string name="explore_rate_limited_body_minutes">You have started 10 Ask AI sessions in the last hour. Try again in %1$d minutes; no credits were taken.</string>

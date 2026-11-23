@@ -2,6 +2,7 @@ package app.ransel.server
 
 import app.ransel.server.ai.AiServices
 import app.ransel.server.ai.InspirationCardsInput
+import app.ransel.shared.model.InspirationDistance
 import app.ransel.server.ai.InspirationQuestionInput
 import app.ransel.server.ai.InterestSuggestions
 import app.ransel.server.ai.LlmCandidate
@@ -46,6 +47,7 @@ private class InspirationLlm : LlmClient {
     /** Facts the fake "reads" from the hero text. */
     var facts: (InspirationQuestionInput) -> LlmInspirationQuestion? = { null }
     val inputs = mutableListOf<InspirationQuestionInput>()
+    val cardInputs = mutableListOf<InspirationCardsInput>()
 
     override suspend fun suggest(query: LlmQuery): List<LlmCandidate> = emptyList()
     override suspend fun suggestInterests(destination: String, month: String, language: String) = InterestSuggestions(emptyList(), 10.0, 30.0)
@@ -66,6 +68,7 @@ private class InspirationLlm : LlmClient {
 
     override suspend fun inspirationCards(input: InspirationCardsInput): LlmInspirationCards {
         cardCalls++
+        cardInputs += input
         if (cardsToFail > 0) {
             cardsToFail--
             error("model down")
@@ -240,6 +243,88 @@ class InspirationRoutesTest {
             post("$SESSIONS/$id/finish").data().jsonObject.getValue("result").jsonObject.getValue("cards").jsonArray.forEach {
                 assertTrue(it.jsonObject.str("visaNote")!!.startsWith("Perkiraan AI"))
             }
+        }
+    }
+
+    /** The facts read before DISTANCE names a place (plan inspiration-hero-destination v2). */
+    private fun placeLlm(place: String, inIndonesia: Boolean) = InspirationLlm().apply {
+        facts = { input ->
+            if (input.slot == InspirationSlot.DISTANCE) {
+                // a model that also guesses a distance: the place must still not skip the question
+                LlmInspirationQuestion(destination = place, inIndonesia = inIndonesia, distance = if (inIndonesia) "DOMESTIC" else "ABROAD", city = place, answeredSlots = listOf("DISTANCE"))
+            } else {
+                null
+            }
+        }
+    }
+
+    @Test
+    fun aPlaceInTheHeroIsTheFirstDistanceOptionAndPickingItKeepsTheCardsThere() {
+        val llm = placeLlm("Bangkok", inIndonesia = false)
+        apiTest(ai = AiServices(llm, PhotoPlaces)) {
+            val id = UUID.randomUUID().toString()
+            val (done, seen) = answerAll(id, start(listOf(Interest.PHOTO), "street fotografi di Bangkok", id).data().jsonObject)
+            val distance = seen.single { it.str("slot") == "DISTANCE" }
+            val first = distance.getValue("options").jsonArray.first().jsonObject
+            assertEquals("destination", first.str("id"))
+            assertEquals("Bangkok dan sekitarnya", first.str("title"))
+            assertEquals("Dari yang kamu ketik", first.str("subtitle"))
+            // the usual options stay below it
+            assertTrue(distance.getValue("options").jsonArray.drop(1).any { it.jsonObject.str("id") == "abroad" })
+            // picked: no "Kota mana?", one hero read only (no extra AI call)
+            assertTrue(seen.none { q -> q.getValue("options").jsonArray.any { it.jsonObject.str("id")!!.startsWith("city:") } })
+            assertEquals(1, llm.inputs.count { it.slot == InspirationSlot.DISTANCE })
+            assertEquals("READY", done.status)
+
+            val result = post("$SESSIONS/$id/finish").data().jsonObject.getValue("result").jsonObject
+            assertEquals("Bangkok", llm.cardInputs.last().destination)
+            assertTrue(llm.cardInputs.last().needsVisaNote, "outside Indonesia: the abroad rule is on")
+            result.getValue("cards").jsonArray.forEach { assertTrue(it.jsonObject.str("visaNote")!!.startsWith("Perkiraan AI")) }
+            val chip = result.getValue("profile").jsonArray.single { it.jsonObject.str("key") == "DISTANCE" }.jsonObject
+            assertEquals("Bangkok", chip.str("value"))
+        }
+    }
+
+    @Test
+    fun anotherDistanceOptionDropsTheTypedPlace() {
+        val llm = placeLlm("Bangkok", inIndonesia = false)
+        apiTest(ai = AiServices(llm, PhotoPlaces)) {
+            val id = UUID.randomUUID().toString()
+            val (done, _) = answerAll(id, start(listOf(Interest.PHOTO), "street fotografi di Bangkok", id).data().jsonObject) { q ->
+                if (q.str("slot") == "DISTANCE") "domestic" else q.getValue("options").jsonArray[0].jsonObject.str("id")!!
+            }
+            assertEquals("READY", done.status)
+            post("$SESSIONS/$id/finish")
+            assertNull(llm.cardInputs.last().destination)
+            assertEquals(InspirationDistance.DOMESTIC, llm.cardInputs.last().distance)
+            assertFalse(llm.cardInputs.last().needsVisaNote)
+        }
+    }
+
+    @Test
+    fun aPlaceInIndonesiaSkipsTheCityQuestionWithoutAVisaNote() {
+        val llm = placeLlm("Purwokerto", inIndonesia = true)
+        apiTest(ai = AiServices(llm, PhotoPlaces)) {
+            val id = UUID.randomUUID().toString()
+            val (_, seen) = answerAll(id, start(listOf(Interest.NATURE), "Purwokerto", id).data().jsonObject)
+            assertEquals("Purwokerto dan sekitarnya", seen.single { it.str("slot") == "DISTANCE" }.getValue("options").jsonArray[0].jsonObject.str("title"))
+            assertTrue(seen.none { q -> q.getValue("options").jsonArray.any { it.jsonObject.str("id")!!.startsWith("city:") } })
+            post("$SESSIONS/$id/finish")
+            assertEquals("Purwokerto", llm.cardInputs.last().destination)
+            assertFalse(llm.cardInputs.last().needsVisaNote)
+        }
+    }
+
+    @Test
+    fun withoutAPlaceTheDistanceQuestionIsAsBefore() {
+        val llm = InspirationLlm() // the hero read finds nothing
+        apiTest(ai = AiServices(llm, PhotoPlaces)) {
+            val id = UUID.randomUUID().toString()
+            val (_, seen) = answerAll(id, start(listOf(Interest.NATURE), "freediving pemula", id).data().jsonObject)
+            // the first DISTANCE question ("Dalam kota" then asks "Kota mana?", also a DISTANCE question)
+            val options = seen.first { it.str("slot") == "DISTANCE" }.getValue("options").jsonArray.map { it.jsonObject.str("id") }
+            assertFalse("destination" in options)
+            assertEquals("same_city", options.first())
         }
     }
 
