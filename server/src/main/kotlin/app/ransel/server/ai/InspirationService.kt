@@ -538,7 +538,7 @@ class InspirationService(
             if (slot == InspirationSlot.DISTANCE) {
                 // fixed options: the answer must map to InspirationDistance, so no AI call is needed
                 val q = fallbackInspirationQuestion(slot, state.interests, state.distance, language)!!
-                return ask(state, q, null)
+                return ask(state, withDestinationOption(q, state.heroDestination, language), null)
             }
             val before = state
             val asked = askQuestion(userId, sessionId, state, language, slot, null)
@@ -555,7 +555,10 @@ class InspirationService(
         return state
     }
 
-    /** Only what the AI reads from the hero text and the answers so far (no question is shown). Null = the call failed. */
+    /**
+     * Only what the AI reads from the hero text and the answers so far (no question is shown). Null = the call failed. A
+     * named place does not answer DISTANCE (owner, 23 Nov 2026): the question stays, with "<place> dan sekitarnya" first.
+     */
     private suspend fun readFacts(userId: UUID, sessionId: UUID, state: InspirationState, language: String): InspirationState? =
         askQuestion(userId, sessionId, state, language, InspirationSlot.DISTANCE, null, factsOnly = true)
 
@@ -586,6 +589,16 @@ class InspirationService(
         }
         var next = applyFacts(state, answer, slot, requirement, askAgain)
         if (factsOnly) {
+            val place = cleanDestination(answer.destination)
+            if (place != null) {
+                // the typed place is offered on the DISTANCE question; it does not skip it or set a distance on its own
+                next = next.copy(
+                    heroDestination = place, heroInIndonesia = answer.inIndonesia,
+                    distance = state.distance, city = state.city,
+                    done = if (InspirationSlot.DISTANCE in state.done) next.done else next.done - InspirationSlot.DISTANCE,
+                    skipped = if (InspirationSlot.DISTANCE in state.skipped) next.skipped else next.skipped.filter { it != InspirationSlot.DISTANCE },
+                )
+            }
             writeLog(sessionId, userId, state.stepsAsked, "QUESTION", slot, InspirationQuestionSource.LLM, "OK", elapsed(started), null)
             return next.copy(current = null)
         }
@@ -672,7 +685,18 @@ class InspirationService(
                 if (requirement == InspirationRequirement.BUDDY && option?.id == "buddy_no") next = next.copy(noBuddy = true)
             }
             isCity -> next = next.copy(city = text.take(80))
+            question.slot == InspirationSlot.DISTANCE && option?.id == DESTINATION_OPTION_ID && state.heroDestination != null -> next = next.copy(
+                // "<place> dan sekitarnya": no "Kota mana?" (not SAME_CITY); abroad (visa estimate) outside Indonesia
+                destination = state.heroDestination,
+                distance = when (state.heroInIndonesia) {
+                    false -> InspirationDistance.ABROAD
+                    true -> InspirationDistance.DOMESTIC
+                    null -> InspirationDistance.ANY
+                },
+                done = next.done + InspirationSlot.DISTANCE,
+            )
             question.slot == InspirationSlot.DISTANCE -> next = next.copy(
+                destination = null,
                 distance = option?.id?.let(::inspirationDistanceFromOptionId) ?: InspirationDistance.ANY,
                 done = next.done + InspirationSlot.DISTANCE,
             )
@@ -695,7 +719,7 @@ class InspirationService(
         val input = InspirationCardsInput(
             language = language, interests = state.interests, text = state.text, answers = state.answers, distance = state.distance,
             city = state.city, skillActivity = state.skillActivity, needsVisaNote = visa, count = count, avoidRegions = avoid,
-            overrides = state.overrides, refresh = refresh,
+            overrides = state.overrides, refresh = refresh, destination = state.destination,
         )
         val avoidKeys = avoid.map { it.trim().lowercase() }.toSet()
         repeat(CARD_ATTEMPTS) { attempt ->
@@ -807,6 +831,8 @@ class InspirationService(
             val value = sentence(chip.value.trim().take(40))
             if (value.isNotEmpty() && key !in chips) chips[key] = value
         }
+        // "<place> dan sekitarnya" was picked: the distance chip names the place (editable like any chip)
+        state.destination?.let { chips[InspirationChipKey.DISTANCE] = it }
         state.overrides.forEach { (k, v) -> chips[k] = v }
         return chips.map { (k, v) -> InspirationChipDto(k, v) }
     }
@@ -822,7 +848,11 @@ class InspirationService(
                     "luar kota" in lower || "indonesia" in lower -> InspirationDistance.DOMESTIC
                     else -> null
                 }
-                if (distance != null) next = next.copy(distance = distance)
+                when {
+                    distance != null -> next = next.copy(distance = distance, destination = null)
+                    // the destination chip edited to another place: the cards follow it
+                    state.destination != null && value.isNotBlank() -> next = next.copy(destination = scrub(value.trim().take(80)))
+                }
             }
             InspirationChipKey.INTEREST -> {
                 val found = Interest.entries.filter { i ->
@@ -836,6 +866,21 @@ class InspirationService(
     }
 
     // ── fixed questions (server copy, Accept-Language) ─────────────────────
+
+    /** "Bangkok dan sekitarnya" first, then the usual options; not preselected. [place] null = the question as it was. */
+    private fun withDestinationOption(q: InspirationQuestionDto, place: String?, language: String): InspirationQuestionDto {
+        if (place == null) return q
+        val option = if (language == "en") {
+            InspirationOptionDto(DESTINATION_OPTION_ID, "$place and around", subtitle = "From what you typed")
+        } else {
+            InspirationOptionDto(DESTINATION_OPTION_ID, "$place dan sekitarnya", subtitle = "Dari yang kamu ketik")
+        }
+        return q.copy(options = listOf(option) + q.options.filter { it.id != DESTINATION_OPTION_ID })
+    }
+
+    /** The model's destination as a short name ("Bangkok"); null when empty or not a plausible place name. */
+    private fun cleanDestination(raw: String?): String? =
+        raw?.trim()?.trim('"', '.', ',')?.takeIf { it.length in 2..60 }?.let(::scrub)?.let(::sentenceCase)
 
     private fun fixed(slot: InspirationSlot, text: String, vararg options: Pair<String, String>) =
         InspirationQuestionDto(slot = slot, text = text, options = options.map { (id, title) -> InspirationOptionDto(id, title) }, source = InspirationQuestionSource.FALLBACK)
@@ -1047,6 +1092,10 @@ class InspirationService(
          * owner's device test, 22 Nov 2026). Only the first letter changes; names inside keep their case.
          */
         fun sentence(text: String): String = text.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        private fun sentenceCase(text: String): String = sentence(text)
+
+        /** The DISTANCE option that keeps the place typed in the hero text. */
+        const val DESTINATION_OPTION_ID = "destination"
 
         /** Free text keeps its meaning but loses anything that looks like an email or a phone number (PRD "Tracking"). */
         fun scrub(text: String): String = PHONE.replace(EMAIL.replace(text, "[email]"), "[phone]")

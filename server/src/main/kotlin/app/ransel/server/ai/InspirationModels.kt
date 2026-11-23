@@ -47,6 +47,15 @@ data class InspirationState(
     val cityAsked: Boolean = false,
     /** The hero text was read by the AI once (it may answer DISTANCE, whose question has fixed options). */
     val textRead: Boolean = false,
+    /**
+     * The place the hero text names ("Bangkok", "Bali"), read with the facts before DISTANCE (plan
+     * inspiration-hero-destination v2): offered as the first DISTANCE option "<place> dan sekitarnya". Null = none or the
+     * read failed. [heroInIndonesia] null = not known.
+     */
+    val heroDestination: String? = null,
+    val heroInIndonesia: Boolean? = null,
+    /** The user picked "<place> dan sekitarnya": the cards stay in and around it. Any other DISTANCE option leaves it null. */
+    val destination: String? = null,
     /** "Belum punya buddy": the results offer "Cari buddy". */
     val noBuddy: Boolean = false,
     /** Questions shown so far (the 1-based number of the question on screen once one is shown). */
@@ -114,6 +123,10 @@ data class LlmInspirationQuestion(
     val answeredSlots: List<String> = emptyList(),
     /** Requirements (LEVEL, BUDGET) the user already answered through the text. */
     val answeredRequirements: List<String> = emptyList(),
+    /** The place the user wants to go when the hero text names one ("Bangkok"); null = no place. */
+    val destination: String? = null,
+    /** Whether [destination] is in Indonesia. */
+    val inIndonesia: Boolean? = null,
 )
 
 /** Asks the LLM for cards. [refresh] set = rewrite that one card with current information (the "Perbarui" button). */
@@ -132,6 +145,8 @@ data class InspirationCardsInput(
     val avoidRegions: List<String> = emptyList(),
     val overrides: Map<InspirationChipKey, String> = emptyMap(),
     val refresh: InspirationCardDto? = null,
+    /** "<place> dan sekitarnya" was picked: every region, the surprise too, is in or near this place. */
+    val destination: String? = null,
 )
 
 @Serializable
