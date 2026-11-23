@@ -176,48 +176,22 @@ class InspirationHandoffTest {
     }
 
     @Test
-    fun aTripFromAnIdeaGetsOneUnscheduledItemAndTheIdeasInterests() = runTest {
+    fun aTripFromAnIdeaHasAnEmptyItineraryAndTheIdeasInterests() = runTest {
+        // owner, 23 Nov 2026 (plan idea-to-trip-flow v3): the idea is not an itinerary item
         val store = InMemoryStore()
         val explore = app.ransel.data.explore.ExploreSessionStore(InMemoryPreferencesRepository())
-        val vm = InterviewViewModel(
-            InterviewDoor.MY_TRIPS, InMemoryTripRepository(store), InMemoryPreferencesRepository(), null, null,
-            explore = explore, itinerary = app.ransel.data.fake.InMemoryItineraryRepository(store),
-        )
+        val vm = InterviewViewModel(InterviewDoor.MY_TRIPS, InMemoryTripRepository(store), InMemoryPreferencesRepository(), null, null, explore = explore)
         vm.setNameTemplate("Trip ke %s")
-        val prefill = InterviewPrefill.fromRoute("Khao Yai, Thailand", "th", "NATURE,RELAX", "  Berjalan santai di taman nasional ")!!
-        vm.applyPrefill(prefill); runCurrent()
+        vm.applyPrefill(InterviewPrefill.fromRoute("Khao Yai, Thailand", "th", "NATURE,RELAX")!!); runCurrent()
         assertEquals("Trip ke Khao Yai, Thailand", vm.state.value.tripName)
         vm.onDatesUndecided(true)
         vm.next(); vm.skipInterview()
         vm.create()
-        val event = vm.eventFlow.first()
-        val tripId = assertIs<app.ransel.feature.interview.InterviewEvent.Created>(event).tripId
-        val trip = store.trips.value.single()
-        assertNull(trip.startDate, "dates stay open")
-        val item = store.items.value.single { it.tripId == tripId }
-        assertEquals("Berjalan santai di taman nasional", item.title)
-        assertNull(item.dayDate, "Belum dijadwalkan, not on a day")
-        assertEquals("Khao Yai, Thailand", item.placeName)
-        assertEquals(PlaceKind.AREA, item.placeKind)
-        assertNull(item.notes, "no AI note")
-        assertNull(item.placeId)
+        val tripId = assertIs<app.ransel.feature.interview.InterviewEvent.Created>(vm.eventFlow.first()).tripId
+        assertNull(store.trips.value.single().startDate, "dates stay open")
+        assertTrue(store.items.value.none { it.tripId == tripId }, "nothing on a day, nothing in Belum dijadwalkan")
         // the idea's interests are the trip's Seleramu (uploaded to the server when the trip is opened)
         assertEquals(listOf(Interest.NATURE, Interest.RELAX), explore.taste(tripId)?.interests)
-    }
-
-    @Test
-    fun aTripWithoutAnIdeaGetsNoItem() = runTest {
-        val store = InMemoryStore()
-        val vm = InterviewViewModel(
-            InterviewDoor.MY_TRIPS, InMemoryTripRepository(store), InMemoryPreferencesRepository(), null, null,
-            itinerary = app.ransel.data.fake.InMemoryItineraryRepository(store),
-        )
-        vm.applyPrefill(InterviewPrefill.fromRoute("Khao Yai, Thailand", "th", "NATURE")!!); runCurrent()
-        vm.onDatesUndecided(true)
-        vm.next(); vm.skipInterview()
-        vm.create()
-        vm.eventFlow.first()
-        assertTrue(store.items.value.isEmpty())
     }
 
     private companion object {
