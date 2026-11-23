@@ -21,6 +21,8 @@ object ApiRoutes {
     fun itinerary(tripId: String) = "/trips/$tripId/itinerary"     // GET list, POST ItineraryItemInput
     fun itineraryItem(tripId: String, itemId: String) =
         "/trips/$tripId/itinerary/$itemId"                         // PUT ItineraryItemInput (also used to schedule), DELETE
+    fun itineraryItemIdea(tripId: String, itemId: String) =
+        "/trips/$tripId/itinerary/$itemId/idea"                    // GET → ItineraryIdeaDto (VIEWER+; 404 NOT_FOUND = none), PUT InspirationCardDto → ItineraryIdeaDto (EDITOR+; the item must be in the trip)
     fun dayOrder(tripId: String, date: String) =
         "/trips/$tripId/days/$date/order"                          // PUT DayOrderRequest (date = ISO yyyy-MM-dd)
 

@@ -279,6 +279,13 @@ class RanselApi(
     suspend fun deleteTravelMode(tripId: String, id: String): ApiResult<Unit> =
         delete(ApiRoutes.travelMode(tripId, id))
 
+    /** The idea card behind an item made from an idea (plan idea-activity-detail); NOT_FOUND = none. */
+    suspend fun itineraryIdea(tripId: String, itemId: String): ApiResult<app.ransel.shared.dto.ItineraryIdeaDto> =
+        get(ApiRoutes.itineraryItemIdea(tripId, itemId))
+    /** OWNER, EDITOR: keeps [card] with the item; the answer carries the region's point. */
+    suspend fun saveItineraryIdea(tripId: String, itemId: String, card: app.ransel.shared.dto.InspirationCardDto): ApiResult<app.ransel.shared.dto.ItineraryIdeaDto> =
+        send(HttpMethod.Put, ApiRoutes.itineraryItemIdea(tripId, itemId), card)
+
     /** The trip's Seleramu (plan explore-trip-one-tap): every member reads it; `taste` is null while nobody saved one. */
     suspend fun tripTaste(tripId: String): ApiResult<TripTasteResponse> = get(ApiRoutes.tripTaste(tripId))
     /** OWNER, EDITOR: replaces the whole Seleramu. */

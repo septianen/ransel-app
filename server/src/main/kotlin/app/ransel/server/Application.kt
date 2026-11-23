@@ -70,6 +70,7 @@ import app.ransel.server.routes.meRoutes
 import app.ransel.server.routes.packingRoutes
 import app.ransel.server.routes.packingTemplateRoutes
 import app.ransel.server.routes.placeDetailRoutes
+import app.ransel.server.routes.itineraryIdeaRoutes
 import app.ransel.server.routes.placePhotoRoutes
 import app.ransel.server.routes.recommendationRoutes
 import app.ransel.server.routes.inspirationRoutes
@@ -195,6 +196,7 @@ fun Application.module(
     val content = ContentService(suggestions)
     val fxRates = fx ?: ecb ?: NoFxRates
     val placeDetails = PlaceDetailService(aiServices, photoSigner, fxRates, aiMetrics)
+    val itineraryIdeas = app.ransel.server.service.ItineraryIdeaService(aiServices, photoSigner)
     val credits = CreditService(settings)
     val rounds = RoundService(config, photoSigner)
     val recommendations = RecommendationService(config, aiServices, aiMetrics, photoSigner, suggestions, fxRates, placeDetails, credits, rounds, searchLog)
@@ -322,6 +324,7 @@ fun Application.module(
                 itineraryRoutes()
                 travelModeRoutes()
                 tripTasteRoutes()
+                itineraryIdeaRoutes(itineraryIdeas)
                 packingRoutes()
                 expenseRoutes()
                 syncRoutes(SyncService())

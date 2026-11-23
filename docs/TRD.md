@@ -150,6 +150,7 @@ Every endpoint sits under `/api/v1`. From Phase 3, every endpoint except auth re
 | GET, POST | /trips/{id}/itinerary | List / add activities | 2 |
 | PUT, DELETE | /trips/{id}/itinerary/{itemId} | Update (including scheduling: set day\_date + times) / delete | 2 |
 | PUT ★ | /trips/{id}/days/{date}/order | Save the new order + times of one day: items \[{id, sortOrder, startTime, endTime}\] | 2 |
+| GET, PUT | /trips/{id}/itinerary/{itemId}/idea | The Explore Inspirasi card behind an item made by "Bikin trip dari sini" (Activity details: photo, cost, best season, About, Good to know) plus the region's point from Google Places: GET VIEWER+ (404 = none), PUT EDITOR+ | Explore |
 | GET, PUT | /trips/{id}/taste | The trip's Seleramu (interests, Khas chips, style, price level, notes): GET VIEWER+, PUT EDITOR+; "Cari tempat" starts from it on every device | Explore |
 | GET, PUT | /trips/{id}/travel-modes | List / upsert a per-leg travel mode (EDITOR+) | 4 |
 | DELETE | /trips/{id}/travel-modes/{id} | Soft-delete a per-leg mode (back to Auto; EDITOR+) | 4 |

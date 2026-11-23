@@ -1069,7 +1069,7 @@ private fun NavGraphBuilder.trips(navController: NavHostController, signedIn: ()
         val session: SessionManager = koinInject()
         InterviewScreen(
             door = InterviewDoor.valueOf(route.door),
-            prefill = InterviewPrefill.fromRoute(route.destination, route.countryCode, route.interests, route.ideaActivity),
+            prefill = InterviewPrefill.fromRoute(route.destination, route.countryCode, route.interests, route.ideaActivity, route.ideaCard),
             onLeave = { navController.popBackStack() },
             // "Buat trip dan cari": the swipe screen takes over; Back from it leads to where Jelajah was opened
             onCreatedAndSearch = { id -> navController.navigate(SwipeRoute(id, created = true)) { popUpTo<InterviewRoute> { inclusive = true } } },
@@ -1248,6 +1248,7 @@ private fun NavHostController.openTripFromIdea(card: app.ransel.shared.dto.Inspi
             countryCode = card.countryCode,
             interests = interests.joinToString(",") { it.name }.ifEmpty { null },
             ideaActivity = card.activity,
+            ideaCard = app.ransel.data.remote.ApiJson.encodeToString(app.ransel.shared.dto.InspirationCardDto.serializer(), card.copy(photoUrl = null)),
         ),
     )
 }

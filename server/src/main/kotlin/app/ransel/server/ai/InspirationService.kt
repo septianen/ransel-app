@@ -758,8 +758,9 @@ class InspirationService(
     }
 
     private fun sanitize(c: LlmInspirationCard, state: InspirationState, language: String, visa: Boolean): InspirationCardDto? {
-        val activity = sentence(c.activity.trim().take(80))
         val region = c.region.trim().take(80)
+        // the model sometimes writes "Activity · Region" into activity; the card shows the region on its own
+        val activity = sentence(app.ransel.shared.domain.ideaActivityTitle(c.activity, region).take(80))
         val why = sentence(c.why.trim().take(200))
         if (activity.isEmpty() || region.isEmpty() || why.isEmpty()) return null
         val min = c.costMinIdr?.takeIf { it > 0 }

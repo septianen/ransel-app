@@ -176,6 +176,8 @@ class InterviewViewModel(
     private val creditsStore: CreditsStore? = null,
     /** Where the idea's activity goes after "Buat trip" from an Explore Inspirasi card; null in tests that do not need it. */
     private val itinerary: app.ransel.data.repository.ItineraryRepository? = null,
+    /** Keeps the idea card for the item's Activity details until the server has it. */
+    private val ideas: app.ransel.data.explore.ItineraryIdeas? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(InterviewUiState(door = door, signedIn = session?.user != null))
     val state: StateFlow<InterviewUiState> = _state.asStateFlow()
@@ -206,6 +208,7 @@ class InterviewViewModel(
     private var prefilled = false
     /** The idea's activity and its region, added to the new trip as one unscheduled item. */
     private var ideaItem: Pair<String, String>? = null
+    private var ideaCard: app.ransel.shared.dto.InspirationCardDto? = null
 
     /**
      * "Bikin trip dari sini" (Explore Inspirasi): the card's region becomes the destination (as text: an activity + region
@@ -220,6 +223,7 @@ class InterviewViewModel(
         if (prefill.interests.isNotEmpty()) change { a, _ -> a.copy(taste = a.taste.copy(interests = prefill.interests)) }
         val activity = prefill.activity
         if (activity != null && name.isNotEmpty()) ideaItem = activity to name
+        ideaCard = prefill.card
     }
 
     fun setNameTemplate(template: String) = _state.update { if (it.nameTemplate == template) it else it.copy(nameTemplate = template) }
@@ -531,23 +535,27 @@ class InterviewViewModel(
     }
 
     /**
-     * From an idea: one item in "Belum dijadwalkan" (no day), title = the activity, place = the region as an area (no point),
-     * no note and no label: AI-made items look the same whatever their source (owner, seq 1077). Free: no request is made.
-     * A failure here does not undo the trip.
+     * From an idea: one item in "Belum dijadwalkan" (no day), title = the activity only (owner, 23 Nov 2026), place = the
+     * region as an area; no note and no label: AI-made items look the same whatever their source (owner, seq 1077). The
+     * idea card waits on this device for the upload that gives the item its Activity details and the region's point
+     * (plan idea-activity-detail). Free: no AI call. A failure here does not undo the trip.
      */
     private suspend fun addIdeaItem(tripId: String) {
         val (activity, region) = ideaItem ?: return
         val repo = itinerary ?: return
+        val itemId = newId()
         runCatching {
             repo.save(
                 tripId,
                 app.ransel.shared.dto.ItineraryItemInput(
-                    id = newId(), dayDate = null, title = activity, category = app.ransel.shared.model.Category.ATTRACTION,
+                    id = itemId, dayDate = null, title = app.ransel.shared.domain.ideaActivityTitle(activity, region),
+                    category = app.ransel.shared.model.Category.ATTRACTION,
                     placeName = region, placeKind = app.ransel.shared.dto.PlaceKind.AREA,
                     placeCity = region.substringBefore(',').trim().ifEmpty { null },
                     source = app.ransel.shared.model.ItemSource.AI,
                 ),
             )
+            ideaCard?.let { ideas?.add(tripId, itemId, it) }
         }
     }
 

@@ -356,7 +356,11 @@ private fun TitleBlock(info: PlaceDetailInfo?, fallbackName: String?) {
 @Composable
 internal fun costLabel(level: String?, info: PlaceDetailInfo): String {
     val cost = info.estimatedCostMinor?.let { minor ->
-        info.costCurrency?.let { currency -> stringResource(Res.string.place_detail_cost, formatMoney(minor, currency)) }
+        info.costCurrency?.let { currency ->
+            val max = info.costMaxMinor?.takeIf { it > minor }
+            val amount = if (max != null) formatMoney(minor, currency) + " – " + formatMoney(max, currency) else formatMoney(minor, currency)
+            stringResource(Res.string.place_detail_cost, amount)
+        }
     }
     return listOfNotNull(level, cost).joinToString(" · ")
 }

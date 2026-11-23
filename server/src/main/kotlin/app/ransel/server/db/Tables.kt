@@ -267,6 +267,20 @@ object TravelModes : Table("travel_modes") {
     override val primaryKey = PrimaryKey(id)
 }
 
+/** V13: the idea card behind an item made by "Bikin trip dari sini" (Activity details, no AI call). One row per item. */
+object ItineraryIdeaDetails : Table("itinerary_idea_details") {
+    val itemId = javaUUID("item_id")
+    val tripId = javaUUID("trip_id")
+    val card = jsonb<app.ransel.shared.dto.InspirationCardDto>("card", Json)
+    val photoPlaceId = text("photo_place_id").nullable()
+    val regionPlaceId = text("region_place_id").nullable()
+    val lat = double("lat").nullable()
+    val lng = double("lng").nullable()
+    val updatedBy = javaUUID("updated_by").nullable()
+    val updatedAt = timestamp("updated_at")
+    override val primaryKey = PrimaryKey(itemId)
+}
+
 /** V12: a trip's Seleramu ("Cari tempat" starts from it on every device). One row per trip. */
 object TripTastes : Table("trip_tastes") {
     val tripId = javaUUID("trip_id")
