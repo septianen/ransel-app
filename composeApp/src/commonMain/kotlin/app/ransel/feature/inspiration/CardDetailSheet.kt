@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,9 +16,12 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
+import org.koin.compose.viewmodel.koinViewModel
 import app.ransel.shared.dto.InspirationCardDto
 import app.ransel.ui.preview.IrisPreview
 import app.ransel.ui.symbols.Symbol
@@ -29,6 +33,7 @@ import ransel.composeapp.generated.resources.Res
 import ransel.composeapp.generated.resources.explore_ai_estimate_note
 import ransel.composeapp.generated.resources.explore_activity_region
 import ransel.composeapp.generated.resources.explore_cost_label
+import ransel.composeapp.generated.resources.explore_add_to_trip
 import ransel.composeapp.generated.resources.explore_create_trip
 import ransel.composeapp.generated.resources.explore_create_trip_note
 import ransel.composeapp.generated.resources.explore_detail_title
@@ -42,9 +47,16 @@ fun CardDetailSheet(
     onCreateTrip: (InspirationCardDto) -> Unit,
     onSave: (InspirationCardDto) -> Unit,
     showSaveButton: Boolean = true,
+    onAddToExistingTrip: ((InspirationCardDto) -> Unit)? = null,
+    addIdeaViewModel: AddIdeaToTripViewModel = koinViewModel(),
 ) {
+    val addState by addIdeaViewModel.state.collectAsState()
     ModalBottomSheet(onDismissRequest = onDismiss, shape = IrisShape.xl) {
-        CardDetailContent(card, onCreateTrip, onSave, showSaveButton)
+        CardDetailContent(
+            card, onCreateTrip, onSave, showSaveButton,
+            showAddToExistingTrip = onAddToExistingTrip != null && addState.canAdd,
+            onAddToExistingTrip = { if (onAddToExistingTrip != null) { onAddToExistingTrip(it); onDismiss() } },
+        )
     }
 }
 
@@ -54,6 +66,8 @@ fun CardDetailContent(
     onCreateTrip: (InspirationCardDto) -> Unit = {},
     onSave: (InspirationCardDto) -> Unit = {},
     showSaveButton: Boolean = true,
+    showAddToExistingTrip: Boolean = false,
+    onAddToExistingTrip: (InspirationCardDto) -> Unit = {},
 ) {
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 8.dp),
@@ -85,12 +99,17 @@ fun CardDetailContent(
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
-        Button(onClick = { onCreateTrip(card) }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        Button(onClick = { onCreateTrip(card) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 4.dp)) {
             Text(stringResource(Res.string.explore_create_trip))
+        }
+        if (showAddToExistingTrip) {
+            OutlinedButton(onClick = { onAddToExistingTrip(card) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(Res.string.explore_add_to_trip))
+            }
         }
         Text(stringResource(Res.string.explore_create_trip_note), modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (showSaveButton) {
-            OutlinedButton(onClick = { onSave(card) }, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { onSave(card) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Symbol(Symbols.bookmark, size = 18.dp)
                 Text(stringResource(Res.string.explore_save), modifier = Modifier.padding(start = 8.dp))
             }
@@ -114,3 +133,4 @@ private val skillPreview = InspirationCardDto(
 @Preview @Composable private fun SkillCardSheetPreview() = IrisPreview { CardDetailContent(skillPreview) }
 @Preview @Composable private fun AbroadCardSheetPreview() = IrisPreview { CardDetailContent(skillPreview.copy(visaNote = "Visa wisata diperlukan", costRange = null)) }
 @Preview @Composable private fun SavedCardSheetPreview() = IrisPreview { CardDetailContent(skillPreview, showSaveButton = false) }
+@Preview @Composable private fun CardWithExistingTripPreview() = IrisPreview { CardDetailContent(skillPreview, showSaveButton = false, showAddToExistingTrip = true) }

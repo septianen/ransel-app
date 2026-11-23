@@ -35,6 +35,18 @@ class CardDetailContentTest {
 
         rule.onNodeWithText("Save").assertDoesNotExist()
         rule.onNodeWithText("Create a trip from here").assertExists()
+        rule.onNodeWithText("Add to existing trip").assertDoesNotExist()
+    }
+
+    @Test
+    fun addToExistingTripShowsOnlyWhenAsked() {
+        rule.setContent {
+            IrisTheme(ThemeMode.LIGHT) {
+                CardDetailContent(card, showSaveButton = false, showAddToExistingTrip = true)
+            }
+        }
+        rule.onNodeWithText("Add to existing trip").assertExists()
+        rule.onNodeWithText("Create a trip from here").assertExists()
     }
 
     @Test

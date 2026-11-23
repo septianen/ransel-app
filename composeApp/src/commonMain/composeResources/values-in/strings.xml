@@ -2193,6 +2193,11 @@
     <string name="explore_ai_estimate_note">perkiraan AI, cek lagi sebelum berangkat</string>
     <string name="explore_safety_line">Ransel bukan operator. Pastikan lisensi dan buddy sebelum berangkat.</string>
     <string name="explore_create_trip">Bikin trip dari sini</string>
+    <string name="explore_add_to_trip">Tambah ke trip yang sudah ada</string>
+    <string name="explore_add_to_trip_title">Pilih trip</string>
+    <string name="explore_add_to_trip_snackbar">Ditambahkan ke %1$s</string>
+    <string name="explore_add_to_trip_empty_title">Belum ada trip untuk ditambahkan</string>
+    <string name="explore_add_to_trip_empty_body">Trip yang sudah selesai dan trip yang hanya bisa kamu lihat tidak ditampilkan.</string>
     <string name="explore_create_trip_note">Tanggal bisa diisi nanti.</string>
     <string name="explore_save">Simpan</string>
     <string name="explore_saved_snackbar">Disimpan ke Ide tersimpan · Lihat</string>

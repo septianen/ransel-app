@@ -95,6 +95,7 @@ fun SavedIdeasScreen(
     onAskAi: () -> Unit,
     /** "Bikin trip dari sini" in an idea's sheet: Buat trip prefilled from the idea. */
     onCreateTrip: (SavedIdeaDto) -> Unit = {},
+    onAddToExistingTrip: (InspirationCardDto) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val snackHost = remember { SnackbarHostState() }
@@ -124,6 +125,7 @@ fun SavedIdeasScreen(
         onSignUp = onSignUp,
         onAskAi = onAskAi,
         onCreateTrip = onCreateTrip,
+        onAddToExistingTrip = onAddToExistingTrip,
         onRemove = viewModel::remove,
         onRefresh = viewModel::refresh,
         onRetry = viewModel::load,
@@ -140,6 +142,7 @@ fun SavedIdeasContent(
     onSignUp: () -> Unit = {},
     onAskAi: () -> Unit = {},
     onCreateTrip: (SavedIdeaDto) -> Unit = {},
+    onAddToExistingTrip: (InspirationCardDto) -> Unit = {},
     onRemove: (SavedIdeaDto) -> Unit = {},
     onRefresh: (SavedIdeaDto) -> Unit = {},
     onRetry: () -> Unit = {},
@@ -220,7 +223,14 @@ fun SavedIdeasContent(
         }
     }
     detail?.let { idea ->
-        CardDetailSheet(idea.card, onDismiss = { detail = null }, onCreateTrip = { detail = null; onCreateTrip(idea) }, onSave = { }, showSaveButton = false)
+        CardDetailSheet(
+            idea.card,
+            onDismiss = { detail = null },
+            onCreateTrip = { detail = null; onCreateTrip(idea) },
+            onSave = { },
+            showSaveButton = false,
+            onAddToExistingTrip = onAddToExistingTrip,
+        )
     }
 }
 

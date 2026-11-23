@@ -1,6 +1,7 @@
 package app.ransel.feature.trips
 
 import app.ransel.shared.dto.TripDto
+import app.ransel.shared.model.Role
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 
@@ -44,3 +45,24 @@ val upcomingOrder: Comparator<TripDto> =
 fun pickFeaturedTrip(trips: List<TripDto>, today: LocalDate): TripDto? =
     trips.filter { it.phase(today) == TripPhase.ONGOING }.minByOrNull { it.endDate ?: today }
         ?: trips.filter { it.phase(today) == TripPhase.UPCOMING }.minWithOrNull(upcomingOrder)
+
+/**
+ * An existing trip the user can still change: OWNER or EDITOR, and not finished. Undated trips count as upcoming.
+ * Finished trips and VIEWER-only memberships are left out (itinerary writes would 403; Explore search would 422).
+ */
+fun TripDto.canReceiveIdea(today: LocalDate): Boolean =
+    myRole.atLeast(Role.EDITOR) && phase(today) != TripPhase.FINISHED
+
+/** True when [trips] has at least one [canReceiveIdea] trip: the idea sheet's "Add to existing trip" button. */
+fun canAddIdeaToExistingTrip(trips: List<TripDto>, today: LocalDate): Boolean = trips.any { it.canReceiveIdea(today) }
+
+/** Nearest ongoing first, then dated upcoming, then undated. */
+fun tripsThatCanReceiveIdea(trips: List<TripDto>, today: LocalDate): List<TripDto> =
+    trips.filter { it.canReceiveIdea(today) }
+        .sortedWith(
+            compareBy(
+                { it.phase(today) != TripPhase.ONGOING },
+                { it.startDate == null },
+                { if (it.phase(today) == TripPhase.ONGOING) it.endDate else it.startDate },
+            ),
+        )
