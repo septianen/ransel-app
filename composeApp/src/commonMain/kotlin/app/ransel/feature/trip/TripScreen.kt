@@ -162,6 +162,15 @@ fun TripScreen(
     // device starts "Cari tempat" from it.
     val tasteRepository: app.ransel.data.explore.TripTasteRepository = koinInject()
     val exploreStore: app.ransel.data.explore.ExploreSessionStore = koinInject()
+    // an item made from an idea: its card reaches the server once the trip has (with the region's point for the map)
+    val itineraryIdeas: app.ransel.data.explore.ItineraryIdeas = koinInject()
+    LaunchedEffect(tripId, signedIn, canAsk) {
+        if (!signedIn || !canAsk) return@LaunchedEffect
+        repeat(IDEA_UPLOAD_TRIES) {
+            if (!itineraryIdeas.hasPending(tripId) || itineraryIdeas.push(tripId)) return@LaunchedEffect
+            kotlinx.coroutines.delay(IDEA_UPLOAD_PAUSE_MILLIS)
+        }
+    }
     LaunchedEffect(tripId, signedIn, canAsk, current != null) {
         val t = current ?: return@LaunchedEffect
         if (signedIn && canAsk && exploreStore.taste(tripId) != null) tasteRepository.load(t, canEdit = true)
@@ -369,3 +378,7 @@ private fun PullToRefresh(
 }
 
 private class TripAnswer(val trip: TripDto?)
+
+/** A new trip reaches the server a few seconds after "Buat trip": the idea card upload tries again for about a minute. */
+private const val IDEA_UPLOAD_TRIES = 12
+private const val IDEA_UPLOAD_PAUSE_MILLIS = 5_000L

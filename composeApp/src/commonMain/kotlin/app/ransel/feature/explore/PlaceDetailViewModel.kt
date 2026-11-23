@@ -36,6 +36,8 @@ data class PlaceDetailInfo(
     val bestTime: String? = null,
     val estimatedCostMinor: Long? = null,
     val costCurrency: String? = null,
+    /** The top of a cost range (an idea card's "Rp1.500.000–3.000.000"); null = one amount. */
+    val costMaxMinor: Long? = null,
 )
 
 fun ExploreCard.toDetailInfo() = PlaceDetailInfo(

@@ -45,6 +45,8 @@ import ransel.composeapp.generated.resources.activity_delete_title
 import ransel.composeapp.generated.resources.activity_detail_edit_cd
 import ransel.composeapp.generated.resources.activity_detail_more_cd
 import ransel.composeapp.generated.resources.itinerary_schedule
+import ransel.composeapp.generated.resources.explore_level_value
+import ransel.composeapp.generated.resources.explore_access_value
 import ransel.composeapp.generated.resources.place_detail_about
 import ransel.composeapp.generated.resources.place_detail_best_time
 import ransel.composeapp.generated.resources.place_detail_error
@@ -229,7 +231,11 @@ fun ActivityDetailContent(
 ) {
     val scheme = MaterialTheme.colorScheme
     val dates = rememberDateFormatter()
-    val info = (place as? PlaceText.Loaded)?.info
+    val info = when (place) {
+        is PlaceText.Loaded -> place.info
+        is PlaceText.Idea -> ideaInfo(place, item)
+        else -> null
+    }
     val mapsUrl = activityMapsUrl(item)
     Column(
         modifier.fillMaxSize().background(scheme.surface).semantics { paneTitle = item.title },
@@ -286,7 +292,7 @@ fun ActivityDetailContent(
                         }
                     }
                 }
-                PlaceSections(place, onRetryPlace, onOpenMaps)
+                PlaceSections(place, info, mapsUrl ?: (place as? PlaceText.Idea)?.placeId?.let { googleMapsPlaceUrl(item.placeName ?: item.title, it) }, onRetryPlace, onOpenMaps)
             }
         }
     }
@@ -346,13 +352,31 @@ private fun InfoRow(symbol: String, text: String) {
 
 /** About, Good to know, Opening hours (AI estimate label) and Location: only what the place has. Loading and failure stay in this part. */
 @Composable
-private fun PlaceSections(place: PlaceText, onRetry: () -> Unit, onOpenMaps: (String) -> Unit) {
+private fun PlaceSections(place: PlaceText, shown: PlaceDetailInfo?, ideaMapsUrl: String?, onRetry: () -> Unit, onOpenMaps: (String) -> Unit) {
     when (place) {
         PlaceText.None -> Unit
         PlaceText.Loading -> LoadingSkeleton()
         PlaceText.Failed -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(Res.string.place_detail_error), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             TextButton(onClick = onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(Res.string.state_retry)) }
+        }
+        is PlaceText.Idea -> {
+            val info = shown ?: return
+            // an activity in a region has no opening hours; About and Good to know come from the idea card
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                info.about?.let { about -> Section(stringResource(Res.string.place_detail_about)) { Text(about, style = MaterialTheme.typography.bodyMedium) } }
+                if (info.highlights.isNotEmpty()) {
+                    Section(stringResource(Res.string.place_detail_highlights)) {
+                        info.highlights.forEach { tip ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Symbol(Symbols.info, size = 18.dp, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(tip, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+                if (ideaMapsUrl != null) LocationBlock(info) { onOpenMaps(ideaMapsUrl) }
+            }
         }
         is PlaceText.Loaded -> {
             val info = place.info
@@ -373,6 +397,33 @@ private fun PlaceSections(place: PlaceText, onRetry: () -> Unit, onOpenMaps: (St
             }
         }
     }
+}
+
+/**
+ * An idea card as the detail's sections (plan idea-activity-detail): region, photo, cost range, best season, why it fits
+ * as About; access, level, requirements, visa and safety lines as Good to know. The labels are the Explore card's own.
+ */
+@Composable
+private fun ideaInfo(idea: PlaceText.Idea, item: ItineraryItemDto): PlaceDetailInfo {
+    val card = idea.card
+    val access = card.access?.let { stringResource(Res.string.explore_access_value, it) }
+    val level = card.level?.let { stringResource(Res.string.explore_level_value, it) }
+    return PlaceDetailInfo(
+        // the photo's cache key: the region's place when known, else the item
+        placeId = idea.placeId ?: "idea-${item.id}",
+        name = card.region,
+        category = item.category,
+        address = card.region,
+        photoUrl = card.photoUrl,
+        // the card says "Foto: Google"; the header writes that line itself when there is no author
+        photoAttribution = null,
+        about = card.why.takeIf { it.isNotBlank() },
+        highlights = listOfNotNull(access, level) + card.requirements + listOfNotNull(card.visaNote, card.safetyLine),
+        bestTime = card.bestSeason,
+        estimatedCostMinor = card.costRange?.minMinor,
+        costMaxMinor = card.costRange?.maxMinor,
+        costCurrency = card.costRange?.currency,
+    )
 }
 
 /** The place in Google Maps: by place id when there is one, else by its point; null = nothing to open. */

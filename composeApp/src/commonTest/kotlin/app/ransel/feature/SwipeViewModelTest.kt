@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -52,7 +53,10 @@ class SwipeViewModelTest {
     private suspend fun SwipeViewModel.loaded() = eventually { state.value !is SwipeUiState.Loading }
 
     private val json = headersOf(HttpHeaders.ContentType, "application/json")
-    private val requests = mutableListOf<Pair<String, String>>()
+    // the mock engine answers on another thread while the test reads: an immutable list swapped atomically, never a
+    // shared mutable one (it threw ConcurrentModificationException now and then, 22-23 Nov 2026)
+    private val requestLog = kotlinx.coroutines.flow.MutableStateFlow(emptyList<Pair<String, String>>())
+    private val requests: List<Pair<String, String>> get() = requestLog.value
 
     private fun place(id: String) =
         """{"placeId":"$id","name":"Place $id","reason":"because","suggestedDurationMin":90,"lat":-8.5,"lng":115.2}"""
@@ -68,7 +72,7 @@ class SwipeViewModelTest {
         createApiHttpClient(
             MockEngine { request ->
                 val body = request.body.toByteArray().decodeToString()
-                requests += request.method.value + " " + request.url.encodedPath to body
+                requestLog.update { it + (request.method.value + " " + request.url.encodedPath to body) }
                 when {
                     request.url.encodedPath.endsWith("/recommendations") ->
                         respond(if ("\"newSearch\":false" in body) next else first, HttpStatusCode.OK, json)

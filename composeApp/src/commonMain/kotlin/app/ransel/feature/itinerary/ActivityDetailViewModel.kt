@@ -32,6 +32,8 @@ sealed interface PlaceText {
     data object Loading : PlaceText
     data object Failed : PlaceText
     data class Loaded(val info: PlaceDetailInfo) : PlaceText
+    /** An item made from an idea (plan idea-activity-detail): the idea card fills the sections; [placeId] = the region's. */
+    data class Idea(val card: app.ransel.shared.dto.InspirationCardDto, val placeId: String? = null) : PlaceText
 }
 
 data class ActivityDetailState(
@@ -65,6 +67,8 @@ class ActivityDetailViewModel(
     /** Null for a guest (no account to ask with) and in tests that do not need the place text. */
     private val api: RanselApi? = null,
     private val signedIn: () -> Boolean = { api != null },
+    /** The idea card of an item made from an idea, while it is only on this device. */
+    private val ideas: app.ransel.data.explore.ItineraryIdeas? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ActivityDetailState())
     val state: StateFlow<ActivityDetailState> = _state.asStateFlow()
@@ -84,10 +88,11 @@ class ActivityDetailViewModel(
                         trip = trip,
                         links = item?.activityLinks().orEmpty().map { url -> ActivityLinkRow(url, activityLinkLabel(url), activityLinkHost(url)) },
                         canEdit = trip?.myRole?.atLeast(Role.EDITOR) == true,
-                        place = if (item?.placeId == null) PlaceText.None else it.place,
+                        place = if (item == null || (item.placeId == null && !item.mayHaveIdea())) PlaceText.None else it.place,
                     )
                 }
                 if (item?.placeId != null && item.placeId != askedFor) loadPlace(item, trip)
+                else if (item != null && item.placeId == null && item.mayHaveIdea() && askedFor != ideaKey(item)) loadIdea(item)
             }
         }
     }
@@ -96,7 +101,41 @@ class ActivityDetailViewModel(
         val s = _state.value
         val item = s.item ?: return
         askedFor = null
-        loadPlace(item, s.trip)
+        if (item.placeId == null && item.mayHaveIdea()) loadIdea(item) else loadPlace(item, s.trip)
+    }
+
+    /** Only AI items without a Google place can come from an idea (swipe items always have one). */
+    private fun ItineraryItemDto.mayHaveIdea() = source == ItemSource.AI
+
+    private fun ideaKey(item: ItineraryItemDto) = "idea:${item.id}"
+
+    /**
+     * The idea card: the server's (every device and member), else the copy still on this device, which is uploaded now.
+     * No AI call and no credit either way; NOT_FOUND = an AI item without an idea, shown as the activity alone.
+     */
+    private fun loadIdea(item: ItineraryItemDto) {
+        askedFor = ideaKey(item)
+        viewModelScope.launch {
+            val local = ideas?.local(item.id)
+            val api = api
+            if (api == null || !signedIn()) {
+                _state.update { it.copy(place = local?.let { card -> PlaceText.Idea(card) } ?: PlaceText.None) }
+                return@launch
+            }
+            if (local == null) _state.update { it.copy(place = PlaceText.Loading) } else _state.update { it.copy(place = PlaceText.Idea(local)) }
+            val result = api.itineraryIdea(tripId, item.id)
+            _state.update {
+                it.copy(
+                    place = when {
+                        result is ApiResult.Success -> PlaceText.Idea(result.value.card, result.value.placeId)
+                        local != null -> PlaceText.Idea(local)
+                        (result as ApiResult.Failure).error.isNotFound -> PlaceText.None
+                        else -> PlaceText.Failed
+                    },
+                )
+            }
+            if (result !is ApiResult.Success && local != null) ideas?.push(tripId)
+        }
     }
 
     /** Hapus from ⋮ (after the confirm dialog): the screen closes by itself once the item is gone. */
