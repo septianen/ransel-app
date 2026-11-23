@@ -38,6 +38,7 @@ class UrlFragmentsTest {
         assertEquals(ExploreRoute, routeForUrlFragment("#/explore"))
         assertEquals(ExploreTripPickerRoute, routeForUrlFragment("#/explore/trips"))
         assertEquals("#/explore/trips", urlFragmentForRoute(ExploreTripPickerRoute))
+        assertEquals("#/explore/add-to-trip", urlFragmentForRoute(AddIdeaToTripRoute))
         assertEquals("#/explore/ask", urlFragmentForRoute(InspirationHomeRoute))
         assertEquals(NotificationSettingsRoute, routeForUrlFragment("#/notifications/settings"))
         // every address it reads back is the one it writes

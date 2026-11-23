@@ -22,6 +22,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import app.ransel.content.stringResource
+import app.ransel.shared.dto.InspirationCardDto
 import app.ransel.shared.dto.SavedIdeaDto
 import app.ransel.ui.RefreshOnReturn
 import app.ransel.ui.components.IconFab
@@ -61,6 +62,7 @@ fun ExploreTabScreen(
     onOpenSavedIdeas: () -> Unit,
     onAskAi: () -> Unit,
     onCreateTrip: (SavedIdeaDto) -> Unit,
+    onAddToExistingTrip: (InspirationCardDto) -> Unit = {},
 ) {
     val saved by savedViewModel.state.collectAsState()
     val snackHost = remember { SnackbarHostState() }
@@ -106,6 +108,7 @@ fun ExploreTabScreen(
                 applyStatusBarsPadding = false,
                 listBottomSpace = 96.dp,
                 onCreateTrip = onCreateTrip,
+                onAddToExistingTrip = onAddToExistingTrip,
                 onRemove = savedViewModel::remove,
                 onRefresh = savedViewModel::refresh,
                 onRetry = savedViewModel::load,

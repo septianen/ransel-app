@@ -80,11 +80,13 @@ import app.ransel.platform.requiresAccount
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import app.ransel.feature.account.AccountScreen
+import app.ransel.feature.inspiration.AddIdeaToTripScreen
 import app.ransel.feature.inspiration.ExploreTabScreen
 import app.ransel.feature.inspiration.InspirationHomeScreen
 import app.ransel.feature.inspiration.InspirationInterviewScreen
 import app.ransel.feature.inspiration.InspirationResultsScreen
 import app.ransel.feature.inspiration.SavedIdeasScreen
+import app.ransel.navigation.AddIdeaToTripRoute
 import app.ransel.navigation.InspirationHomeRoute
 import app.ransel.navigation.InspirationInterviewRoute
 import app.ransel.navigation.InspirationResultsRoute
@@ -636,6 +638,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
     // Saved ideas (≥ 1) are the Explore tab; otherwise the Ask AI form. Guests and unverified accounts see the gates.
     tabPage<ExploreRoute>(MainTab.EXPLORE, navController) {
         val manager: SessionManager = koinInject()
+        val addIdeaRequests: app.ransel.data.inspiration.AddIdeaToTripRequests = koinInject()
         ExploreAccountGate(
             onSignIn = { navController.navigate(SignInRoute) },
             onSignUp = { navController.navigate(SignUpRoute) },
@@ -652,6 +655,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
                     onCreateTrip = { idea ->
                         navController.openTripFromIdea(idea.card, app.ransel.feature.inspiration.interestsFromProfile(idea.profile))
                     },
+                    onAddToExistingTrip = { navController.openAddIdeaToTrip(it, addIdeaRequests) },
                 )
             }
         }
@@ -695,6 +699,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
     }
     page<InspirationResultsRoute> { entry ->
         val sessionId = entry.toRoute<InspirationResultsRoute>().sessionId
+        val addIdeaRequests: app.ransel.data.inspiration.AddIdeaToTripRequests = koinInject()
         InspirationResultsScreen(
             viewModel = koinViewModel(key = "inspiration-results-$sessionId") { org.koin.core.parameter.parametersOf(sessionId) },
             onBack = { if (!navController.popBackStack<ExploreRoute>(inclusive = false)) navController.openTab(MainTab.EXPLORE) },
@@ -702,6 +707,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             onOpenCredits = { navController.navigate(CreditsRoute()) },
             // "Bikin trip dari sini": Buat trip with the card's region and the session's interests; dates stay open
             onCreateTrip = { card, interests -> navController.openTripFromIdea(card, interests) },
+            onAddToExistingTrip = { navController.openAddIdeaToTrip(it, addIdeaRequests) },
         )
     }
     page<InspirationSavedPlaceholderRoute> {
@@ -713,6 +719,7 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
     }
     page<SavedIdeasRoute> {
         val savedSessionManager: SessionManager = koinInject()
+        val addIdeaRequests: app.ransel.data.inspiration.AddIdeaToTripRequests = koinInject()
         val savedSession by savedSessionManager.state.collectAsState()
         SavedIdeasScreen(
             viewModel = koinViewModel(),
@@ -724,6 +731,17 @@ private fun NavGraphBuilder.tabs(navController: NavHostController, signedIn: () 
             // the same hand-off as the results feed (plan idea-to-trip-flow v2)
             onCreateTrip = { idea ->
                 navController.openTripFromIdea(idea.card, app.ransel.feature.inspiration.interestsFromProfile(idea.profile))
+            },
+            onAddToExistingTrip = { navController.openAddIdeaToTrip(it, addIdeaRequests) },
+        )
+    }
+    page<AddIdeaToTripRoute> {
+        AddIdeaToTripScreen(
+            onBack = { navController.popBackStack() },
+            onOpenTrip = { tripId ->
+                navController.navigate(TripRoute(tripId, "ITINERARY")) {
+                    popUpTo<AddIdeaToTripRoute> { inclusive = true }
+                }
             },
         )
     }
@@ -1252,6 +1270,14 @@ private fun NavHostController.openTripExplore(tripId: String, requests: app.rans
  * "Bikin trip dari sini" (results feed and Ide tersimpan): Buat trip with the idea's region, country and interests; dates stay
  * open. The new trip's itinerary stays empty (plan idea-to-trip-flow v3). Nothing is charged.
  */
+private fun NavHostController.openAddIdeaToTrip(
+    card: app.ransel.shared.dto.InspirationCardDto,
+    requests: app.ransel.data.inspiration.AddIdeaToTripRequests,
+) {
+    requests.set(card)
+    navigate(AddIdeaToTripRoute)
+}
+
 private fun NavHostController.openTripFromIdea(card: app.ransel.shared.dto.InspirationCardDto, interests: Set<app.ransel.shared.model.Interest>) {
     navigate(
         InterviewRoute(

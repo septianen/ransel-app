@@ -26,6 +26,7 @@ import app.ransel.data.inspiration.InspirationSessionStore
 import app.ransel.feature.inspiration.InspirationHomeViewModel
 import app.ransel.feature.inspiration.InspirationInterviewViewModel
 import app.ransel.feature.inspiration.InspirationResultsViewModel
+import app.ransel.feature.inspiration.AddIdeaToTripViewModel
 import app.ransel.feature.inspiration.SavedIdeasViewModel
 import app.ransel.feature.explore.ExploreTripPickerViewModel
 import app.ransel.feature.explore.PlaceDetailViewModel
@@ -113,6 +114,8 @@ val commonModule: Module = module {
     viewModel { params -> InspirationInterviewViewModel(params.get(), get(), get()) }
     viewModel { params -> InspirationResultsViewModel(params.get(), get(), get()) }
     viewModelOf(::SavedIdeasViewModel)
+    single { app.ransel.data.inspiration.AddIdeaToTripRequests() }
+    viewModelOf(::AddIdeaToTripViewModel)
     single { app.ransel.data.travel.TravelAnswerChanges() }
     viewModel { params ->
         app.ransel.feature.tripform.travel.TripAnswerViewModel(

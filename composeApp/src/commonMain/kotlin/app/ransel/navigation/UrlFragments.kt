@@ -21,6 +21,7 @@ fun urlFragmentForRoute(route: Any): String = "#/" + when (route) {
     ExploreRoute -> "explore"
     InspirationHomeRoute -> "explore/ask"
     ExploreTripPickerRoute -> "explore/trips"
+    AddIdeaToTripRoute -> "explore/add-to-trip"
     is ExplorePreferencesRoute -> route.tripId?.let { "trips/${enc(it)}/explore/new" } ?: "explore/new"
     AccountRoute -> "account"
     ProfileSecurityRoute -> "account/profile"
@@ -126,6 +127,7 @@ private fun routeOf(entry: NavBackStackEntry): Any? {
         d.hasRoute(ExploreRoute::class) -> ExploreRoute
         d.hasRoute(InspirationHomeRoute::class) -> InspirationHomeRoute
         d.hasRoute(ExploreTripPickerRoute::class) -> ExploreTripPickerRoute
+        d.hasRoute(AddIdeaToTripRoute::class) -> AddIdeaToTripRoute
         d.hasRoute(ExplorePreferencesRoute::class) -> entry.toRoute<ExplorePreferencesRoute>()
         d.hasRoute(AccountRoute::class) -> AccountRoute
         d.hasRoute(ProfileSecurityRoute::class) -> ProfileSecurityRoute

@@ -15,7 +15,6 @@ import app.ransel.feature.trips.phase
 import app.ransel.shared.dto.TripDto
 import app.ransel.shared.dto.TripSummaryDto
 import app.ransel.shared.api.ErrorCode
-import app.ransel.shared.model.Role
 import app.ransel.util.today
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,9 +70,7 @@ class ExploreTripPickerViewModel(
     private val eligible = trips.observeTrips().flatMapLatest { all ->
         val today = today()
         // The server only lets editors and owners search; finished trips cannot be searched either (422 TRIP_ENDED).
-        val list = all
-            .filter { it.myRole.atLeast(Role.EDITOR) && it.phase(today) != TripPhase.FINISHED }
-            .sortedWith(compareBy({ it.phase(today) != TripPhase.ONGOING }, { it.startDate == null }, { if (it.phase(today) == TripPhase.ONGOING) it.endDate else it.startDate }))
+        val list = app.ransel.feature.trips.tripsThatCanReceiveIdea(all, today)
         if (list.isEmpty()) flowOf(emptyList())
         else combine(list.map { trip -> trips.observeSummary(trip.id) }) { summaries ->
             list.mapIndexed { i, trip -> ExplorePickerTrip(trip, trip.phase(today), summaries[i]) }

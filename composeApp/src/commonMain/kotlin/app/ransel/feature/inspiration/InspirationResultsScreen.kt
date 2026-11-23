@@ -114,6 +114,7 @@ fun InspirationResultsScreen(
     onOpenCredits: () -> Unit,
     /** "Bikin trip dari sini": the card and the session's interests go to "Buat trip". */
     onCreateTrip: (InspirationCardDto, Set<app.ransel.shared.model.Interest>) -> Unit = { _, _ -> },
+    onAddToExistingTrip: (InspirationCardDto) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     var buddyOpen by remember { mutableStateOf(false) }
@@ -158,6 +159,7 @@ fun InspirationResultsScreen(
             viewModel.makeTripTapped()
             onCreateTrip(card, viewModel.interestsForTrip())
         },
+        onAddToExistingTrip = onAddToExistingTrip,
         onCardOpened = viewModel::cardOpened,
         onEditChip = viewModel::openChipEdit,
         onChipEditValue = viewModel::setChipEditValue,
@@ -188,6 +190,7 @@ fun InspirationResultsContent(
     onSave: (InspirationCardDto) -> Unit = {},
     onBuddy: () -> Unit = {},
     onCreateTrip: (InspirationCardDto) -> Unit = {},
+    onAddToExistingTrip: (InspirationCardDto) -> Unit = {},
     onCardOpened: (InspirationCardDto) -> Unit = {},
     onEditChip: (InspirationChipDto) -> Unit = {},
     onChipEditValue: (String) -> Unit = {},
@@ -266,7 +269,13 @@ fun InspirationResultsContent(
         }
     }
     detailCard?.let { card ->
-        CardDetailSheet(card, onDismiss = { detailCard = null }, onCreateTrip = { onCreateTrip(it); detailCard = null }, onSave = { onSave(it); detailCard = null })
+        CardDetailSheet(
+            card,
+            onDismiss = { detailCard = null },
+            onCreateTrip = { onCreateTrip(it); detailCard = null },
+            onSave = { onSave(it); detailCard = null },
+            onAddToExistingTrip = onAddToExistingTrip,
+        )
     }
     if (state.askAgainOpen) {
         AskAgainSheet(state, onAnswer, onOtherText, onOpenOther, onAnswerOther, onCloseQuestion)

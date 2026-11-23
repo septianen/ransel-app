@@ -2210,6 +2210,11 @@
     <string name="explore_ai_estimate_note">AI estimate, check again before you go</string>
     <string name="explore_safety_line">Ransel is not an operator. Check your licence and buddy before you go.</string>
     <string name="explore_create_trip">Create a trip from here</string>
+    <string name="explore_add_to_trip">Add to existing trip</string>
+    <string name="explore_add_to_trip_title">Choose a trip</string>
+    <string name="explore_add_to_trip_snackbar">Added to %1$s</string>
+    <string name="explore_add_to_trip_empty_title">No trip to add to</string>
+    <string name="explore_add_to_trip_empty_body">Finished trips and trips you can only view are not shown.</string>
     <string name="explore_create_trip_note">You can add the dates later.</string>
     <string name="explore_save">Save</string>
     <string name="explore_saved_snackbar">Saved to Saved ideas · View</string>
